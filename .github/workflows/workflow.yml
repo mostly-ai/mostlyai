@@ -9,7 +9,7 @@ env:
 
 jobs:
   run-lint-and-test:
-    runs-on: ubuntu-latest
+    runs-on: gha-gpu-public
     permissions:
       contents: read
       packages: write
