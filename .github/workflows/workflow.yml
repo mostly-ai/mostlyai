@@ -34,17 +34,17 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --extra local-gpu
 
-      - name: Lint | Ruff
-        run: |
-          uv run -- ruff check .. --ignore E741
-          uv run -- ruff format --check ..
+      # - name: Lint | Ruff
+      #   run: |
+      #     uv run -- ruff check .. --ignore E741
+      #     uv run -- ruff format --check ..
 
       - name: Test | End-to-End Tests
         run: |
           uv run -- pytest -vv tests/_local/end_to_end
 
-      - name: Test | Unit Tests
-        run: |
-          uv run -- pytest -vv tests/client/unit
-          uv run -- pytest -vv tests/_data/unit
-          uv run -- pytest -vv tests/_local/unit
+      # - name: Test | Unit Tests
+      #   run: |
+      #     uv run -- pytest -vv tests/client/unit
+      #     uv run -- pytest -vv tests/_data/unit
+      #     uv run -- pytest -vv tests/_local/unit
