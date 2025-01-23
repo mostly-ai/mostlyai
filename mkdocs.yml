@@ -30,9 +30,9 @@ theme:
 
 nav:
   - Getting Started: index.md
+  - Usage Examples: usage.md
   - API Reference: api_client.md
   - Schema Reference: api_domain.md
-  - Examples: usage.md
   - Cheat Sheet: syntax.md
   - Tutorials: tutorials.md
 

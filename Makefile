@@ -1,6 +1,6 @@
 # Internal Variables
 PUBLIC_API_FULL_URL = https://raw.githubusercontent.com/mostly-ai/mostly-openapi/refs/heads/main/public-api.yaml
-PUBLIC_API_OUTPUT_PATH = mostlyai/domain.py
+PUBLIC_API_OUTPUT_PATH = mostlyai/sdk/domain.py
 
 # Targets
 .PHONY: help
@@ -14,9 +14,9 @@ gen-public-model: ## build pydantic models for public api
 	@echo "Generating Pydantic models from $(PUBLIC_API_FULL_URL)"
 	datamodel-codegen --url $(PUBLIC_API_FULL_URL) $(COMMON_OPTIONS)
 	#datamodel-codegen --input ../mostly-app-v2/public-api/public-api.yaml $(COMMON_OPTIONS)
-	python tools/postproc_model.py
-	poetry run -- ruff format .
-	poetry run -- ruff check . --fix
+	python tools/postproc_domain.py
+	uv run -- ruff format .
+	uv run -- ruff check . --fix
 
 # Common options for both targets
 COMMON_OPTIONS = \
@@ -33,7 +33,7 @@ COMMON_OPTIONS = \
 	--enum-field-as-literal one \
 	--use-subclass-enum \
 	--output-model-type pydantic_v2.BaseModel \
-	--base-class mostlyai.client.base.CustomBaseModel \
+	--base-class mostlyai.sdk.client.base.CustomBaseModel \
 	--custom-template-dir tools/custom_template
 
 .PHONY: clean
@@ -42,7 +42,7 @@ clean: ## Remove .gitignore files
 
 # Default files to update
 PYPROJECT_TOML = pyproject.toml
-INIT_FILE = mostlyai/__init__.py
+INIT_FILE = mostlyai/sdk/__init__.py
 
 # Internal Variables for Release Workflow
 BUMP_TYPE ?= patch
@@ -101,7 +101,7 @@ bump-version: # Bump version (default: patch, options: patch, minor, major)
     fi
 
 update-vars-version: # Update the required variables after bump
-	$(eval VERSION := $(shell poetry version -s))
+	$(eval VERSION := $(shell python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"))
 	$(eval BRANCH := verbump_$(shell echo $(VERSION) | tr '.' '_'))
 	$(eval TAG := $(VERSION))
 	@echo "Updated VERSION to $(VERSION), BRANCH to $(BRANCH), TAG to $(TAG)"
@@ -123,7 +123,7 @@ clean-dist: # Remove "volatile" directory dist
 
 build: # Build the project and create the dist directory if it doesn't exist
 	@mkdir -p dist
-	@poetry build
+	@uv build
 	@echo "Built the project"
 	@twine check --strict dist/*
 	@echo "Project is checked"

@@ -1,4 +1,4 @@
-# Copyright 2024 MOSTLY AI
+# Copyright 2024-2025 MOSTLY AI
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,15 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import uuid
+import zipfile
 from pathlib import Path
 from typing import Annotated, Any, ClassVar, Literal
 
 import pandas as pd
-from pydantic import Field, field_validator
+import rich
+from pydantic import Field, field_validator, model_validator
 
-from mostlyai.client._base_utils import convert_to_base64
-from mostlyai.domain import (
+from mostlyai.sdk.client._base_utils import convert_to_base64
+from mostlyai.sdk.domain import (
     JobProgress,
     SyntheticDatasetFormat,
     ConnectorPatchConfig,
@@ -28,11 +30,22 @@ from mostlyai.domain import (
     SyntheticDatasetPatchConfig,
     SyntheticDatasetConfig,
     GeneratorConfig,
+    ModelEncodingType,
+    ProgressStatus,
+    ModelConfiguration,
+    SyntheticDatasetReportType,
 )
 
 
 class Connector:
     OPEN_URL_PARTS: ClassVar[list] = ["d", "connectors"]
+
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if "id" not in values:
+            values["id"] = str(uuid.uuid4())
+        return values
 
     def update(
         self,
@@ -124,6 +137,15 @@ class Generator:
     OPEN_URL_PARTS: ClassVar[list] = ["d", "generators"]
     training: Annotated[Any | None, Field(exclude=True)] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if "id" not in values:
+            values["id"] = str(uuid.uuid4())
+        if "training_status" not in values:
+            values["training_status"] = ProgressStatus.new
+        return values
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.training = self.Training(self)
@@ -144,9 +166,7 @@ class Generator:
             name=name,
             description=description,
         )
-        self.client._update(
-            generator_id=self.id, config=patch_config.model_dump(exclude_none=True)
-        )
+        self.client._update(generator_id=self.id, config=patch_config.model_dump(exclude_none=True))
         self.reload()
 
     def delete(self) -> None:
@@ -199,6 +219,43 @@ class Generator:
         """
         return self.client._clone(generator_id=self.id, training_status=training_status)
 
+    def reports(self, file_path: str | Path | None = None) -> Path:
+        """
+        Download the quality assurance reports and save to file.
+
+        Args:
+            file_path: The file path to save the zipped reports.
+
+        Returns:
+            The path to the saved file.
+        """
+        reports = {}
+        for table in self.tables:
+            if table.tabular_model_metrics:
+                reports[f"{table.name}-tabular.html"] = self.client._report(
+                    generator_id=self.id,
+                    source_table_id=table.id,
+                    model_type="TABULAR",
+                    short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
+                )
+            if table.language_model_metrics:
+                reports[f"{table.name}-language.html"] = self.client._report(
+                    generator_id=self.id,
+                    source_table_id=table.id,
+                    model_type="LANGUAGE",
+                    short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
+                )
+
+        file_path = Path(file_path or ".")
+        if file_path.is_dir():
+            file_path = file_path / f"generator-{self.id[:8]}-reports.zip"
+        if file_path.exists():
+            file_path.unlink()
+        with zipfile.ZipFile(file_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for filename, content in reports.items():
+                zip_file.writestr(filename, content)
+        return file_path
+
     class Training:
         def __init__(self, _generator: "Generator"):
             self.generator = _generator
@@ -207,6 +264,7 @@ class Generator:
             """
             Start training.
             """
+            rich.print("Started generator training")
             self.generator.client._training_start(self.generator.id)
 
         def cancel(self) -> None:
@@ -233,38 +291,197 @@ class Generator:
                 progress_bar: If true, displays the progress bar.
                 interval: The interval in seconds to poll the job progress.
             """
-            self.generator.client._training_wait(
-                self.generator.id, progress_bar=progress_bar, interval=interval
-            )
+            self.generator.client._training_wait(self.generator.id, progress_bar=progress_bar, interval=interval)
             self.generator.reload()
+            if self.generator.training_status == ProgressStatus.done:
+                rich.print(
+                    ":tada: [bold green]Your generator is ready![/] "
+                    "Use it to create synthetic data. "
+                    "Publish it so others can do the same."
+                )
+
+
+class GeneratorConfig:
+    @field_validator("tables", mode="after")
+    @classmethod
+    def validate_unique_table_names(cls, tables):
+        defined_tables = [t.name for t in tables or []]
+        if len(defined_tables) != len(set(defined_tables)):
+            raise ValueError("Table names must be unique.")
+        return tables
+
+    @field_validator("tables", mode="after")
+    @classmethod
+    def validate_each_referenced_table_exist_and_has_primary_key(cls, tables):
+        table_map = {table.name: table for table in tables or []}
+        for table in tables or []:
+            for fk in table.foreign_keys or []:
+                ref_table = table_map.get(fk.referenced_table)
+                if not ref_table:
+                    raise ValueError(
+                        f"Foreign key in table '{table.name}' references a non-existent table: "
+                        f"'{fk.referenced_table}'."
+                    )
+                if not ref_table.primary_key:
+                    raise ValueError(f"Referenced table '{fk.referenced_table}' does not have a primary key.")
+        return tables
+
+    @field_validator("tables", mode="after")
+    @classmethod
+    def validate_no_circular_context_references(cls, tables):
+        if not tables:
+            return tables
+        table_map = {table.name: table for table in tables}
+        visited = set()
+        for table in tables:
+            if table.name in visited:
+                continue
+            current_table = table
+            seen_tables = set()
+            while current_table:
+                if current_table.name in seen_tables:
+                    raise ValueError(f"Circular reference detected in tables: {', '.join(seen_tables)}")
+                seen_tables.add(current_table.name)
+                context_fk = next((fk for fk in (current_table.foreign_keys or []) if fk.is_context), None)
+                if not context_fk or not context_fk.referenced_table:
+                    break
+                current_table = table_map.get(context_fk.referenced_table)
+            visited.update(seen_tables)
+        return tables
 
 
 class SourceTableConfig:
     @field_validator("data", mode="before")
     @classmethod
-    def validate_data_before(cls, value):
+    def convert_data_before(cls, value):
         return convert_to_base64(value) if isinstance(value, pd.DataFrame) else value
+
+    @model_validator(mode="after")
+    @classmethod
+    def add_model_configuration(cls, values):
+        # Check if the table has a tabular and/or a language model
+        if values.columns:
+            keys = [fk.column for fk in values.foreign_keys or []]
+            if values.primary_key:
+                keys.append(values.primary_key)
+            model_columns = [c for c in values.columns if c.name not in keys]
+            enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
+            has_tabular_model = any(not enc_type.startswith("LANGUAGE_") for enc_type in enc_types)
+            has_language_model = any(enc_type.startswith("LANGUAGE_") for enc_type in enc_types)
+        else:
+            has_tabular_model = True
+            has_language_model = False
+        if values.foreign_keys:
+            # Always train tabular model for linked tables to model sequences
+            for fk in values.foreign_keys:
+                if fk.is_context:
+                    has_tabular_model = True
+        # Raise error if model configurations were incorrectly provided
+        if values.tabular_model_configuration and not has_tabular_model:
+            raise ValueError("Tabular model configuration is not applicable for language models.")
+        if values.language_model_configuration and not has_language_model:
+            raise ValueError("Language model configuration is not applicable for tabular models.")
+        # Add default model configurations if none were provided
+        if has_tabular_model and not values.tabular_model_configuration:
+            default_model = "MOSTLY_AI/Medium"
+            values.tabular_model_configuration = ModelConfiguration(model=default_model)
+        if has_language_model and not values.language_model_configuration:
+            default_model = "MOSTLY_AI/LSTMFromScratch-3m"
+            values.language_model_configuration = ModelConfiguration(model=default_model, max_sequence_window=None)
+        if has_language_model and values.language_model_configuration:
+            # language models atm do not support max_sequence_window; thus set configuration to None
+            values.language_model_configuration.max_sequence_window = None
+        return values
+
+    @field_validator("columns", mode="after")
+    @classmethod
+    def validate_unique_columns(cls, columns):
+        if columns:
+            defined_columns = [c.name for c in columns]
+            if len(defined_columns) != len(set(defined_columns)):
+                raise ValueError("Column names must be unique.")
+        return columns
+
+    @model_validator(mode="after")
+    @classmethod
+    def validate_unique_keys(cls, values):
+        pk = values.primary_key or []
+        fks = [fk.column for fk in values.foreign_keys or []]
+        if len(fks) != len(set(fks)):
+            raise ValueError("Foreign key column names must be unique.")
+        if pk in fks:
+            raise ValueError("Primary key column name must not be defined as foreign key.")
+        return values
+
+    @field_validator("foreign_keys", mode="after")
+    @classmethod
+    def validate_at_most_one_context_fk(cls, foreign_keys):
+        if foreign_keys:
+            context_fks = [fk for fk in foreign_keys if fk.is_context]
+            if len(context_fks) > 1:
+                raise ValueError("At most one context foreign key is allowed")
+        return foreign_keys
+
+    @model_validator(mode="after")
+    @classmethod
+    def validate_keys_exists_in_columns(cls, values):
+        if values.columns:
+            column_names = {col.name for col in values.columns}
+            pk = values.primary_key
+            if pk is not None and pk not in column_names:
+                raise ValueError(f"Primary key column '{pk}' does not exist in the table's columns.")
+            for fk in values.foreign_keys or []:
+                if fk.column not in column_names:
+                    raise ValueError(f"Foreign key column '{fk.column}' does not exist in the table's columns.")
+        return values
+
+
+class SourceColumn:
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if "id" not in values:
+            values["id"] = str(uuid.uuid4())
+        if "model_encoding_type" not in values:
+            values["model_encoding_type"] = ModelEncodingType.auto
+        if "included" not in values:
+            values["included"] = True
+        return values
 
 
 class SyntheticTableConfiguration:
     @field_validator("sample_seed_dict", mode="before")
     @classmethod
-    def validate_dict_before(cls, value):
-        return (
-            convert_to_base64(value, format="jsonl")
-            if isinstance(value, dict)
-            else value
-        )
+    def convert_dict_before(cls, value):
+        return convert_to_base64(value, format="jsonl") if isinstance(value, dict) else value
 
     @field_validator("sample_seed_data", mode="before")
     @classmethod
-    def validate_data_before(cls, value):
+    def convert_data_before(cls, value):
         return convert_to_base64(value) if isinstance(value, pd.DataFrame) else value
+
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if "sampling_temperature" not in values:
+            values["sampling_temperature"] = 1.0
+        if "sampling_top_p" not in values:
+            values["sampling_top_p"] = 1.0
+        return values
 
 
 class SyntheticDataset:
     OPEN_URL_PARTS: ClassVar[list] = ["d", "synthetic-datasets"]
     generation: Annotated[Any | None, Field(exclude=True)] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if "id" not in values:
+            values["id"] = str(uuid.uuid4())
+        if "generation_status" not in values:
+            values["generation_status"] = ProgressStatus.new
+        return values
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -315,15 +532,15 @@ class SyntheticDataset:
 
     def download(
         self,
-        format: SyntheticDatasetFormat = "PARQUET",
         file_path: str | Path | None = None,
+        format: SyntheticDatasetFormat = "PARQUET",
     ) -> Path:
         """
         Download synthetic dataset and save to file.
 
         Args:
-            format: The format of the synthetic dataset.
             file_path: The file path to save the synthetic dataset.
+            format: The format of the synthetic dataset.
 
         Returns:
             The path to the saved file.
@@ -331,7 +548,7 @@ class SyntheticDataset:
         bytes, filename = self.client._download(
             synthetic_dataset_id=self.id,
             ds_format=format,
-            short_lived_file_token=self.metadata.short_lived_file_token,
+            short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
         )
         file_path = Path(file_path or ".")
         if file_path.is_dir():
@@ -339,9 +556,7 @@ class SyntheticDataset:
         file_path.write_bytes(bytes)
         return file_path
 
-    def data(
-        self, return_type: Literal["auto", "dict"] = "auto"
-    ) -> pd.DataFrame | dict[str, pd.DataFrame]:
+    def data(self, return_type: Literal["auto", "dict"] = "auto") -> pd.DataFrame | dict[str, pd.DataFrame]:
         """
         Download synthetic dataset and return as dictionary of pandas DataFrames.
 
@@ -353,12 +568,53 @@ class SyntheticDataset:
         """
         dfs = self.client._data(
             synthetic_dataset_id=self.id,
-            short_lived_file_token=self.metadata.short_lived_file_token,
+            short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
         )
         if return_type == "auto" and len(dfs) == 1:
             return list(dfs.values())[0]
         else:
             return dfs
+
+    def reports(self, file_path: str | Path | None = None) -> Path:
+        """
+        Download the quality assurance reports and save to file.
+
+        Args:
+            file_path: The file path to save the zipped reports.
+
+        Returns:
+            The path to the saved file.
+        """
+        reports = {}
+        for report_type in [SyntheticDatasetReportType.model, SyntheticDatasetReportType.data]:
+            report_infix = "" if report_type == SyntheticDatasetReportType.model else "-data"
+            for table in self.tables:
+                if table.tabular_model_metrics:
+                    reports[f"{table.name}-tabular{report_infix}.html"] = self.client._report(
+                        synthetic_dataset_id=self.id,
+                        synthetic_table_id=table.id,
+                        model_type="TABULAR",
+                        report_type=report_type,
+                        short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
+                    )
+                if table.language_model_metrics:
+                    reports[f"{table.name}-language{report_infix}.html"] = self.client._report(
+                        synthetic_dataset_id=self.id,
+                        synthetic_table_id=table.id,
+                        model_type="LANGUAGE",
+                        report_type=report_type,
+                        short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
+                    )
+
+        file_path = Path(file_path or ".")
+        if file_path.is_dir():
+            file_path = file_path / f"synthetic-dataset-{self.id[:8]}-reports.zip"
+        if file_path.exists():
+            file_path.unlink()
+        with zipfile.ZipFile(file_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for filename, content in reports.items():
+                zip_file.writestr(filename, content)
+        return file_path
 
     class Generation:
         def __init__(self, _synthetic_dataset: "SyntheticDataset"):
@@ -369,6 +625,7 @@ class SyntheticDataset:
             Start the generation process.
             """
             self.synthetic_dataset.client._generation_start(self.synthetic_dataset.id)
+            rich.print("Started synthetic dataset generation")
 
         def cancel(self) -> None:
             """
@@ -384,9 +641,7 @@ class SyntheticDataset:
             Returns:
                 JobProgress: The progress of the generation process.
             """
-            return self.synthetic_dataset.client._generation_progress(
-                self.synthetic_dataset.id
-            )
+            return self.synthetic_dataset.client._generation_progress(self.synthetic_dataset.id)
 
         def wait(self, progress_bar: bool = True, interval: float = 2) -> None:
             """
@@ -400,3 +655,110 @@ class SyntheticDataset:
                 self.synthetic_dataset.id, progress_bar=progress_bar, interval=interval
             )
             self.synthetic_dataset.reload()
+            if self.synthetic_dataset.generation_status == ProgressStatus.done:
+                rich.print(
+                    ":tada: [bold green]Your synthetic dataset is ready![/] "
+                    "Use it to consume the generated data. "
+                    "Publish it so others can do the same."
+                )
+
+
+class SourceTable:
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if "id" not in values:
+            values["id"] = str(uuid.uuid4())
+        return values
+
+
+class SyntheticTable:
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if "id" not in values:
+            values["id"] = str(uuid.uuid4())
+        return values
+
+
+class SourceForeignKey:
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if "id" not in values:
+            values["id"] = str(uuid.uuid4())
+        return values
+
+
+class ProgressStep:
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if "id" not in values:
+            values["id"] = str(uuid.uuid4())
+        if "status" not in values:
+            values["status"] = ProgressStatus.new
+        if "compute_name" not in values:
+            values["compute_name"] = "SDK"
+        return values
+
+
+class RebalancingConfig:
+    @field_validator("probabilities", mode="after")
+    def validate_probabilities(cls, v):
+        if not all(0 <= v <= 1 for v in v.values()):
+            raise ValueError("the probabilities must be between 0 and 1")
+        if not sum(v.values()) <= 1:
+            raise ValueError("the sum of probabilities must be less than or equal to 1")
+        return v
+
+
+class ConnectorListItem:
+    OPEN_URL_PARTS: ClassVar[list] = ["d", "connectors"]
+
+    def __getattr__(self, item):
+        if item in {"update", "delete", "locations", "schema"}:
+
+            def delegated_method(*args, **kwargs):
+                connector = self.client.get(self.id)
+                result = getattr(connector, item)(*args, **kwargs)
+                if item == "update":
+                    self.reload()
+                return result
+
+            return delegated_method
+        return object.__getattribute__(self, item)
+
+
+class GeneratorListItem:
+    OPEN_URL_PARTS: ClassVar[list] = ["d", "generators"]
+
+    def __getattr__(self, item):
+        if item in {"update", "delete", "clone", "config", "export_to_file"}:
+
+            def delegated_method(*args, **kwargs):
+                generator = Generator(id=self.id, client=self.client)
+                result = getattr(generator, item)(*args, **kwargs)
+                if item == "update":
+                    self.reload()
+                return result
+
+            return delegated_method
+        return object.__getattribute__(self, item)
+
+
+class SyntheticDatasetListItem:
+    OPEN_URL_PARTS: ClassVar[list] = ["d", "synthetic-datasets"]
+
+    def __getattr__(self, item):
+        if item in {"update", "delete", "config", "download", "data"}:
+
+            def delegated_method(*args, **kwargs):
+                sd = self.client.get(self.id)
+                result = getattr(sd, item)(*args, **kwargs)
+                if item == "update":
+                    self.reload()
+                return result
+
+            return delegated_method
+        return object.__getattribute__(self, item)

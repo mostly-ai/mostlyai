@@ -7,28 +7,28 @@ hide:
 
 ## MOSTLY AI Client
 
-::: mostlyai.client.api.MostlyAI
+::: mostlyai.sdk.client.api.MostlyAI
 
 ## Generators
 
-::: mostlyai.client.generators._MostlyGeneratorsClient
+::: mostlyai.sdk.client.generators._MostlyGeneratorsClient
 
 ## Generator
 
-::: mostlyai.domain.Generator
+::: mostlyai.sdk.domain.Generator
 
 ## Synthetic Datasets
 
-::: mostlyai.client.synthetic_datasets._MostlySyntheticDatasetsClient
+::: mostlyai.sdk.client.synthetic_datasets._MostlySyntheticDatasetsClient
 
 ## Synthetic Dataset
 
-::: mostlyai.domain.SyntheticDataset
+::: mostlyai.sdk.domain.SyntheticDataset
 
 ## Connectors
 
-::: mostlyai.client.connectors._MostlyConnectorsClient
+::: mostlyai.sdk.client.connectors._MostlyConnectorsClient
 
 ## Connector
 
-::: mostlyai.domain.Connector
+::: mostlyai.sdk.domain.Connector
