@@ -23,7 +23,6 @@ dependencies = [
     "pydantic>=2.4.2,<3",
     "httpx>=0.25.0,<0.28.0",
     "pandas>=1.5.3,<3",
-    "torch==2.5.1; sys_platform == 'darwin'",
     "pyarrow>=16.0.0",
     "smart_open>=6.0.0",
     "rich>=13.7.0",
@@ -80,8 +79,7 @@ local-cpu = [
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
     # cpu
-    "torch==2.5.1+cpu; sys_platform != 'darwin'",
-    "torch==2.5.1; sys_platform == 'darwin'",
+    "torch==2.5.1+cpu",
 ]
 # connectors
 databricks = ["databricks-sql-connector>=3.2.0,<4"]
@@ -140,7 +138,7 @@ explicit = true
 
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform != 'darwin'" },
+  { index = "pytorch-cpu", extra = "local-cpu" },
 ]
 
 [tool.hatch.build.targets.sdist]
