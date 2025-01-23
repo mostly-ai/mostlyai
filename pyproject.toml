@@ -135,15 +135,9 @@ name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
-[[tool.uv.index]]
-name = "pytorch-gpu"
-url = "https://download.pytorch.org/whl/cu124"
-explicit = true
-
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cpu", extra = "local-cpu"},
-  { index = "pytorch-gpu", extra = "local-gpu"},
 ]
 
 [tool.hatch.build.targets.sdist]
