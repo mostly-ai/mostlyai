@@ -1,0 +1,34 @@
+name: "mostlyai Linting Check"
+
+on:
+    workflow_call:
+
+
+env:
+    PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+    FORCE_COLOR: "1"
+
+jobs:
+    run-lint-and-test:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+        steps:
+          - name: Setup | Checkout
+            uses: actions/checkout@v4
+            with:
+                fetch-depth: 1
+                submodules: 'true'
+
+          - name: Setup | uv
+            uses: astral-sh/setup-uv@v5
+            with:
+                enable-cache: false
+                python-version: '3.10'
+
+          - name: Lint | Ruff
+            run: |
+              uv sync --package ruff --frozen
+              uv run --no-sync -- ruff check .. --ignore E741
+              uv run --no-sync -- ruff format --check ..

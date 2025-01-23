@@ -1,0 +1,41 @@
+name: "[CPU] mostlyai Tests"
+
+on:
+    workflow_call: 
+
+
+env:
+    PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+    FORCE_COLOR: "1"
+
+jobs:
+    run-lint-and-test:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+        steps:
+          - name: Setup | Checkout
+            uses: actions/checkout@v4
+            with:
+                fetch-depth: 1
+                submodules: 'true'
+          
+          - name: Setup | uv
+            uses: astral-sh/setup-uv@v5
+            with:
+                enable-cache: false
+                python-version: '3.10'
+
+          - name: Setup | Dependencies
+            run: uv sync --frozen --extra local-cpu
+
+          - name: Test | End-to-End Tests
+            run: |
+                uv run -- pytest -vv tests/_local/end_to_end
+
+          - name: Test | Unit Tests
+            run: |
+              uv run -- pytest -vv tests/client/unit
+              uv run -- pytest -vv tests/_data/unit
+              uv run -- pytest -vv tests/_local/unit
