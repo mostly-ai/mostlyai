@@ -112,7 +112,7 @@ class MostlyAI(_MostlyBaseClient):
                 from mostlyai import qa  # noqa
             except ImportError:
                 raise APIError(
-                    "Local mode requires additional packages to be installed. Run `pip install mostlyai[local]`."
+                    "Local mode requires additional packages to be installed. Run `pip install 'mostlyai[local]'`."
                 )
 
             self.local = LocalServer(home_dir=local_dir, host=local_host, port=local_port)

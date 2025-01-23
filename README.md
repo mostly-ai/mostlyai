@@ -49,7 +49,7 @@ Add any of the following extras for further data connectors support: `databricks
 
 E.g.
 ```shell
-pip install -U `mostlyai[local, databricks, snowflake]`
+pip install -U 'mostlyai[local, databricks, snowflake]'
 ```
 
 ## Quick Start
