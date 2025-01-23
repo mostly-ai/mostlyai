@@ -19,7 +19,6 @@ jobs:
         with:
           fetch-depth: 1
           submodules: 'true'
-          token: ${{ secrets.GIT_TOKEN }}
 
       - name: Setup | Install Kerberos
         run: |
