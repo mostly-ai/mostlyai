@@ -459,9 +459,9 @@ class Routes:
             synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
             table = next((t for t in synthetic_dataset.tables if t.id == table_id), None)
             if reportType == SyntheticDatasetReportType.model.value:
-                reports_dir = self.home_dir / "synthetic-datasets" / synthetic_dataset.id / "ModelQAReports"
+                reports_dir = self.home_dir / "synthetic-datasets" / id / "ModelQAReports"
             else:
-                reports_dir = self.home_dir / "synthetic-datasets" / synthetic_dataset.id / "DataQAReports"
+                reports_dir = self.home_dir / "synthetic-datasets" / id / "DataQAReports"
             fn = reports_dir / f"{table.name}:{modelType.lower()}.html"
             return HTMLResponse(content=fn.read_text())
 
