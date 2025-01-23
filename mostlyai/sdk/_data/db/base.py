@@ -160,8 +160,7 @@ class DBDType(WrappedDType, abc.ABC):
             return VirtualTimestamp()
         else:
             _LOG.warning(
-                f"no virtual type for [{self.wrapped}] found; "
-                f"returning VirtualVarchar({self.DEFAULT_VARCHAR_LENGTH})"
+                f"no virtual type for [{self.wrapped}] found; returning VirtualVarchar({self.DEFAULT_VARCHAR_LENGTH})"
             )
             return VirtualVarchar(self.DEFAULT_VARCHAR_LENGTH)
 

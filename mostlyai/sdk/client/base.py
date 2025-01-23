@@ -162,12 +162,12 @@ class _MostlyBaseClient:
         if response.content:
             # this section could be split into a separate method
             response_json = response.json()
-            if isinstance(response_json, dict) and not response_type == dict:
+            if isinstance(response_json, dict) and response_type is not dict:
                 if do_include_client:
                     response_json["client"] = self
                 if isinstance(extra_key_values, dict):
                     response_json["extra_key_values"] = extra_key_values
-            elif response_type == dict and do_response_dict_snake_case:
+            elif response_type is dict and do_response_dict_snake_case:
                 response_json = map_camel_to_snake_case(response_json)
             return response_type(**response_json) if isinstance(response_json, dict) else response_json
         else:

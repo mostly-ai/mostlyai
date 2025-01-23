@@ -78,8 +78,8 @@ def determine_n_partitions(
     tgt_total_bytes = tgt_n_rows * tgt_n_cols * bytes_per_cell
     _LOG.info(
         f"estimated "
-        f"ctx_total_bytes: {ctx_total_bytes / 1024 ** 2:.2f}MB, "
-        f"tgt_total_bytes: {tgt_total_bytes / 1024 ** 2:.2f}MB"
+        f"ctx_total_bytes: {ctx_total_bytes / 1024**2:.2f}MB, "
+        f"tgt_total_bytes: {tgt_total_bytes / 1024**2:.2f}MB"
     )
     total_bytes = ctx_total_bytes + tgt_total_bytes
     n_partitions = max(1, int(np.ceil(total_bytes / max_partition_size)))

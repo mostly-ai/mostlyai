@@ -116,7 +116,7 @@ def adapt_dtypes_to_destination(
                     tgt_dtype_cls = type(tgt_dtypes[column])
                     adapted_tgt_dtype = tgt_dtype_cls.from_dtype(encompassing_dtype)
                     _LOG.warning(
-                        f"Changing destination dtype of {column=} " f"from {tgt_dtypes[column]} to {adapted_tgt_dtype}"
+                        f"Changing destination dtype of {column=} from {tgt_dtypes[column]} to {adapted_tgt_dtype}"
                     )
                     tgt_table.dtypes[column] = adapted_tgt_dtype
                 else:

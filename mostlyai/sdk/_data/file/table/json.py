@@ -100,7 +100,7 @@ class JsonDataTable(FileDataTable):
         if do_coerce_dtypes:
             df = coerce_dtypes_by_encoding(df, self.encoding_types)
         df = df.reset_index(drop=True)
-        _LOG.info(f"read {self.DATA_TABLE_TYPE} data `{self.name}` {df.shape} in {time.time()-t0:.2f}s")
+        _LOG.info(f"read {self.DATA_TABLE_TYPE} data `{self.name}` {df.shape} in {time.time() - t0:.2f}s")
         return df
 
     @functools.cached_property

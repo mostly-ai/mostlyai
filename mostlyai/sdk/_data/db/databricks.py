@@ -96,7 +96,7 @@ class DatabricksContainer(SqlAlchemyContainer):
         if self.client_secret:  # using service principal
             if not all([self.client_id, self.client_secret, self.tenant_id]):
                 raise MostlyDataException(
-                    "Provide a token or " "service principal credentials (client_id, client_secret, tenant_id).",
+                    "Provide a token or service principal credentials (client_id, client_secret, tenant_id).",
                 )
             credential = ClientSecretCredential(self.tenant_id, self.client_id, self.client_secret)
             access_token = credential.get_token(f"{AZURE_DATABRICKS_SERVICE}/.default").token

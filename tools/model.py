@@ -319,8 +319,7 @@ class GeneratorConfig:
                 ref_table = table_map.get(fk.referenced_table)
                 if not ref_table:
                     raise ValueError(
-                        f"Foreign key in table '{table.name}' references a non-existent table: "
-                        f"'{fk.referenced_table}'."
+                        f"Foreign key in table '{table.name}' references a non-existent table: '{fk.referenced_table}'."
                     )
                 if not ref_table.primary_key:
                     raise ValueError(f"Referenced table '{fk.referenced_table}' does not have a primary key.")

@@ -40,7 +40,7 @@ _LOG = logging.getLogger(__name__)
 
 class DType(abc.ABC):
     def __eq__(self, other):
-        return type(self) == type(other) and self.__dict__ == other.__dict__
+        return type(self) is type(other) and self.__dict__ == other.__dict__
 
     @classmethod
     @abc.abstractmethod
@@ -57,7 +57,7 @@ class DType(abc.ABC):
         :param other: other object
         :return: True if equivalent, False otherwise
         """
-        if type(self) == type(other):
+        if type(self) is type(other):
             return self.__dict__ == other.__dict__
         elif isinstance(other, DType):
             return self.to_virtual() == other.to_virtual()
@@ -174,7 +174,7 @@ class VirtualVarchar(VirtualDType):
             return self
         max_length = data.astype(STRING).fillna("").apply(len).max()
         _LOG.warning(
-            f"Changing {self} to VirtualVarchar with length={max_length} " f"to encompass data of length{len(data)}"
+            f"Changing {self} to VirtualVarchar with length={max_length} to encompass data of length{len(data)}"
         )
         return type(self)(length=max_length)
 
@@ -226,7 +226,7 @@ class WrappedDType(DType):
         return f"{type(self).__name__}(wrapped={self.wrapped})"
 
     def __eq__(self, other):
-        return type(self) == type(other) and str(self.wrapped) == str(other.wrapped)
+        return type(self) is type(other) and str(self.wrapped) == str(other.wrapped)
 
     @classmethod
     @abc.abstractmethod

@@ -1,7 +1,7 @@
 name: "[GPU] mostlyai Tests"
 
 on:
-    workflow_call: 
+    workflow_call:
 
 
 env:
@@ -20,7 +20,7 @@ jobs:
             with:
                 fetch-depth: 1
                 submodules: 'true'
-          
+
           - name: Setup | uv
             uses: astral-sh/setup-uv@v5
             with:

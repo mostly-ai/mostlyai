@@ -10,4 +10,3 @@ jobs:
     uses: ./.github/workflows/run-tests-cpu.yaml
   call-test-gpu:
     uses: ./.github/workflows/run-tests-gpu.yaml
-

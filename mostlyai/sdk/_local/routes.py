@@ -79,7 +79,7 @@ class Routes:
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>{ title }</title>
+                    <title>{title}</title>
                     <style>
                         body {{
                             font-family: monospace;
@@ -93,8 +93,8 @@ class Routes:
                     </style>
                 </head>
                 <body>
-                    <h1>{ title }</h1>
-                    { body }
+                    <h1>{title}</h1>
+                    {body}
                 </body>
                 </html>
                 """
@@ -110,7 +110,7 @@ class Routes:
         async def show_connector(id: str) -> HTMLResponse:
             connector_dir = self.home_dir / "connectors" / id
             connector_json = connector_dir / "connector.json"
-            body = f"<h3>file://{connector_json}</h3>" f"<pre>{connector_json.read_text()}</pre>"
+            body = f"<h3>file://{connector_json}</h3><pre>{connector_json.read_text()}</pre>"
             return HTMLResponse(content=self._html("Connector", body))
 
         @self.router.get("/d/generators/{id}", response_class=HTMLResponse, include_in_schema=False)

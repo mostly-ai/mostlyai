@@ -48,8 +48,8 @@ repos:
     -   id: pyupgrade
         args: [--py310-plus]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.4.4
+  rev: v0.9.2
   hooks:
     - id: ruff
-      args: [--fix, --ignore, E741]
+      args: [--fix, --ignore, E741, "--per-file-ignores=*.ipynb:E402"]
     - id: ruff-format

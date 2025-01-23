@@ -61,7 +61,7 @@ class AzureBlobFileContainer(BucketBasedContainer):
             )
         else:
             raise MostlyDataException(
-                "Provide the account key or " "service principal credentials (client_id, client_secret, tenant_id).",
+                "Provide the account key or service principal credentials (client_id, client_secret, tenant_id).",
             )
 
         self.fs = AzureBlobFileSystem(
