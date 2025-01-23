@@ -37,11 +37,11 @@ pip install -U mostlyai
 **Client + Local mode**
 
 ```shell
-pip install -U "mostlyai[local-cpu]"   # for CPU
-#pip install -U "mostlyai[local-gpu]"  # for GPU
+pip install -U 'mostlyai[local]'       # for CPU
+#pip install -U 'mostlyai[local-gpu]'  # for GPU
 ```
 
-NOTE: installing `mostlyai[local-cpu]` on Linux requires `--extra-index-url https://download.pytorch.org/whl/cpu` to be specified.
+NOTE: installing `mostlyai[local]` on Linux requires `--extra-index-url https://download.pytorch.org/whl/cpu` to be specified.
 
 **Optional Connectors**
 
@@ -49,7 +49,7 @@ Add any of the following extras for further data connectors support: `databricks
 
 E.g.
 ```shell
-pip install -U "mostlyai[local, databricks, snowflake]"
+pip install -U `mostlyai[local, databricks, snowflake]`
 ```
 
 ## Quick Start
