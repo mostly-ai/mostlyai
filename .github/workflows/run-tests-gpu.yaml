@@ -9,7 +9,7 @@ env:
     FORCE_COLOR: "1"
 
 jobs:
-    run-lint-and-test:
+    run-test-gpu:
         runs-on: gha-gpu-public
         permissions:
             contents: read

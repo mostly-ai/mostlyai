@@ -9,7 +9,7 @@ env:
     FORCE_COLOR: "1"
 
 jobs:
-    run-lint-and-test:
+    run-lint:
         runs-on: ubuntu-latest
         permissions:
             contents: read
