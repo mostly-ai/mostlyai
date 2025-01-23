@@ -1832,8 +1832,8 @@ class TestPullWithSequentialContext:
             "gpc::str",
         ]
         # check nested sequences in pulled meta data
-        assert ctx_data.dtypes["ctx$prev::dt"] is object
-        assert ctx_data.dtypes["ctx$prev::int"] is object
+        assert pd.api.types.is_object_dtype(ctx_data.dtypes["ctx$prev::dt"])
+        assert pd.api.types.is_object_dtype(ctx_data.dtypes["ctx$prev::int"])
 
         def check_equal_length(row):
             return len({len(x) for x in row}) <= 1
