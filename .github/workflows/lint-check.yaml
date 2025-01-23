@@ -30,5 +30,5 @@ jobs:
           - name: Lint | Ruff
             run: |
               uv sync --package ruff --frozen
-              uv run --no-sync -- ruff check .. --ignore E741
+              uv run --no-sync -- ruff check .. --ignore E741 "--per-file-ignores=*.ipynb:E402"
               uv run --no-sync -- ruff format --check ..
