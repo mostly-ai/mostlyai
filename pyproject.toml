@@ -1,6 +1,6 @@
 [project]
 name = "mostlyai"
-version = "4.0.0-rc1"
+version = "4.0.0"
 description = "MOSTLY AI - Python Client"
 authors = [{ name = "MOSTLY AI", email = "dev@mostly.ai" }]
 requires-python = ">=3.10,<3.13"
