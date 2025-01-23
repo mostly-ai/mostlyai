@@ -88,6 +88,8 @@ def create_synthetic_dataset(
             sd_table = SyntheticTable(name=g_table.name)
         sd_table.foreign_keys = g_table.foreign_keys
         sd_table.source_table_total_rows = g_table.total_rows
+        sd_table.tabular_model_metrics = g_table.tabular_model_metrics
+        sd_table.language_model_metrics = g_table.language_model_metrics
         if sd_table.configuration is None:
             sd_table.configuration = SyntheticTableConfiguration()
         is_subject = not any(fk.is_context for fk in g_table.foreign_keys or [])
