@@ -1,15 +1,11 @@
-[tool.poetry]
+[project]
 name = "mostlyai"
-version = "0.7.0"
+version = "4.0.0-rc1"
 description = "MOSTLY AI - Python Client"
-homepage = "https://app.mostly.ai/"
-license = "Apache-2.0"
-authors = ["MOSTLY AI <dev@mostly.ai>"]
+authors = [{ name = "MOSTLY AI", email = "dev@mostly.ai" }]
+requires-python = ">=3.10,<3.13"
 readme = "README.md"
-packages = [
-    { include = "mostlyai" }
-]
-exclude = ["tools/", "tools/**/*"]
+license = "Apache-2.0"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -23,45 +19,152 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
     "Typing :: Typed",
 ]
+dependencies = [
+    "pydantic>=2.4.2,<3",
+    "httpx>=0.25.0,<0.28.0",
+    "pandas>=1.5.3,<3",
+    "torch==2.5.1; sys_platform == 'darwin'",
+    "pyarrow>=16.0.0",
+    "smart_open>=6.0.0",
+    "rich>=13.7.0",
+    "fastparquet>=2023.4.0,<2024",
+    "psutil>=5.9.5,<6",
+    "requests>=2.31.0,<3",
+    "pydot>=1.4.2,<2",
+    "sqlalchemy>=2.0.0,<3",
+    "cryptography>=43.0.1,<44",
+    "typer>=0.9.0,<0.10",
+    "semantic-version>=2.10.0,<3",
+    "joblib>=1.2.0,<2",
+    "gunicorn>=23.0.0,<24",
+    "environs>=9.5.0,<10",
+    "gputil>=1.4.0,<2",
+    "schema>=0.7.5,<0.8",
+    "xxhash>=3.2.0,<4",
+    "networkx~=3.1",
+    "greenlet>=3.1.1,<4",
+    "pycryptodomex>=3.20.0,<4",
+    "sshtunnel>=0.4.0,<0.5",
+    "xlsxwriter>=3.1.9,<4",
+    "openpyxl>=3.1.5",
+    # cloud-based connectors
+    "s3fs>=2023.1.0,<2024",
+    "gcsfs>=2023.1.0,<2024",
+    "cloudpathlib[gs, s3, azure]>=0.17.0,<0.18",
+    "smart-open[gcs, s3, azure]>=6.3.0,<7",
+    "azure-storage-blob>=12.16.0,<13",
+    "adlfs>=2023.4.0,<2024",
+]
 
-[tool.poetry.urls]
-"Homepage" = "https://app.mostly.ai/"
-"Documentation" = "https://mostly-ai.github.io/mostlyai/"
-"Source" = "https://github.com/mostly-ai/mostlyai"
+[project.optional-dependencies]
+local = [
+    # local
+    "mostlyai-engine==1.0.1",
+    "mostlyai-qa==1.5.0",
+    "fastapi>=0.115.6,<0.116", 
+    "uvicorn>=0.34.0,<0.35",
+    "python-multipart>=0.0.20",
+]
+local-gpu = [
+    "mostlyai-engine[gpu]==1.0.1",
+    "mostlyai-qa==1.5.0",
+    "fastapi>=0.115.6,<0.116", 
+    "uvicorn>=0.34.0,<0.35",
+    "python-multipart>=0.0.20",
+]
+local-cpu = [
+    # local
+    "mostlyai-engine[cpu]==1.0.1",
+    "mostlyai-qa==1.5.0",
+    "fastapi>=0.115.6,<0.116", 
+    "uvicorn>=0.34.0,<0.35",
+    "python-multipart>=0.0.20",
+    # cpu
+    "torch==2.5.1+cpu; sys_platform != 'darwin'",
+    "torch==2.5.1; sys_platform == 'darwin'",
+]
+# connectors
+databricks = ["databricks-sql-connector>=3.2.0,<4"]
+googlebigquery = ["sqlalchemy-bigquery>=1.6.1,<2"]
+hive = [
+    "pyhive[hive-pure-sasl]>=0.7.0,<0.8",
+    "kerberos>=1.3.1,<2",
+    "impyla>=0.19.0,<0.20",
+]
+mssql = ["pyodbc>=5.1.0,<6"]
+mysql = ["mysql-connector-python>=9.1.0,<10"]
+oracle = ["oracledb>=2.2.1,<3"]
+postgres = ["psycopg2>=2.9.4,<3"]
+snowflake = ["snowflake-sqlalchemy>=1.6.1,<2"]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-pydantic = "^2.4.2"
-httpx = ">=0.25.0,<0.28.0"  # frozen until https://github.com/lundberg/respx/issues/277 is resolved
-pandas = ">=1.5.3,<2.0.0 || ^2.0.0"
-pyarrow = ">=14.0.0"
-smart_open = ">=6.0.0"
-rich = ">=13.7.0"
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0,<8",
+    "pre-commit>=4.0.0,<5",
+    "datamodel-code-generator[http]>=0.26.3,<0.27",
+    "vcrpy>=5.1.0,<6",
+    "ruff==0.4.4",
+    "respx>=0.20.2,<0.21",
+    "twine>=5.0.0,<6",
+    "poetry-bumpversion>=0.3.2,<0.4",
+]
+docs = [
+    "mkdocs>=1.5.3",
+    "mkdocstrings[crystal, python]>=0.27.0,<0.28",
+    "mkdocs-material>=9.0.0,<10",
+    "griffe>=1.0.0,<2",
+    "pymdown-extensions>=10.0.0,<11",
+    "griffe-fieldz>=0.2.0,<0.3",
+    "black>=22.1.0",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.0.0"
-pre-commit = "^4.0.0"
-datamodel-code-generator = { version = "^0.26.3", extras = ["http"] }
-vcrpy = "^5.1.0"
-ruff = "0.4.4"
-respx = "^0.20.2"
-twine = "^5.0.0"
-poetry-bumpversion = "^0.3.2"
+[project.urls]
+Homepage = "https://app.mostly.ai/"
+Documentation = "https://mostly-ai.github.io/mostlyai/"
+Source = "https://github.com/mostly-ai/mostlyai"
 
-[tool.poetry.group.docs.dependencies]
-mkdocs = ">=1.5.3"
-mkdocstrings = { version = "^0.27.0", extras = ["crystal", "python"] }
-mkdocs-material = "^9.0.0"
-griffe = "^1.0.0"
-pymdown-extensions = "^10.0.0"
-griffe-fieldz = "^0.2.0"
-black = ">=22.1.0"
+[tool.uv]
+default-groups = ["dev", "docs"]
+conflicts = [
+  [
+    { extra = "local-cpu" },
+    { extra = "local-gpu" },
+  ],
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform != 'darwin'" },
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["mostlyai/sdk"]
+exclude = [
+    "tools/",
+    "tools/**/*",
+]
+
+[tool.hatch.build.targets.wheel]
+include = ["mostlyai/sdk"]
+exclude = [
+    "tools/",
+    "tools/**/*",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [[tool.poetry_bumpversion.replacements]]
-files = ["mostlyai/__init__.py"]
+files = ["mostlyai/sdk/__init__.py"]
 search = '__version__ = "{current_version}"'
 replace = '__version__ = "{new_version}"'
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.ruff]
+target-version = "py310"
+line-length = 120
