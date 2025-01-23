@@ -117,7 +117,7 @@ def create_synthetic_dataset(
     write_synthetic_dataset_to_json(synthetic_dataset_dir, synthetic_dataset)
 
     # copy ModelQA reports into synthetic dataset directory
-    source_reports_dir = home_dir / "generators" / generator.id / "ModelQAReports"
+    source_reports_dir = generator_dir / "ModelQAReports"
     dest_reports_dir = synthetic_dataset_dir / "ModelQAReports"
     shutil.copytree(source_reports_dir, dest_reports_dir)
 
