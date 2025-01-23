@@ -52,6 +52,7 @@ from mostlyai.sdk.domain import (
     Probe,
     GeneratorCloneConfig,
     GeneratorCloneTrainingStatus,
+    SyntheticDatasetReportType,
 )
 from mostlyai.sdk._local.storage import (
     read_generator_from_json,
@@ -456,11 +457,9 @@ class Routes:
         async def get_data_report(id: str, table_id: str, reportType: str, modelType: str) -> HTMLResponse:
             synthetic_dataset_dir = self.home_dir / "synthetic-datasets" / id
             synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
-            generator_dir = self.home_dir / "generators" / synthetic_dataset.generator_id
-            generator = read_generator_from_json(generator_dir)
             table = next((t for t in synthetic_dataset.tables if t.id == table_id), None)
-            if reportType == "MODEL":
-                reports_dir = self.home_dir / "generators" / generator.id / "ModelQAReports"
+            if reportType == SyntheticDatasetReportType.model.value:
+                reports_dir = self.home_dir / "synthetic-datasets" / synthetic_dataset.id / "ModelQAReports"
             else:
                 reports_dir = self.home_dir / "synthetic-datasets" / synthetic_dataset.id / "DataQAReports"
             fn = reports_dir / f"{table.name}:{modelType.lower()}.html"
