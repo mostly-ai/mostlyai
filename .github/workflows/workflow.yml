@@ -23,8 +23,8 @@ jobs:
       - name: Setup | Install Kerberos
         run: |
           sudo apt-get update
-          sudo apt-get install -y krb5-user libkrb5-dev
-
+          sudo apt-get install -y krb5-user libkrb5-dev nvidia-cuda-toolkit
+      
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
         with:
