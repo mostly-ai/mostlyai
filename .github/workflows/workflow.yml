@@ -42,7 +42,7 @@ jobs:
 
       - name: Test | End-to-End Tests
         run: |
-          uv run -- pytest -vv tests/_local/end_to_end
+          uv run -- pytest -s --log-cli-level=INFO -vv tests/_local/end_to_end
 
       - name: Test | Unit Tests
         run: |
