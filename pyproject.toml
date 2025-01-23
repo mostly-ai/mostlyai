@@ -61,14 +61,14 @@ local = [
     # local
     "mostlyai-engine==1.0.1",
     "mostlyai-qa==1.5.0",
-    "fastapi>=0.115.6,<0.116", 
+    "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
 ]
 local-gpu = [
     "mostlyai-engine[gpu]==1.0.1",
     "mostlyai-qa==1.5.0",
-    "fastapi>=0.115.6,<0.116", 
+    "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
 ]
@@ -76,7 +76,7 @@ local-cpu = [
     # local
     "mostlyai-engine[cpu]==1.0.1",
     "mostlyai-qa==1.5.0",
-    "fastapi>=0.115.6,<0.116", 
+    "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
     # cpu
@@ -105,7 +105,8 @@ dev = [
     "vcrpy>=5.1.0,<6",
     "ruff==0.4.4",
     "respx>=0.20.2,<0.21",
-    "twine>=5.0.0,<6",
+    "twine>=6.0.1,<7",
+    "pkginfo>=1.12.0,<2",
     "poetry-bumpversion>=0.3.2,<0.4",
 ]
 docs = [
