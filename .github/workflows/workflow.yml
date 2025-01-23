@@ -1,4 +1,4 @@
-name: Mostly-Python Complete Workflow
+name: mostlyai workflow
 
 on:
   push:
@@ -6,12 +6,6 @@ on:
 env:
   PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
   FORCE_COLOR: "1"
-
-# * Note that this is a public repository and as such it must not be using
-# *   any private runners.
-# * As such, we are also not using any reusable workflows, just a plain old single-workflow file.
-# * Also, please make sure not to use this workflow in private repositories (in case of a copy-paste).
-# * A similar one but with the internal standards applied is available in mostly-core repository.
 
 jobs:
   run-lint-and-test:
@@ -26,20 +20,32 @@ jobs:
           fetch-depth: 1
           submodules: 'true'
 
-      - name: Setup | Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          installer-parallel: true
-
-      - name: Setup | Poetry Dependency Install
+      - name: Setup | Install Kerberos
         run: |
-          poetry install --no-interaction --no-ansi
+          sudo apt-get update
+          sudo apt-get install -y krb5-user libkrb5-dev
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra local-cpu
 
       - name: Lint | Ruff
         run: |
-          poetry run -- ruff check .. --ignore E741
-          poetry run -- ruff format --check ..
+          uv run -- ruff check .. --ignore E741
+          uv run -- ruff format --check ..
 
-      - name: Test | Mostly-Python Unit Tests
+      - name: Test | End-to-End Tests
         run: |
-          poetry run -- pytest -vv tests/unit
+          uv run -- pytest -vv tests/_local/end_to_end
+
+      - name: Test | Unit Tests
+        run: |
+          uv run -- pytest -vv tests/client/unit
+          uv run -- pytest -vv tests/_data/unit
+          uv run -- pytest -vv tests/_local/unit

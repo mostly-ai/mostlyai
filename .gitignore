@@ -4,3 +4,5 @@ LICENSE_HEADER
 site/
 __pycache__/
 .vscode/
+.pytest_cache/
+.ipynb_checkpoints

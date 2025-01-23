@@ -1,4 +1,4 @@
-# Copyright 2024 MOSTLY AI
+# Copyright 2024-2025 MOSTLY AI
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,23 +52,13 @@ def append_or_replace_in_jinja_template(template_filename, classes_content):
         template_content = file.read()
 
     for class_name, content in classes_content.items():
-        class_block_pattern = (
-            r"{%- if class_name == \"" + re.escape(class_name) + r"\" %}.*?{%- endif %}"
-        )
-        new_block = (
-            '{%- if class_name == "'
-            + class_name
-            + '" %}\n'
-            + content
-            + "\n{%- endif %}"
-        )
+        class_block_pattern = r"{%- if class_name == \"" + re.escape(class_name) + r"\" %}.*?{%- endif %}"
+        new_block = '{%- if class_name == "' + class_name + '" %}\n' + content + "\n{%- endif %}"
 
         # Check if class block exists
         if re.search(class_block_pattern, template_content, re.DOTALL):
             # Replace existing block
-            template_content = re.sub(
-                class_block_pattern, new_block, template_content, flags=re.DOTALL
-            )
+            template_content = re.sub(class_block_pattern, new_block, template_content, flags=re.DOTALL)
         else:
             # Append new block
             template_content += new_block
