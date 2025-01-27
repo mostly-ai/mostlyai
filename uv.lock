@@ -1,41 +1,31 @@
 version = 1
 requires-python = ">=3.10"
 resolution-markers = [
-    "python_full_version >= '4.0' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "python_full_version >= '4.0' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "(python_full_version >= '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version >= '4.0' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
-    "python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "(python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
-    "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
-    "python_full_version == '3.11.*' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
-    "python_full_version < '3.11' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
-    "(python_full_version >= '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (python_full_version >= '4.0' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu')",
-    "(python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu')",
-    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu')",
-    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu')",
-    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu')",
-    "python_full_version >= '4.0' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version >= '4.0' and sys_platform == 'darwin' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform == 'darwin' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version == '3.11.*' and sys_platform == 'darwin' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version < '3.11' and sys_platform == 'darwin' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version >= '4.0' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version >= '3.13' and python_full_version < '4.0' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version == '3.12.*' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version == '3.11.*' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version < '3.11' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_full_version >= '4.0' and sys_platform == 'darwin'",
+    "python_full_version >= '4.0' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version >= '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '4.0' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "python_full_version == '3.12.*' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "python_full_version == '3.11.*' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "python_full_version < '3.11' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "python_full_version >= '4.0' and sys_platform != 'darwin'",
+    "python_full_version >= '4.0'",
+    "python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform != 'darwin'",
+    "python_full_version >= '3.13' and python_full_version < '4.0'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin'",
+    "python_full_version == '3.12.*'",
+    "python_full_version == '3.11.*' and sys_platform != 'darwin'",
+    "python_full_version == '3.11.*'",
+    "python_full_version < '3.11' and sys_platform != 'darwin'",
+    "python_full_version < '3.11'",
 ]
 conflicts = [[
     { package = "mostlyai", extra = "local-cpu" },
@@ -626,7 +616,7 @@ name = "build"
 version = "1.2.2.post1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "(os_name == 'nt' and platform_machine != 'aarch64' and sys_platform == 'linux') or (os_name == 'nt' and sys_platform != 'darwin' and sys_platform != 'linux') or (os_name == 'nt' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (os_name == 'nt' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (os_name != 'nt' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform == 'darwin' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "colorama", marker = "(os_name == 'nt' and platform_machine != 'aarch64' and sys_platform == 'linux') or (os_name == 'nt' and sys_platform != 'darwin' and sys_platform != 'linux') or (os_name == 'nt' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu') or (os_name == 'nt' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-gpu') or (os_name == 'nt' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (os_name != 'nt' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform == 'darwin' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
     { name = "importlib-metadata", marker = "python_full_version < '3.10.2' or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
     { name = "packaging" },
     { name = "pyproject-hooks" },
@@ -3048,12 +3038,12 @@ requires-dist = [
     { name = "impyla", marker = "extra == 'hive'", specifier = ">=0.19.0,<0.20" },
     { name = "joblib", specifier = ">=1.2.0,<2" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
-    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.0.1" },
-    { name = "mostlyai-engine", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.0.1" },
-    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.0.1" },
-    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.5.0" },
-    { name = "mostlyai-qa", marker = "extra == 'local-cpu'", specifier = "==1.5.0" },
-    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.5.0" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.0.2" },
+    { name = "mostlyai-engine", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.0.2" },
+    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.0.2" },
+    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.5.1" },
+    { name = "mostlyai-qa", marker = "extra == 'local-cpu'", specifier = "==1.5.1" },
+    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.5.1" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
     { name = "networkx", specifier = "~=3.1" },
     { name = "openpyxl", specifier = ">=3.1.5" },
@@ -3115,7 +3105,7 @@ docs = [
 
 [[package]]
 name = "mostlyai-engine"
-version = "1.0.1"
+version = "1.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
@@ -3137,9 +3127,9 @@ dependencies = [
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
     { name = "transformers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8d/00/bdd47663b7482041c0bcaeea2a77b71118a7b9d1e59e5947fde33484b97d/mostlyai_engine-1.0.1.tar.gz", hash = "sha256:df514292d5f09a01c0d0faf5e436b2c02d5d35b9b79d78f5e9c80ec699f0c133", size = 101533 }
+sdist = { url = "https://files.pythonhosted.org/packages/ed/70/bdefa3f84003403cc8d137b2389b9123bcb4391665ab821e1f1674a3b102/mostlyai_engine-1.0.2.tar.gz", hash = "sha256:e3f404547de56d3d077ce3560500682ea3eac81038334c45ace5bd8d70a877d8", size = 101775 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/41/9e51fbf525985777ffdb5e70d9bd03e14a6a4ccc82ca36531f126d959436/mostlyai_engine-1.0.1-py3-none-any.whl", hash = "sha256:a48d6cdfaf30eef7a5f98a9c7fdb409a0f2e4a9628ee81068ee7e2b79248cac7", size = 135748 },
+    { url = "https://files.pythonhosted.org/packages/2b/c8/81e837d89ff80362e11979f70fa4f0e981703bf579cee7251bde95fe9734/mostlyai_engine-1.0.2-py3-none-any.whl", hash = "sha256:095dc4a26dcf07b6d539cddb7a4067a9f7ff2841cc5d42a957788cfb6e8fb637", size = 136602 },
 ]
 
 [package.optional-dependencies]
@@ -3155,7 +3145,7 @@ gpu = [
 
 [[package]]
 name = "mostlyai-qa"
-version = "1.5.0"
+version = "1.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastcluster" },
@@ -3173,9 +3163,9 @@ dependencies = [
     { name = "sentence-transformers" },
     { name = "skops" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e5/d3/495f892ef0e74e170d16867fb6b32a2c6bdecd398d5fb412294c0a86febb/mostlyai_qa-1.5.0.tar.gz", hash = "sha256:69894d105786d9015cefd4719441d39f90a48ede8e77f541fb8e143b39ee8f40", size = 1951236 }
+sdist = { url = "https://files.pythonhosted.org/packages/dc/11/76b04e725e115e525edf7f592012eaae0a64d702d27c6044485347560354/mostlyai_qa-1.5.1.tar.gz", hash = "sha256:4310a9bde4b3512939904e42f54e982c27e667fc39e15d027b97c7a83b48a3f8", size = 1951492 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/4b/846105ef76b6c8a566d36c9311d68ffc71861816d13746fa6afbb594594f/mostlyai_qa-1.5.0-py3-none-any.whl", hash = "sha256:d689c53e4aae6b69d784dd90b2df3c1c63c8b6ec72a79b8a3c7752b3076a478d", size = 1972775 },
+    { url = "https://files.pythonhosted.org/packages/e2/05/92720acc1c93f03bd7378e1eae1b35494b579ee865f043553654c5a0136e/mostlyai_qa-1.5.1-py3-none-any.whl", hash = "sha256:d34726e896e2d8609fc20f311151ff577206f34810dec90453177afc72837e1f", size = 1973607 },
 ]
 
 [[package]]
@@ -4507,6 +4497,8 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/61/74/49f5d20c514ccc631b940cc9dfec45dcce418dc84a98463a2e2ebec33904/pycryptodomex-3.21.0-cp36-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:52e23a0a6e61691134aa8c8beba89de420602541afaae70f66e16060fdcd677e", size = 2257982 },
     { url = "https://files.pythonhosted.org/packages/92/4b/d33ef74e2cc0025a259936661bb53432c5bbbadc561c5f2e023bcd73ce4c/pycryptodomex-3.21.0-cp36-abi3-win32.whl", hash = "sha256:a3d77919e6ff56d89aada1bd009b727b874d464cb0e2e3f00a49f7d2e709d76e", size = 1779052 },
     { url = "https://files.pythonhosted.org/packages/5b/be/7c991840af1184009fc86267160948350d1bf875f153c97bb471ad944e40/pycryptodomex-3.21.0-cp36-abi3-win_amd64.whl", hash = "sha256:b0e9765f93fe4890f39875e6c90c96cb341767833cfa767f41b490b506fa9ec0", size = 1816307 },
+    { url = "https://files.pythonhosted.org/packages/af/ac/24125ad36778914a36f08d61ba5338cb9159382c638d9761ee19c8de822c/pycryptodomex-3.21.0-pp27-pypy_73-manylinux2010_x86_64.whl", hash = "sha256:feaecdce4e5c0045e7a287de0c4351284391fe170729aa9182f6bd967631b3a8", size = 1694999 },
+    { url = "https://files.pythonhosted.org/packages/93/73/be7a54a5903508070e5508925ba94493a1f326cfeecfff750e3eb250ea28/pycryptodomex-3.21.0-pp27-pypy_73-win32.whl", hash = "sha256:365aa5a66d52fd1f9e0530ea97f392c48c409c2f01ff8b9a39c73ed6f527d36c", size = 1769437 },
     { url = "https://files.pythonhosted.org/packages/e5/9f/39a6187f3986841fa6a9f35c6fdca5030ef73ff708b45a993813a51d7d10/pycryptodomex-3.21.0-pp310-pypy310_pp73-macosx_10_15_x86_64.whl", hash = "sha256:3efddfc50ac0ca143364042324046800c126a1d63816d532f2e19e6f2d8c0c31", size = 1619607 },
     { url = "https://files.pythonhosted.org/packages/f8/70/60bb08e9e9841b18d4669fb69d84b64ce900aacd7eb0ebebd4c7b9bdecd3/pycryptodomex-3.21.0-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0df2608682db8279a9ebbaf05a72f62a321433522ed0e499bc486a6889b96bf3", size = 1653571 },
     { url = "https://files.pythonhosted.org/packages/c9/6f/191b73509291c5ff0dddec9cc54797b1d73303c12b2e4017b24678e57099/pycryptodomex-3.21.0-pp310-pypy310_pp73-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:5823d03e904ea3e53aebd6799d6b8ec63b7675b5d2f4a4bd5e3adcb512d03b37", size = 1691548 },
@@ -6090,26 +6082,26 @@ name = "torch"
 version = "2.5.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '4.0' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "python_full_version >= '4.0' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "(python_full_version >= '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version >= '4.0' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
-    "python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "(python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
-    "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
-    "python_full_version == '3.11.*' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
-    "python_full_version < '3.11' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
-    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
-    "python_full_version >= '4.0' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version >= '3.13' and python_full_version < '4.0' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version == '3.12.*' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version == '3.11.*' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
-    "python_full_version < '3.11' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_full_version >= '4.0' and sys_platform == 'darwin'",
+    "python_full_version >= '4.0' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version >= '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '4.0' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "python_full_version == '3.12.*' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "python_full_version == '3.11.*' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "python_full_version < '3.11' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "python_full_version >= '4.0'",
+    "python_full_version >= '3.13' and python_full_version < '4.0'",
+    "python_full_version == '3.12.*'",
+    "python_full_version == '3.11.*'",
+    "python_full_version < '3.11'",
 ]
 dependencies = [
     { name = "filelock", marker = "extra == 'extra-8-mostlyai-local-gpu' or extra != 'extra-8-mostlyai-local-cpu'" },
@@ -6154,16 +6146,21 @@ name = "torch"
 version = "2.5.1+cpu"
 source = { registry = "https://download.pytorch.org/whl/cpu" }
 resolution-markers = [
-    "(python_full_version >= '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '4.0' and sys_platform != 'darwin' and sys_platform != 'linux')",
-    "(python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform != 'darwin' and sys_platform != 'linux')",
-    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
-    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
-    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux')",
     "python_full_version >= '4.0' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version >= '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '4.0' and sys_platform != 'darwin' and sys_platform != 'linux')",
     "python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version >= '3.13' and python_full_version < '4.0' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform != 'darwin' and sys_platform != 'linux')",
     "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
     "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux')",
     "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "python_full_version >= '4.0' and sys_platform != 'darwin'",
+    "python_full_version >= '3.13' and python_full_version < '4.0' and sys_platform != 'darwin'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin'",
+    "python_full_version == '3.11.*' and sys_platform != 'darwin'",
+    "python_full_version < '3.11' and sys_platform != 'darwin'",
 ]
 dependencies = [
     { name = "filelock", marker = "(sys_platform != 'darwin' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
@@ -6246,7 +6243,7 @@ name = "triton"
 version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "filelock", marker = "extra == 'extra-8-mostlyai-local-gpu' or extra != 'extra-8-mostlyai-local-cpu'" },
+    { name = "filelock", marker = "(python_full_version < '3.13' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/98/29/69aa56dc0b2eb2602b553881e34243475ea2afd9699be042316842788ff5/triton-3.1.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b0dd10a925263abbe9fa37dcde67a5e9b2383fc269fdf59f5657cac38c5d1d8", size = 209460013 },

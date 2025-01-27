@@ -62,23 +62,23 @@ dependencies = [
 [project.optional-dependencies]
 local = [
     # local
-    "mostlyai-engine==1.0.1",
-    "mostlyai-qa==1.5.0",
+    "mostlyai-engine==1.0.2",
+    "mostlyai-qa==1.5.1",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
 ]
 local-gpu = [
-    "mostlyai-engine[gpu]==1.0.1",
-    "mostlyai-qa==1.5.0",
+    "mostlyai-engine[gpu]==1.0.2",
+    "mostlyai-qa==1.5.1",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
     "torch>=2.5.1",
 ]
 local-cpu = [
-    "mostlyai-engine[cpu]==1.0.1",
-    "mostlyai-qa==1.5.0",
+    "mostlyai-engine[cpu]==1.0.2",
+    "mostlyai-qa==1.5.1",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
