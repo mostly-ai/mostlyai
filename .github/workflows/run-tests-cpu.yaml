@@ -28,7 +28,7 @@ jobs:
                 python-version: '3.10'
 
           - name: Setup | Dependencies
-            run: uv sync --frozen --extra local-cpu
+            run: uv sync --frozen --extra local
 
           - name: Test | End-to-End Tests
             run: |

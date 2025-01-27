@@ -57,7 +57,6 @@ dependencies = [
     "smart-open[gcs, s3, azure]>=6.3.0,<7",
     "azure-storage-blob>=12.16.0,<13",
     "adlfs>=2023.4.0,<2024",
-    "mostlyai-engine",
 ]
 
 [project.optional-dependencies]
@@ -145,6 +144,7 @@ torch = [
   { index = "pytorch-cpu", extra = "local-cpu"},
 ]
 mostlyai-engine = { git = "https://github.com/mostly-ai/mostlyai-engine", branch = "msd-xxx-report-paths" }
+
 
 [tool.hatch.build.targets.sdist]
 include = ["mostlyai/sdk"]
