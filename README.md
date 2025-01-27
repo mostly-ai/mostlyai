@@ -60,22 +60,54 @@ For client mode, initialize with `base_url` and `api_key` obtained from your [ac
 import pandas as pd
 from mostlyai.sdk import MostlyAI
 
-# 1) Initialize the SDK in local or client mode
+# load original data
+repo_url = 'https://github.com/mostly-ai/public-demo-data'
+df_original = pd.read_csv(f'{repo_url}/raw/dev/census/census.csv.gz')
+
+# initialize the SDK in local or client mode
 mostly = MostlyAI(local=True)
 # mostly = MostlyAI(base_url='https://app.mostly.ai', api_key='YOUR_API_KEY')
 
-# 2) Load your original data
-trn_df = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/census/census.csv.gz')
+# train a synthetic data generator
+g = mostly.train(config={
+        'name': 'US Census Income',          # name of the generator
+        'tables': [{                         # provide list of table(s)
+            'name': 'census',                # name of the table
+            'data': df_original,             # the original data as pd.DataFrame
+            'tabular_model_configuration': { # tabular model configuration (optional)
+                'max_training_time': 1,      # - limit training time (in minutes)
+                # model, max_epochs,,..      # further model configurations (optional)
+                'differential_privacy': {    # differential privacy configuration (optional)
+                    'max_epsilon': 5.0,      # - max epsilon value, used as stopping criterion
+                    'delta': 1e-5,           # - delta value
+                }
+            },
+            # columns, keys, compute,..      # further table configurations (optional)
+        }]
+    },
+    start=True,                              # start training immediately (default: True)
+    wait=True,                               # wait for completion (default: True)
+)
+```
 
-# 3) Train a synthetic data generator
-g = mostly.train(name='census', data=trn_df)  # shorthand syntax for 1-table config
+Once the generator has been trained, you can use it to generate synthetic data samples. Either via probing:
 
-# 4) Live probe small synthetic samples
-df_samples = mostly.probe(g, size=10)
+```python
+# probe for some synthetic samples
+# e.g., 100 representative records of 24y old males
+df_samples = mostly.probe(g, seed=pd.DataFrame({
+    'age': [24] * 100, 'sex': ['Male'] * 100,
+}))
+df_samples
+```
 
-# 5) Generate a full synthetic dataset
-sd = mostly.generate(g, size=100_000)
-syn_df = sd.data()
+or by creating a synthetic dataset entity for larger data volumes:
+
+```python
+# generate a full large scale synthetic dataset
+sd = mostly.generate(g, size=1_000_000)
+df_synthetic = sd.data()
+df_synthetic
 ```
 
 ## Key Features
