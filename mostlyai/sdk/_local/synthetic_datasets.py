@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import shutil
 from pathlib import Path
 
 from mostlyai.sdk._local.storage import (
@@ -99,6 +99,8 @@ def create_synthetic_dataset(
                 sd_table.configuration.sample_size = size.get(g_table.name, default_sample_size)
         elif not is_subject:
             sd_table.configuration.sample_size = None  # sample size is not applicable to linked tables
+        sd_table.tabular_model_metrics = g_table.tabular_model_metrics
+        sd_table.language_model_metrics = g_table.language_model_metrics
         sd_tables.append(sd_table)
 
     # create synthetic dataset
@@ -113,6 +115,11 @@ def create_synthetic_dataset(
     synthetic_dataset.description = synthetic_dataset.description or generator.description
     synthetic_dataset_dir = home_dir / "synthetic-datasets" / synthetic_dataset.id
     write_synthetic_dataset_to_json(synthetic_dataset_dir, synthetic_dataset)
+
+    # copy ModelQA reports into synthetic dataset directory
+    source_reports_dir = generator_dir / "ModelQAReports"
+    dest_reports_dir = synthetic_dataset_dir / "ModelQAReports"
+    shutil.copytree(source_reports_dir, dest_reports_dir)
 
     # create job progress
     progress_steps: list[ProgressStep] = []

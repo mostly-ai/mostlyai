@@ -53,6 +53,7 @@ from mostlyai.sdk.domain import (
     Probe,
     GeneratorCloneConfig,
     GeneratorCloneTrainingStatus,
+    SyntheticDatasetReportType,
 )
 from mostlyai.sdk._local.storage import (
     read_generator_from_json,
@@ -471,16 +472,16 @@ class Routes:
             synthetic_dataset_dir = self.home_dir / "synthetic-datasets" / id
             shutil.rmtree(synthetic_dataset_dir, ignore_errors=True)
 
-        @self.router.get("/generators/{id}/tables/{table_id}/report", response_class=HTMLResponse)
+        @self.router.get("/synthetic-datasets/{id}/tables/{table_id}/report", response_class=HTMLResponse)
         async def get_data_report(id: str, table_id: str, reportType: str, modelType: str) -> HTMLResponse:
             synthetic_dataset_dir = self.home_dir / "synthetic-datasets" / id
             synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
             table = next((t for t in synthetic_dataset.tables if t.id == table_id), None)
-            if reportType == "MODEL":
+            if reportType == SyntheticDatasetReportType.model.value:
                 reports_dir = self.home_dir / "synthetic-datasets" / id / "ModelQAReports"
             else:
                 reports_dir = self.home_dir / "synthetic-datasets" / id / "DataQAReports"
-            fn = reports_dir / f"{table.name}:{reportType.lower()}.html"
+            fn = reports_dir / f"{table.name}:{modelType.lower()}.html"
             return HTMLResponse(content=fn.read_text())
 
         @self.router.get("/synthetic-datasets/{id}/generation", response_model=JobProgress)

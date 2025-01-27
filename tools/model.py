@@ -463,9 +463,9 @@ class SyntheticTableConfiguration:
     @model_validator(mode="before")
     @classmethod
     def add_required_fields(cls, values):
-        if "sampling_temperature" not in values:
+        if "sampling_temperature" not in values or values["sampling_temperature"] is None:
             values["sampling_temperature"] = 1.0
-        if "sampling_top_p" not in values:
+        if "sampling_top_p" not in values or values["sampling_top_p"] is None:
             values["sampling_top_p"] = 1.0
         return values
 
