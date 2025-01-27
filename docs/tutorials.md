@@ -10,6 +10,7 @@ hide:
 * **Rebalance** synthetic datasets for data augmentation [[run on Colab](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/rebalancing/rebalancing.ipynb)]
 * **Conditionally generate** synthetic (geo) data [[run on Colab](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/conditional-generation/conditional-generation.ipynb)]
 * **Explain AI**  with synthetic data [[run on Colab](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/explainable-ai/explainable-ai.ipynb)]
+* Generate **fair synthetic data** [[run on Colab](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/fairness/fairness.ipynb)]
 * Generate **synthetic text** [[run on Colab](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/synthetic-text/synthetic-text.ipynb)]
 * Perform **multi-table synthesis** [[run on Colab](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/multi-table/multi-table.ipynb)]
 * Develop a **fake or real discriminator** with Synthetic Data [[run on Colab](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/fake-or-real/fake-or-real.ipynb)]
