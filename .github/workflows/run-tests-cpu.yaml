@@ -1,7 +1,7 @@
 name: "[CPU] mostlyai Tests"
 
 on:
-    workflow_call: 
+    workflow_call:
 
 
 env:
@@ -20,7 +20,7 @@ jobs:
             with:
                 fetch-depth: 1
                 submodules: 'true'
-          
+
           - name: Setup | uv
             uses: astral-sh/setup-uv@v5
             with:
@@ -28,7 +28,7 @@ jobs:
                 python-version: '3.10'
 
           - name: Setup | Dependencies
-            run: uv sync --frozen --extra local-cpu
+            run: uv sync --frozen --extra local
 
           - name: Test | End-to-End Tests
             run: |
