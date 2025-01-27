@@ -123,12 +123,10 @@ def job_wait(
                     # break if step has failed or been canceled
                     if step.status in (ProgressStatus.failed, ProgressStatus.canceled):
                         rich.print(f"[red]Step {step.model_label} {step.step_code.value} {step.status.lower()}")
-                        progress.stop()
                         return
                 # check whether we are done
                 if job.progress.value >= job.progress.max:
                     time.sleep(1)  # give the system a moment to update the status
-                    progress.stop()
                     return
             else:
                 if job.end_date or job.progress in (
@@ -139,8 +137,9 @@ def job_wait(
                     return
     except KeyboardInterrupt:
         rich.print(f"[red]Step {step.model_label} {step.step_code.value} {step.status.lower()}")
-        progress.stop()
         return
+    finally:
+        progress.stop()
 
 
 def _get_subject_table_names(generator: Generator) -> list[str]:
