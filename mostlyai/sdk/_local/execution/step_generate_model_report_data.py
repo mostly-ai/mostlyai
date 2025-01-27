@@ -42,13 +42,13 @@ def execute_step_generate_model_report_data(
     if has_context:
         ctx_stats = workspace.ctx_stats.read()
         ctx_primary_key = ctx_stats.get("keys", {}).get("primary_key")
+        ctx_input_path = workspace_dir / "report-ctx-data"
         _pull_context_for_report_generation(
             ctx_data_path=workspace.ctx_data_path,
-            output_path=workspace.report_ctx_data_path,
+            output_path=ctx_input_path,
             max_sample_size=max_sample_size,
             ctx_primary_key=ctx_primary_key,
         )
-        ctx_input_path = workspace.report_ctx_data_path
         ctx_data = pd.read_parquet(ctx_input_path)
     else:
         ctx_data = None
@@ -82,8 +82,8 @@ def qa_sample_size_heuristic(tgt_stats: dict, model_type: ModelType) -> int:
 def _pull_context_for_report_generation(
     *, ctx_data_path: Path, output_path: Path, max_sample_size: int, ctx_primary_key: str
 ):
-    ctx_trn_files = sorted(list(ctx_data_path.glob("part.*-trn.parquet")))
-    ctx_val_files = sorted(list(ctx_data_path.glob("part.*-val.parquet")))
+    ctx_trn_files = sorted(ctx_data_path.glob("part.*-trn.parquet"))
+    ctx_val_files = sorted(ctx_data_path.glob("part.*-val.parquet"))
     # fetch keys alone first
     ctx_trn_keys = pd.concat([pd.read_parquet(f, columns=[ctx_primary_key]) for f in ctx_trn_files], ignore_index=True)
     ctx_val_keys = pd.concat([pd.read_parquet(f, columns=[ctx_primary_key]) for f in ctx_val_files], ignore_index=True)
