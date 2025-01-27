@@ -328,7 +328,7 @@ class Routes:
                 if t.source_connector_id  # if generator is imported, source_connector_id will be None
             ]
             # check if all connectors exist
-            connector_dirs = [c for c in connector_dirs if c.exists()]
+            connector_dirs = [c for c in connector_dirs if c.is_dir()]
             if len(connector_dirs) < len(generator.tables):
                 raise HTTPException(
                     status_code=400,
