@@ -139,7 +139,8 @@ def job_wait(
         rich.print(f"[red]Step {step.model_label} {step.step_code.value} {step.status.lower()}")
         return
     finally:
-        progress.stop()
+        if progress_bar:
+            progress.stop()
 
 
 def _get_subject_table_names(generator: Generator) -> list[str]:
