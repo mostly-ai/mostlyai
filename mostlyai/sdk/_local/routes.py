@@ -336,8 +336,7 @@ class Routes:
                 )
 
             # check if any connectors are file upload
-            connectors = [read_connector_from_json(c) for c in connector_dirs]
-            if any(c.type == ConnectorType.file_upload for c in connectors):
+            if any(read_connector_from_json(c).type == ConnectorType.file_upload for c in connector_dirs):
                 raise HTTPException(status_code=400, detail="Cannot clone a generator with uploaded files.")
 
             new_generator = create_generator_model(
