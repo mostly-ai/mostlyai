@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from mostlyai.sdk.client.exceptions import APIStatusError
+import pytest
 from mostlyai.sdk import MostlyAI
 from mostlyai.sdk.domain import GeneratorConfig, SyntheticDatasetConfig, ProgressStatus
 import pandas as pd
@@ -84,17 +86,46 @@ def test_simple_flat(tmp_path):
     g.training.wait()
     assert g.training_status == "DONE"
 
+    # clone new generator
+    connector_cfg = {
+        "id": "8a06631a-cc06-469c-805c-bd3d9d5d7b3d",
+        "name": "Test 1",
+        "type": "S3_STORAGE",
+        "access_type": "SOURCE",
+        "config": {"accessKey": "XXX"},
+        "secrets": {"secretKey": "a89fb747734f4162bf36c8f1e853355f2176b583013c26e83c3324e453fd2e7b"},
+        "ssl": None,
+        "metadata": None,
+        "usage": None,
+        "table_id": None,
+    }
+    connector = mostly.connect(config=connector_cfg, test_connection=False)
+    new_g = mostly.generators.create(
+        config={
+            "name": "Test 3",
+            "tables": [
+                {
+                    "name": "test_table",
+                    "source_connector_id": connector.id,
+                }
+            ],
+        }
+    )
+    new_g_clone = new_g.clone(training_status="NEW")
+    assert new_g_clone.name == "Test 3"
+    assert new_g_clone.tables[0].source_connector_id == connector.id
+    assert new_g_clone.training_status == ProgressStatus.new
+
     # export / import
     g.export_to_file(tmp_path / "generator.zip")
     g = mostly.generators.import_from_file(tmp_path / "generator.zip")
 
+    # cloning imported generator raises HTTPException for local due to no source connector ids
+    with pytest.raises(APIStatusError):
+        g.clone()
+
     # reports
     g.reports(tmp_path)
-
-    # clone
-    g_clone = g.clone(training_status="CONTINUE")
-    assert g_clone.name == "Test 2"
-    assert g_clone.training_status == ProgressStatus.continue_
 
     ## SYNTHETIC PROBE
     df = mostly.probe(g, size=10)
