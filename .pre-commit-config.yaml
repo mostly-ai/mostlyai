@@ -51,5 +51,5 @@ repos:
   rev: v0.9.2
   hooks:
     - id: ruff
-      args: [--fix, --ignore, E741, "--per-file-ignores=*.ipynb:E402"]
+      args: [--fix]
     - id: ruff-format
