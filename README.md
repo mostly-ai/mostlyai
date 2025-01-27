@@ -93,21 +93,31 @@ g = mostly.train(config={
 Once the generator has been trained, you can use it to generate synthetic data samples. Either via probing:
 
 ```python
-# probe for some synthetic samples
-# e.g., 100 representative records of 24y old males
-df_samples = mostly.probe(g, seed=pd.DataFrame({
-    'age': [24] * 100, 'sex': ['Male'] * 100,
-}))
+# probe for some representative synthetic samples
+df_samples = mostly.probe(g, size=100)
 df_samples
 ```
 
 or by creating a synthetic dataset entity for larger data volumes:
 
 ```python
-# generate a full large scale synthetic dataset
-sd = mostly.generate(g, size=1_000_000)
+# generate a large representative synthetic dataset
+sd = mostly.generate(g, size=100_000)
 df_synthetic = sd.data()
 df_synthetic
+```
+
+or by conditionally probing / generating synthetic data:
+
+```python
+# create 100 seed records of 24y old Mexicans
+df_seed = pd.DataFrame({
+    'age': [24] * 100,
+    'native_country': ['Mexico'] * 100,
+})
+# conditionally probe, based on provided seed
+df_samples = mostly.probe(g, seed=df_seed)
+df_samples
 ```
 
 ## Key Features
