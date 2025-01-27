@@ -141,24 +141,29 @@ def create_report(
         max_sample_size=sample_size,
         max_sequence_length=1_000,
     )
-    ctx_input_path = workspace_dir / "report-ctx-data"
-    syn_tgt_data, syn_ctx_data = pull_data_for_report(
-        tgt_data=workspace.generated_data.fetch_all(),
-        ctx_data=sorted(ctx_input_path.glob("part.*.parquet")) if has_context else None,
-        **pull_kwargs,
-    )
     if step_code == StepCode.create_model_report:
+        report_ctx_input_path = workspace_dir / "report-ctx-data"
+        syn_tgt_data, syn_ctx_data = pull_data_for_report(
+            tgt_data=workspace.generated_data.fetch_all(),
+            ctx_data=sorted(report_ctx_input_path.glob("part.*.parquet")) if has_context else None,
+            **pull_kwargs,
+        )
         trn_tgt_data, trn_ctx_data = pull_data_for_report(
             tgt_data=workspace.tgt_trn_data.fetch_all(),
-            ctx_data=sorted(ctx_input_path.glob("part.*-trn.parquet")) if has_context else None,
+            ctx_data=sorted(report_ctx_input_path.glob("part.*-trn.parquet")) if has_context else None,
             **pull_kwargs,
         )
         hol_tgt_data, hol_ctx_data = pull_data_for_report(
             tgt_data=workspace.tgt_val_data.fetch_all(),
-            ctx_data=sorted(ctx_input_path.glob("part.*-val.parquet")) if has_context else None,
+            ctx_data=sorted(report_ctx_input_path.glob("part.*-val.parquet")) if has_context else None,
             **pull_kwargs,
         )
     else:  # step_code == StepCode.create_data_report:
+        syn_tgt_data, syn_ctx_data = pull_data_for_report(
+            tgt_data=workspace.generated_data.fetch_all(),
+            ctx_data=workspace.ctx_data.fetch_all() if has_context else None,
+            **pull_kwargs,
+        )
         trn_tgt_data, trn_ctx_data = None, None
         hol_tgt_data, hol_ctx_data = None, None
 
