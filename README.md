@@ -11,7 +11,11 @@ The official SDK of [MOSTLY AI](https://app.mostly.ai/), a Python toolkit for hi
 - **Local mode** trains and generates synthetic data locally on your own compute resources.
 - Generators, that were trained locally, can be easily imported to a platform for further sharing.
 
+
 ## Overview
+
+
+
 
 The SDK allows you to programmatically create, browse and manage 3 key resources:
 
@@ -25,6 +29,7 @@ The SDK allows you to programmatically create, browse and manage 3 key resources
 | Generate any number of synthetic data records | `sd = mostly.generate(g, config)` | see [mostly.generate](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.generate) |
 | Live probe the generator on demand            | `df = mostly.probe(g, config)`    | see [mostly.probe](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.probe)       |
 | Connect to any data source within your org    | `c = mostly.connect(config)`      | see [mostly.connect](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.connect)   |
+
 
 ## Installation
 
