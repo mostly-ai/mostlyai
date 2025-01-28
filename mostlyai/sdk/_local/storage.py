@@ -18,6 +18,7 @@ import zipfile
 from io import BytesIO
 
 from pydantic import BaseModel
+from filelock import FileLock
 from mostlyai.sdk.domain import Generator, JobProgress, Connector, SyntheticDataset
 
 
@@ -86,4 +87,6 @@ def write_to_json(file_path: Path, obj: BaseModel) -> None:
         # serialize with camelCase aliases for platform compatibility
         by_alias=True,
     )
-    file_path.write_text(json_str)
+    lock = FileLock(file_path)
+    with lock:
+        file_path.write_text(json_str)
