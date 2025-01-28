@@ -38,7 +38,7 @@ from mostlyai.sdk.domain import (
     SyntheticTableConfiguration,
     SyntheticTableConfig,
     Connector,
-    SyntheticDataset,
+    SyntheticDataset, GeneratorListItem,
 )
 from mostlyai.sdk.client._naming_conventions import map_camel_to_snake_case
 
@@ -174,7 +174,7 @@ def harmonize_sd_config(
     size = size if size is not None else {}
     seed = seed if seed is not None else {}
 
-    if isinstance(generator, Generator):
+    if isinstance(generator, Generator | GeneratorListItem):
         generator_id = str(generator.id)
     elif generator is not None:
         generator_id = str(generator)
