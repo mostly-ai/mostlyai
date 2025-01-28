@@ -16,6 +16,7 @@ The official SDK of [MOSTLY AI](https://app.mostly.ai/), a Python toolkit for hi
 
 
 
+
 The SDK allows you to programmatically create, browse and manage 3 key resources:
 
 1. **Generators** - Train a synthetic data generator on your existing tabular or language data assets
