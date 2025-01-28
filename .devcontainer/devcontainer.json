@@ -1,7 +1,13 @@
 {
   "name": "Python 3.10 with uv",
   "image": "mcr.microsoft.com/devcontainers/python:1-3.10-bullseye",
-  "postCreateCommand": "pip install uv && uv venv && .venv/bin/python -m pip install ipykernel && uv sync --extra dev",
+  "postCreateCommand": [
+    "pip install uv",
+    "uv venv",
+    "source .venv/bin/activate",
+    "uv sync --extra dev --frozen",
+    "uv run pip install ipykernel"
+  ],
   "extensions": [
     "ms-python.python",
     "ms-toolsai.jupyter"
