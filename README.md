@@ -11,6 +11,7 @@ The official SDK of [MOSTLY AI](https://app.mostly.ai/), a Python toolkit for hi
 - **Local mode** trains and generates synthetic data locally on your own compute resources.
 - Generators, that were trained locally, can be easily imported to a platform for further sharing.
 
+
 ## Overview
 
 The SDK allows you to programmatically create, browse and manage 3 key resources:
