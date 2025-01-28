@@ -46,7 +46,9 @@ def write_connector_to_json(connector_dir: Path, connector: Connector) -> None:
 
 def read_job_progress_from_json(resource_dir: Path) -> JobProgress:
     progress_file = resource_dir / "job_progress.json"
-    return JobProgress(**json.loads(progress_file.read_text()))
+    lock = FileLock(progress_file)
+    with lock:
+        return JobProgress(**json.loads(progress_file.read_text()))
 
 
 def write_job_progress_to_json(resource_dir: Path, job_progress: JobProgress) -> None:
