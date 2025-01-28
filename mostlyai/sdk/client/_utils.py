@@ -38,7 +38,8 @@ from mostlyai.sdk.domain import (
     SyntheticTableConfiguration,
     SyntheticTableConfig,
     Connector,
-    SyntheticDataset, GeneratorListItem,
+    SyntheticDataset,
+    GeneratorListItem,
 )
 from mostlyai.sdk.client._naming_conventions import map_camel_to_snake_case
 
