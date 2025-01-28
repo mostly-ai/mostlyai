@@ -1,0 +1,17 @@
+{
+  "name": "Python 3.10 with uv",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.10-bullseye",
+  "postCreateCommand": "pip install uv && uv sync --extra dev",
+  "extensions": [
+    "ms-python.python"
+  ],
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.10"
+    }
+  },
+  "forwardPorts": [8000],
+  "settings": {
+    "python.pythonPath": "/usr/local/bin/python"
+  }
+}
