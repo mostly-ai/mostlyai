@@ -18,6 +18,7 @@ import zipfile
 from io import BytesIO
 
 from pydantic import BaseModel
+from filelock import FileLock
 from mostlyai.sdk.domain import Generator, JobProgress, Connector, SyntheticDataset
 
 
@@ -45,7 +46,10 @@ def write_connector_to_json(connector_dir: Path, connector: Connector) -> None:
 
 def read_job_progress_from_json(resource_dir: Path) -> JobProgress:
     progress_file = resource_dir / "job_progress.json"
-    return JobProgress(**json.loads(progress_file.read_text()))
+    lock_file = progress_file.with_suffix(".lock")
+    lock = FileLock(lock_file)
+    with lock:
+        return JobProgress(**json.loads(progress_file.read_text()))
 
 
 def write_job_progress_to_json(resource_dir: Path, job_progress: JobProgress) -> None:
@@ -86,4 +90,7 @@ def write_to_json(file_path: Path, obj: BaseModel) -> None:
         # serialize with camelCase aliases for platform compatibility
         by_alias=True,
     )
-    file_path.write_text(json_str)
+    lock_file = file_path.with_suffix(".lock")
+    lock = FileLock(lock_file)
+    with lock:
+        file_path.write_text(json_str)

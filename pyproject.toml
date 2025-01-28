@@ -1,6 +1,6 @@
 [project]
 name = "mostlyai"
-version = "4.0.3"
+version = "4.0.4"
 description = "Synthetic Data SDK"
 authors = [{ name = "MOSTLY AI", email = "dev@mostly.ai" }]
 requires-python = ">=3.10"
@@ -57,6 +57,7 @@ dependencies = [
     "smart-open[gcs, s3, azure]>=6.3.0,<7",
     "azure-storage-blob>=12.16.0,<13",
     "adlfs>=2023.4.0,<2024",
+    "filelock>=3.16.1",
 ]
 
 [project.optional-dependencies]
