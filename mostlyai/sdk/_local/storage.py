@@ -46,7 +46,8 @@ def write_connector_to_json(connector_dir: Path, connector: Connector) -> None:
 
 def read_job_progress_from_json(resource_dir: Path) -> JobProgress:
     progress_file = resource_dir / "job_progress.json"
-    lock = FileLock(progress_file)
+    lock_file = progress_file.with_suffix(".lock")
+    lock = FileLock(lock_file)
     with lock:
         return JobProgress(**json.loads(progress_file.read_text()))
 
@@ -89,6 +90,7 @@ def write_to_json(file_path: Path, obj: BaseModel) -> None:
         # serialize with camelCase aliases for platform compatibility
         by_alias=True,
     )
-    lock = FileLock(file_path)
+    lock_file = file_path.with_suffix(".lock")
+    lock = FileLock(lock_file)
     with lock:
         file_path.write_text(json_str)
