@@ -14,6 +14,9 @@
       "customizations": {
         "vscode": {
             "extensions": [
+                "ms-python.python",
+				"ms-python.vscode-pylance",
+                "ms-toolsai.jupyter",
                 "charliermarsh.ruff",
                 "kevinrose.vsc-python-indent",
                 "tamasfe.even-better-toml",
