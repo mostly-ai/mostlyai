@@ -70,7 +70,7 @@ def create_key(passphrase: str) -> bytes:
 
 def get_passphrase() -> str:
     if _ENV_PASSPHRASE not in os.environ:
-        _LOG.warning(f"Environment variable `{_ENV_PASSPHRASE}` is not set. Using default passphrase.")
+        _LOG.info(f"Environment variable `{_ENV_PASSPHRASE}` is not set. Using default passphrase.")
     passphrase = os.getenv(_ENV_PASSPHRASE, "mostly-secret")
     return passphrase
 
