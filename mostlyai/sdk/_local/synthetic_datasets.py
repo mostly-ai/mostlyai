@@ -36,7 +36,6 @@ from mostlyai.sdk.domain import (
     ProgressValue,
     JobProgress,
     SyntheticTable,
-    SyntheticTableConfiguration,
     TaskType,
     Connector,
     ConnectorType,
@@ -77,28 +76,15 @@ def create_synthetic_dataset(
     generator_dir = home_dir / "generators" / config.generator_id
     generator = read_generator_from_json(generator_dir)
 
-    # fill sample sizes
-    # if there's a seed (sample_seed_connector_id is set), sample size will be ignored by the engine
-    size = size if size is not None else {}
+    # validate & fill defaults in config against generator
+    config.validate_against_generator(generator)
+
+    # create synthetic tables
     sd_tables = []
     for g_table in generator.tables:
-        if g_table.name in (t.name for t in (config.tables or [])):
-            sd_table = SyntheticTable(**next(t for t in config.tables if t.name == g_table.name).model_dump())
-        else:
-            sd_table = SyntheticTable(name=g_table.name)
+        sd_table = SyntheticTable(**next(t for t in config.tables if t.name == g_table.name).model_dump())
         sd_table.foreign_keys = g_table.foreign_keys
         sd_table.source_table_total_rows = g_table.total_rows
-        if sd_table.configuration is None:
-            sd_table.configuration = SyntheticTableConfiguration()
-        is_subject = not any(fk.is_context for fk in g_table.foreign_keys or [])
-        if is_subject and sd_table.configuration.sample_size is None:
-            if isinstance(size, int):
-                sd_table.configuration.sample_size = size
-            else:  # isinstance(size, dict)
-                default_sample_size = 1 if isinstance(config, SyntheticProbeConfig) else g_table.total_rows
-                sd_table.configuration.sample_size = size.get(g_table.name, default_sample_size)
-        elif not is_subject:
-            sd_table.configuration.sample_size = None  # sample size is not applicable to linked tables
         sd_table.tabular_model_metrics = g_table.tabular_model_metrics
         sd_table.language_model_metrics = g_table.language_model_metrics
         sd_tables.append(sd_table)
