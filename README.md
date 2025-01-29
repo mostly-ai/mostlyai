@@ -1,7 +1,7 @@
 
 # Synthetic Data SDK ✨
 
-[![Documentation](https://img.shields.io/badge/docs-latest-green)](https://mostly-ai.github.io/mostlyai/) [![stats](https://pepy.tech/badge/mostlyai)](https://pypi.org/project/mostlyai/) ![license](https://img.shields.io/github/license/mostly-ai/mostlyai) ![GitHub Release](https://img.shields.io/github/v/release/mostly-ai/mostlyai) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai)
+[![Documentation](https://img.shields.io/badge/docs-latest-green)](https://mostly-ai.github.io/mostlyai/) [![PyPI Downloads](https://static.pepy.tech/badge/mostlyai)](https://pepy.tech/projects/mostlyai) ![license](https://img.shields.io/github/license/mostly-ai/mostlyai) ![GitHub Release](https://img.shields.io/github/v/release/mostly-ai/mostlyai) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai) [![GitHub stars](https://img.shields.io/github/stars/mostly-ai/mostlyai?style=social)](https://github.com/mostly-ai/mostlyai)
 
 [SDK Documentation](https://mostly-ai.github.io/mostlyai/) | [Platform Documentation](https://mostly.ai/docs) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/)
 
