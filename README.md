@@ -5,9 +5,9 @@
 
 [SDK Documentation](https://mostly-ai.github.io/mostlyai/) | [Platform Documentation](https://mostly.ai/docs) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/)
 
-The official SDK of [MOSTLY AI](https://app.mostly.ai/), a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
+The Synthetic Data SDK is a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
 
-- **Client mode** connects to a remote MOSTLY AI platform for training & generating synthetic data there.
+- **Client mode** connects to a remote [MOSTLY AI platform](https://app.mostly.ai/) for training & generating synthetic data there.
 - **Local mode** trains and generates synthetic data locally on your own compute resources.
 - Generators, that were trained locally, can be easily imported to a platform for further sharing.
 
@@ -52,11 +52,9 @@ E.g.
 pip install -U 'mostlyai[local, databricks, snowflake]'
 ```
 
-## Quick Start
+## Quick Start  [![Run on Colab](https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab)](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb)
 
-For client mode, initialize with `base_url` and `api_key` obtained from your [account settings page](https://app.mostly.ai/settings/api-keys). For local mode, initialize the client simply with `local=True`.
-
- [![Run on Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/quick-start/quick-start.ipynb)
+Generate your first samples based on your own trained generator with a few lines of code. For local mode, initialize the SDK with `local=True`. For client mode, initialize the SDK with `base_url` and `api_key` obtained from your [account settings page](https://app.mostly.ai/settings/api-keys).
 
 ```python
 import pandas as pd
