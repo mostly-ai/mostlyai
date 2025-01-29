@@ -106,6 +106,7 @@ class MostlyAI(_MostlyBaseClient):
     ):
         import warnings
 
+        # suppress deprecation warnings only for client users
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         if quiet:
