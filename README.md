@@ -61,12 +61,12 @@ import pandas as pd
 from mostlyai.sdk import MostlyAI
 
 # load original data
-repo_url = 'https://github.com/mostly-ai/public-demo-data'
-df_original = pd.read_csv(f'{repo_url}/raw/dev/census/census.csv.gz')
+repo_url = "https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev"
+df_original = pd.read_csv(f"{repo_url}/census/census.csv.gz").sample(n=5_000)
 
 # initialize the SDK in local or client mode
-mostly = MostlyAI(local=True)
-# mostly = MostlyAI(base_url='https://app.mostly.ai', api_key='YOUR_API_KEY')
+mostly = MostlyAI(local=True)                       # local mode
+# mostly = MostlyAI(base_url='xxx', api_key='xxx')  # client mode
 
 # train a synthetic data generator
 g = mostly.train(config={
@@ -77,10 +77,10 @@ g = mostly.train(config={
         'tabular_model_configuration': { # tabular model configuration (optional)
             'max_training_time': 1,      # - limit training time (in minutes)
             # model, max_epochs,,..      # further model configurations (optional)
-            'differential_privacy': {    # differential privacy configuration (optional)
-                'max_epsilon': 5.0,      # - max epsilon value, used as stopping criterion
-                'delta': 1e-5,           # - delta value
-            }
+            # 'differential_privacy': {  # differential privacy configuration (optional)
+            #     'max_epsilon': 5.0,    # - max epsilon value, used as stopping criterion
+            #     'delta': 1e-5,         # - delta value
+            # }
         },
         # columns, keys, compute,..      # further table configurations (optional)
     }]},
