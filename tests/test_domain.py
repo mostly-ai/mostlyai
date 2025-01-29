@@ -14,7 +14,14 @@
 
 import pytest
 
-from mostlyai.sdk.domain import SourceTableConfig, GeneratorConfig, SourceColumn, ModelEncodingType
+from mostlyai.sdk.domain import (
+    SourceTableConfig,
+    GeneratorConfig,
+    SourceColumn,
+    ModelEncodingType,
+    SyntheticDatasetConfig,
+    Generator,
+)
 
 
 def test_source_column():
@@ -157,3 +164,109 @@ def test_generator_config():
                 ]
             }
         )
+
+
+def test_synthetic_dataset_config():
+    # test valid calls
+    SyntheticDatasetConfig()
+    SyntheticDatasetConfig(**{"name": "test", "description": "test desc"})
+    SyntheticDatasetConfig(**{"tables": [{"name": "tbl1"}]})
+
+    # test invalid calls
+    with pytest.raises(ValueError):  # non-unique table names
+        SyntheticDatasetConfig(**{"tables": [{"name": "tbl1"}, {"name": "tbl1"}]})
+
+
+def test_synthetic_dataset_config_validate_against_generator():
+    # prepare test data
+    generator_cols = [
+        SourceColumn(**{"name": "id", "model_encoding_type": "TABULAR_CATEGORICAL", "included": True}),
+        SourceColumn(**{"name": "col1", "model_encoding_type": "TABULAR_CATEGORICAL", "included": True}),
+        SourceColumn(**{"name": "col2", "model_encoding_type": "LANGUAGE_TEXT", "included": True}),
+    ]
+    generator = Generator(
+        **{
+            "id": "gen1",
+            "tables": [{"name": "tbl1", "columns": generator_cols, "total_rows": 100, "primary_key": "id"}],
+        }
+    )
+
+    # test valid calls
+    config = SyntheticDatasetConfig(
+        **{
+            "tables": [
+                {
+                    "name": "tbl1",
+                    "configuration": {
+                        "rebalancing": {"column": "col1", "probabilities": {}},
+                        "imputation": {"columns": ["col1"]},
+                        "fairness": {"target_column": "col1", "sensitive_columns": ["id"]},
+                    },
+                }
+            ]
+        }
+    )
+    config.validate_against_generator(generator)
+
+    # test invalid calls
+    with pytest.raises(ValueError):  # no tables specified
+        SyntheticDatasetConfig().validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # missing table from generator
+        SyntheticDatasetConfig(**{"tables": [{"name": "missing_table"}]}).validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # extra table not in generator
+        SyntheticDatasetConfig(**{"tables": [{"name": "tbl1"}, {"name": "extra_table"}]}).validate_against_generator(
+            generator
+        )
+
+    with pytest.raises(ValueError):  # rebalancing column not found
+        SyntheticDatasetConfig(
+            **{"tables": [{"name": "tbl1", "configuration": {"rebalancing": {"column": "missing_col"}}}]}
+        ).validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # rebalancing on non-categorical column
+        SyntheticDatasetConfig(
+            **{"tables": [{"name": "tbl1", "configuration": {"rebalancing": {"column": "col2"}}}]}
+        ).validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # imputation column not found
+        SyntheticDatasetConfig(
+            **{"tables": [{"name": "tbl1", "configuration": {"imputation": {"columns": ["missing_col"]}}}]}
+        ).validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # fairness target column not found
+        SyntheticDatasetConfig(
+            **{
+                "tables": [
+                    {
+                        "name": "tbl1",
+                        "configuration": {"fairness": {"target_column": "missing_col", "sensitive_columns": ["id"]}},
+                    }
+                ]
+            }
+        ).validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # fairness sensitive column not found
+        SyntheticDatasetConfig(
+            **{
+                "tables": [
+                    {
+                        "name": "tbl1",
+                        "configuration": {"fairness": {"target_column": "col1", "sensitive_columns": ["missing_col"]}},
+                    }
+                ]
+            }
+        ).validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # target column cannot be sensitive column
+        SyntheticDatasetConfig(
+            **{
+                "tables": [
+                    {
+                        "name": "tbl1",
+                        "configuration": {"fairness": {"target_column": "col1", "sensitive_columns": ["col1"]}},
+                    }
+                ]
+            }
+        ).validate_against_generator(generator)
