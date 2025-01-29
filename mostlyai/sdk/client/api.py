@@ -104,6 +104,10 @@ class MostlyAI(_MostlyBaseClient):
         ssl_verify: bool = True,
         quiet: bool = False,
     ):
+        import warnings
+
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+
         if quiet:
             rich.get_console().quiet = True
         if local:
