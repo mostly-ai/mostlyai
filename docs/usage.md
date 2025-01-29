@@ -115,6 +115,8 @@ display(df_synthetic_seasons)
 
 Train a multi-model generator on a single flat table, that consists both of tabular and of textual columns.
 
+Note, that the usage of a GPU, with 24GB or more, is strongly recommended for training language models.
+
 ```python
 import pandas as pd
 from mostlyai.sdk import MostlyAI
@@ -158,4 +160,78 @@ Conditionally generate 100 new headlines for the WELLNESS category.
 df_seed = pd.DataFrame({'category': ['WELLNESS'] * 100})
 sd = mostly.generate(g, seed=df_seed)
 df_synthetic = sd.data()
+```
+
+## Usage of connectors
+
+Leverage connectors for fetching original data as well as for delivering synthetic datasets.
+
+See [ConnectorConfig](../api_domain/#mostlyai.sdk.domain.ConnectorConfig) for the full list of available connectors, and their corresponding configuration parameters.
+
+```python
+import pandas as pd
+from mostlyai.sdk import MostlyAI
+
+# instantiate SDK
+mostly = MostlyAI(local=True)  # or: MostlyAI(base_url='xxx', api_key='xxx')
+
+# define a source connector for reading
+src_c = mostly.connect(config={
+    "name": "My S3 Source Storage",
+    "type": "POSTGRES",
+    "access_type": "SOURCE",
+    "config": {
+        "host": "INSERT_YOUR_DB_HOST",
+        "username": "INSERT_YOUR_DB_USER",
+        "database": "INSERT_YOUR_DB_NAME",
+    },
+    "secrets": {
+        "password": "INSERT_YOUR_DB_PWD",
+    }
+})
+
+# define a destination connector for writing
+dest_c = mostly.connect(config={
+    "name": "My S3 Destination Storage",
+    "type": "S3_STORAGE",
+    "access_type": "DESTINATION",
+    "config": {
+        "access_key": "INSERT_YOUR_ACCESS_KEY",
+    },
+    "secrets": {
+        "secret_key": "INSERT_YOUR_SECRET_KEY",
+    },
+})
+
+# list available source locations
+src_c.locations()
+```
+
+Train a generator on a dataset fetched from the source connector.
+
+```python
+# train a generator; increase max_training_time to improve quality
+g = mostly.train(config={
+    'name': 'Housing',                      # name of the generator
+    'tables': [{                            # provide list of table(s)
+        'name': 'housing',                  # name of the table
+        'source_connector_id': src_c.id,    # the ID of the source connector
+        'location': 'bucket/path_to_data',  # the location of the source data
+        'tabular_model_configuration': {    # tabular model configuration (optional)
+            'max_epochs': 20,               # - limit training epochs
+        },
+    }],
+}, start=True, wait=True)
+```
+
+Generate a synthetic dataset, and deliver it to a destination connector.
+
+```python
+sd = mostly.generate(g, config={
+    "name": "Housing",                             # name of the synthetic dataset
+    "delivery": {                                  # delivery configuration (optional)
+        "destination_connector_id": dest_c.id,     # the ID of the destination connector
+        "location": "bucket/path_to_destination",  # the location of the destination data
+    }
+})
 ```
