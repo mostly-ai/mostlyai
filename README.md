@@ -56,6 +56,8 @@ pip install -U 'mostlyai[local, databricks, snowflake]'
 
 For client mode, initialize with `base_url` and `api_key` obtained from your [account settings page](https://app.mostly.ai/settings/api-keys). For local mode, initialize the client simply with `local=True`.
 
+ [![Run on Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/quick-start/quick-start.ipynb)
+
 ```python
 import pandas as pd
 from mostlyai.sdk import MostlyAI
@@ -70,21 +72,20 @@ mostly = MostlyAI(local=True)
 
 # train a synthetic data generator
 g = mostly.train(config={
-        'name': 'US Census Income',          # name of the generator
-        'tables': [{                         # provide list of table(s)
-            'name': 'census',                # name of the table
-            'data': df_original,             # the original data as pd.DataFrame
-            'tabular_model_configuration': { # tabular model configuration (optional)
-                'max_training_time': 1,      # - limit training time (in minutes)
-                # model, max_epochs,,..      # further model configurations (optional)
-                'differential_privacy': {    # differential privacy configuration (optional)
-                    'max_epsilon': 5.0,      # - max epsilon value, used as stopping criterion
-                    'delta': 1e-5,           # - delta value
-                }
-            },
-            # columns, keys, compute,..      # further table configurations (optional)
-        }]
-    },
+    'name': 'US Census Income',          # name of the generator
+    'tables': [{                         # provide list of table(s)
+        'name': 'census',                # name of the table
+        'data': df_original,             # the original data as pd.DataFrame
+        'tabular_model_configuration': { # tabular model configuration (optional)
+            'max_training_time': 1,      # - limit training time (in minutes)
+            # model, max_epochs,,..      # further model configurations (optional)
+            'differential_privacy': {    # differential privacy configuration (optional)
+                'max_epsilon': 5.0,      # - max epsilon value, used as stopping criterion
+                'delta': 1e-5,           # - delta value
+            }
+        },
+        # columns, keys, compute,..      # further table configurations (optional)
+    }]},
     start=True,                              # start training immediately (default: True)
     wait=True,                               # wait for completion (default: True)
 )
