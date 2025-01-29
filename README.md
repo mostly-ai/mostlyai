@@ -37,11 +37,13 @@ pip install -U mostlyai
 **Client + Local mode**
 
 ```shell
-pip install -U 'mostlyai[local]'       # for CPU
-#pip install -U 'mostlyai[local-gpu]'  # for GPU
+# for CPU on macOS
+pip install -U 'mostlyai[local]'
+# for CPU on Linux
+#pip install -U mostlyai[local] --extra-index-url https://download.pytorch.org/whl/cpu
+# for GPU on Linux
+#pip install -U mostlyai[local-gpu]
 ```
-
-NOTE: installing `mostlyai[local]` on Linux requires `--extra-index-url https://download.pytorch.org/whl/cpu` to be specified.
 
 **Optional Connectors**
 
