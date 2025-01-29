@@ -233,13 +233,6 @@ def test_synthetic_dataset_config_validate_against_generator(config_class):
     samples_None_config.validate_against_generator(generator)
     assert samples_None_config.tables[0].configuration.sample_size == 50
 
-    # test invalid calls
-    with pytest.raises(ValueError):  # no tables specified
-        config_class().validate_against_generator(generator)
-
-    with pytest.raises(ValueError):  # missing table from generator
-        config_class(**{"tables": [{"name": "missing_table"}]}).validate_against_generator(generator)
-
     with pytest.raises(ValueError):  # extra table not in generator
         config_class(**{"tables": [{"name": "tbl1"}, {"name": "extra_table"}]}).validate_against_generator(generator)
 
@@ -293,3 +286,38 @@ def test_synthetic_dataset_config_validate_against_generator(config_class):
                 ]
             }
         ).validate_against_generator(generator)
+
+    # test adding missing tables
+    generator_with_multiple_tables = Generator(
+        **{
+            "id": "gen1",
+            "tables": [
+                {
+                    "name": "tbl1",
+                    "columns": generator_cols,
+                    "total_rows": 100,
+                    "primary_key": "id",
+                    "tabular_model_configuration": {},
+                },
+                {
+                    "name": "tbl2",
+                    "columns": generator_cols,
+                    "total_rows": 50,
+                    "primary_key": "id",
+                    "tabular_model_configuration": {},
+                },
+            ],
+        }
+    )
+
+    # test that missing tables are added automatically
+    config = config_class(**{"tables": [{"name": "tbl1"}]})
+    config.validate_against_generator(generator_with_multiple_tables)
+    assert len(config.tables) == 2
+    assert {t.name for t in config.tables} == {"tbl1", "tbl2"}
+
+    # test that empty tables list gets populated with all generator tables
+    config = config_class(**{"tables": None})
+    config.validate_against_generator(generator_with_multiple_tables)
+    assert len(config.tables) == 2
+    assert {t.name for t in config.tables} == {"tbl1", "tbl2"}

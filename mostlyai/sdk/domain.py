@@ -1913,6 +1913,25 @@ class SyntheticTableConfiguration(CustomBaseModel):
             values["sampling_top_p"] = 1.0
         return values
 
+    @model_validator(mode="after")
+    @classmethod
+    def mutually_exclusive_fields(cls, values):
+        seed_fields = [
+            field
+            for field in [values.sample_seed_connector_id, values.sample_seed_dict, values.sample_seed_data]
+            if field is not None
+        ]
+        if len(seed_fields) > 1:
+            raise ValueError(
+                "Only one of sample_seed_connector_id, sample_seed_dict and sample_seed_data can be provided"
+            )
+
+        if seed_fields and values.sample_size is not None:
+            raise ValueError(
+                "sample_seed_connector_id, sample_seed_dict and sample_seed_data are mutually exclusive with sample_size"
+            )
+        return values
+
 
 class SyntheticTablePatchConfig(CustomBaseModel):
     """
@@ -1932,6 +1951,13 @@ class SyntheticTableConfig(CustomBaseModel):
         description="The name of a synthetic table. This matches the name of a corresponding SourceTable.",
     )
     configuration: SyntheticTableConfiguration | None = None
+
+    @model_validator(mode="after")
+    @classmethod
+    def add_configuration(cls, values):
+        if values.configuration is None:
+            values.configuration = SyntheticTableConfiguration()
+        return values
 
 
 class AssistantThreadListItem(CustomBaseModel):
@@ -2288,13 +2314,15 @@ class SyntheticConfigValidation(CustomBaseModel):
     generator: Generator
 
     @model_validator(mode="after")
-    def validate_no_missing_tables(cls, validation):
+    def add_missing_tables(cls, validation):
         generator_table_map = {t.name: t for t in validation.generator.tables}
-        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables or []}
+        if validation.synthetic_config.tables is None:
+            validation.synthetic_config.tables = []
+        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables}
 
         missing_tables = set(generator_table_map.keys()) - set(synthetic_table_map.keys())
-        if missing_tables:
-            raise ValueError(f"Missing tables in synthetic config: {missing_tables}")
+        for t in missing_tables:
+            validation.synthetic_config.tables.append(SyntheticTableConfig(name=t))
         return validation
 
     @model_validator(mode="after")
