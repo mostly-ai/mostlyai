@@ -2279,16 +2279,8 @@ class SyntheticTable(CustomBaseModel):
         return values
 
 
-class SyntheticDatasetConfig(CustomBaseModel):
-    """
-    The configuration for creating a new synthetic dataset.
-    """
-
-    generator_id: str | None = Field(None, alias="generatorId", description="The unique identifier of a generator.")
-    name: str | None = Field(None, description="The name of a synthetic dataset.")
-    description: str | None = Field(None, description="The description of a synthetic dataset.")
+class SyntheticBaseConfig(CustomBaseModel):
     tables: list[SyntheticTableConfig] | None = None
-    delivery: SyntheticDatasetDelivery | None = None
 
     @field_validator("tables", mode="after")
     @classmethod
@@ -2310,18 +2302,14 @@ class SyntheticDatasetConfig(CustomBaseModel):
         Raises:
             ValueError: if the configuration is invalid
         """
-        # validate tables exist and match
-        if not self.tables:
-            raise ValueError("No tables specified in synthetic dataset config")
+        # validate tables match
         generator_table_map = {t.name: t for t in generator.tables}
-        synthetic_table_map = {t.name: t for t in self.tables}
+        synthetic_table_map = {t.name: t for t in self.tables or []}
 
-        # check if all tables from generator are present in synthetic dataset
         missing_tables = set(generator_table_map.keys()) - set(synthetic_table_map.keys())
         if missing_tables:
             raise ValueError(f"Missing tables in synthetic dataset config: {missing_tables}")
 
-        # check if synthetic dataset has extra tables not in generator
         extra_tables = set(synthetic_table_map.keys()) - set(generator_table_map.keys())
         if extra_tables:
             raise ValueError(f"Extra tables in synthetic dataset config not present in generator: {extra_tables}")
@@ -2331,15 +2319,7 @@ class SyntheticDatasetConfig(CustomBaseModel):
 
             config = synthetic_table.configuration
             if config:
-                has_tabular_model = (
-                    any(
-                        col.model_encoding_type.startswith("TABULAR_")
-                        for col in generator_table.columns or []
-                        if col.included
-                    )
-                    if generator_table.columns
-                    else True
-                )  # FIXME is this possible? Can a table have no columns / None?
+                has_tabular_model = generator_table.tabular_model_configuration is not None
 
                 # set sample size to source table size if not provided and if subject table
                 is_subject = not any(fk.is_context for fk in generator_table.foreign_keys or [])
@@ -2348,7 +2328,10 @@ class SyntheticDatasetConfig(CustomBaseModel):
                     and is_subject
                     and not (config.sample_seed_connector_id or config.sample_seed_dict or config.sample_seed_data)
                 ):
-                    config.sample_size = generator_table.total_rows
+                    if isinstance(self, SyntheticProbeConfig):
+                        config.sample_size = 1
+                    else:
+                        config.sample_size = generator_table.total_rows
                 elif not is_subject:
                     config.sample_size = None
 
@@ -2393,13 +2376,23 @@ class SyntheticDatasetConfig(CustomBaseModel):
                         raise ValueError(f"Target column '{target_col}' cannot be a sensitive column")
 
 
-class SyntheticProbeConfig(CustomBaseModel):
+class SyntheticDatasetConfig(SyntheticBaseConfig):
+    """
+    The configuration for creating a new synthetic dataset.
+    """
+
+    generator_id: str | None = Field(None, alias="generatorId", description="The unique identifier of a generator.")
+    name: str | None = Field(None, description="The name of a synthetic dataset.")
+    description: str | None = Field(None, description="The description of a synthetic dataset.")
+    delivery: SyntheticDatasetDelivery | None = None
+
+
+class SyntheticProbeConfig(SyntheticBaseConfig):
     """
     The configuration for probing for new synthetic samples.
     """
 
     generator_id: str | None = Field(None, alias="generatorId", description="The unique identifier of a generator.")
-    tables: list[SyntheticTableConfig] | None = None
 
 
 class Generator(CustomBaseModel):

@@ -21,6 +21,8 @@ from mostlyai.sdk.domain import (
     ModelEncodingType,
     SyntheticDatasetConfig,
     Generator,
+    SyntheticProbeConfig,
+    SyntheticTableConfiguration,
 )
 
 
@@ -177,7 +179,8 @@ def test_synthetic_dataset_config():
         SyntheticDatasetConfig(**{"tables": [{"name": "tbl1"}, {"name": "tbl1"}]})
 
 
-def test_synthetic_dataset_config_validate_against_generator():
+@pytest.mark.parametrize("config_class", [SyntheticDatasetConfig, SyntheticProbeConfig])
+def test_synthetic_dataset_config_validate_against_generator(config_class):
     # prepare test data
     generator_cols = [
         SourceColumn(**{"name": "id", "model_encoding_type": "TABULAR_CATEGORICAL", "included": True}),
@@ -187,12 +190,20 @@ def test_synthetic_dataset_config_validate_against_generator():
     generator = Generator(
         **{
             "id": "gen1",
-            "tables": [{"name": "tbl1", "columns": generator_cols, "total_rows": 100, "primary_key": "id"}],
+            "tables": [
+                {
+                    "name": "tbl1",
+                    "columns": generator_cols,
+                    "total_rows": 100,
+                    "primary_key": "id",
+                    "tabular_model_configuration": {},
+                }
+            ],
         }
     )
 
     # test valid calls
-    config = SyntheticDatasetConfig(
+    config = config_class(
         **{
             "tables": [
                 {
@@ -208,35 +219,47 @@ def test_synthetic_dataset_config_validate_against_generator():
     )
     config.validate_against_generator(generator)
 
+    # test sample_size defaults
+    expected_sample_size = 1 if config_class == SyntheticProbeConfig else 100
+    config = config_class(
+        **{"tables": [{"name": "tbl1", "configuration": SyntheticTableConfiguration(sample_size=None)}]}
+    )
+    config.validate_against_generator(generator)
+    assert config.tables[0].configuration.sample_size == expected_sample_size
+
+    samples_None_config = config_class(
+        **{"tables": [{"name": "tbl1", "configuration": SyntheticTableConfiguration(sample_size=50)}]}
+    )
+    samples_None_config.validate_against_generator(generator)
+    assert samples_None_config.tables[0].configuration.sample_size == 50
+
     # test invalid calls
     with pytest.raises(ValueError):  # no tables specified
-        SyntheticDatasetConfig().validate_against_generator(generator)
+        config_class().validate_against_generator(generator)
 
     with pytest.raises(ValueError):  # missing table from generator
-        SyntheticDatasetConfig(**{"tables": [{"name": "missing_table"}]}).validate_against_generator(generator)
+        config_class(**{"tables": [{"name": "missing_table"}]}).validate_against_generator(generator)
 
     with pytest.raises(ValueError):  # extra table not in generator
-        SyntheticDatasetConfig(**{"tables": [{"name": "tbl1"}, {"name": "extra_table"}]}).validate_against_generator(
-            generator
-        )
+        config_class(**{"tables": [{"name": "tbl1"}, {"name": "extra_table"}]}).validate_against_generator(generator)
 
     with pytest.raises(ValueError):  # rebalancing column not found
-        SyntheticDatasetConfig(
+        config_class(
             **{"tables": [{"name": "tbl1", "configuration": {"rebalancing": {"column": "missing_col"}}}]}
         ).validate_against_generator(generator)
 
     with pytest.raises(ValueError):  # rebalancing on non-categorical column
-        SyntheticDatasetConfig(
+        config_class(
             **{"tables": [{"name": "tbl1", "configuration": {"rebalancing": {"column": "col2"}}}]}
         ).validate_against_generator(generator)
 
     with pytest.raises(ValueError):  # imputation column not found
-        SyntheticDatasetConfig(
+        config_class(
             **{"tables": [{"name": "tbl1", "configuration": {"imputation": {"columns": ["missing_col"]}}}]}
         ).validate_against_generator(generator)
 
     with pytest.raises(ValueError):  # fairness target column not found
-        SyntheticDatasetConfig(
+        config_class(
             **{
                 "tables": [
                     {
@@ -248,7 +271,7 @@ def test_synthetic_dataset_config_validate_against_generator():
         ).validate_against_generator(generator)
 
     with pytest.raises(ValueError):  # fairness sensitive column not found
-        SyntheticDatasetConfig(
+        config_class(
             **{
                 "tables": [
                     {
@@ -260,7 +283,7 @@ def test_synthetic_dataset_config_validate_against_generator():
         ).validate_against_generator(generator)
 
     with pytest.raises(ValueError):  # target column cannot be sensitive column
-        SyntheticDatasetConfig(
+        config_class(
             **{
                 "tables": [
                     {
