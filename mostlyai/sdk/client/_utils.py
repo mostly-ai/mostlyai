@@ -175,7 +175,9 @@ def harmonize_sd_config(
     size = size if size is not None else {}
     seed = seed if seed is not None else {}
 
-    if isinstance(generator, Generator | GeneratorListItem):
+    if isinstance(generator, GeneratorListItem):
+        generator = get_generator(generator.id)
+    if isinstance(generator, Generator):
         generator_id = str(generator.id)
     elif generator is not None:
         generator_id = str(generator)

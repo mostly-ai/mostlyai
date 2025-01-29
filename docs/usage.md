@@ -232,6 +232,7 @@ sd = mostly.generate(g, config={
     "delivery": {                                  # delivery configuration (optional)
         "destination_connector_id": dest_c.id,     # the ID of the destination connector
         "location": "bucket/path_to_destination",  # the location of the destination data
+        "overwrite_tables": True,                   # overwrite existing tables (default: False)
     }
 })
 ```
