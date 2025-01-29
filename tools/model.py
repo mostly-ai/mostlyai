@@ -21,6 +21,7 @@ import rich
 from pydantic import Field, field_validator, model_validator
 
 from mostlyai.sdk.client._base_utils import convert_to_base64
+from mostlyai.sdk.client.base import CustomBaseModel
 from mostlyai.sdk.domain import (
     JobProgress,
     SyntheticDatasetFormat,
@@ -28,7 +29,6 @@ from mostlyai.sdk.domain import (
     GeneratorPatchConfig,
     SyntheticDatasetDelivery,
     SyntheticDatasetPatchConfig,
-    SyntheticDatasetConfig,
     GeneratorConfig,
     ModelEncodingType,
     ProgressStatus,
@@ -448,6 +448,15 @@ class SourceColumn:
         return values
 
 
+class SyntheticTableConfig:
+    @model_validator(mode="after")
+    @classmethod
+    def add_configuration(cls, values):
+        if values.configuration is None:
+            values.configuration = SyntheticTableConfiguration()
+        return values
+
+
 class SyntheticTableConfiguration:
     @field_validator("sample_seed_dict", mode="before")
     @classmethod
@@ -466,6 +475,25 @@ class SyntheticTableConfiguration:
             values["sampling_temperature"] = 1.0
         if "sampling_top_p" not in values or values["sampling_top_p"] is None:
             values["sampling_top_p"] = 1.0
+        return values
+
+    @model_validator(mode="after")
+    @classmethod
+    def mutually_exclusive_fields(cls, values):
+        seed_fields = [
+            field
+            for field in [values.sample_seed_connector_id, values.sample_seed_dict, values.sample_seed_data]
+            if field is not None
+        ]
+        if len(seed_fields) > 1:
+            raise ValueError(
+                "Only one of sample_seed_connector_id, sample_seed_dict and sample_seed_data can be provided"
+            )
+
+        if seed_fields and values.sample_size is not None:
+            raise ValueError(
+                "sample_seed_connector_id, sample_seed_dict and sample_seed_data are mutually exclusive with sample_size"
+            )
         return values
 
 
@@ -520,7 +548,7 @@ class SyntheticDataset:
         """
         return self.client._delete(synthetic_dataset_id=self.id)
 
-    def config(self) -> SyntheticDatasetConfig:
+    def config(self) -> "SyntheticDatasetConfig":
         """
         Retrieve writable synthetic dataset properties.
 
@@ -662,6 +690,134 @@ class SyntheticDataset:
                 )
 
 
+class SyntheticConfigValidation(CustomBaseModel):
+    """
+    shared validation logic for synthetic dataset and probe configs
+    """
+
+    synthetic_config: "SyntheticDatasetConfig" | "SyntheticProbeConfig"
+    generator: Generator
+
+    @model_validator(mode="after")
+    def add_missing_tables(cls, validation):
+        generator_table_map = {t.name: t for t in validation.generator.tables}
+        if validation.synthetic_config.tables is None:
+            validation.synthetic_config.tables = []
+        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables}
+
+        missing_tables = set(generator_table_map.keys()) - set(synthetic_table_map.keys())
+        for t in missing_tables:
+            validation.synthetic_config.tables.append(SyntheticTableConfig(name=t))
+        return validation
+
+    @model_validator(mode="after")
+    def validate_no_extra_tables(cls, validation):
+        generator_table_map = {t.name: t for t in validation.generator.tables}
+        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables or []}
+
+        extra_tables = set(synthetic_table_map.keys()) - set(generator_table_map.keys())
+        if extra_tables:
+            raise ValueError(f"Extra tables in synthetic config not present in generator: {extra_tables}")
+        return validation
+
+    @model_validator(mode="after")
+    def validate_rebalancing_configs(cls, validation):
+        generator_table_map = {t.name: t for t in validation.generator.tables}
+        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables or []}
+
+        for table_name, synthetic_table in synthetic_table_map.items():
+            generator_table = generator_table_map[table_name]
+            config = synthetic_table.configuration
+
+            if config and config.rebalancing:
+                has_tabular_model = generator_table.tabular_model_configuration is not None
+                if not has_tabular_model:
+                    raise ValueError(f"Table '{table_name}' specifies rebalancing but has no tabular model")
+
+                rebalancing_column = config.rebalancing.column
+                rebalancing_col = next(
+                    (col for col in generator_table.columns or [] if col.name == rebalancing_column),
+                    None,
+                )
+                if not rebalancing_col:
+                    raise ValueError(f"Rebalancing column '{rebalancing_column}' not found in table '{table_name}'")
+                if not rebalancing_col.model_encoding_type.endswith("_CATEGORICAL"):
+                    raise ValueError(
+                        f"Rebalancing column '{rebalancing_column}' in table '{table_name}' must be categorical"
+                    )
+        return validation
+
+    @model_validator(mode="after")
+    def validate_imputation_configs(cls, validation):
+        generator_table_map = {t.name: t for t in validation.generator.tables}
+        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables or []}
+
+        for table_name, synthetic_table in synthetic_table_map.items():
+            generator_table = generator_table_map[table_name]
+            config = synthetic_table.configuration
+
+            if config and config.imputation:
+                has_tabular_model = generator_table.tabular_model_configuration is not None
+                if not has_tabular_model:
+                    raise ValueError(f"Table '{table_name}' specifies imputation but has no tabular model")
+
+                for col in config.imputation.columns:
+                    if not any(gcol.name == col for gcol in generator_table.columns or []):
+                        raise ValueError(f"Imputation column '{col}' not found in table '{table_name}'")
+        return validation
+
+    @model_validator(mode="after")
+    def validate_fairness_configs(cls, validation):
+        generator_table_map = {t.name: t for t in validation.generator.tables}
+        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables or []}
+
+        for table_name, synthetic_table in synthetic_table_map.items():
+            generator_table = generator_table_map[table_name]
+            config = synthetic_table.configuration
+
+            if config and config.fairness:
+                has_tabular_model = generator_table.tabular_model_configuration is not None
+                if not has_tabular_model:
+                    raise ValueError(f"Table '{table_name}' specifies fairness but has no tabular model")
+
+                target_col = config.fairness.target_column
+                if not any(col.name == target_col for col in generator_table.columns or []):
+                    raise ValueError(f"Fairness target column '{target_col}' not found in table '{table_name}'")
+
+                for col in config.fairness.sensitive_columns:
+                    if not any(gcol.name == col for gcol in generator_table.columns or []):
+                        raise ValueError(f"Fairness sensitive column '{col}' not found in table '{table_name}'")
+
+                if target_col in config.fairness.sensitive_columns:
+                    raise ValueError(f"Target column '{target_col}' cannot be a sensitive column")
+        return validation
+
+    @model_validator(mode="after")
+    def set_default_sample_sizes(cls, validation):
+        generator_table_map = {t.name: t for t in validation.generator.tables}
+        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables or []}
+
+        for table_name, synthetic_table in synthetic_table_map.items():
+            generator_table = generator_table_map[table_name]
+            config = synthetic_table.configuration
+
+            if config:
+                is_subject = not any(fk.is_context for fk in generator_table.foreign_keys or [])
+                if (
+                    not config.sample_size
+                    and is_subject
+                    and not (config.sample_seed_connector_id or config.sample_seed_dict or config.sample_seed_data)
+                ):
+                    config.sample_size = (
+                        1
+                        if isinstance(validation.synthetic_config, SyntheticProbeConfig)
+                        else generator_table.total_rows
+                    )
+                elif not is_subject:
+                    config.sample_size = None
+        return validation
+
+
 class SyntheticDatasetConfig:
     @field_validator("tables", mode="after")
     @classmethod
@@ -673,97 +829,25 @@ class SyntheticDatasetConfig:
             raise ValueError("Table names must be unique.")
         return tables
 
-    def validate_with_generator_config(self, generator: Generator) -> None:
-        """
-        Validates that this synthetic dataset config is compatible with the given generator config.
+    def validate_against_generator(self, generator: Generator) -> "SyntheticDatasetConfig":
+        SyntheticConfigValidation(synthetic_config=self, generator=generator)
+        return self
 
-        Args:
-            generator_config: The generator configuration to validate against
 
-        Raises:
-            ValueError: If the configuration is invalid
-        """
-        # validate tables exist and match
-        if not self.tables:
-            raise ValueError("No tables specified in synthetic dataset config")
-        generator_table_map = {t.name: t for t in generator.tables}
-        synthetic_table_map = {t.name: t for t in self.tables}
+class SyntheticProbeConfig:
+    @field_validator("tables", mode="after")
+    @classmethod
+    def validate_unique_table_names(cls, tables):
+        if not tables:
+            return tables
+        defined_tables = [t.name for t in tables]
+        if len(defined_tables) != len(set(defined_tables)):
+            raise ValueError("Table names must be unique.")
+        return tables
 
-        # check if all tables from generator are present in synthetic dataset
-        missing_tables = set(generator_table_map.keys()) - set(synthetic_table_map.keys())
-        if missing_tables:
-            raise ValueError(f"Missing tables in synthetic dataset config: {missing_tables}")
-
-        # check if synthetic dataset has extra tables not in generator
-        extra_tables = set(synthetic_table_map.keys()) - set(generator_table_map.keys())
-        if extra_tables:
-            raise ValueError(f"Extra tables in synthetic dataset config not present in generator: {extra_tables}")
-
-        for table_name, synthetic_table in synthetic_table_map.items():
-            generator_table = generator_table_map[table_name]
-
-            config = synthetic_table.configuration
-            if config:
-                has_tabular_model = (
-                    any(
-                        col.model_encoding_type.startswith("TABULAR_")
-                        for col in generator_table.columns or []
-                        if col.included
-                    )
-                    if generator_table.columns
-                    else True
-                )  # FIXME is this possible? Can a table have no columns / None?
-
-                # set sample size to source table size if not provided and if subject table
-                is_subject = not any(fk.is_context for fk in generator_table.foreign_keys or [])
-                if (
-                    not config.sample_size
-                    and is_subject
-                    and not (config.sample_seed_connector_id or config.sample_seed_dict or config.sample_seed_data)
-                ):
-                    config.sample_size = generator_table.total_rows
-                elif not is_subject:
-                    config.sample_size = None
-
-                if config.rebalancing:
-                    if not has_tabular_model:
-                        raise ValueError(f"Table '{table_name}' specifies rebalancing but has no tabular model")
-
-                    rebalancing_column = config.rebalancing.column
-                    if not any(col.name == rebalancing_column for col in generator_table.columns or []):
-                        raise ValueError(f"Rebalancing column '{rebalancing_column}' not found in table '{table_name}'")
-
-                    rebalancing_col = next(
-                        (col for col in generator_table.columns or [] if col.name == rebalancing_column),
-                        None,
-                    )
-                    if not rebalancing_col or not rebalancing_col.model_encoding_type.endswith("_CATEGORICAL"):
-                        raise ValueError(
-                            f"Rebalancing column '{rebalancing_column}' in table '{table_name}' must be categorical"
-                        )
-
-                if config.imputation:
-                    if not has_tabular_model:
-                        raise ValueError(f"Table '{table_name}' specifies imputation but has no tabular model")
-
-                    for col in config.imputation.columns:
-                        if not any(gcol.name == col for gcol in generator_table.columns or []):
-                            raise ValueError(f"Imputation column '{col}' not found in table '{table_name}'")
-
-                if config.fairness:
-                    if not has_tabular_model:
-                        raise ValueError(f"Table '{table_name}' specifies fairness but has no tabular model")
-
-                    target_col = config.fairness.target_column
-                    if not any(col.name == target_col for col in generator_table.columns or []):
-                        raise ValueError(f"Fairness target column '{target_col}' not found in table '{table_name}'")
-
-                    for col in config.fairness.sensitive_columns:
-                        if not any(gcol.name == col for gcol in generator_table.columns or []):
-                            raise ValueError(f"Fairness sensitive column '{col}' not found in table '{table_name}'")
-
-                    if target_col in config.fairness.sensitive_columns:
-                        raise ValueError(f"Target column '{target_col}' cannot be a sensitive column")
+    def validate_against_generator(self, generator: Generator) -> "SyntheticProbeConfig":
+        SyntheticConfigValidation(synthetic_config=self, generator=generator)
+        return self
 
 
 class SourceTable:
