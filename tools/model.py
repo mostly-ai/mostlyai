@@ -477,24 +477,24 @@ class SyntheticTableConfiguration:
             values["sampling_top_p"] = 1.0
         return values
 
-    @model_validator(mode="after")
-    @classmethod
-    def mutually_exclusive_fields(cls, values):
-        seed_fields = [
-            field
-            for field in [values.sample_seed_connector_id, values.sample_seed_dict, values.sample_seed_data]
-            if field is not None
-        ]
-        if len(seed_fields) > 1:
-            raise ValueError(
-                "Only one of sample_seed_connector_id, sample_seed_dict and sample_seed_data can be provided"
-            )
+    # @model_validator(mode="after")
+    # @classmethod
+    # def mutually_exclusive_fields(cls, values):
+    #     seed_fields = [
+    #         field
+    #         for field in [values.sample_seed_connector_id, values.sample_seed_dict, values.sample_seed_data]
+    #         if field is not None
+    #     ]
+    #     if len(seed_fields) > 1:
+    #         raise ValueError(
+    #             "Only one of sample_seed_connector_id, sample_seed_dict and sample_seed_data can be provided"
+    #         )
 
-        if seed_fields and values.sample_size is not None:
-            raise ValueError(
-                "sample_seed_connector_id, sample_seed_dict and sample_seed_data are mutually exclusive with sample_size"
-            )
-        return values
+    #     if seed_fields and values.sample_size is not None:
+    #         raise ValueError(
+    #             "sample_seed_connector_id, sample_seed_dict and sample_seed_data are mutually exclusive with sample_size"
+    #         )
+    #     return values
 
 
 class SyntheticDataset:
