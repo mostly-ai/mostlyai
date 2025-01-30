@@ -763,7 +763,6 @@ class _SyntheticConfigValidation(CustomBaseModel):
                 has_tabular_model = generator_table.tabular_model_configuration is not None
                 if not has_tabular_model:
                     raise ValueError(f"Table '{table_name}' specifies rebalancing but has no tabular model")
-
                 rebalancing_column = config.rebalancing.column
                 rebalancing_col = next(
                     (col for col in generator_table.columns or [] if col.name == rebalancing_column),
@@ -775,6 +774,11 @@ class _SyntheticConfigValidation(CustomBaseModel):
                     raise ValueError(
                         f"Rebalancing column '{rebalancing_column}' in table '{table_name}' must be categorical"
                     )
+                for value in config.rebalancing.probabilities.keys():
+                    if value not in rebalancing_col.value_range.values:
+                        raise ValueError(
+                            f"Rebalancing value '{value}' not found in table '{table_name}' column '{rebalancing_column}'"
+                        )
         return validation
 
     @model_validator(mode="after")
