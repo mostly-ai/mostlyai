@@ -49,31 +49,32 @@ def arbitrary_model_config():
 def test_make_synthetic_dataset_execution_plan():
     # Create a test configuration with multiple tables and dependencies
     config = GeneratorConfig(
-        name="test_synthetic_dataset",
-        training_status="NEW",
-        tables=[
-            {"name": "users", "primary_key": "id"},
-            {
-                "name": "orders",
-                "primary_key": "id",
-                "foreign_keys": [{"column": "user_id", "referenced_table": "users", "is_context": True}],
-            },
-            {"name": "admins"},
-            {
-                "name": "prices",
-                "foreign_keys": [{"column": "order_id", "referenced_table": "orders", "is_context": True}],
-            },
-            {
-                "name": "order_items",
-                "columns": [
-                    {"name": "description", "model_encoding_type": "LANGUAGE_TEXT"},
-                    {"name": "order_id", "model_encoding_type": "AUTO"},
-                ],
-                "foreign_keys": [{"column": "order_id", "referenced_table": "orders", "is_context": True}],
-            },
-        ],
+        **{
+            "name": "test_synthetic_dataset",
+            "tables": [
+                {"name": "users", "primary_key": "id"},
+                {
+                    "name": "orders",
+                    "primary_key": "id",
+                    "foreign_keys": [{"column": "user_id", "referenced_table": "users", "is_context": True}],
+                },
+                {"name": "admins"},
+                {
+                    "name": "prices",
+                    "foreign_keys": [{"column": "order_id", "referenced_table": "orders", "is_context": True}],
+                },
+                {
+                    "name": "order_items",
+                    "columns": [
+                        {"name": "description", "model_encoding_type": "LANGUAGE_TEXT"},
+                        {"name": "order_id", "model_encoding_type": "AUTO"},
+                    ],
+                    "foreign_keys": [{"column": "order_id", "referenced_table": "orders", "is_context": True}],
+                },
+            ],
+        }
     )
-    generator = Generator(**config.model_dump())
+    generator = Generator(**config.model_dump(exclude_none=True))
     execution_plan = make_synthetic_dataset_execution_plan(generator)
 
     expected_execution_plan = ExecutionPlan(tasks=[])

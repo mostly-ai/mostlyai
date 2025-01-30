@@ -53,7 +53,7 @@ def test_simple_flat(tmp_path):
             {
                 "name": "data",
                 "data": df,
-                "primary": "id",
+                "primary_key": "id",
                 "columns": [
                     {"name": "id", "model_encoding_type": "AUTO"},
                     {"name": "a", "model_encoding_type": "AUTO"},
@@ -88,16 +88,12 @@ def test_simple_flat(tmp_path):
 
     # clone new generator
     connector_cfg = {
-        "id": "8a06631a-cc06-469c-805c-bd3d9d5d7b3d",
         "name": "Test 1",
         "type": "S3_STORAGE",
         "access_type": "SOURCE",
         "config": {"accessKey": "XXX"},
         "secrets": {"secretKey": "a89fb747734f4162bf36c8f1e853355f2176b583013c26e83c3324e453fd2e7b"},
         "ssl": None,
-        "metadata": None,
-        "usage": None,
-        "table_id": None,
     }
     connector = mostly.connect(config=connector_cfg, test_connection=False)
     new_g = mostly.generators.create(
