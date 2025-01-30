@@ -690,7 +690,7 @@ class SyntheticDataset:
                 )
 
 
-class SyntheticConfigValidation(CustomBaseModel):
+class _SyntheticConfigValidation(CustomBaseModel):
     """
     shared validation logic for synthetic dataset and probe configs
     """
@@ -830,7 +830,7 @@ class SyntheticDatasetConfig:
         return tables
 
     def validate_against_generator(self, generator: Generator) -> "SyntheticDatasetConfig":
-        SyntheticConfigValidation(synthetic_config=self, generator=generator)
+        _SyntheticConfigValidation(synthetic_config=self, generator=generator)
         return self
 
 
@@ -846,7 +846,7 @@ class SyntheticProbeConfig:
         return tables
 
     def validate_against_generator(self, generator: Generator) -> "SyntheticProbeConfig":
-        SyntheticConfigValidation(synthetic_config=self, generator=generator)
+        _SyntheticConfigValidation(synthetic_config=self, generator=generator)
         return self
 
 
