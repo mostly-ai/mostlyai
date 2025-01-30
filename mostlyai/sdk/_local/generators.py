@@ -36,6 +36,7 @@ from mostlyai.sdk.domain import (
     JobProgress,
     TaskType,
     SourceTableConfig,
+    SourceForeignKeyConfig,
 )
 
 
@@ -131,7 +132,9 @@ def get_generator_config(home_dir: Path, generator_id: str) -> GeneratorConfig:
                 tabular_model_configuration=t.tabular_model_configuration,
                 language_model_configuration=t.language_model_configuration,
                 primary_key=t.primary_key,
-                foreign_keys=t.foreign_keys,
+                foreign_keys=[SourceForeignKeyConfig.model_construct(**k.model_dump()) for k in t.foreign_keys]
+                if t.foreign_keys
+                else None,
                 columns=[SourceColumnConfig.model_construct(**c.model_dump()) for c in t.columns]
                 if t.columns
                 else None,
