@@ -54,9 +54,6 @@ from mostlyai.sdk.domain import (
     GeneratorCloneConfig,
     GeneratorCloneTrainingStatus,
     SyntheticDatasetReportType,
-    SourceTableConfig,
-    SourceColumnConfig,
-    SyntheticTableConfig,
     SyntheticDatasetListItem,
 )
 from mostlyai.sdk._local.storage import (
@@ -344,28 +341,7 @@ class Routes:
             # check if any connectors are file upload
             if any(read_connector_from_json(c).type == ConnectorType.file_upload for c in connector_dirs):
                 raise HTTPException(status_code=400, detail="Cannot clone a generator with uploaded files.")
-            # construct GeneratorConfig explicitly to avoid validation warnings of extra fields
-            generator_config = GeneratorConfig(
-                name=generator.name,
-                description=generator.description,
-                tables=[
-                    SourceTableConfig(
-                        name=t.name,
-                        source_connector_id=t.source_connector_id,
-                        location=t.location,
-                        tabular_model_configuration=t.tabular_model_configuration,
-                        language_model_configuration=t.language_model_configuration,
-                        primary_key=t.primary_key,
-                        foreign_keys=t.foreign_keys,
-                        columns=[SourceColumnConfig.model_construct(**c.model_dump()) for c in t.columns]
-                        if t.columns
-                        else None,
-                    )
-                    for t in generator.tables
-                ]
-                if generator.tables
-                else None,
-            )
+            generator_config = generators.get_generator_config(self.home_dir, id)
             new_generator = create_generator_model(home_dir=self.home_dir, config=generator_config)
             new_generator_dir = self.home_dir / "generators" / new_generator.id
             if config.training_status == GeneratorCloneTrainingStatus.continue_:
@@ -435,31 +411,7 @@ class Routes:
 
         @self.router.get("/generators/{id}/config", response_model=GeneratorConfig)
         async def get_generator_config(id: str) -> GeneratorConfig:
-            generator_dir = self.home_dir / "generators" / id
-            generator = read_generator_from_json(generator_dir)
-            # construct GeneratorConfig explicitly to avoid validation warnings of extra fields
-            config = GeneratorConfig(
-                name=generator.name,
-                description=generator.description,
-                tables=[
-                    SourceTableConfig(
-                        name=t.name,
-                        source_connector_id=t.source_connector_id,
-                        location=t.location,
-                        tabular_model_configuration=t.tabular_model_configuration,
-                        language_model_configuration=t.language_model_configuration,
-                        primary_key=t.primary_key,
-                        foreign_keys=t.foreign_keys,
-                        columns=[SourceColumnConfig.model_construct(**c.model_dump()) for c in t.columns]
-                        if t.columns
-                        else None,
-                    )
-                    for t in generator.tables
-                ]
-                if generator.tables
-                else None,
-            )
-            return config
+            return generators.get_generator_config(self.home_dir, id)
 
         ### SYNTHETIC DATASETS
 
@@ -554,19 +506,7 @@ class Routes:
 
         @self.router.get("/synthetic-datasets/{id}/config", response_model=SyntheticDatasetConfig)
         async def get_synthetic_dataset_config(id: str) -> SyntheticDatasetConfig:
-            synthetic_dataset_dir = self.home_dir / "synthetic-datasets" / id
-            synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
-            # construct SyntheticDatasetConfig explicitly to avoid validation warnings of extra fields
-            config = SyntheticDatasetConfig(
-                generator_id=synthetic_dataset.generator_id,
-                name=synthetic_dataset.name,
-                description=synthetic_dataset.description,
-                tables=[SyntheticTableConfig.model_construct(**t.model_dump()) for t in synthetic_dataset.tables]
-                if synthetic_dataset.tables
-                else None,
-                delivery=synthetic_dataset.delivery,
-            )
-            return config
+            return synthetic_datasets.get_synthetic_dataset_config(self.home_dir, id)
 
         @self.router.get("/synthetic-datasets/{id}/download", response_class=FileResponse)
         async def download_synthetic_dataset(id: str, slft: str, format: str) -> FileResponse:

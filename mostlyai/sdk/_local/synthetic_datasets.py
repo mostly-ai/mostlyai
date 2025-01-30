@@ -19,6 +19,7 @@ from mostlyai.sdk._local.storage import (
     write_job_progress_to_json,
     read_generator_from_json,
     write_connector_to_json,
+    read_synthetic_dataset_from_json,
 )
 from mostlyai.sdk._local.execution.plan import (
     has_tabular_model,
@@ -42,6 +43,7 @@ from mostlyai.sdk.domain import (
     ConnectorType,
     ConnectorAccessType,
     SyntheticProbeConfig,
+    SyntheticTableConfig,
 )
 
 
@@ -161,3 +163,19 @@ def create_synthetic_dataset(
     )
     write_job_progress_to_json(synthetic_dataset_dir, job_progress)
     return synthetic_dataset
+
+
+def get_synthetic_dataset_config(home_dir: Path, synthetic_dataset_id: str) -> SyntheticDatasetConfig:
+    synthetic_dataset_dir = home_dir / "synthetic-datasets" / synthetic_dataset_id
+    synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
+    # construct SyntheticDatasetConfig explicitly to avoid validation warnings of extra fields
+    config = SyntheticDatasetConfig(
+        generator_id=synthetic_dataset.generator_id,
+        name=synthetic_dataset.name,
+        description=synthetic_dataset.description,
+        tables=[SyntheticTableConfig.model_construct(**t.model_dump()) for t in synthetic_dataset.tables]
+        if synthetic_dataset.tables
+        else None,
+        delivery=synthetic_dataset.delivery,
+    )
+    return config
