@@ -221,7 +221,7 @@ class Paginator(Generic[T]):
         item = self.page_items[self.index_in_page]
         self.index_in_page += 1
         self.index += 1
-        return self.response_class(**item, client=self.client, by_alias=True)
+        return self.response_class(**item, client=self.client)
 
     def _fetch_page(self):
         if self.is_last_page:

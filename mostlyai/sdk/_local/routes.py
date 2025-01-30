@@ -183,7 +183,8 @@ class Routes:
                 connector = read_connector_from_json(connector_dir)
                 if not searchTerm or searchTerm.lower() in (connector.name or "").lower():
                     if not access_type or access_type == connector.access_type:
-                        connector_list_items.append(ConnectorListItem(**connector.model_dump()))
+                        # use model_construct to skip validation and warnings of extra fields
+                        connector_list_items.append(ConnectorListItem.model_construct(**connector.model_dump()))
 
             # use jsonable_encoder to handle non-serializable objects like datetime
             return JSONResponse(
@@ -278,7 +279,8 @@ class Routes:
                     or searchTerm.lower() in (generator.description or "").lower()
                 ):
                     if not status or status == generator.training_status:
-                        generator_list_items.append(GeneratorListItem(**generator.model_dump()))
+                        # use model_construct to skip validation and warnings of extra fields
+                        generator_list_items.append(GeneratorListItem.model_construct(**generator.model_dump()))
             # use jsonable_encoder to handle non-serializable objects like datetime
             return JSONResponse(
                 status_code=200,
@@ -431,7 +433,10 @@ class Routes:
                     or searchTerm.lower() in (synthetic_dataset.description or "").lower()
                 ):
                     if not status or status == synthetic_dataset.generation_status:
-                        synthetic_dataset_list_items.append(SyntheticDataset(**synthetic_dataset.model_dump()))
+                        # use model_construct to skip validation and warnings of extra fields
+                        synthetic_dataset_list_items.append(
+                            SyntheticDataset.model_construct(**synthetic_dataset.model_dump())
+                        )
             # use jsonable_encoder to handle non-serializable objects like datetime
             return JSONResponse(
                 status_code=200,
