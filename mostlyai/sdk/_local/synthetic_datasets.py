@@ -49,7 +49,7 @@ from mostlyai.sdk.domain import (
 def create_synthetic_dataset(
     home_dir: Path,
     config: SyntheticDatasetConfig | SyntheticProbeConfig,
-    size: int | dict[str, int] | None = None,
+    sample_size: int | None = None,
 ) -> SyntheticDataset:
     # create a FILE_UPLOAD connector and replace sample_seed_dict/sample_seed_data with sample_seed_connector_id
     for t in config.tables or []:
@@ -89,6 +89,10 @@ def create_synthetic_dataset(
         sd_table.source_table_total_rows = g_table.total_rows
         sd_table.tabular_model_metrics = g_table.tabular_model_metrics
         sd_table.language_model_metrics = g_table.language_model_metrics
+        # overwrite sample size of subject table, if provided
+        is_subject = not any(fk.is_context for fk in g_table.foreign_keys or [])
+        if is_subject and sample_size is not None:
+            sd_table.configuration.sample_size = sample_size
         sd_tables.append(sd_table)
 
     # create synthetic dataset
