@@ -30,7 +30,7 @@
 
 ### Development workflow
 
-0. (Optional) If you don't have permissions to write directly to `mostlyai` repo, create a fork of `mostlyai` first and
+0. If you don't have permissions to write directly to `mostlyai` repo, create a fork of `mostlyai` first and
    follow the steps below on the fork.
 
 1. Make sure you are on the clean, up-to-date `main` branch
@@ -59,7 +59,7 @@
 6. Commit your changes
     ```bash
     git add .
-    git commit -m "feature: your feature description"
+    git commit -m "feat: your feature description"
     ```
    - please follow [conventional commits](https://gist.github.com/qoomon/5dfcdf8eec66a051ecd85625518cfd13), when writing commit messages
 
