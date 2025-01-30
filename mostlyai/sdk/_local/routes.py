@@ -54,6 +54,7 @@ from mostlyai.sdk.domain import (
     GeneratorCloneConfig,
     GeneratorCloneTrainingStatus,
     SyntheticDatasetReportType,
+    SyntheticDatasetListItem,
 )
 from mostlyai.sdk._local.storage import (
     read_generator_from_json,
@@ -183,7 +184,8 @@ class Routes:
                 connector = read_connector_from_json(connector_dir)
                 if not searchTerm or searchTerm.lower() in (connector.name or "").lower():
                     if not access_type or access_type == connector.access_type:
-                        connector_list_items.append(ConnectorListItem(**connector.model_dump()))
+                        # use model_construct to skip validation and warnings of extra fields
+                        connector_list_items.append(ConnectorListItem.model_construct(**connector.model_dump()))
 
             # use jsonable_encoder to handle non-serializable objects like datetime
             return JSONResponse(
@@ -278,7 +280,8 @@ class Routes:
                     or searchTerm.lower() in (generator.description or "").lower()
                 ):
                     if not status or status == generator.training_status:
-                        generator_list_items.append(GeneratorListItem(**generator.model_dump()))
+                        # use model_construct to skip validation and warnings of extra fields
+                        generator_list_items.append(GeneratorListItem.model_construct(**generator.model_dump()))
             # use jsonable_encoder to handle non-serializable objects like datetime
             return JSONResponse(
                 status_code=200,
@@ -338,10 +341,8 @@ class Routes:
             # check if any connectors are file upload
             if any(read_connector_from_json(c).type == ConnectorType.file_upload for c in connector_dirs):
                 raise HTTPException(status_code=400, detail="Cannot clone a generator with uploaded files.")
-
-            new_generator = create_generator_model(
-                home_dir=self.home_dir, config=GeneratorConfig(**generator.model_dump())
-            )
+            generator_config = generators.get_generator_config(self.home_dir, id)
+            new_generator = create_generator_model(home_dir=self.home_dir, config=generator_config)
             new_generator_dir = self.home_dir / "generators" / new_generator.id
             if config.training_status == GeneratorCloneTrainingStatus.continue_:
                 new_generator.training_status = ProgressStatus.continue_
@@ -410,10 +411,7 @@ class Routes:
 
         @self.router.get("/generators/{id}/config", response_model=GeneratorConfig)
         async def get_generator_config(id: str) -> GeneratorConfig:
-            generator_dir = self.home_dir / "generators" / id
-            generator = read_generator_from_json(generator_dir)
-            config = GeneratorConfig(**generator.model_dump())
-            return config
+            return generators.get_generator_config(self.home_dir, id)
 
         ### SYNTHETIC DATASETS
 
@@ -431,7 +429,10 @@ class Routes:
                     or searchTerm.lower() in (synthetic_dataset.description or "").lower()
                 ):
                     if not status or status == synthetic_dataset.generation_status:
-                        synthetic_dataset_list_items.append(SyntheticDataset(**synthetic_dataset.model_dump()))
+                        # use model_construct to skip validation and warnings of extra fields
+                        synthetic_dataset_list_items.append(
+                            SyntheticDatasetListItem.model_construct(**synthetic_dataset.model_dump())
+                        )
             # use jsonable_encoder to handle non-serializable objects like datetime
             return JSONResponse(
                 status_code=200,
@@ -505,10 +506,7 @@ class Routes:
 
         @self.router.get("/synthetic-datasets/{id}/config", response_model=SyntheticDatasetConfig)
         async def get_synthetic_dataset_config(id: str) -> SyntheticDatasetConfig:
-            synthetic_dataset_dir = self.home_dir / "synthetic-datasets" / id
-            synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
-            config = SyntheticDatasetConfig(**synthetic_dataset.model_dump())
-            return config
+            return synthetic_datasets.get_synthetic_dataset_config(self.home_dir, id)
 
         @self.router.get("/synthetic-datasets/{id}/download", response_class=FileResponse)
         async def download_synthetic_dataset(id: str, slft: str, format: str) -> FileResponse:
