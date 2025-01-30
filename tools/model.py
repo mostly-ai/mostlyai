@@ -43,8 +43,9 @@ class Connector:
     @model_validator(mode="before")
     @classmethod
     def add_required_fields(cls, values):
-        if "id" not in values:
-            values["id"] = str(uuid.uuid4())
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
         return values
 
     def update(
@@ -140,10 +141,11 @@ class Generator:
     @model_validator(mode="before")
     @classmethod
     def add_required_fields(cls, values):
-        if "id" not in values:
-            values["id"] = str(uuid.uuid4())
-        if "training_status" not in values:
-            values["training_status"] = ProgressStatus.new
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
+            if "training_status" not in values:
+                values["training_status"] = ProgressStatus.new
         return values
 
     def __init__(self, *args, **kwargs):
@@ -439,12 +441,13 @@ class SourceColumn:
     @model_validator(mode="before")
     @classmethod
     def add_required_fields(cls, values):
-        if "id" not in values:
-            values["id"] = str(uuid.uuid4())
-        if "model_encoding_type" not in values:
-            values["model_encoding_type"] = ModelEncodingType.auto
-        if "included" not in values:
-            values["included"] = True
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
+            if "model_encoding_type" not in values:
+                values["model_encoding_type"] = ModelEncodingType.auto
+            if "included" not in values:
+                values["included"] = True
         return values
 
 
@@ -468,13 +471,13 @@ class SyntheticTableConfiguration:
     def convert_data_before(cls, value):
         return convert_to_base64(value) if isinstance(value, pd.DataFrame) else value
 
-    @model_validator(mode="before")
+    @model_validator(mode="after")
     @classmethod
     def add_required_fields(cls, values):
-        if "sampling_temperature" not in values or values["sampling_temperature"] is None:
-            values["sampling_temperature"] = 1.0
-        if "sampling_top_p" not in values or values["sampling_top_p"] is None:
-            values["sampling_top_p"] = 1.0
+        if values.sampling_temperature is None:
+            values.sampling_temperature = 1.0
+        if values.sampling_top_p is None:
+            values.sampling_top_p = 1.0
         return values
 
     # @model_validator(mode="after")
@@ -504,10 +507,11 @@ class SyntheticDataset:
     @model_validator(mode="before")
     @classmethod
     def add_required_fields(cls, values):
-        if "id" not in values:
-            values["id"] = str(uuid.uuid4())
-        if "generation_status" not in values:
-            values["generation_status"] = ProgressStatus.new
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
+            if "generation_status" not in values:
+                values["generation_status"] = ProgressStatus.new
         return values
 
     def __init__(self, *args, **kwargs):
@@ -856,8 +860,9 @@ class SourceTable:
     @model_validator(mode="before")
     @classmethod
     def add_required_fields(cls, values):
-        if "id" not in values:
-            values["id"] = str(uuid.uuid4())
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
         return values
 
 
@@ -865,8 +870,9 @@ class SyntheticTable:
     @model_validator(mode="before")
     @classmethod
     def add_required_fields(cls, values):
-        if "id" not in values:
-            values["id"] = str(uuid.uuid4())
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
         return values
 
 
@@ -874,21 +880,22 @@ class SourceForeignKey:
     @model_validator(mode="before")
     @classmethod
     def add_required_fields(cls, values):
-        if "id" not in values:
-            values["id"] = str(uuid.uuid4())
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
         return values
 
 
 class ProgressStep:
-    @model_validator(mode="before")
+    @model_validator(mode="after")
     @classmethod
     def add_required_fields(cls, values):
-        if "id" not in values:
-            values["id"] = str(uuid.uuid4())
-        if "status" not in values:
-            values["status"] = ProgressStatus.new
-        if "compute_name" not in values:
-            values["compute_name"] = "SDK"
+        if values.id is None:
+            values.id = str(uuid.uuid4())
+        if values.status is None:
+            values.status = ProgressStatus.new
+        if values.compute_name is None:
+            values.compute_name = "SDK"
         return values
 
 
