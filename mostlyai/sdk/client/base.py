@@ -247,10 +247,10 @@ class CustomBaseModel(BaseModel):
 
     @model_validator(mode="before")
     def __warn_extra_fields__(cls, values):
-        extra_fields = values.keys() - cls.model_fields.keys() - {v.alias for v in cls.model_fields.values()}
-        if extra_fields:
-            _LOG.warning(f"ignoring unrecognized fields for {cls.__name__}: {', '.join(extra_fields)}")
-
+        if isinstance(values, dict):
+            extra_fields = values.keys() - cls.model_fields.keys() - {v.alias for v in cls.model_fields.values()}
+            if extra_fields:
+                _LOG.warning(f"ignoring unrecognized fields for {cls.__name__}: {', '.join(extra_fields)}")
         return values
 
     def _repr_html_(self):
