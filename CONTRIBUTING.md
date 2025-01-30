@@ -9,6 +9,8 @@
    git clone https://github.com/mostly-ai/mostlyai.git
    cd mostlyai
    ```
+   - if you intend to create PRs, and don't have permissions to write directly to `mostlyai` repo,
+   create a fork of `mostlyai` first and clone the fork instead
 
 2. Install `uv`, if you don't have it already
    ```bash
@@ -29,9 +31,6 @@
     ```
 
 ### Development workflow
-
-0. If you don't have permissions to write directly to `mostlyai` repo, create a fork of `mostlyai` first and
-   follow the steps below on the fork.
 
 1. Make sure you are on the clean, up-to-date `main` branch
    ```bash
