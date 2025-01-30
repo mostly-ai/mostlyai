@@ -30,6 +30,9 @@
 
 ### Development workflow
 
+0. (Optional) If you don't have permissions to write directly to `mostlyai` repo, create a fork of `mostlyai` first and
+   follow the steps below on the fork.
+
 1. Make sure you are on the clean, up-to-date `main` branch
    ```bash
    git checkout main
