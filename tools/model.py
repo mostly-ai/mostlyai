@@ -477,24 +477,24 @@ class SyntheticTableConfiguration:
             values["sampling_top_p"] = 1.0
         return values
 
-    @model_validator(mode="after")
-    @classmethod
-    def mutually_exclusive_fields(cls, values):
-        seed_fields = [
-            field
-            for field in [values.sample_seed_connector_id, values.sample_seed_dict, values.sample_seed_data]
-            if field is not None
-        ]
-        if len(seed_fields) > 1:
-            raise ValueError(
-                "Only one of sample_seed_connector_id, sample_seed_dict and sample_seed_data can be provided"
-            )
+    # @model_validator(mode="after")
+    # @classmethod
+    # def mutually_exclusive_fields(cls, values):
+    #     seed_fields = [
+    #         field
+    #         for field in [values.sample_seed_connector_id, values.sample_seed_dict, values.sample_seed_data]
+    #         if field is not None
+    #     ]
+    #     if len(seed_fields) > 1:
+    #         raise ValueError(
+    #             "Only one of sample_seed_connector_id, sample_seed_dict and sample_seed_data can be provided"
+    #         )
 
-        if seed_fields and values.sample_size is not None:
-            raise ValueError(
-                "sample_seed_connector_id, sample_seed_dict and sample_seed_data are mutually exclusive with sample_size"
-            )
-        return values
+    #     if seed_fields and values.sample_size is not None:
+    #         raise ValueError(
+    #             "sample_seed_connector_id, sample_seed_dict and sample_seed_data are mutually exclusive with sample_size"
+    #         )
+    #     return values
 
 
 class SyntheticDataset:
@@ -690,12 +690,44 @@ class SyntheticDataset:
                 )
 
 
-class SyntheticConfigValidation(CustomBaseModel):
+class SyntheticDatasetConfig:
+    @field_validator("tables", mode="after")
+    @classmethod
+    def validate_unique_table_names(cls, tables):
+        if not tables:
+            return tables
+        defined_tables = [t.name for t in tables]
+        if len(defined_tables) != len(set(defined_tables)):
+            raise ValueError("Table names must be unique.")
+        return tables
+
+    def validate_against_generator(self, generator: Generator) -> "SyntheticDatasetConfig":
+        _SyntheticConfigValidation(synthetic_config=self, generator=generator)
+        return self
+
+
+class SyntheticProbeConfig:
+    @field_validator("tables", mode="after")
+    @classmethod
+    def validate_unique_table_names(cls, tables):
+        if not tables:
+            return tables
+        defined_tables = [t.name for t in tables]
+        if len(defined_tables) != len(set(defined_tables)):
+            raise ValueError("Table names must be unique.")
+        return tables
+
+    def validate_against_generator(self, generator: Generator) -> "SyntheticProbeConfig":
+        _SyntheticConfigValidation(synthetic_config=self, generator=generator)
+        return self
+
+
+class _SyntheticConfigValidation(CustomBaseModel):
     """
     shared validation logic for synthetic dataset and probe configs
     """
 
-    synthetic_config: "SyntheticDatasetConfig" | "SyntheticProbeConfig"
+    synthetic_config: SyntheticDatasetConfig | SyntheticProbeConfig
     generator: Generator
 
     @model_validator(mode="after")
@@ -816,38 +848,6 @@ class SyntheticConfigValidation(CustomBaseModel):
                 elif not is_subject:
                     config.sample_size = None
         return validation
-
-
-class SyntheticDatasetConfig:
-    @field_validator("tables", mode="after")
-    @classmethod
-    def validate_unique_table_names(cls, tables):
-        if not tables:
-            return tables
-        defined_tables = [t.name for t in tables]
-        if len(defined_tables) != len(set(defined_tables)):
-            raise ValueError("Table names must be unique.")
-        return tables
-
-    def validate_against_generator(self, generator: Generator) -> "SyntheticDatasetConfig":
-        SyntheticConfigValidation(synthetic_config=self, generator=generator)
-        return self
-
-
-class SyntheticProbeConfig:
-    @field_validator("tables", mode="after")
-    @classmethod
-    def validate_unique_table_names(cls, tables):
-        if not tables:
-            return tables
-        defined_tables = [t.name for t in tables]
-        if len(defined_tables) != len(set(defined_tables)):
-            raise ValueError("Table names must be unique.")
-        return tables
-
-    def validate_against_generator(self, generator: Generator) -> "SyntheticProbeConfig":
-        SyntheticConfigValidation(synthetic_config=self, generator=generator)
-        return self
 
 
 class SourceTable:

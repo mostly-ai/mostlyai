@@ -1,13 +1,13 @@
 
 # Synthetic Data SDK ✨
 
-[![Documentation](https://img.shields.io/badge/docs-latest-green)](https://mostly-ai.github.io/mostlyai/) [![stats](https://pepy.tech/badge/mostlyai)](https://pypi.org/project/mostlyai/) ![license](https://img.shields.io/github/license/mostly-ai/mostlyai) ![GitHub Release](https://img.shields.io/github/v/release/mostly-ai/mostlyai) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai)
+[![Documentation](https://img.shields.io/badge/docs-latest-green)](https://mostly-ai.github.io/mostlyai/) [![PyPI Downloads](https://static.pepy.tech/badge/mostlyai)](https://pepy.tech/projects/mostlyai) ![license](https://img.shields.io/github/license/mostly-ai/mostlyai) ![GitHub Release](https://img.shields.io/github/v/release/mostly-ai/mostlyai) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai) [![GitHub stars](https://img.shields.io/github/stars/mostly-ai/mostlyai?style=social)](https://github.com/mostly-ai/mostlyai)
 
 [SDK Documentation](https://mostly-ai.github.io/mostlyai/) | [Platform Documentation](https://mostly.ai/docs) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/)
 
-The official SDK of [MOSTLY AI](https://app.mostly.ai/), a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
+The Synthetic Data SDK is a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
 
-- **Client mode** connects to a remote MOSTLY AI platform for training & generating synthetic data there.
+- **Client mode** connects to a remote [MOSTLY AI platform](https://app.mostly.ai/) for training & generating synthetic data there.
 - **Local mode** trains and generates synthetic data locally on your own compute resources.
 - Generators, that were trained locally, can be easily imported to a platform for further sharing.
 
@@ -37,11 +37,13 @@ pip install -U mostlyai
 **Client + Local mode**
 
 ```shell
-pip install -U 'mostlyai[local]'       # for CPU
-#pip install -U 'mostlyai[local-gpu]'  # for GPU
+# for CPU on macOS
+pip install -U 'mostlyai[local]'
+# for CPU on Linux
+#pip install -U mostlyai[local] --extra-index-url https://download.pytorch.org/whl/cpu
+# for GPU on Linux
+#pip install -U mostlyai[local-gpu]
 ```
-
-NOTE: installing `mostlyai[local]` on Linux requires `--extra-index-url https://download.pytorch.org/whl/cpu` to be specified.
 
 **Optional Connectors**
 
@@ -52,41 +54,44 @@ E.g.
 pip install -U 'mostlyai[local, databricks, snowflake]'
 ```
 
-## Quick Start
+## Quick Start  [![Run on Colab](https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab)](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb)
 
-For client mode, initialize with `base_url` and `api_key` obtained from your [account settings page](https://app.mostly.ai/settings/api-keys). For local mode, initialize the client simply with `local=True`.
+Generate your first samples based on your own trained generator with a few lines of code. For local mode, initialize the SDK with `local=True`. For client mode, initialize the SDK with `base_url` and `api_key` obtained from your [account settings page](https://app.mostly.ai/settings/api-keys).
 
 ```python
 import pandas as pd
 from mostlyai.sdk import MostlyAI
 
 # load original data
-repo_url = 'https://github.com/mostly-ai/public-demo-data'
-df_original = pd.read_csv(f'{repo_url}/raw/dev/census/census.csv.gz')
+repo_url = "https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev"
+df_original = pd.read_csv(f"{repo_url}/census/census.csv.gz").sample(n=5_000)
 
 # initialize the SDK in local or client mode
-mostly = MostlyAI(local=True)
-# mostly = MostlyAI(base_url='https://app.mostly.ai', api_key='YOUR_API_KEY')
+mostly = MostlyAI(local=True)                       # local mode
+# mostly = MostlyAI(base_url='xxx', api_key='xxx')  # client mode
 
 # train a synthetic data generator
-g = mostly.train(config={
-        'name': 'US Census Income',          # name of the generator
-        'tables': [{                         # provide list of table(s)
-            'name': 'census',                # name of the table
-            'data': df_original,             # the original data as pd.DataFrame
-            'tabular_model_configuration': { # tabular model configuration (optional)
-                'max_training_time': 1,      # - limit training time (in minutes)
-                # model, max_epochs,,..      # further model configurations (optional)
-                'differential_privacy': {    # differential privacy configuration (optional)
-                    'max_epsilon': 5.0,      # - max epsilon value, used as stopping criterion
-                    'delta': 1e-5,           # - delta value
-                }
-            },
-            # columns, keys, compute,..      # further table configurations (optional)
-        }]
+g = mostly.train(
+    config={
+        "name": "US Census Income",
+        "tables": [
+            {
+                "name": "census",
+                "data": df_original,
+                "tabular_model_configuration": {  # tabular model configuration (optional)
+                    "max_training_time": 1,  # - limit training time (in minutes)
+                    # model, max_epochs,,..        # further model configurations (optional)
+                    # 'differential_privacy': {    # differential privacy configuration (optional)
+                    #     'max_epsilon': 5.0,      # - max epsilon value, used as stopping criterion
+                    #     'delta': 1e-5,           # - delta value
+                    # }
+                },
+                # columns, keys, compute,..      # further table configurations (optional)
+            }
+        ],
     },
-    start=True,                              # start training immediately (default: True)
-    wait=True,                               # wait for completion (default: True)
+    start=True,  # start training immediately (default: True)
+    wait=True,  # wait for completion (default: True)
 )
 ```
 
