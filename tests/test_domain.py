@@ -183,9 +183,9 @@ def test_synthetic_dataset_config():
 def test_synthetic_dataset_config_validate_against_generator(config_class):
     # prepare test data
     generator_cols = [
-        SourceColumn(**{"name": "id", "model_encoding_type": "TABULAR_CATEGORICAL", "included": True}),
-        SourceColumn(**{"name": "col1", "model_encoding_type": "TABULAR_CATEGORICAL", "included": True}),
-        SourceColumn(**{"name": "col2", "model_encoding_type": "LANGUAGE_TEXT", "included": True}),
+        SourceColumn(**{"name": "id", "model_encoding_type": "TABULAR_CATEGORICAL"}),
+        SourceColumn(**{"name": "col1", "model_encoding_type": "TABULAR_CATEGORICAL"}),
+        SourceColumn(**{"name": "col2", "model_encoding_type": "LANGUAGE_TEXT"}),
     ]
     generator = Generator(
         **{
