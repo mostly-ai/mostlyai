@@ -701,9 +701,8 @@ class SyntheticDatasetConfig:
             raise ValueError("Table names must be unique.")
         return tables
 
-    def validate_against_generator(self, generator: Generator) -> "SyntheticDatasetConfig":
+    def validate_against_generator(self, generator: Generator) -> None:
         _SyntheticConfigValidation(synthetic_config=self, generator=generator)
-        return self
 
 
 class SyntheticProbeConfig:
@@ -717,14 +716,13 @@ class SyntheticProbeConfig:
             raise ValueError("Table names must be unique.")
         return tables
 
-    def validate_against_generator(self, generator: Generator) -> "SyntheticProbeConfig":
+    def validate_against_generator(self, generator: Generator) -> None:
         _SyntheticConfigValidation(synthetic_config=self, generator=generator)
-        return self
 
 
 class _SyntheticConfigValidation(CustomBaseModel):
     """
-    shared validation logic for synthetic dataset and probe configs
+    Shared validation logic for SyntheticDatasetConfig and SyntheticProbeConfig against Generator.
     """
 
     synthetic_config: SyntheticDatasetConfig | SyntheticProbeConfig
@@ -773,7 +771,7 @@ class _SyntheticConfigValidation(CustomBaseModel):
                 )
                 if not rebalancing_col:
                     raise ValueError(f"Rebalancing column '{rebalancing_column}' not found in table '{table_name}'")
-                if not rebalancing_col.model_encoding_type.endswith("_CATEGORICAL"):
+                if not rebalancing_col.model_encoding_type == ModelEncodingType.tabular_categorical:
                     raise ValueError(
                         f"Rebalancing column '{rebalancing_column}' in table '{table_name}' must be categorical"
                     )

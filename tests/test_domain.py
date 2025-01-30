@@ -227,11 +227,11 @@ def test_synthetic_dataset_config_validate_against_generator(config_class):
     config.validate_against_generator(generator)
     assert config.tables[0].configuration.sample_size == expected_sample_size
 
-    samples_None_config = config_class(
+    config = config_class(
         **{"tables": [{"name": "tbl1", "configuration": SyntheticTableConfiguration(sample_size=50)}]}
     )
-    samples_None_config.validate_against_generator(generator)
-    assert samples_None_config.tables[0].configuration.sample_size == 50
+    config.validate_against_generator(generator)
+    assert config.tables[0].configuration.sample_size == 50
 
     with pytest.raises(ValueError):  # extra table not in generator
         config_class(**{"tables": [{"name": "tbl1"}, {"name": "extra_table"}]}).validate_against_generator(generator)
