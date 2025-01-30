@@ -21,7 +21,7 @@ Thanks for your interest in contributing to Synthetic Data SDK! Here are a few g
     ```bash
     curl -LsSf https://astral.sh/uv/install.sh | sh
     ```
-   For more installation options, visit [uv installation page](https://docs.astral.sh/uv/getting-started/installation/)
+   For more installation options, visit [uv installation page](https://docs.astral.sh/uv/getting-started/installation/).
 
 3. Initialize new virtual environment and install dependencies:
     ```bash
@@ -54,8 +54,8 @@ Thanks for your interest in contributing to Synthetic Data SDK! Here are a few g
 
 4. Run the tests & pre-commit hooks:
     ```bash
-    uv run -- pytest
-    uv run -- pre-commit run
+    pytest
+    pre-commit run
     ```
 
 5. Commit your changes with a clear and descriptive commit message:
