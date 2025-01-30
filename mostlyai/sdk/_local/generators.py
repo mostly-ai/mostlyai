@@ -67,7 +67,7 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
             "training_status": ProgressStatus.new,
             "tables": [
                 {
-                    **{k: v for k, v in t.model_dump().items() if k not in ["source_connector_id"]},
+                    **{k: v for k, v in t.model_dump().items() if k not in ["source_connector_id", "data"]},
                     "source_connector_id": t.source_connector_id,
                 }
                 for t in (config.tables or [])
