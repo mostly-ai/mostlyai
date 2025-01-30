@@ -561,7 +561,9 @@ class Routes:
                 generator_id=synthetic_dataset.generator_id,
                 name=synthetic_dataset.name,
                 description=synthetic_dataset.description,
-                tables=[SyntheticTableConfig.model_construct(**t.model_dump()) for t in synthetic_dataset.tables],
+                tables=[SyntheticTableConfig.model_construct(**t.model_dump()) for t in synthetic_dataset.tables]
+                if synthetic_dataset.tables
+                else None,
                 delivery=synthetic_dataset.delivery,
             )
             return config
