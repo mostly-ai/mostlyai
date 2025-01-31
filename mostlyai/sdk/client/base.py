@@ -221,7 +221,7 @@ class Paginator(Generic[T]):
         item = self.page_items[self.index_in_page]
         self.index_in_page += 1
         self.index += 1
-        return self.response_class(**item, client=self.client, by_alias=True)
+        return self.response_class(**item, client=self.client)
 
     def _fetch_page(self):
         if self.is_last_page:
@@ -247,10 +247,10 @@ class CustomBaseModel(BaseModel):
 
     @model_validator(mode="before")
     def __warn_extra_fields__(cls, values):
-        extra_fields = values.keys() - cls.model_fields.keys() - {v.alias for v in cls.model_fields.values()}
-        if extra_fields:
-            _LOG.warning(f"ignoring unrecognized fields for {cls.__name__}: {', '.join(extra_fields)}")
-
+        if isinstance(values, dict):
+            extra_fields = values.keys() - cls.model_fields.keys() - {v.alias for v in cls.model_fields.values()}
+            if extra_fields:
+                _LOG.warning(f"ignoring unrecognized fields for {cls.__name__}: {', '.join(extra_fields)}")
         return values
 
     def _repr_html_(self):

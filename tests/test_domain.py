@@ -14,7 +14,16 @@
 
 import pytest
 
-from mostlyai.sdk.domain import SourceTableConfig, GeneratorConfig, SourceColumn, ModelEncodingType
+from mostlyai.sdk.domain import (
+    SourceTableConfig,
+    GeneratorConfig,
+    SourceColumn,
+    ModelEncodingType,
+    SyntheticDatasetConfig,
+    Generator,
+    SyntheticProbeConfig,
+    SyntheticTableConfiguration,
+)
 
 
 def test_source_column():
@@ -157,3 +166,158 @@ def test_generator_config():
                 ]
             }
         )
+
+
+def test_synthetic_dataset_config():
+    # test valid calls
+    SyntheticDatasetConfig()
+    SyntheticDatasetConfig(**{"name": "test", "description": "test desc"})
+    SyntheticDatasetConfig(**{"tables": [{"name": "tbl1"}]})
+
+    # test invalid calls
+    with pytest.raises(ValueError):  # non-unique table names
+        SyntheticDatasetConfig(**{"tables": [{"name": "tbl1"}, {"name": "tbl1"}]})
+
+
+@pytest.mark.parametrize("config_class", [SyntheticDatasetConfig, SyntheticProbeConfig])
+def test_synthetic_dataset_config_validate_against_generator(config_class):
+    # prepare test data
+    generator_cols = [
+        SourceColumn(**{"name": "id", "model_encoding_type": "TABULAR_CATEGORICAL"}),
+        SourceColumn(**{"name": "col1", "model_encoding_type": "TABULAR_CATEGORICAL"}),
+        SourceColumn(**{"name": "col2", "model_encoding_type": "LANGUAGE_TEXT"}),
+    ]
+    generator = Generator(
+        **{
+            "id": "gen1",
+            "tables": [
+                {
+                    "name": "tbl1",
+                    "columns": generator_cols,
+                    "total_rows": 100,
+                    "primary_key": "id",
+                    "tabular_model_configuration": {},
+                }
+            ],
+        }
+    )
+
+    # test valid calls
+    config = config_class(
+        **{
+            "tables": [
+                {
+                    "name": "tbl1",
+                    "configuration": {
+                        "rebalancing": {"column": "col1", "probabilities": {}},
+                        "imputation": {"columns": ["col1"]},
+                        "fairness": {"target_column": "col1", "sensitive_columns": ["id"]},
+                    },
+                }
+            ]
+        }
+    )
+    config.validate_against_generator(generator)
+
+    # test sample_size defaults
+    expected_sample_size = 1 if config_class == SyntheticProbeConfig else 100
+    config = config_class(
+        **{"tables": [{"name": "tbl1", "configuration": SyntheticTableConfiguration(sample_size=None)}]}
+    )
+    config.validate_against_generator(generator)
+    assert config.tables[0].configuration.sample_size == expected_sample_size
+
+    config = config_class(
+        **{"tables": [{"name": "tbl1", "configuration": SyntheticTableConfiguration(sample_size=50)}]}
+    )
+    config.validate_against_generator(generator)
+    assert config.tables[0].configuration.sample_size == 50
+
+    with pytest.raises(ValueError):  # extra table not in generator
+        config_class(**{"tables": [{"name": "tbl1"}, {"name": "extra_table"}]}).validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # rebalancing column not found
+        config_class(
+            **{"tables": [{"name": "tbl1", "configuration": {"rebalancing": {"column": "missing_col"}}}]}
+        ).validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # rebalancing on non-categorical column
+        config_class(
+            **{"tables": [{"name": "tbl1", "configuration": {"rebalancing": {"column": "col2"}}}]}
+        ).validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # imputation column not found
+        config_class(
+            **{"tables": [{"name": "tbl1", "configuration": {"imputation": {"columns": ["missing_col"]}}}]}
+        ).validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # fairness target column not found
+        config_class(
+            **{
+                "tables": [
+                    {
+                        "name": "tbl1",
+                        "configuration": {"fairness": {"target_column": "missing_col", "sensitive_columns": ["id"]}},
+                    }
+                ]
+            }
+        ).validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # fairness sensitive column not found
+        config_class(
+            **{
+                "tables": [
+                    {
+                        "name": "tbl1",
+                        "configuration": {"fairness": {"target_column": "col1", "sensitive_columns": ["missing_col"]}},
+                    }
+                ]
+            }
+        ).validate_against_generator(generator)
+
+    with pytest.raises(ValueError):  # target column cannot be sensitive column
+        config_class(
+            **{
+                "tables": [
+                    {
+                        "name": "tbl1",
+                        "configuration": {"fairness": {"target_column": "col1", "sensitive_columns": ["col1"]}},
+                    }
+                ]
+            }
+        ).validate_against_generator(generator)
+
+    # test adding missing tables
+    generator_with_multiple_tables = Generator(
+        **{
+            "id": "gen1",
+            "tables": [
+                {
+                    "name": "tbl1",
+                    "columns": generator_cols,
+                    "total_rows": 100,
+                    "primary_key": "id",
+                    "tabular_model_configuration": {},
+                },
+                {
+                    "name": "tbl2",
+                    "columns": generator_cols,
+                    "total_rows": 50,
+                    "primary_key": "id",
+                    "tabular_model_configuration": {},
+                },
+            ],
+        }
+    )
+
+    # test that missing tables are added automatically
+    config = config_class(**{"tables": [{"name": "tbl1"}]})
+    config.validate_against_generator(generator_with_multiple_tables)
+    assert len(config.tables) == 2
+    assert {t.name for t in config.tables} == {"tbl1", "tbl2"}
+
+    # test that empty tables list gets populated with all generator tables
+    config = config_class(**{"tables": None})
+    config.validate_against_generator(generator_with_multiple_tables)
+    assert len(config.tables) == 2
+    assert {t.name for t in config.tables} == {"tbl1", "tbl2"}
