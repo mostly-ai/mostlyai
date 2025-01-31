@@ -2930,7 +2930,7 @@ requires-dist = [
     { name = "sshtunnel", specifier = ">=0.4.0,<0.5" },
     { name = "torch", marker = "sys_platform == 'linux' and extra == 'local-cpu'", specifier = "==2.5.1+cpu", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "mostlyai", extra = "local-cpu" } },
     { name = "torch", marker = "sys_platform != 'linux' and extra == 'local-cpu'", specifier = ">=2.5.1,<2.6.0" },
-    { name = "torch", marker = "extra == 'local'", specifier = ">=2.5.1" },
+    { name = "torch", marker = "extra == 'local'", specifier = ">=2.5.1,<2.6.0" },
     { name = "torch", marker = "extra == 'local-gpu'", specifier = ">=2.5.1,<2.6.0" },
     { name = "typer", specifier = ">=0.9.0" },
     { name = "uvicorn", marker = "extra == 'local'", specifier = ">=0.34.0,<0.35" },

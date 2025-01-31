@@ -63,8 +63,7 @@ local = [
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-#    "torch>=2.5.1; sys_platform == 'darwin'",
-    "torch>=2.5.1",
+    "torch>=2.5.1,<2.6.0",
 ]
 local-gpu = [
     "mostlyai-engine[gpu]==1.0.3",
@@ -80,7 +79,6 @@ local-cpu = [
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-#    "torch>=2.5.1,<2.6.0",
     "torch==2.5.1+cpu; sys_platform == 'linux'",
     "torch>=2.5.1,<2.6.0; sys_platform != 'linux'",
 ]
