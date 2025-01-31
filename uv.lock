@@ -2335,8 +2335,8 @@ requires-dist = [
     { name = "impyla", marker = "extra == 'hive'", specifier = ">=0.19.0,<0.20" },
     { name = "joblib", specifier = ">=1.2.0" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
-    { name = "mostlyai-qa", marker = "extra == 'local-cpu'", specifier = "==1.5.1" },
-    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.5.1" },
+    { name = "mostlyai-qa", marker = "extra == 'local-cpu'", git = "https://github.com/mostly-ai/mostlyai-qa.git?branch=uv-torch-deps" },
+    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", git = "https://github.com/mostly-ai/mostlyai-qa.git?branch=uv-torch-deps" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "oracledb", marker = "extra == 'oracle'", specifier = ">=2.2.1,<3" },
@@ -2396,7 +2396,7 @@ docs = [
 [[package]]
 name = "mostlyai-qa"
 version = "1.5.1"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/mostly-ai/mostlyai-qa.git?branch=uv-torch-deps#f90b2e44319101c288767b048941f6c5738dd8e2" }
 dependencies = [
     { name = "fastcluster" },
     { name = "jinja2" },
@@ -2412,10 +2412,6 @@ dependencies = [
     { name = "scipy" },
     { name = "sentence-transformers" },
     { name = "skops" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/dc/11/76b04e725e115e525edf7f592012eaae0a64d702d27c6044485347560354/mostlyai_qa-1.5.1.tar.gz", hash = "sha256:4310a9bde4b3512939904e42f54e982c27e667fc39e15d027b97c7a83b48a3f8", size = 1951492 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/05/92720acc1c93f03bd7378e1eae1b35494b579ee865f043553654c5a0136e/mostlyai_qa-1.5.1-py3-none-any.whl", hash = "sha256:d34726e896e2d8609fc20f311151ff577206f34810dec90453177afc72837e1f", size = 1973607 },
 ]
 
 [[package]]
