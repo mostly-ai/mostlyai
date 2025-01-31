@@ -2,28 +2,104 @@ version = 1
 requires-python = ">=3.10, <3.14"
 resolution-markers = [
     "python_full_version >= '3.13' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
     "(python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
     "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version == '3.11.*' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
     "(python_full_version == '3.11.*' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version == '3.11.*' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version < '3.11' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
     "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version >= '3.13' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version == '3.12.*' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version == '3.11.*' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version < '3.11' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version >= '3.13' and sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version == '3.12.*' and sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version == '3.11.*' and sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version < '3.11' and sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version >= '3.13' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version == '3.12.*' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version == '3.11.*' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
+    "python_version < '0'",
     "python_full_version < '3.11' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
 ]
 conflicts = [[
@@ -42,6 +118,7 @@ dependencies = [
     { name = "psutil" },
     { name = "pyyaml" },
     { name = "safetensors" },
+    { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" } },
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
@@ -2809,11 +2886,22 @@ hive = [
     { name = "kerberos" },
     { name = "pyhive", extra = ["hive-pure-sasl"] },
 ]
+local = [
+    { name = "fastapi" },
+    { name = "mostlyai-engine" },
+    { name = "mostlyai-qa" },
+    { name = "python-multipart" },
+    { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
+    { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or extra != 'extra-8-mostlyai-local-cpu' or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "uvicorn" },
+]
 local-cpu = [
     { name = "fastapi" },
     { name = "mostlyai-engine", extra = ["cpu"] },
     { name = "mostlyai-qa", extra = ["cpu"] },
     { name = "python-multipart" },
+    { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux'" },
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux'" },
     { name = "uvicorn" },
@@ -2871,6 +2959,7 @@ requires-dist = [
     { name = "cloudpathlib", extras = ["gs", "s3", "azure"], specifier = ">=0.17.0,<0.18" },
     { name = "databricks-sql-connector", marker = "extra == 'databricks'", specifier = ">=3.2.0,<4" },
     { name = "environs", specifier = ">=9.5.0" },
+    { name = "fastapi", marker = "extra == 'local'", specifier = ">=0.115.6,<0.116" },
     { name = "fastapi", marker = "extra == 'local-cpu'", specifier = ">=0.115.6,<0.116" },
     { name = "fastapi", marker = "extra == 'local-gpu'", specifier = ">=0.115.6,<0.116" },
     { name = "filelock", specifier = ">=3.16.1" },
@@ -2881,8 +2970,10 @@ requires-dist = [
     { name = "impyla", marker = "extra == 'hive'", specifier = ">=0.19.0,<0.20" },
     { name = "joblib", specifier = ">=1.2.0" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.0.3" },
     { name = "mostlyai-engine", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.0.3" },
     { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.0.3" },
+    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.5.2" },
     { name = "mostlyai-qa", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.5.2" },
     { name = "mostlyai-qa", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.5.2" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
@@ -2896,6 +2987,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.4.2,<3" },
     { name = "pyhive", extras = ["hive-pure-sasl"], marker = "extra == 'hive'", specifier = ">=0.7.0,<0.8" },
     { name = "pyodbc", marker = "extra == 'mssql'", specifier = ">=5.1.0,<6" },
+    { name = "python-multipart", marker = "extra == 'local'", specifier = ">=0.0.20" },
     { name = "python-multipart", marker = "extra == 'local-cpu'", specifier = ">=0.0.20" },
     { name = "python-multipart", marker = "extra == 'local-gpu'", specifier = ">=0.0.20" },
     { name = "requests", specifier = ">=2.31.0" },
@@ -2911,8 +3003,10 @@ requires-dist = [
     { name = "sshtunnel", specifier = ">=0.4.0,<0.5" },
     { name = "torch", marker = "sys_platform == 'linux' and extra == 'local-cpu'", specifier = "==2.5.1+cpu", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "mostlyai", extra = "local-cpu" } },
     { name = "torch", marker = "sys_platform != 'linux' and extra == 'local-cpu'", specifier = ">=2.5.1,<2.6.0" },
+    { name = "torch", marker = "extra == 'local'", specifier = ">=2.5.1" },
     { name = "torch", marker = "extra == 'local-gpu'", specifier = ">=2.5.1,<2.6.0" },
     { name = "typer", specifier = ">=0.9.0" },
+    { name = "uvicorn", marker = "extra == 'local'", specifier = ">=0.34.0,<0.35" },
     { name = "uvicorn", marker = "extra == 'local-cpu'", specifier = ">=0.34.0,<0.35" },
     { name = "uvicorn", marker = "extra == 'local-gpu'", specifier = ">=0.34.0,<0.35" },
     { name = "xlsxwriter", specifier = ">=3.1.9,<4" },
@@ -2960,7 +3054,9 @@ dependencies = [
     { name = "rich" },
     { name = "setuptools" },
     { name = "tokenizers" },
+    { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin'" },
+    { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
     { name = "transformers" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ff/92/d161324ceadea066754875ee2b82cc9047096644a836a6aeb16b8c8dd765/mostlyai_engine-1.0.3.tar.gz", hash = "sha256:95bce04a05490604935710628477ae6e5f0ce2b2f502eebc90708a70ab88f6db", size = 101790 }
@@ -2970,6 +3066,7 @@ wheels = [
 
 [package.optional-dependencies]
 cpu = [
+    { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux'" },
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux'" },
 ]
@@ -2998,6 +3095,7 @@ dependencies = [
     { name = "scipy" },
     { name = "sentence-transformers" },
     { name = "skops" },
+    { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" } },
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
@@ -3008,6 +3106,7 @@ wheels = [
 
 [package.optional-dependencies]
 cpu = [
+    { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux'" },
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux'" },
 ]
@@ -3410,7 +3509,7 @@ name = "nvidia-cudnn-cu12"
 version = "9.1.0.70"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12", marker = "extra == 'extra-8-mostlyai-local-gpu'" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9f/fd/713452cd72343f682b1c7b9321e23829f00b842ceaedcda96e742ea0b0b3/nvidia_cudnn_cu12-9.1.0.70-py3-none-manylinux2014_x86_64.whl", hash = "sha256:165764f44ef8c61fcdfdfdbe769d687e06374059fbb388b6c89ecb0e28793a6f", size = 664752741 },
@@ -3422,7 +3521,7 @@ name = "nvidia-cufft-cu12"
 version = "11.2.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12", marker = "extra == 'extra-8-mostlyai-local-gpu'" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7a/8a/0e728f749baca3fbeffad762738276e5df60851958be7783af121a7221e7/nvidia_cufft_cu12-11.2.1.3-py3-none-manylinux2014_aarch64.whl", hash = "sha256:5dad8008fc7f92f5ddfa2101430917ce2ffacd86824914c82e28990ad7f00399", size = 211422548 },
@@ -3445,9 +3544,9 @@ name = "nvidia-cusolver-cu12"
 version = "11.6.1.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12", marker = "extra == 'extra-8-mostlyai-local-gpu'" },
-    { name = "nvidia-cusparse-cu12", marker = "extra == 'extra-8-mostlyai-local-gpu'" },
-    { name = "nvidia-nvjitlink-cu12", marker = "extra == 'extra-8-mostlyai-local-gpu'" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-cusparse-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/46/6b/a5c33cf16af09166845345275c34ad2190944bcc6026797a39f8e0a282e0/nvidia_cusolver_cu12-11.6.1.9-py3-none-manylinux2014_aarch64.whl", hash = "sha256:d338f155f174f90724bbde3758b7ac375a70ce8e706d70b018dd3375545fc84e", size = 127634111 },
@@ -3460,7 +3559,7 @@ name = "nvidia-cusparse-cu12"
 version = "12.3.1.170"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12", marker = "extra == 'extra-8-mostlyai-local-gpu'" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/96/a9/c0d2f83a53d40a4a41be14cea6a0bf9e668ffcf8b004bd65633f433050c0/nvidia_cusparse_cu12-12.3.1.170-py3-none-manylinux2014_aarch64.whl", hash = "sha256:9d32f62896231ebe0480efd8a7f702e143c98cfaa0e8a76df3386c1ba2b54df3", size = 207381987 },
@@ -3522,6 +3621,7 @@ dependencies = [
     { name = "numpy" },
     { name = "opt-einsum" },
     { name = "scipy" },
+    { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" } },
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
@@ -3809,6 +3909,7 @@ dependencies = [
     { name = "psutil" },
     { name = "pyyaml" },
     { name = "safetensors" },
+    { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" } },
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
     { name = "tqdm" },
@@ -5328,8 +5429,8 @@ name = "secretstorage"
 version = "3.3.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "sys_platform == 'linux' or extra != 'extra-8-mostlyai-local-cpu' or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
-    { name = "jeepney", marker = "sys_platform == 'linux' or extra != 'extra-8-mostlyai-local-cpu' or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "cryptography", marker = "sys_platform == 'linux' or (sys_platform != 'darwin' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu')" },
+    { name = "jeepney", marker = "sys_platform == 'linux' or (sys_platform != 'darwin' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/53/a4/f48c9d79cb507ed1373477dbceaba7401fd8a23af63b837fa61f1dcd3691/SecretStorage-3.3.3.tar.gz", hash = "sha256:2403533ef369eca6d2ba81718576c5e0f564d5cca1b58f73a8b23e7d4eeebd77", size = 19739 }
 wheels = [
@@ -5354,6 +5455,7 @@ dependencies = [
     { name = "pillow" },
     { name = "scikit-learn" },
     { name = "scipy" },
+    { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" } },
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
     { name = "tqdm" },
@@ -5829,6 +5931,28 @@ wheels = [
 [[package]]
 name = "torch"
 version = "2.5.1"
+source = { registry = "https://download.pytorch.org/whl/cpu" }
+dependencies = [
+    { name = "filelock", marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
+    { name = "fsspec", marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
+    { name = "jinja2", marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
+    { name = "networkx", marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
+    { name = "setuptools", marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
+    { name = "sympy", marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
+    { name = "typing-extensions", marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
+]
+wheels = [
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.5.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:269b10c34430aa8e9643dbe035dc525c4a9b1d671cd3dbc8ecbcaed280ae322d" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.5.1-cp310-none-macosx_11_0_arm64.whl", hash = "sha256:23d062bf70776a3d04dbe74db950db2a5245e1ba4f27208a87f0d743b0d06e86" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.5.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d5b3203f191bc40783c99488d2e776dcf93ac431a59491d627a1ca5b3ae20b22" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.5.1-cp311-none-macosx_11_0_arm64.whl", hash = "sha256:31f8c39660962f9ae4eeec995e3049b5492eb7360dd4f07377658ef4d728fa4c" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.5.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:36d1be99281b6f602d9639bd0af3ee0006e7aab16f6718d86f709d395b6f262c" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.5.1-cp312-none-macosx_11_0_arm64.whl", hash = "sha256:8c712df61101964eb11910a846514011f0b6f5920c55dbf567bff8a34163d5b1" },
+]
+
+[[package]]
+name = "torch"
+version = "2.5.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'",
@@ -5847,27 +5971,31 @@ resolution-markers = [
     "python_full_version == '3.12.*' and sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
     "python_full_version == '3.11.*' and sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
     "python_full_version < '3.11' and sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_full_version >= '3.13' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_full_version == '3.12.*' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_full_version == '3.11.*' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
+    "python_full_version < '3.11' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu'",
 ]
 dependencies = [
     { name = "filelock" },
     { name = "fsspec" },
     { name = "jinja2" },
     { name = "networkx" },
-    { name = "nvidia-cublas-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
-    { name = "nvidia-cuda-cupti-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
-    { name = "nvidia-cuda-nvrtc-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
-    { name = "nvidia-cuda-runtime-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
-    { name = "nvidia-cudnn-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
-    { name = "nvidia-cufft-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
-    { name = "nvidia-curand-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
-    { name = "nvidia-cusolver-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
-    { name = "nvidia-cusparse-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
-    { name = "nvidia-nccl-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
-    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
-    { name = "nvidia-nvtx-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-cuda-cupti-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-cuda-nvrtc-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-cuda-runtime-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-cudnn-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-cufft-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-curand-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-cusolver-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-cusparse-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-nccl-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "nvidia-nvtx-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
     { name = "setuptools", marker = "python_full_version >= '3.12'" },
     { name = "sympy" },
-    { name = "triton", marker = "(python_full_version < '3.13' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-gpu') or (python_full_version >= '3.13' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (platform_machine != 'x86_64' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "triton", marker = "(python_full_version < '3.13' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
     { name = "typing-extensions" },
 ]
 wheels = [
@@ -5977,7 +6105,7 @@ name = "triton"
 version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "filelock", marker = "extra == 'extra-8-mostlyai-local-gpu'" },
+    { name = "filelock", marker = "(python_full_version < '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (python_full_version < '3.13' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-mostlyai-local-cpu') or (python_full_version < '3.13' and sys_platform == 'darwin' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (python_full_version < '3.13' and sys_platform == 'linux' and extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/98/29/69aa56dc0b2eb2602b553881e34243475ea2afd9699be042316842788ff5/triton-3.1.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b0dd10a925263abbe9fa37dcde67a5e9b2383fc269fdf59f5657cac38c5d1d8", size = 209460013 },
@@ -6420,7 +6548,7 @@ name = "xattr"
 version = "1.1.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "sys_platform != 'linux' or extra != 'extra-8-mostlyai-local-cpu' or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "cffi", marker = "sys_platform == 'darwin' or (sys_platform != 'linux' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu') or (extra != 'extra-8-mostlyai-local-cpu' and extra != 'extra-8-mostlyai-local-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/62/bf/8b98081f9f8fd56d67b9478ff1e0f8c337cde08bcb92f0d592f0a7958983/xattr-1.1.4.tar.gz", hash = "sha256:b7b02ecb2270da5b7e7deaeea8f8b528c17368401c2b9d5f63e91f545b45d372", size = 16729 }
 wheels = [
@@ -6472,8 +6600,8 @@ name = "xformers"
 version = "0.0.28.post3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
-    { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" } },
+    { name = "numpy", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
+    { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/00/d8/7301b2044e29b384b6ec009ed37002f4df48906a2a772654e8386fa3b730/xformers-0.0.28.post3.tar.gz", hash = "sha256:c7a2392c874dfd8f38b73e14492baf048a4f50f77ddf522bfcf6ebf5ee84d567", size = 7758532 }
 wheels = [
@@ -6487,13 +6615,13 @@ name = "xgrammar"
 version = "0.1.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pybind11" },
-    { name = "pydantic" },
-    { name = "pytest" },
-    { name = "sentencepiece" },
-    { name = "tiktoken" },
-    { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" } },
-    { name = "transformers" },
+    { name = "pybind11", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
+    { name = "pydantic", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
+    { name = "pytest", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
+    { name = "sentencepiece", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
+    { name = "tiktoken", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
+    { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
+    { name = "transformers", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/92/a6/959fbd93630d9bfa0907ae85ca95c6470f26743a0b6e2e5fa3e159065ab1/xgrammar-0.1.11-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:5ed31db2669dc499d9d29bb16f30b3395332ff9d0fb80b759697190a5ef5258b", size = 327094 },
