@@ -66,22 +66,22 @@ dependencies = [
 #     "torch>=2.5.1; sys_platform == 'darwin'",
 # ]
 local-gpu = [
-    "mostlyai-engine[gpu]==1.0.2",
-    "mostlyai-qa[gpu]==1.5.2",
+#    "mostlyai-engine[gpu]==1.0.2",
+#    "mostlyai-qa[gpu]==1.5.2",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch>=2.5.1, <2.6.0; sys_platform == 'linux'",
+    "torch==2.5.1",
 ]
 local-cpu = [
-    "mostlyai-engine[cpu]==1.0.2",
-    "mostlyai-qa[cpu]==1.5.2",
+#    "mostlyai-engine[cpu]==1.0.2",
+#    "mostlyai-qa[cpu]==1.5.2",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
 #    "torch>=2.5.1,<2.6.0",
     "torch==2.5.1+cpu; sys_platform == 'linux'",
-    "torch>=2.5.1,<2.6.0; sys_platform == 'darwin'",
+    "torch>=2.5.1,<2.6.0; sys_platform != 'linux'",
 ]
 # connectors
 databricks = ["databricks-sql-connector>=3.2.0,<4"]
@@ -145,7 +145,7 @@ explicit = true
 
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'"},
+  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
 #  { index = "pytorch-gpu", extra = "local-gpu", marker = "sys_platform != 'linux' or platform_machine != 'x86_64'"},
 ]
 mostlyai-engine = { git = "https://github.com/mostly-ai/mostlyai-engine.git", branch = "uv-torch-deps" }
