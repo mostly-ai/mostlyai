@@ -75,7 +75,6 @@ local-gpu = [
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch>=2.5.1",
 ]
 local-cpu = [
     "mostlyai-engine[cpu]==1.0.2",
@@ -83,7 +82,6 @@ local-cpu = [
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch>=2.5.1",
 ]
 # connectors
 databricks = ["databricks-sql-connector>=3.2.0,<4"]
@@ -135,15 +133,7 @@ conflicts = [
   ],
 ]
 
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
-
 [tool.uv.sources]
-torch = [
-  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
-]
 mostlyai-engine = { git = "https://github.com/mostly-ai/mostlyai-engine.git", branch = "fix-harmonize-torch-2" }
 
 [tool.hatch.build.targets.sdist]
