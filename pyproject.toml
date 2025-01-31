@@ -71,7 +71,7 @@ local-gpu = [
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch>=2.5.1; sys_platform == 'linux'",
+    "torch>=2.5.1",
 ]
 local-cpu = [
 #    "mostlyai-engine[cpu]==1.0.2",
@@ -142,7 +142,7 @@ explicit = true
 torch = [
   { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
 ]
-mostlyai-engine = { git = "https://github.com/mostly-ai/mostlyai-engine.git", branch = "uv-torch-deps" }
+# mostlyai-engine = { git = "https://github.com/mostly-ai/mostlyai-engine.git", branch = "uv-torch-deps" }
 
 [tool.hatch.build.targets.sdist]
 include = ["mostlyai/sdk"]
