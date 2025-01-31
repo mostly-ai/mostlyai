@@ -3,7 +3,7 @@ name = "mostlyai"
 version = "4.0.5"
 description = "Synthetic Data SDK"
 authors = [{ name = "MOSTLY AI", email = "dev@mostly.ai" }]
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.10,<3.14"
 readme = "README.md"
 license = "Apache-2.0"
 classifiers = [
@@ -74,14 +74,14 @@ local-gpu = [
     "torch>=2.5.1,<2.6.0; sys_platform == 'linux'",
 ]
 local-cpu = [
-#    "mostlyai-engine[cpu]==1.0.2",
+    "mostlyai-engine[cpu]==1.0.2",
     "mostlyai-qa[cpu]==1.5.2",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch>=2.5.1,<2.6.0",
-#    "torch>=2.5.1,<2.6.0; sys_platform == 'linux'",
-#    "torch>=2.5.1,<2.6.0; sys_platform != 'linux'",
+#    "torch>=2.5.1,<2.6.0",
+    "torch==2.5.1+cpu,<2.6.0; sys_platform == 'linux'",
+    "torch>=2.5.1,<2.6.0; sys_platform != 'linux'",
 ]
 # connectors
 databricks = ["databricks-sql-connector>=3.2.0,<4"]
@@ -148,7 +148,7 @@ torch = [
   { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
 #  { index = "pytorch-gpu", extra = "local-gpu", marker = "sys_platform == 'linux'"},
 ]
-# mostlyai-engine = { git = "https://github.com/mostly-ai/mostlyai-engine.git", branch = "uv-torch-deps" }
+mostlyai-engine = { git = "https://github.com/mostly-ai/mostlyai-engine.git", branch = "uv-torch-deps" }
 # mostlyai-qa = { git = "https://github.com/mostly-ai/mostlyai-qa.git", branch = "uv-torch-deps" }
 
 [tool.hatch.build.targets.sdist]
