@@ -140,7 +140,7 @@ explicit = true
 
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cpu", extra = "local-cpu"},
+  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
 ]
 mostlyai-engine = { git = "https://github.com/mostly-ai/mostlyai-engine.git", branch = "uv-torch-deps" }
 
