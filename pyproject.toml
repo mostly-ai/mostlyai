@@ -75,7 +75,7 @@ local-gpu = [
 ]
 local-cpu = [
 #    "mostlyai-engine[cpu]==1.0.2",
-    "mostlyai-qa[cpu]==1.5.2",
+#    "mostlyai-qa[cpu]==1.5.2",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
