@@ -139,6 +139,7 @@ explicit = true
 torch = [
   { index = "pytorch-cpu", extra = "local-cpu"},
 ]
+mostlyai-engine = { git = "https://github.com/mostly-ai/mostlyai-engine.git", branch = "uv-torch-deps" }
 
 [tool.hatch.build.targets.sdist]
 include = ["mostlyai/sdk"]
