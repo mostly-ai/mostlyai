@@ -107,6 +107,7 @@ class AzureBlobFileContainer(BucketBasedContainer):
                     "account is disabled",
                     "error on post request",
                     "nodename nor servname provided",
+                    "failed to resolve",
                 ]
             ):
                 raise MostlyDataException("Account name is incorrect.")
