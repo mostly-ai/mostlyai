@@ -746,6 +746,18 @@ class SyntheticTableConfig:
     def validate_against_source_table(self, source_table: SourceTable) -> None:
         _SyntheticTableConfigValidation(synthetic_table=self, source_table=source_table)
 
+    def maybe_set_default_sample_size(self, source_table: SourceTable, is_probe: bool) -> None:
+        config = self.configuration
+        is_subject = not any(fk.is_context for fk in source_table.foreign_keys or [])
+        if (
+            not config.sample_size
+            and is_subject
+            and not (config.sample_seed_connector_id or config.sample_seed_dict or config.sample_seed_data)
+        ):
+            config.sample_size = 1 if is_probe else source_table.total_rows
+        elif not is_subject:
+            config.sample_size = None
+
 
 class SourceForeignKey:
     @model_validator(mode="before")
@@ -882,22 +894,9 @@ class _SyntheticDataConfigValidation(CustomBaseModel):
 
         for table_name, synthetic_table in synthetic_table_map.items():
             generator_table = generator_table_map[table_name]
-            config = synthetic_table.configuration
-
-            if config:
-                is_subject = not any(fk.is_context for fk in generator_table.foreign_keys or [])
-                if (
-                    not config.sample_size
-                    and is_subject
-                    and not (config.sample_seed_connector_id or config.sample_seed_dict or config.sample_seed_data)
-                ):
-                    config.sample_size = (
-                        1
-                        if isinstance(validation.synthetic_config, SyntheticProbeConfig)
-                        else generator_table.total_rows
-                    )
-                elif not is_subject:
-                    config.sample_size = None
+            synthetic_table.maybe_set_default_sample_size(
+                generator_table, is_probe=isinstance(validation.synthetic_config, SyntheticProbeConfig)
+            )
         return validation
 
 
