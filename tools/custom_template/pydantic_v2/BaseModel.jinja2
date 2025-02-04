@@ -754,10 +754,11 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
             values.configuration = SyntheticTableConfiguration()
         return values
 
-    def validate_against_source_table(self, source_table: SourceTable) -> None:
+    def validate_against_source_table(self, source_table: SourceTable, is_probe: bool) -> None:
+        self._maybe_set_sample_size(source_table, is_probe)
         _SyntheticTableConfigValidation(synthetic_table=self, source_table=source_table)
 
-    def maybe_set_default_sample_size(self, source_table: SourceTable, is_probe: bool) -> None:
+    def _maybe_set_sample_size(self, source_table: SourceTable, is_probe: bool) -> None:
         config = self.configuration
         is_subject = not any(fk.is_context for fk in source_table.foreign_keys or [])
         if (
@@ -1038,16 +1039,8 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
 
         for table_name, synthetic_table in synthetic_table_map.items():
             generator_table = generator_table_map[table_name]
-            synthetic_table.validate_against_source_table(generator_table)
-        return validation
-
-    @model_validator(mode="after")
-    def set_default_sample_sizes(cls, validation):
-        generator_table_map = {t.name: t for t in validation.generator.tables}
-        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables or []}
-
-        for table_name, synthetic_table in synthetic_table_map.items():
-            generator_table = generator_table_map[table_name]
-            synthetic_table.maybe_set_default_sample_size(generator_table, is_probe=isinstance(validation.synthetic_config, SyntheticProbeConfig))
+            synthetic_table.validate_against_source_table(
+                generator_table, is_probe=isinstance(validation.synthetic_config, SyntheticProbeConfig)
+            )
         return validation
 {%- endif %}
