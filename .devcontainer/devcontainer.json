@@ -10,9 +10,7 @@
     "ms-python.vscode-pylance",
     "ms-toolsai.jupyter",
     "charliermarsh.ruff",
-    "kevinrose.vsc-python-indent",
-    "yzhang.markdown-all-in-one",
-    "cweijan.vscode-office"
+    "kevinrose.vsc-python-indent"
   ],
   "forwardPorts": [8000],
   "settings": {
