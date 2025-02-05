@@ -1,22 +1,10 @@
 {
-  "name": "Python 3.10 with uv",
+  "name": "Client Mode (light)",
   "image": "mcr.microsoft.com/devcontainers/python:1-3.10-bullseye",
-  "options": {
-    "sdkMode": {
-      "type": "string",
-      "description": "SDK Mode",
-      "default": "client",
-      "enum": ["client", "local"],
-      "enumDescriptions": [
-        "Client mode: pure client mode.",
-        "Local mode: additionally install `mostlyai-engine` and `mostlyai-qa`."
-      ]
-    }
-  },
   "postCreateCommand": "/bin/bash -c 'source .devcontainer/setup.sh'",
   "containerEnv": {
     "UV_LINK_MODE": "copy",
-    "SDK_MODE": "${sdkMode}"
+    "SDK_MODE": "client"
   },
   "extensions": [
     "ms-python.python",
