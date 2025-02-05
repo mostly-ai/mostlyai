@@ -10,19 +10,12 @@
     "ms-python.vscode-pylance",
     "ms-toolsai.jupyter",
     "charliermarsh.ruff",
-    "kevinrose.vsc-python-indent",
-    "yzhang.markdown-all-in-one",
-    "cweijan.vscode-office"
+    "kevinrose.vsc-python-indent"
   ],
   "forwardPorts": [8000],
   "settings": {
     "python.defaultInterpreterPath": "/workspaces/mostlyai/.venv/bin/python",
     "jupyter.defaultKernel": "Python 3",
-    "editor.defaultPreviewMode": true,
-    "markdown.preview.openOnFileOpen": true,
-    "workbench.editorAssociations": {
-      "*.md": "vscode.markdown.preview.editor"
-    }
   },
   "customizations": {
     "codespaces": {
