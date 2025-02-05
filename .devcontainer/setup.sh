@@ -1,4 +1,6 @@
 #!/bin/bash
+set -x  # Print commands as they execute (for debugging)
+
 # Install uv package manager
 pip install uv
 
