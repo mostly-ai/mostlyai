@@ -18,6 +18,11 @@ jobs:
             contents: read
             packages: write
         steps:
+          - name: Setup | Install Git
+            run: |
+              apt-get update
+              apt-get install -y git
+
           - name: Setup | Checkout
             uses: actions/checkout@v4
             with:
