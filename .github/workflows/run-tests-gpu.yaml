@@ -20,8 +20,8 @@ jobs:
         steps:
           - name: Setup | Install Git
             run: |
-              apt-get update
-              apt-get install -y git
+              apt-get update -qq
+              apt-get install -y --no-install-recommends git
 
           - name: Setup | Checkout
             uses: actions/checkout@v4
@@ -43,4 +43,4 @@ jobs:
 
           - name: Test | End-to-End Tests
             run: |
-                uv run -- pytest --log-cli-level=INFO -vv tests/_local/end_to_end
+                uv run -- pytest -vv tests/_local/end_to_end
