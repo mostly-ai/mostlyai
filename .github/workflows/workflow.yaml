@@ -9,4 +9,8 @@ jobs:
   call-tests-cpu:
     uses: ./.github/workflows/run-tests-cpu.yaml
   call-test-gpu:
+    if: |
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/tags/') ||
+      contains(github.event.head_commit.message, '[gpu]')
     uses: ./.github/workflows/run-tests-gpu.yaml
