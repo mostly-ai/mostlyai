@@ -16,6 +16,11 @@
   "settings": {
     "python.defaultInterpreterPath": "/workspaces/mostlyai/.venv/bin/python",
     "jupyter.defaultKernel": "Python 3",
+    "editor.defaultPreviewMode": true,
+    "markdown.preview.openOnFileOpen": true,
+    "workbench.editorAssociations": {
+      "*.md": "vscode.markdown.preview.editor"
+    }
   },
   "customizations": {
     "codespaces": {
