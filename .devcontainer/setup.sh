@@ -1,7 +1,4 @@
 #!/bin/bash
-set -e  # Exit immediately if a command fails
-set -x  # Print commands as they execute (for debugging)
-
 # Install uv package manager
 pip install uv
 
@@ -19,4 +16,4 @@ uv pip install --upgrade --force-reinstall pip ipykernel
 uv run python -m ipykernel install --user
 
 # Start up
-code docs/tutorials.md --preview
+code docs/tutorials.md
