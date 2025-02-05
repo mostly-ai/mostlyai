@@ -11,7 +11,8 @@
     "ms-toolsai.jupyter",
     "charliermarsh.ruff",
     "kevinrose.vsc-python-indent",
-    "yzhang.markdown-all-in-one"
+    "yzhang.markdown-all-in-one",
+    "cweijan.vscode-office"
   ],
   "forwardPorts": [
     8000
