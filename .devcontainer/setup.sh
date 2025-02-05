@@ -17,6 +17,3 @@ uv pip install --upgrade --force-reinstall pip ipykernel
 
 # Register the Jupyter kernel explicitly
 uv run python -m ipykernel install --user
-
-# Start up
-code docs/tutorials.md

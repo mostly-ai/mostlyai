@@ -13,16 +13,14 @@
     "kevinrose.vsc-python-indent",
     "yzhang.markdown-all-in-one"
   ],
-  "remoteUser": "vscode",
-  "remoteEnv": {
-      "DEBUG": "1"
-  },
   "forwardPorts": [
     8000
   ],
   "settings": {
     "python.defaultInterpreterPath": "/workspaces/mostlyai/.venv/bin/python",
     "jupyter.defaultKernel": "Python 3",
+    "editor.defaultPreviewMode": true,
+    "markdown.preview.openOnFileOpen": true,
     "workbench.editorAssociations": {
       "*.md": "markdown.preview.editor"
     }
