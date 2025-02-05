@@ -17,6 +17,9 @@
     "python.defaultInterpreterPath": "/workspaces/mostlyai/.venv/bin/python",
     "jupyter.defaultKernel": "Python 3 (Dev Container)",
     "jupyter.jupyterServerType": "local",
+    "jupyter.kernelspecs": {
+        "python3": "/workspaces/mostlyai/.venv/share/jupyter/kernels/python3"
+    },
     "python.terminal.activateEnvironment": true
   },
   "customizations": {
