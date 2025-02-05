@@ -1,9 +1,4 @@
 #!/bin/bash
-set -e  # Exit immediately if a command fails
-set -x  # Print commands as they execute (for debugging)
-
-export UV_LINK_MODE=copy  # Suppress hardlink warning
-
 # Install uv package manager
 pip install uv
 
