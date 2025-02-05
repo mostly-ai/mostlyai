@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e  # Exit immediately if a command fails
 set -x  # Print commands as they execute (for debugging)
 
 # Install uv package manager
