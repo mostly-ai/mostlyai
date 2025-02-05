@@ -22,7 +22,7 @@
     "editor.defaultPreviewMode": true,
     "markdown.preview.openOnFileOpen": true,
     "workbench.editorAssociations": {
-      "*.md": "vscode.markdown.preview.editor"
+      "*.md": "vscode.markdown.preview.editor",
     }
   },
   "customizations": {
