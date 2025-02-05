@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import enum
+import logging
 import os
 import sys
 import warnings
@@ -27,7 +28,7 @@ from typing import (
 
 import httpx
 import rich
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from rich.console import Console
 
 from mostlyai.sdk.client.exceptions import APIError, APIStatusError
@@ -35,6 +36,8 @@ from mostlyai.sdk.client._naming_conventions import (
     map_snake_to_camel_case,
     map_camel_to_snake_case,
 )
+
+_LOG = logging.getLogger(__name__)
 
 GET = "GET"
 POST = "POST"
@@ -218,7 +221,7 @@ class Paginator(Generic[T]):
         item = self.page_items[self.index_in_page]
         self.index_in_page += 1
         self.index += 1
-        return self.response_class(**item, client=self.client, by_alias=True)
+        return self.response_class(**item, client=self.client)
 
     def _fetch_page(self):
         if self.is_last_page:
@@ -241,6 +244,14 @@ class CustomBaseModel(BaseModel):
     client: Annotated[Any | None, Field(exclude=True, repr=False)] = None
     extra_key_values: Annotated[dict | None, Field(exclude=True, repr=False)] = None
     model_config = ConfigDict(protected_namespaces=(), populate_by_name=True)
+
+    @model_validator(mode="before")
+    def __warn_extra_fields__(cls, values):
+        if isinstance(values, dict):
+            extra_fields = values.keys() - cls.model_fields.keys() - {v.alias for v in cls.model_fields.values()}
+            if extra_fields:
+                _LOG.warning(f"ignoring unrecognized fields for {cls.__name__}: {', '.join(extra_fields)}")
+        return values
 
     def _repr_html_(self):
         # Use rich.print to create a rich representation of the model

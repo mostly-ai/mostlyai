@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import ast
+
 # Constant for the file path
 FILE_PATH = "mostlyai/sdk/domain.py"
+MODEL_FILE_PATH = "tools/model.py"
 
 # Dictionary for enum replacements
 enum_replace_dict = {
@@ -24,6 +27,17 @@ enum_replace_dict = {
 }
 
 
+def get_private_classes(file_path):
+    with open(file_path) as f:
+        tree = ast.parse(f.read())
+
+    private_classes = []
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef) and node.name.startswith("_"):
+            private_classes.append(ast.unparse(node))
+    return private_classes
+
+
 def postprocess_model_file(file_path):
     # Read the contents of the file
     with open(file_path) as file:
@@ -32,6 +46,7 @@ def postprocess_model_file(file_path):
     # Modify the contents
     new_lines = []
     import_typing_updated = False
+    private_classes = get_private_classes(MODEL_FILE_PATH)
 
     for line in lines:
         # Remove filename comment
@@ -63,6 +78,9 @@ def postprocess_model_file(file_path):
                     new_line = new_line.replace(old, new)
 
             new_lines.append(new_line)
+
+    # append private classes
+    new_lines.extend(f"\n{cls}\n" for cls in private_classes)
 
     # Write the modified contents back to the file
     with open(file_path, "w") as file:

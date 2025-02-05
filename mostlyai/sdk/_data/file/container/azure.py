@@ -76,6 +76,7 @@ class AzureBlobFileContainer(BucketBasedContainer):
         self._blob_service_client = BlobServiceClient(
             account_url=f"https://{self.account_name}.blob.core.windows.net",
             credential=credential,
+            retry_total=0,  # disable retry so that we won't timeout when credentials are incorrect
         )
 
     @classmethod
@@ -96,7 +97,7 @@ class AzureBlobFileContainer(BucketBasedContainer):
 
     def _check_authenticity(self) -> bool:
         try:
-            return self.fs.ls("") is not None
+            return self._blob_service_client.get_account_information() is not None
         except Exception as e:
             error_message = str(e).lower()
             if any(
@@ -105,6 +106,8 @@ class AzureBlobFileContainer(BucketBasedContainer):
                     "cannot connect to host",
                     "account is disabled",
                     "error on post request",
+                    "nodename nor servname provided",
+                    "failed to resolve",
                 ]
             ):
                 raise MostlyDataException("Account name is incorrect.")

@@ -170,7 +170,7 @@ def _set_overall_accuracy(generator: Generator) -> None:
 
 def _probe_random_samples(home_dir: Path, generator: Generator) -> None:
     config = SyntheticProbeConfig(generator_id=generator.id)
-    synthetic_dataset = create_synthetic_dataset(home_dir=home_dir, config=config, size=20)
+    synthetic_dataset = create_synthetic_dataset(home_dir=home_dir, config=config, sample_size=20)
     probes = execute_probing_job(synthetic_dataset_id=synthetic_dataset.id, home_dir=home_dir)
 
     random_samples_dir = home_dir / "generators" / generator.id / "RandomSamples"

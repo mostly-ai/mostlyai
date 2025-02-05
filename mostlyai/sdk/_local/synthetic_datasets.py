@@ -19,6 +19,7 @@ from mostlyai.sdk._local.storage import (
     write_job_progress_to_json,
     read_generator_from_json,
     write_connector_to_json,
+    read_synthetic_dataset_from_json,
 )
 from mostlyai.sdk._local.execution.plan import (
     has_tabular_model,
@@ -36,19 +37,19 @@ from mostlyai.sdk.domain import (
     ProgressValue,
     JobProgress,
     SyntheticTable,
-    SyntheticTableConfiguration,
     TaskType,
     Connector,
     ConnectorType,
     ConnectorAccessType,
     SyntheticProbeConfig,
+    SyntheticTableConfig,
 )
 
 
 def create_synthetic_dataset(
     home_dir: Path,
     config: SyntheticDatasetConfig | SyntheticProbeConfig,
-    size: int | dict[str, int] | None = None,
+    sample_size: int | None = None,
 ) -> SyntheticDataset:
     # create a FILE_UPLOAD connector and replace sample_seed_dict/sample_seed_data with sample_seed_connector_id
     for t in config.tables or []:
@@ -77,30 +78,21 @@ def create_synthetic_dataset(
     generator_dir = home_dir / "generators" / config.generator_id
     generator = read_generator_from_json(generator_dir)
 
-    # fill sample sizes
-    # if there's a seed (sample_seed_connector_id is set), sample size will be ignored by the engine
-    size = size if size is not None else {}
+    # validate & fill defaults in config against generator
+    config.validate_against_generator(generator)
+
+    # create synthetic tables
     sd_tables = []
     for g_table in generator.tables:
-        if g_table.name in (t.name for t in (config.tables or [])):
-            sd_table = SyntheticTable(**next(t for t in config.tables if t.name == g_table.name).model_dump())
-        else:
-            sd_table = SyntheticTable(name=g_table.name)
+        sd_table = SyntheticTable(**next(t for t in config.tables if t.name == g_table.name).model_dump())
         sd_table.foreign_keys = g_table.foreign_keys
         sd_table.source_table_total_rows = g_table.total_rows
-        if sd_table.configuration is None:
-            sd_table.configuration = SyntheticTableConfiguration()
-        is_subject = not any(fk.is_context for fk in g_table.foreign_keys or [])
-        if is_subject and sd_table.configuration.sample_size is None:
-            if isinstance(size, int):
-                sd_table.configuration.sample_size = size
-            else:  # isinstance(size, dict)
-                default_sample_size = 1 if isinstance(config, SyntheticProbeConfig) else g_table.total_rows
-                sd_table.configuration.sample_size = size.get(g_table.name, default_sample_size)
-        elif not is_subject:
-            sd_table.configuration.sample_size = None  # sample size is not applicable to linked tables
         sd_table.tabular_model_metrics = g_table.tabular_model_metrics
         sd_table.language_model_metrics = g_table.language_model_metrics
+        # overwrite sample size of subject table, if provided
+        is_subject = not any(fk.is_context for fk in g_table.foreign_keys or [])
+        if is_subject and sample_size is not None:
+            sd_table.configuration.sample_size = sample_size
         sd_tables.append(sd_table)
 
     # create synthetic dataset
@@ -161,3 +153,19 @@ def create_synthetic_dataset(
     )
     write_job_progress_to_json(synthetic_dataset_dir, job_progress)
     return synthetic_dataset
+
+
+def get_synthetic_dataset_config(home_dir: Path, synthetic_dataset_id: str) -> SyntheticDatasetConfig:
+    synthetic_dataset_dir = home_dir / "synthetic-datasets" / synthetic_dataset_id
+    synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
+    # construct SyntheticDatasetConfig explicitly to avoid validation warnings of extra fields
+    config = SyntheticDatasetConfig(
+        generator_id=synthetic_dataset.generator_id,
+        name=synthetic_dataset.name,
+        description=synthetic_dataset.description,
+        tables=[SyntheticTableConfig.model_construct(**t.model_dump()) for t in synthetic_dataset.tables]
+        if synthetic_dataset.tables
+        else None,
+        delivery=synthetic_dataset.delivery,
+    )
+    return config

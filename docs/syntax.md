@@ -126,7 +126,7 @@ syn_df = mostly.probe(g, config: dict | SyntheticDatasetConfig)
 
 ## Connectors
 
-Connectors can be used both as a source of original data for training a generator, as well as a destination for delivering the generated synthetic data samples to. Please see our [Platform Documentation](https://mostly.ai/docs), respectively our [Open API specificiations](https://github.com/mostly-ai/mostly-openapi/blob/main/public-api.yaml) for the full list of available connectors, and their corresponding configuration parameters.
+Connectors can be used both as a source of original data for training a generator, as well as a destination for delivering the generated synthetic data samples to. See [ConnectorConfig](api_domain/#mostlyai.sdk.domain.ConnectorConfig) for the full list of available connectors, and their corresponding configuration parameters.
 
 ```python
 # create a new connector
@@ -148,59 +148,11 @@ for c in mostly.connectors.list():
 # update a connector
 c.update(name: str, ...)
 
-# fetch a connector's configuration
-config = c.config()
-
 # open a connector in a new browser tab
 c.open()
 
 # delete a connector
 c.delete()
-```
-
-In order to use a connector as a source, pass its ID as a parameter to the `SourceTableConfig`:
-```python
-c = mostly.connect(config={
-    "name": "My S3 Source Storage",
-    "type": "S3_STORAGE",
-    "access_type": "SOURCE",
-    "config": {
-        "access_key": "INSERT_YOUR_ACCESS_KEY",
-    },
-    "secrets": {
-        "secret_key": "INSERT_YOUR_SECRET_KEY",
-    }
-})
-g = mostly.train(config={
-    "name": "US Census Income",
-    "tables": [{
-        "name": "census",
-        "source_connector_id": c.id,
-        "location": "bucket/path_to_source"
-    }]
-})
-```
-
-In order to use a connector as a destination, pass its ID as a parameter to the `SourceTableConfig`:
-```python
-c = mostly.connect(config={
-    "name": "My S3 Destination Storage",
-    "type": "S3_STORAGE",
-    "access_type": "DESTINATION",
-    "config": {
-        "access_key": "INSERT_YOUR_ACCESS_KEY",
-    },
-    "secrets": {
-        "secret_key": "INSERT_YOUR_SECRET_KEY",
-    }
-})
-sd = mostly.generate(g, config={
-    "name": "US Census Income",
-    "delivery": {
-        "destination_connector_id": c.id,
-        "location": "bucket/path_to_destination"
-    }
-})
 ```
 
 ## Miscellaneous

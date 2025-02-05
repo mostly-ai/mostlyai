@@ -11,10 +11,18 @@ env:
 jobs:
     run-test-gpu:
         runs-on: gha-gpu-public
+        container:
+            image: nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+            options: --gpus all
         permissions:
             contents: read
             packages: write
         steps:
+          - name: Setup | Install Git
+            run: |
+              apt-get update -qq
+              apt-get install -y --no-install-recommends git
+
           - name: Setup | Checkout
             uses: actions/checkout@v4
             with:
@@ -29,6 +37,9 @@ jobs:
 
           - name: Setup | Dependencies
             run: uv sync --frozen --extra local-gpu
+
+          - name: Setup | Check for available GPU-s
+            run: nvidia-smi
 
           - name: Test | End-to-End Tests
             run: |

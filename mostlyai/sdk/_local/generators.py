@@ -14,7 +14,12 @@
 
 from pathlib import Path
 
-from mostlyai.sdk._local.storage import write_generator_to_json, write_connector_to_json, write_job_progress_to_json
+from mostlyai.sdk._local.storage import (
+    write_generator_to_json,
+    write_connector_to_json,
+    write_job_progress_to_json,
+    read_generator_from_json,
+)
 from mostlyai.sdk._local.execution.plan import has_tabular_model, has_language_model, TRAINING_TASK_STEPS
 from mostlyai.sdk.client._base_utils import convert_to_df
 from mostlyai.sdk.domain import (
@@ -30,6 +35,8 @@ from mostlyai.sdk.domain import (
     ProgressValue,
     JobProgress,
     TaskType,
+    SourceTableConfig,
+    SourceForeignKeyConfig,
 )
 
 
@@ -67,7 +74,7 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
             "training_status": ProgressStatus.new,
             "tables": [
                 {
-                    **{k: v for k, v in t.model_dump().items() if k not in ["source_connector_id"]},
+                    **{k: v for k, v in t.model_dump().items() if k not in ["source_connector_id", "data"]},
                     "source_connector_id": t.source_connector_id,
                 }
                 for t in (config.tables or [])
@@ -108,3 +115,33 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
     write_job_progress_to_json(generator_dir, job_progress)
 
     return generator
+
+
+def get_generator_config(home_dir: Path, generator_id: str) -> GeneratorConfig:
+    generator_dir = home_dir / "generators" / generator_id
+    generator = read_generator_from_json(generator_dir)
+    # construct GeneratorConfig explicitly to avoid validation warnings of extra fields
+    config = GeneratorConfig(
+        name=generator.name,
+        description=generator.description,
+        tables=[
+            SourceTableConfig(
+                name=t.name,
+                source_connector_id=t.source_connector_id,
+                location=t.location,
+                tabular_model_configuration=t.tabular_model_configuration,
+                language_model_configuration=t.language_model_configuration,
+                primary_key=t.primary_key,
+                foreign_keys=[SourceForeignKeyConfig.model_construct(**k.model_dump()) for k in t.foreign_keys]
+                if t.foreign_keys
+                else None,
+                columns=[SourceColumnConfig.model_construct(**c.model_dump()) for c in t.columns]
+                if t.columns
+                else None,
+            )
+            for t in generator.tables
+        ]
+        if generator.tables
+        else None,
+    )
+    return config
