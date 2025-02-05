@@ -1,7 +1,7 @@
 {
   "name": "Python 3.10 with uv",
   "image": "mcr.microsoft.com/devcontainers/python:1-3.10-bullseye",
-  "postCreateCommand": "/bin/bash -c 'pip install uv && uv venv && uv sync --extra dev --frozen'",
+  "postCreateCommand": "/bin/bash -c 'bash .devcontainer/setup.sh'",
   "extensions": [
     "ms-python.python",
     "ms-python.vscode-pylance",
