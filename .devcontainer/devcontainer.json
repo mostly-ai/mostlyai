@@ -13,6 +13,10 @@
     "kevinrose.vsc-python-indent",
     "yzhang.markdown-all-in-one"
   ],
+  "remoteUser": "vscode",
+  "remoteEnv": {
+      "DEBUG": "1"
+  },
   "forwardPorts": [
     8000
   ],
