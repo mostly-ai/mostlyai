@@ -1,6 +1,10 @@
 {
   "name": "Local Mode (full bundle)",
   "image": "mcr.microsoft.com/devcontainers/python:1-3.10-bullseye",
+  "hostRequirements": {
+    "cpu": 8,
+    "memory": "32gb"
+  },
   "postCreateCommand": "/bin/bash -c 'source .devcontainer/setup.sh'",
   "containerEnv": {
     "UV_LINK_MODE": "copy",
