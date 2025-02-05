@@ -1,15 +1,14 @@
 #!/bin/bash
-set -e  # Exit on first error
-set -x  # Print commands as they execute (debugging)
+set -e
+set -x
 
-# Install uv
 pip install uv
-
-# Set up virtual environment
 uv venv
-
-# Install dependencies
 uv sync --extra dev --frozen
 
-# Ensure ipykernel is available
-uv run pip install ipykernel
+# Activate venv explicitly before installing ipykernel
+source .venv/bin/activate
+pip install --upgrade --force-reinstall ipykernel
+
+# Register the kernel explicitly (optional, but ensures VS Code detects it)
+python -m ipykernel install --user
