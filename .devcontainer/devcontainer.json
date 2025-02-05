@@ -20,12 +20,12 @@
     "python.terminal.activateEnvironment": true
   },
   "customizations": {
-    "vscode": {
-      "settings": {
-        "workbench.editorAssociations": {
-          "*.md": "vscode.markdown.preview.editor"
-        }
-      }
-    }
+//    "vscode": {
+//      "settings": {
+//        "workbench.editorAssociations": {
+//          "*.md": "vscode.markdown.preview.editor"
+//        }
+//      }
+//    }
   }
 }
