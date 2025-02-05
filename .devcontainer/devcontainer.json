@@ -16,6 +16,7 @@
   ],
   "forwardPorts": [8000],
   "settings": {
-    "python.defaultInterpreterPath": "/workspaces/mostlyai/.venv/bin/python"
+    "python.defaultInterpreterPath": "/workspaces/mostlyai/.venv/bin/python",
+    "jupyter.defaultKernel": "Python 3"
   }
 }

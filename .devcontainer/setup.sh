@@ -10,4 +10,4 @@ source .venv/bin/activate
 uv pip install --upgrade --force-reinstall pip ipykernel
 
 # Register the kernel explicitly (optional, but ensures VS Code detects it)
-python -m ipykernel install --user
+uv run python -m ipykernel install --user
