@@ -19,4 +19,4 @@ uv pip install --upgrade --force-reinstall pip ipykernel
 uv run python -m ipykernel install --user
 
 # Start up
-code docs/tutorials.md
+code docs/tutorials.md --preview
