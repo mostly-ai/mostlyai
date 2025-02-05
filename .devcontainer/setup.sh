@@ -26,4 +26,4 @@ source .venv/bin/activate
 uv pip install --upgrade --force-reinstall pip ipykernel
 
 # Register the Jupyter kernel explicitly
-python -m ipykernel install --user --name=python3 --display-name "Python 3 (Dev Container)" --prefix=/home/vscode/.local
+python -m ipykernel install --user --name=python3 --display-name "Python 3 (Dev Container)"
