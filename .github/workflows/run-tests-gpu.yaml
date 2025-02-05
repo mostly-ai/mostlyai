@@ -11,6 +11,9 @@ env:
 jobs:
     run-test-gpu:
         runs-on: gha-gpu-public
+        container:
+            image: nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+            options: --gpus all
         permissions:
             contents: read
             packages: write
@@ -30,6 +33,9 @@ jobs:
           - name: Setup | Dependencies
             run: uv sync --frozen --extra local-gpu
 
+          - name: Setup | Check for available GPU-s
+            run: nvidia-smi
+
           - name: Test | End-to-End Tests
             run: |
-                uv run -- pytest -vv tests/_local/end_to_end
+                uv run -- pytest --log-cli-level=INFO -vv tests/_local/end_to_end
