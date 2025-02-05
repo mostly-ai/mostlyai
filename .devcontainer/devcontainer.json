@@ -18,12 +18,6 @@
     "jupyter.defaultKernel": "Python 3"
   },
   "customizations": {
-    "codespaces": {
-      "openFiles": [
-        "README.md",
-        "docs/tutorials.md"
-      ]
-    },
     "vscode": {
       "settings": {
         "workbench.editorAssociations": {

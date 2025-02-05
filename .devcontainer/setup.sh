@@ -17,3 +17,6 @@ uv pip install --upgrade --force-reinstall pip ipykernel
 
 # Register the Jupyter kernel explicitly
 python -m ipykernel install --user --name=python3 --display-name "Python 3 (Dev Container)"
+
+# Start up: open docs/tutorials.md after extensions have loaded
+sleep 3 && code docs/tutorials.md
