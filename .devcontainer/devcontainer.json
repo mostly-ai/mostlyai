@@ -24,5 +24,13 @@
     "workbench.editorAssociations": {
       "*.md": "markdown.preview.editor"
     }
+  },
+  "customizations": {
+    "codespaces": {
+      "openFiles": [
+        "README.md",
+        "docs/tutorials.md"
+      ]
+    }
   }
 }
