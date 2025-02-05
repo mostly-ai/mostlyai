@@ -1,9 +1,13 @@
 {
   "name": "Python 3.10 with uv",
   "image": "mcr.microsoft.com/devcontainers/python:1-3.10-bullseye",
+  "args": {
+    "sdkMode": "client"
+  },
   "postCreateCommand": "/bin/bash -c 'source .devcontainer/setup.sh'",
   "containerEnv": {
-    "UV_LINK_MODE": "copy"
+    "UV_LINK_MODE": "copy",
+    "SDK_MODE": "${localEnv:sdkMode}"
   },
   "extensions": [
     "ms-python.python",
@@ -17,9 +21,6 @@
     "python.defaultInterpreterPath": "/workspaces/mostlyai/.venv/bin/python",
     "jupyter.defaultKernel": "Python 3 (Dev Container)",
     "jupyter.jupyterServerType": "local",
-    "jupyter.kernelspecs": {
-        "python3": "/workspaces/mostlyai/.venv/share/jupyter/kernels/python3"
-    },
     "python.terminal.activateEnvironment": true
   },
   "customizations": {
@@ -27,6 +28,21 @@
       "settings": {
         "workbench.editorAssociations": {
           "*.md": "vscode.markdown.preview.editor"
+        }
+      }
+    },
+    "codespaces": {
+      "prebuild": true,
+      "customProperties": {
+        "sdkMode": {
+          "type": "string",
+          "title": "SDK Mode",
+          "default": "client",
+          "enum": ["client", "local"],
+          "enumDescriptions": [
+            "Client mode: pure client mode.",
+            "Local mode: additionally install `mostlyai-engine` and `mostlyai-qa`."
+          ]
         }
       }
     }

@@ -2,12 +2,22 @@
 set -e  # Exit immediately if a command fails
 set -x  # Print commands as they execute (for debugging)
 
+export UV_LINK_MODE=copy  # Suppress hardlink warning
+
 # Install uv package manager
 pip install uv
 
 # Set up virtual environment using uv
 uv venv
-uv sync --extra dev --frozen
+
+# Conditionally add `--extra local` if SDK_MODE is "local"
+if [ "$SDK_MODE" == "local" ]; then
+    echo "Running in LOCAL SDK mode"
+    uv sync --extra local --extra dev --frozen
+else
+    echo "Running in CLIENT SDK mode"
+    uv sync --extra dev --frozen
+fi
 
 # Activate the virtual environment
 source .venv/bin/activate
