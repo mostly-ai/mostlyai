@@ -18,5 +18,13 @@ uv pip install --upgrade --force-reinstall pip ipykernel
 # Register the Jupyter kernel explicitly
 python -m ipykernel install --user --name=python3 --display-name "Python 3 (Dev Container)"
 
+# Refresh Jupyter kernel list to confirm installation
+jupyter kernelspec list
+
+# Set workspace Python environment for Jupyter
+echo 'export JUPYTER_PYTHON=/workspaces/mostlyai/.venv/bin/python' >> ~/.bashrc
+echo 'export JUPYTER_PATH=/workspaces/mostlyai/.venv/share/jupyter' >> ~/.bashrc
+source ~/.bashrc
+
 # Start up: open docs/tutorials.md after extensions have loaded
 sleep 3 && code docs/tutorials.md

@@ -15,7 +15,9 @@
   "forwardPorts": [8000],
   "settings": {
     "python.defaultInterpreterPath": "/workspaces/mostlyai/.venv/bin/python",
-    "jupyter.defaultKernel": "Python 3"
+    "jupyter.defaultKernel": "Python 3 (Dev Container)",
+    "jupyter.jupyterServerType": "local",
+    "python.terminal.activateEnvironment": true
   },
   "customizations": {
     "vscode": {
