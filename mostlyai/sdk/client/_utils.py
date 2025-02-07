@@ -68,7 +68,7 @@ def job_wait(
                 for step in job.steps:
                     step_code = step.step_code.value
                     if step_code == StepCode.train_model.value:
-                        step_code += " :gem:"
+                        step_code += " 💎"
 
                     if step.id not in step_pbars:
                         step_pbars[step.id] = tqdm(
