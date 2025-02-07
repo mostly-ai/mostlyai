@@ -53,6 +53,7 @@ dependencies = [
     "azure-storage-blob>=12.16.0,<13",
     "adlfs>=2023.4.0,<2024",
     "filelock>=3.16.1",
+    "tqdm>=4.67.1",
 ]
 
 [project.optional-dependencies]

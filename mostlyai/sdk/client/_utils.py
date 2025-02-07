@@ -38,9 +38,9 @@ from mostlyai.sdk.client._naming_conventions import map_camel_to_snake_case
 
 
 def job_wait(
-        get_progress: Callable,
-        interval: float,
-        progress_bar: bool = True,
+    get_progress: Callable,
+    interval: float,
+    progress_bar: bool = True,
 ) -> None:
     interval = max(interval, 1)  # Ensure interval is at least 1 second
     job = get_progress()
@@ -51,7 +51,7 @@ def job_wait(
             desc=f"{Fore.WHITE}Overall job progress{Style.RESET_ALL}",
             unit="step",
             dynamic_ncols=True,
-            bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.BLUE, Style.RESET_ALL)
+            bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.BLUE, Style.RESET_ALL),
         )
         step_pbars = {}
 
@@ -76,7 +76,7 @@ def job_wait(
                             desc=f"{Fore.LIGHTBLACK_EX}Step {step.model_label or 'common'} {step_code}{Style.RESET_ALL}",
                             unit="step",
                             dynamic_ncols=True,
-                            bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Style.RESET_ALL)
+                            bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Style.RESET_ALL),
                         )
 
                     step_pbar = step_pbars[step.id]
@@ -86,7 +86,8 @@ def job_wait(
 
                     if step.status in (ProgressStatus.failed, ProgressStatus.canceled):
                         print(
-                            f"{Fore.RED}Step {step.model_label} {step.step_code.value} {step.status.lower()}{Style.RESET_ALL}")
+                            f"{Fore.RED}Step {step.model_label} {step.step_code.value} {step.status.lower()}{Style.RESET_ALL}"
+                        )
                         return
 
                 if job.progress.value >= job.progress.max:
