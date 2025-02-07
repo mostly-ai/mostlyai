@@ -54,6 +54,7 @@ dependencies = [
     "adlfs>=2023.4.0,<2024",
     "filelock>=3.16.1",
     "tqdm>=4.67.1",
+    "colorama>=0.4.6",
 ]
 
 [project.optional-dependencies]
