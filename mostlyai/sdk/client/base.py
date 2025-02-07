@@ -63,11 +63,13 @@ class _MostlyBaseClient:
         self,
         base_url: str | None = None,
         api_key: str | None = None,
+        uds: str | None = None,
         timeout: float = 60.0,
         ssl_verify: bool = True,
     ):
         self.base_url = (base_url or os.getenv("MOSTLY_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
         self.api_key = api_key or os.getenv("MOSTLY_API_KEY")
+        self.transport = httpx.HTTPTransport(uds=uds) if uds else None
         self.timeout = timeout
         self.ssl_verify = ssl_verify
         if not self.api_key:
@@ -137,7 +139,7 @@ class _MostlyBaseClient:
             kwargs["params"] = map_snake_to_camel_case(kwargs["params"])
 
         try:
-            with httpx.Client(timeout=self.timeout, verify=self.ssl_verify) as client:
+            with httpx.Client(timeout=self.timeout, transport=self.transport) as client:
                 response = client.request(method=verb, url=full_url, **kwargs)
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
@@ -157,7 +159,7 @@ class _MostlyBaseClient:
             ) from exc
         except httpx.RequestError as exc:
             # Handle request errors (e.g., network issues)
-            raise APIError(f"An error occurred while requesting {exc.request.url!r}.") from exc
+            raise APIError(f"An error occurred while requesting {exc}") from exc
 
         if raw_response:
             return response
