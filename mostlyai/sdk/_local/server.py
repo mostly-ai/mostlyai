@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import atexit
 import tempfile
 import time
 from pathlib import Path
@@ -39,7 +39,7 @@ class LocalServer:
         self.home_dir = Path(home_dir or "~/mostlyai").expanduser()
         # self.host = host or "127.0.0.1"
         # self.port = port or self._find_available_port()
-        self.uds = uds or tempfile.NamedTemporaryFile(prefix="mostlyai-", suffix=".sock").name
+        self.uds = uds or tempfile.NamedTemporaryFile(prefix="mostlyai-", suffix=".sock", delete=False).name
         self.base_url = "http://127.0.0.1"
         self._app = FastAPI(
             root_path="/api/v2",
@@ -72,9 +72,12 @@ class LocalServer:
     #         f"Could not find an available port in range {min_port}-{max_port} after 10 attempts. Tried ports: {failed_ports}"
     #     )
 
-    def _create_server(self):
+    def _clear_socket_file(self):
         if os.path.exists(self.uds):
             os.remove(self.uds)
+
+    def _create_server(self):
+        self._clear_socket_file()
         config = uvicorn.Config(self._app, uds=self.uds, log_level="error", reload=False)
         self._server = uvicorn.Server(config)
 
@@ -91,6 +94,8 @@ class LocalServer:
             self._create_server()
             self._thread = Thread(target=self._run_server, daemon=True)
             self._thread.start()
+            # make sure the socket file is cleaned up on exit
+            atexit.register(self._clear_socket_file)
             time.sleep(0.5)  # give the server a moment to start
 
     def stop(self):
@@ -98,9 +103,7 @@ class LocalServer:
             rich.print(f"Stopping server on {self.base_url} for {self.home_dir.absolute()}.")
             self._server.should_exit = True  # Signal the server to shut down
             self._thread.join()  # Wait for the server thread to finish
-            # make sure the socket file is cleaned up
-            if os.path.exists(self.uds):
-                os.remove(self.uds)
+            self._clear_socket_file()
 
     def __enter__(self):
         # Ensure the server is running
