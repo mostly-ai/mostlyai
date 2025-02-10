@@ -18,7 +18,7 @@ fi
 source .venv/bin/activate
 
 # Ensure pip and ipykernel are installed and up-to-date
-uv pip install --upgrade --force-reinstall pip ipykernel jupyter_contrib_nbextensions
+uv pip install --upgrade --force-reinstall pip jupyter ipywidgets ipykernel jupyter_contrib_nbextensions
 
 # Register the Jupyter kernel explicitly
 python -m ipykernel install --user --name=python3 --display-name "Python 3 (Dev Container)"
