@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import tempfile
 import time
 from pathlib import Path
 
@@ -38,7 +39,7 @@ class LocalServer:
         self.home_dir = Path(home_dir or "~/mostlyai").expanduser()
         # self.host = host or "127.0.0.1"
         # self.port = port or self._find_available_port()
-        self.uds = uds or "/tmp/mostlyai.sock"
+        self.uds = uds or tempfile.NamedTemporaryFile(prefix="mostlyai-", suffix=".sock").name
         self.base_url = "http://127.0.0.1"
         self._app = FastAPI(
             root_path="/api/v2",
@@ -86,9 +87,7 @@ class LocalServer:
             # rich.print(
             #     f"Starting server on [link={self.base_url}]{self.base_url}[/] using [link=file://{self.home_dir}]file://{self.home_dir}[/]"
             # )
-            rich.print(
-                f"Starting server on Unix socket file://{self.uds} using [link=file://{self.home_dir}]file://{self.home_dir}[/]"
-            )
+            rich.print(f"Starting server using [link=file://{self.home_dir}]file://{self.home_dir}[/]")
             self._create_server()
             self._thread = Thread(target=self._run_server, daemon=True)
             self._thread.start()
@@ -115,5 +114,5 @@ class LocalServer:
     def __del__(self):
         # Backup cleanup in case `stop` was not called explicitly or via context
         if self._server and self._server.started:
-            print(f"Automatically shutting down server on {self.uds}")
+            print("Automatically shutting down server")
             self.stop()
