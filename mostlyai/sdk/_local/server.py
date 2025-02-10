@@ -48,7 +48,7 @@ class LocalServer:
             "Connect via the MOSTLY AI client to train models and generate synthetic data locally. "
             "Share the knowledge of your synthetic data generators with your team or the world by "
             "deploying these then to a MOSTLY AI platform. Enjoy!",
-            version="4.1.0",
+            version="1.0.0",
         )
         routes = Routes(self.home_dir)
         self._app.include_router(routes.router)
