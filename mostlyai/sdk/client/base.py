@@ -139,7 +139,7 @@ class _MostlyBaseClient:
             kwargs["params"] = map_snake_to_camel_case(kwargs["params"])
 
         try:
-            with httpx.Client(timeout=self.timeout, transport=self.transport) as client:
+            with httpx.Client(timeout=self.timeout, verify=self.ssl_verify, transport=self.transport) as client:
                 response = client.request(method=verb, url=full_url, **kwargs)
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
@@ -159,7 +159,7 @@ class _MostlyBaseClient:
             ) from exc
         except httpx.RequestError as exc:
             # Handle request errors (e.g., network issues)
-            raise APIError(f"An error occurred while requesting {exc}") from exc
+            raise APIError(f"An error occurred while requesting {exc.request.url!r}.") from exc
 
         if raw_response:
             return response
