@@ -57,7 +57,7 @@ class Task(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     id: str
-    parent_task: str | None = Field(None, alias="parentTask", title="Parent Task")
+    parent_task_id: str | None = Field(None, alias="parentTaskId", title="Parent Task Id")
     target_table_name: str | None = Field(None, alias="targetTableName", title="Target Table Name")
     type: TaskType
 
