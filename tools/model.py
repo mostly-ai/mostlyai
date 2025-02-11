@@ -356,7 +356,7 @@ class SourceTableConfig:
     @classmethod
     def convert_data_before(cls, value):
         return convert_to_base64(value) if isinstance(value, pd.DataFrame) else value
-    
+
     @field_validator("columns", mode="before")
     @classmethod
     def filter_excluded_columns(cls, columns):
