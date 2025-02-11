@@ -65,6 +65,7 @@ def job_wait(
             ),
             TaskProgressColumn(),
             TimeElapsedColumn(),
+            refresh_per_second=1 / interval,
         )
         progress_bars = {
             "overall": progress.add_task(

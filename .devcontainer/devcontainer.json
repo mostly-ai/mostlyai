@@ -1,0 +1,33 @@
+{
+  "name": "Client Mode (light)",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.10-bullseye",
+  "postCreateCommand": "/bin/bash -c 'source .devcontainer/setup.sh'",
+  "containerEnv": {
+    "UV_LINK_MODE": "copy",
+    "SDK_MODE": "client"
+  },
+  "extensions": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-toolsai.jupyter",
+    "charliermarsh.ruff",
+    "kevinrose.vsc-python-indent"
+  ],
+  "forwardPorts": [8000],
+  "settings": {
+    "default": true,
+    "python.defaultInterpreterPath": "/workspaces/mostlyai/.venv/bin/python",
+    "jupyter.defaultKernel": "Python 3 (Dev Container)",
+    "jupyter.jupyterServerType": "local",
+    "python.terminal.activateEnvironment": true
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "workbench.editorAssociations": {
+          "*.md": "vscode.markdown.preview.editor"
+        }
+      }
+    }
+  }
+}
