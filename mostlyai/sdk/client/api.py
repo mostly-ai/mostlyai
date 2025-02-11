@@ -53,7 +53,7 @@ class MostlyAI(_MostlyBaseClient):
     Example for instantiating the SDK in local mode:
         ```python
         from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI(local=True)
+        mostly = MostlyAI(local=True)
         mostly
         # MostlyAI(local=True)
         ```
