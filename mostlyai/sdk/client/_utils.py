@@ -19,6 +19,8 @@ from collections.abc import Callable
 
 import pandas as pd
 import rich
+from rich.live import Live
+from rich.panel import Panel
 from rich.progress import (
     Progress,
     TextColumn,
@@ -27,6 +29,8 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 from rich.style import Style
+from rich.table import Table
+from rich.text import Text
 
 from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from mostlyai.sdk.domain import (
@@ -65,7 +69,10 @@ def job_wait(
             ),
             TaskProgressColumn(),
             TimeElapsedColumn(),
-            refresh_per_second=1 / interval,
+            # SpinnerColumn(),
+            auto_refresh=False,
+            expand=True,
+            # refresh_per_second=1 / interval,
         )
         progress_bars = {
             "overall": progress.add_task(
@@ -87,10 +94,18 @@ def job_wait(
                     total=step.progress.max,
                 )
             }
+        layout = Table.grid(expand=True)
+        layout.add_row(progress)
+        layout.add_row(Text("\n\n"))
+        log_text = Panel(Text("No logs available", style="bright_black"), title="Logs")
+        layout.add_row(log_text)
+        # layout["progress"].update(progress)
+        # layout["log"].update(Panel(Text("No logs available", style="bold green"), title="Logs"))
+        live = Live(layout, refresh_per_second=1 / interval)
     try:
         if progress_bar:
             # loop until job has completed
-            progress.start()
+            live.start()
         while True:
             # sleep for interval seconds
             time.sleep(interval)
@@ -109,7 +124,26 @@ def job_wait(
                 )
                 if current_task.started and job.end_date is not None:
                     progress.stop_task(current_task_id)
+
                 for i, step in enumerate(job.steps):
+                    if step.step_code == StepCode.train_model:
+                        training_progress = step.messages or []
+                        training_progress = training_progress[-5:]
+                        training_progress = [
+                            " | ".join(
+                                [
+                                    f"{k}: {v}".ljust(20)
+                                    for k, v in msg.items()
+                                    if k in ["epoch", "is_checkpoint", "trn_loss", "val_loss", "total_time"]
+                                ]
+                            )
+                            for msg in training_progress
+                        ]
+                        training_progress = "\n".join([""] + training_progress + [""])
+                        log_text = Panel(
+                            Text(training_progress, style="bright_black"),
+                            title=f"Latest training log for {step.model_label}",
+                        )
                     current_task_id = progress_bars[step.id]
                     current_task = progress.tasks[current_task_id]
                     if not current_task.started and step.start_date is not None:
@@ -122,6 +156,12 @@ def job_wait(
                         )
                     if current_task.started and step.end_date is not None:
                         progress.stop_task(current_task_id)
+                    layout = Table.grid(expand=True)
+                    layout.add_row(progress)
+                    layout.add_row(Text("\n\n"))
+                    layout.add_row(log_text)
+                    live.update(layout)
+                    live.refresh()
                     # break if step has failed or been canceled
                     if step.status in (ProgressStatus.failed, ProgressStatus.canceled):
                         rich.print(f"[red]Step {step.model_label} {step.step_code.value} {step.status.lower()}")
@@ -143,7 +183,8 @@ def job_wait(
         return
     finally:
         if progress_bar:
-            progress.stop()
+            live.stop()
+            # progress.stop()
 
 
 def _get_subject_table_names(generator: Generator) -> list[str]:

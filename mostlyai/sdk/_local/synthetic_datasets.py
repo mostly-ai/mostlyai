@@ -148,6 +148,7 @@ def create_synthetic_dataset(
             )
         )
     job_progress = JobProgress(
+        id=synthetic_dataset.id,
         progress=ProgressValue(value=0, max=len(progress_steps)),
         steps=progress_steps,
     )

@@ -109,6 +109,7 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                     )
                 )
     job_progress = JobProgress(
+        id=generator.id,
         progress=ProgressValue(value=0, max=len(progress_steps)),
         steps=progress_steps,
     )
