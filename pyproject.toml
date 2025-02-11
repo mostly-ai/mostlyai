@@ -45,6 +45,7 @@ dependencies = [
     "sshtunnel>=0.4.0,<0.5",
     "xlsxwriter>=3.1.9,<4",
     "openpyxl>=3.1.5",
+    "networkx>=3.0,<4",
     # cloud-based connectors
     "s3fs>=2023.1.0,<2024",
     "gcsfs>=2023.1.0,<2024",
