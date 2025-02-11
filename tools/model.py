@@ -377,11 +377,11 @@ class SourceTableConfig:
             for fk in values.foreign_keys:
                 if fk.is_context:
                     has_tabular_model = True
-        # Raise error if model configurations were incorrectly provided
+        # Remove model configurations that are not applicable for the model type
         if values.tabular_model_configuration and not has_tabular_model:
-            raise ValueError("Tabular model configuration is not applicable for language models.")
+            values.tabular_model_configuration = None
         if values.language_model_configuration and not has_language_model:
-            raise ValueError("Language model configuration is not applicable for tabular models.")
+            values.language_model_configuration = None
         # Add default model configurations if none were provided
         if has_tabular_model and not values.tabular_model_configuration:
             default_model = "MOSTLY_AI/Medium"
