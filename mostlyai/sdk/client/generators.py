@@ -172,7 +172,10 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
                     table["columns"] = [{"name": col} if isinstance(col, str) else col for col in table["columns"]]
         generator = self.request(verb=POST, path=[], json=config, response_type=Generator)
         gid = generator.id
-        rich.print(f"Created generator [link={self.base_url}/d/generators/{gid} blue underline]{gid}[/]")
+        if self.local:
+            rich.print(f"Created generator [dodger_blue2]{gid}[/]")
+        else:
+            rich.print(f"Created generator [link={self.base_url}/d/generators/{gid} dodger_blue2 underline]{gid}[/]")
         return generator
 
     def import_from_file(
@@ -206,7 +209,10 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             response_type=Generator,
         )
         gid = generator.id
-        rich.print(f"Imported generator [link={self.base_url}/d/generators/{gid} blue underline]{gid}[/]")
+        if self.local:
+            rich.print(f"Imported generator [dodger_blue2]{gid}[/]")
+        else:
+            rich.print(f"Imported generator [link={self.base_url}/d/generators/{gid} dodger_blue2 underline]{gid}[/]")
         return generator
 
     # PRIVATE METHODS #

@@ -21,7 +21,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Body, HTTPException, UploadFile, File
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
 
 from mostlyai import sdk
 from mostlyai.sdk._data.conversions import create_container_from_connector
@@ -104,51 +104,6 @@ class Routes:
 
     def _initialize_routes(self):
         ## GENERAL
-
-        @self.router.get("/", include_in_schema=False)
-        async def root() -> RedirectResponse:
-            return RedirectResponse(url="/docs")
-
-        @self.router.get("/d/connectors/{id}", response_class=HTMLResponse, include_in_schema=False)
-        async def show_connector(id: str) -> HTMLResponse:
-            connector_dir = self.home_dir / "connectors" / id
-            connector_json = connector_dir / "connector.json"
-            body = f"<h3>file://{connector_json}</h3><pre>{connector_json.read_text()}</pre>"
-            return HTMLResponse(content=self._html("Connector", body))
-
-        @self.router.get("/d/generators/{id}", response_class=HTMLResponse, include_in_schema=False)
-        async def show_generator(id: str) -> HTMLResponse:
-            generator_dir = self.home_dir / "generators" / id
-            generator_json = generator_dir / "generator.json"
-            progress_json = generator_dir / "job_progress.json"
-            job_log_file = generator_dir / "job.log"
-            job_log_logs = job_log_file.read_text() if job_log_file.exists() else ""
-            body = (
-                f"<h3>file://{generator_json}</h3>"
-                f"<pre>{generator_json.read_text()}</pre>"
-                f"<h3>file://{progress_json}</h3>"
-                f"<pre>{progress_json.read_text()}</pre>"
-                f"<h3>file://{job_log_file}</h3>"
-                f"<pre>{job_log_logs}</pre>"
-            )
-            return HTMLResponse(content=self._html("Generator", body))
-
-        @self.router.get("/d/synthetic-datasets/{id}", response_class=HTMLResponse, include_in_schema=False)
-        async def show_synthetic_dataset(id: str) -> HTMLResponse:
-            synthetic_dataset_dir = self.home_dir / "synthetic-datasets" / id
-            synthetic_dataset_json = synthetic_dataset_dir / "synthetic-dataset.json"
-            progress_json = synthetic_dataset_dir / "job_progress.json"
-            job_log_file = synthetic_dataset_dir / "job.log"
-            job_log_logs = job_log_file.read_text() if job_log_file.exists() else ""
-            body = (
-                f"<h3>file://{synthetic_dataset_json}</h3>"
-                f"<pre>{synthetic_dataset_json.read_text()}</pre>"
-                f"<h3>file://{progress_json}</h3>"
-                f"<pre>{progress_json.read_text()}</pre>"
-                f"<h3>file://{job_log_file}</h3>"
-                f"<pre>{job_log_logs}</pre>"
-            )
-            return HTMLResponse(content=self._html("Synthetic Dataset", body))
 
         @self.router.get("/about", response_model=AboutService)
         async def get_about_service() -> AboutService:

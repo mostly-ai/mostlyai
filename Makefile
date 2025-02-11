@@ -15,8 +15,8 @@ gen-public-model: ## build pydantic models for public api
 	datamodel-codegen --url $(PUBLIC_API_FULL_URL) $(COMMON_OPTIONS)
 	#datamodel-codegen --input ../mostly-app-v2/public-api/public-api.yaml $(COMMON_OPTIONS)
 	python tools/postproc_domain.py
-	uv run -- ruff format .
-	uv run -- ruff check . --fix
+	uv run --no-sync ruff format .
+	uv run --no-sync ruff check . --fix
 
 # Common options for both targets
 COMMON_OPTIONS = \

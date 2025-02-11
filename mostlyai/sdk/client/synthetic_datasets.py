@@ -158,9 +158,12 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         )
         sid = synthetic_dataset.id
         gid = synthetic_dataset.generator_id
-        rich.print(
-            f"Created synthetic dataset [link={self.base_url}/d/synthetic-datasets/{sid} blue underline]{sid}[/] with generator [link={self.base_url}/d/generators/{gid} blue underline]{gid}[/]"
-        )
+        if self.local:
+            rich.print(f"Created synthetic dataset [dodger_blue2]{sid}[/] with generator [dodger_blue2]{gid}[/]")
+        else:
+            rich.print(
+                f"Created synthetic dataset [link={self.base_url}/d/synthetic-datasets/{sid} dodger_blue2 underline]{sid}[/] with generator [link={self.base_url}/d/generators/{gid} dodger_blue2 underline]{gid}[/]"
+            )
         return synthetic_dataset
 
     # PRIVATE METHODS #

@@ -126,7 +126,10 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             response_type=Connector,
         )
         cid = connector.id
-        rich.print(f"Created connector [link={self.base_url}/d/connectors/{cid} blue underline]{cid}[/]")
+        if self.local:
+            rich.print(f"Created connector [dodger_blue2]{cid}[/]")
+        else:
+            rich.print(f"Created connector [link={self.base_url}/d/connectors/{cid} dodger_blue2 underline]{cid}[/]")
         return connector
 
     # PRIVATE METHODS #

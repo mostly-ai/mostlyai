@@ -53,9 +53,9 @@ class MostlyAI(_MostlyBaseClient):
     Example for instantiating the SDK in local mode:
         ```python
         from mostlyai.sdk import MostlyAI
-        mostly = MostlyAI(local=True, local_port=8080)
+        mostly = MostlyAI(local=True)
         mostly
-        # MostlyAI(base_url='http://127.0.0.1:8080', api_key='***')
+        # MostlyAI(local=True)
         ```
 
     Example for instantiating the SDK in client mode with explicit arguments:
@@ -85,8 +85,6 @@ class MostlyAI(_MostlyBaseClient):
         api_key: The API key for authenticating. If not provided, it would rely on environment variables.
         local: Whether to run in local mode or not.
         local_dir: The directory to use for local mode. If not provided, `~/mostlyai` will be used.
-        local_port: The port to use for local mode. If not provided, a random port will be used.
-        local_host: The host to use for local mode. If not provided, then 127.0.0.1 will be used.
         timeout: Timeout for HTTPS requests in seconds.
         ssl_verify: Whether to verify SSL certificates.
         quiet: Whether to suppress rich output.
@@ -98,8 +96,6 @@ class MostlyAI(_MostlyBaseClient):
         api_key: str | None = None,
         local: bool = False,
         local_dir: str | Path | None = None,
-        local_port: int | None = None,
-        local_host: str | None = None,
         timeout: float = 60.0,
         ssl_verify: bool = True,
         quiet: bool = False,
@@ -117,27 +113,35 @@ class MostlyAI(_MostlyBaseClient):
                 from mostlyai import qa  # noqa
             except ImportError:
                 raise APIError(
-                    "Local mode requires additional packages to be installed. Run `pip install 'mostlyai[local]'`."
+                    "LOCAL mode requires additional packages to be installed. Run `pip install 'mostlyai[local]'`."
                 )
 
-            self.local = LocalServer(home_dir=local_dir, host=local_host, port=local_port)
+            self.local = LocalServer(home_dir=local_dir)
             base_url = self.local.base_url
             api_key = "local"
+            uds = self.local.uds
+        else:
+            uds = None
 
-        super().__init__(base_url=base_url, api_key=api_key, timeout=timeout, ssl_verify=ssl_verify)
         client_kwargs = {
-            "base_url": self.base_url,
-            "api_key": self.api_key,
-            "timeout": self.timeout,
-            "ssl_verify": self.ssl_verify,
+            "base_url": base_url,
+            "api_key": api_key,
+            "uds": uds,
+            "timeout": timeout,
+            "ssl_verify": ssl_verify,
         }
+        super().__init__(**client_kwargs)
         self.connectors = _MostlyConnectorsClient(**client_kwargs)
         self.generators = _MostlyGeneratorsClient(**client_kwargs)
         self.synthetic_datasets = _MostlySyntheticDatasetsClient(**client_kwargs)
         self.synthetic_probes = _MostlySyntheticProbesClient(**client_kwargs)
         try:
+            if local:
+                msg = "Connected to Synthetic Data SDK in local mode"
+            else:
+                msg = f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
             version = self.about().version
-            msg = f"Connected to [link={self.base_url}]{self.base_url}[/] ({version})"
+            msg += f" ({version})"
             email = self.me().email
             if email:
                 msg += f" as [bold]{email}[/bold]"
@@ -146,8 +150,11 @@ class MostlyAI(_MostlyBaseClient):
             rich.print(f"Failed to connect to {self.base_url}: {e}.")
 
     def __repr__(self) -> str:
-        api_key = "'***'" if self.api_key else "None"
-        return f"MostlyAI(base_url='{self.base_url}', api_key={api_key})"
+        if self.local:
+            return "MostlyAI(local=True)"
+        else:
+            api_key = "'***'" if self.api_key else "None"
+            return f"MostlyAI(base_url='{self.base_url}', api_key={api_key})"
 
     def connect(
         self,

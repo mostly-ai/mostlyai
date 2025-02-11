@@ -1,6 +1,6 @@
 [project]
 name = "mostlyai"
-version = "4.0.6"
+version = "4.1.1"
 description = "Synthetic Data SDK"
 authors = [{ name = "MOSTLY AI", email = "dev@mostly.ai" }]
 requires-python = ">=3.10,<3.14"
@@ -45,6 +45,7 @@ dependencies = [
     "sshtunnel>=0.4.0,<0.5",
     "xlsxwriter>=3.1.9,<4",
     "openpyxl>=3.1.5",
+    "networkx>=3.0,<4",
     # cloud-based connectors
     "s3fs>=2023.1.0,<2024",
     "gcsfs>=2023.1.0,<2024",
@@ -58,7 +59,7 @@ dependencies = [
 [project.optional-dependencies]
 local = [
     # local
-    "mostlyai-engine==1.0.3",
+    "mostlyai-engine==1.0.4",
     "mostlyai-qa==1.5.3",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
@@ -66,7 +67,7 @@ local = [
     "torch>=2.5.1,<2.6.0",
 ]
 local-gpu = [
-    "mostlyai-engine[gpu]==1.0.3",
+    "mostlyai-engine[gpu]==1.0.4",
     "mostlyai-qa[gpu]==1.5.3",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
@@ -74,7 +75,7 @@ local-gpu = [
     "torch>=2.5.1,<2.6.0",
 ]
 local-cpu = [
-    "mostlyai-engine[cpu]==1.0.3",
+    "mostlyai-engine[cpu]==1.0.4",
     "mostlyai-qa[cpu]==1.5.3",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
