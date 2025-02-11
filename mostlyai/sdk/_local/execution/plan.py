@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from collections import deque
 from mostlyai.sdk.domain import ModelEncodingType, Generator, SourceTable, StepCode, TaskType
 import uuid
@@ -54,6 +54,8 @@ def has_language_model(table: SourceTable) -> bool:
 
 
 class Task(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     id: str
     parent_task: str | None = Field(None, alias="parentTask", title="Parent Task")
     target_table_name: str | None = Field(None, alias="targetTableName", title="Target Table Name")
