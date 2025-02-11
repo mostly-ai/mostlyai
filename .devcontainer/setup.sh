@@ -17,7 +17,7 @@ fi
 # Activate the virtual environment
 source .venv/bin/activate
 
-# Ensure pip and ipykernel are installed and up-to-date
+# Ensure pip and Jupyter (along with useful related packages) are installed and up-to-date
 uv pip install --upgrade --force-reinstall pip jupyter ipywidgets ipykernel jupyter_contrib_nbextensions
 
 # Register the Jupyter kernel explicitly
