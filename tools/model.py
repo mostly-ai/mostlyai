@@ -365,8 +365,10 @@ class SourceTableConfig:
         included_columns = []
         for column in columns:
             is_included = any(
-                isinstance(column, dict) and bool(column.get("included", True)),
-                isinstance(column, SourceColumn) and column.included,
+                (
+                    isinstance(column, dict) and bool(column.get("included", True)),
+                    isinstance(column, SourceColumn) and column.included,
+                )
             )
             if is_included:
                 included_columns.append(column)
