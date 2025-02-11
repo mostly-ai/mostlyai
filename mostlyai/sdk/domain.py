@@ -2127,6 +2127,21 @@ class SourceTableConfig(CustomBaseModel):
     @classmethod
     def convert_data_before(cls, value):
         return convert_to_base64(value) if isinstance(value, pd.DataFrame) else value
+    
+    @field_validator("columns", mode="before")
+    @classmethod
+    def filter_excluded_columns(cls, columns):
+        if columns is None or not isinstance(columns, list):
+            return columns
+        included_columns = []
+        for column in columns:
+            is_included = any(
+                isinstance(column, dict) and bool(column.get("included", True)),
+                isinstance(column, SourceColumn) and column.included,
+            )
+            if is_included:
+                included_columns.append(column)
+        return included_columns
 
     @model_validator(mode="after")
     @classmethod
