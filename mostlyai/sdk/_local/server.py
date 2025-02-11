@@ -16,7 +16,6 @@ import tempfile
 import time
 from pathlib import Path
 
-# import random
 from threading import Thread
 
 import rich
@@ -24,7 +23,6 @@ from fastapi import FastAPI
 import uvicorn
 from mostlyai.sdk._local.routes import Routes
 
-# import socket
 import os
 
 
@@ -32,14 +30,9 @@ class LocalServer:
     def __init__(
         self,
         home_dir: str | Path | None = None,
-        # host: str | None = None,
-        # port: int | None = None,
-        uds: str | None = None,
     ):
         self.home_dir = Path(home_dir or "~/mostlyai").expanduser()
-        # self.host = host or "127.0.0.1"
-        # self.port = port or self._find_available_port()
-        self.uds = uds or tempfile.NamedTemporaryFile(prefix="mostlyai-", suffix=".sock", delete=False).name
+        self.uds = tempfile.NamedTemporaryFile(prefix="mostlyai-", suffix=".sock", delete=False).name
         self.base_url = "http://127.0.0.1"
         self._app = FastAPI(
             root_path="/api/v2",
@@ -56,22 +49,6 @@ class LocalServer:
         self._thread = None
         self.start()  # Automatically start the server during initialization
 
-    # def _find_available_port(self) -> int:
-    #     def is_port_in_use(port: int, host: str = "127.0.0.1") -> bool:
-    #         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    #             return s.connect_ex((host, port)) == 0
-    #
-    #     failed_ports = []
-    #     min_port, max_port = 49152, 65535
-    #     for _ in range(10):
-    #         port = random.randint(min_port, max_port)
-    #         if not is_port_in_use(port, self.host):
-    #             return port
-    #         failed_ports.append(port)
-    #     raise ValueError(
-    #         f"Could not find an available port in range {min_port}-{max_port} after 10 attempts. Tried ports: {failed_ports}"
-    #     )
-
     def _clear_socket_file(self):
         if os.path.exists(self.uds):
             os.remove(self.uds)
@@ -87,10 +64,9 @@ class LocalServer:
 
     def start(self):
         if not self._server:
-            # rich.print(
-            #     f"Starting server on [link={self.base_url}]{self.base_url}[/] using [link=file://{self.home_dir}]file://{self.home_dir}[/]"
-            # )
-            rich.print(f"Starting server using [link=file://{self.home_dir}]file://{self.home_dir}[/]")
+            rich.print(
+                f"Starting Synthetic Data SDK in local mode using [link=file://{self.home_dir} dodger_blue2 underline]file://{self.home_dir}[/]"
+            )
             self._create_server()
             self._thread = Thread(target=self._run_server, daemon=True)
             self._thread.start()
@@ -100,7 +76,7 @@ class LocalServer:
 
     def stop(self):
         if self._server and self._server.started:
-            rich.print(f"Stopping server on {self.base_url} for {self.home_dir.absolute()}.")
+            rich.print("Stopping Synthetic Data SDK in local mode")
             self._server.should_exit = True  # Signal the server to shut down
             self._thread.join()  # Wait for the server thread to finish
             self._clear_socket_file()

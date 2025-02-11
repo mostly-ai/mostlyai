@@ -128,6 +128,7 @@ def job_wait(
                         return
                 # check whether we are done
                 if job.progress.value >= job.progress.max:
+                    progress.refresh()
                     time.sleep(1)  # give the system a moment to update the status
                     return
             else:

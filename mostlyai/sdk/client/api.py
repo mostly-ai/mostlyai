@@ -85,8 +85,6 @@ class MostlyAI(_MostlyBaseClient):
         api_key: The API key for authenticating. If not provided, it would rely on environment variables.
         local: Whether to run in local mode or not.
         local_dir: The directory to use for local mode. If not provided, `~/mostlyai` will be used.
-        local_port: The port to use for local mode. If not provided, a random port will be used.
-        local_host: The host to use for local mode. If not provided, then 127.0.0.1 will be used.
         timeout: Timeout for HTTPS requests in seconds.
         ssl_verify: Whether to verify SSL certificates.
         quiet: Whether to suppress rich output.
@@ -98,9 +96,6 @@ class MostlyAI(_MostlyBaseClient):
         api_key: str | None = None,
         local: bool = False,
         local_dir: str | Path | None = None,
-        # local_port: int | None = None,
-        # local_host: str | None = None,
-        local_uds: str | None = None,
         timeout: float = 60.0,
         ssl_verify: bool = True,
         quiet: bool = False,
@@ -118,10 +113,10 @@ class MostlyAI(_MostlyBaseClient):
                 from mostlyai import qa  # noqa
             except ImportError:
                 raise APIError(
-                    "Local mode requires additional packages to be installed. Run `pip install 'mostlyai[local]'`."
+                    "LOCAL mode requires additional packages to be installed. Run `pip install 'mostlyai[local]'`."
                 )
 
-            self.local = LocalServer(home_dir=local_dir, uds=local_uds)
+            self.local = LocalServer(home_dir=local_dir)
             base_url = self.local.base_url
             api_key = "local"
             uds = self.local.uds
@@ -141,8 +136,12 @@ class MostlyAI(_MostlyBaseClient):
         self.synthetic_datasets = _MostlySyntheticDatasetsClient(**client_kwargs)
         self.synthetic_probes = _MostlySyntheticProbesClient(**client_kwargs)
         try:
+            if local:
+                msg = "Connected to Synthetic Data SDK in local mode"
+            else:
+                msg = f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
             version = self.about().version
-            msg = f"Connected to [link={self.base_url}]{self.base_url}[/] ({version})"
+            msg += f" ({version})"
             email = self.me().email
             if email:
                 msg += f" as [bold]{email}[/bold]"
