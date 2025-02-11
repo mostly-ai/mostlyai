@@ -53,9 +53,9 @@ class MostlyAI(_MostlyBaseClient):
     Example for instantiating the SDK in local mode:
         ```python
         from mostlyai.sdk import MostlyAI
-        mostly = MostlyAI(local=True, local_port=8080)
+            mostly = MostlyAI(local=True)
         mostly
-        # MostlyAI(base_url='http://127.0.0.1:8080', api_key='***')
+        # MostlyAI(local=True)
         ```
 
     Example for instantiating the SDK in client mode with explicit arguments:
@@ -150,8 +150,11 @@ class MostlyAI(_MostlyBaseClient):
             rich.print(f"Failed to connect to {self.base_url}: {e}.")
 
     def __repr__(self) -> str:
-        api_key = "'***'" if self.api_key else "None"
-        return f"MostlyAI(base_url='{self.base_url}', api_key={api_key})"
+        if self.local:
+            return "MostlyAI(local=True)"
+        else:
+            api_key = "'***'" if self.api_key else "None"
+            return f"MostlyAI(base_url='{self.base_url}', api_key={api_key})"
 
     def connect(
         self,
