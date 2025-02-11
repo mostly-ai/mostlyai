@@ -15,6 +15,7 @@
 from pydantic import BaseModel
 from collections import deque
 from mostlyai.sdk.domain import ModelEncodingType, Generator, SourceTable, StepCode, TaskType
+import uuid
 
 TABULAR_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith("TABULAR")] + [ModelEncodingType.auto]
 LANGUAGE_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith("LANGUAGE")]
@@ -53,7 +54,8 @@ def has_language_model(table: SourceTable) -> bool:
 
 
 class Task(BaseModel):
-    parent_task: "Task | None" = None
+    id: str
+    parent_task_id: str | None = None
     target_table_name: str | None = None
     type: TaskType
 
@@ -62,7 +64,12 @@ class ExecutionPlan(BaseModel):
     tasks: list[Task]
 
     def add_task(self, task_type: TaskType, parent: Task | None = None, target_table_name: str | None = None) -> Task:
-        task = Task(type=task_type, parent_task=parent, target_table_name=target_table_name)
+        task = Task(
+            id=str(uuid.uuid4()),
+            type=task_type,
+            parent_task_id=parent.id if parent else None,
+            target_table_name=target_table_name,
+        )
         self.tasks.append(task)
         return task
 
