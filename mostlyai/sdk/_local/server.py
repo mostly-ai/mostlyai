@@ -32,6 +32,7 @@ class LocalServer:
         home_dir: str | Path | None = None,
     ):
         self.home_dir = Path(home_dir or "~/mostlyai").expanduser()
+        self.home_dir.mkdir(parents=True, exist_ok=True)
         self.uds = tempfile.NamedTemporaryFile(
             dir=self.home_dir, prefix=".mostlyai-", suffix=".sock", delete=False
         ).name
