@@ -220,33 +220,54 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
         """
         return self.client._clone(generator_id=self.id, training_status=training_status)
 
-    def reports(self, file_path: str | Path | None = None) -> Path:
+    def reports(self, file_path: str | Path | None = None, display: bool = False) -> Path | None:
         """
-        Download the quality assurance reports and save to file.
+        Download or display the quality assurance reports.
+
+        If display is True, the report is rendered inline via IPython display and no file is downloaded.
+        Otherwise, the report is downloaded and saved to file_path (or a default location if None).
 
         Args:
-            file_path: The file path to save the zipped reports.
+            file_path: The file path to save the reports (ignored if display=True).
+            display: If True, render the report inline instead of downloading it.
 
         Returns:
-            The path to the saved file.
+            The path to the saved file if downloading, or None if display=True.
         """
+        import html
+
         reports = {}
+        html_for_display = ""
         for table in self.tables:
             if table.tabular_model_metrics:
-                reports[f"{table.name}-tabular.html"] = self.client._report(
+                report = self.client._report(
                     generator_id=self.id,
                     source_table_id=table.id,
                     model_type="TABULAR",
                     short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
                 )
+                html_for_display += f'<p><iframe srcdoc="{html.escape(report)}" width="100%" height="500"></iframe></p>'
+                reports[f"{table.name}-tabular.html"] = report
             if table.language_model_metrics:
-                reports[f"{table.name}-language.html"] = self.client._report(
+                report = self.client._report(
                     generator_id=self.id,
                     source_table_id=table.id,
                     model_type="LANGUAGE",
                     short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
                 )
+                html_for_display += f'<p><iframe srcdoc="{html.escape(report)}" width="100%" height="500"></iframe></p>'
+                reports[f"{table.name}-language.html"] = report
+        if display:
+            if not rich.console._is_jupyter():
+                import warnings
 
+                warnings.filterwarnings("default", category=UserWarning)
+                warnings.warn("`reports(..., display=True)` is only effective when in Jupyter notebook.")
+            else:
+                from IPython.display import HTML, display  # noqa
+
+                display(HTML(html_for_display))
+                return
         file_path = Path(file_path or ".")
         if file_path.is_dir():
             file_path = file_path / f"generator-{self.id[:8]}-reports.zip"
@@ -415,37 +436,62 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
         else:
             return dfs
 
-    def reports(self, file_path: str | Path | None = None) -> Path:
+    def reports(self, file_path: str | Path | None = None, display: bool = False) -> Path | None:
         """
-        Download the quality assurance reports and save to file.
+        Download or display the quality assurance reports.
+
+        If display is True, the report is rendered inline via IPython display and no file is downloaded.
+        Otherwise, the report is downloaded and saved to file_path (or a default location if None).
 
         Args:
-            file_path: The file path to save the zipped reports.
+            file_path: The file path to save the reports (ignored if display=True).
+            display: If True, render the report inline instead of downloading it.
 
         Returns:
-            The path to the saved file.
+            The path to the saved file if downloading, or None if display=True.
         """
+        import html
+
         reports = {}
+        html_for_display = ""
         for report_type in [SyntheticDatasetReportType.model, SyntheticDatasetReportType.data]:
             report_infix = "" if report_type == SyntheticDatasetReportType.model else "-data"
             for table in self.tables:
                 if table.tabular_model_metrics:
-                    reports[f"{table.name}-tabular{report_infix}.html"] = self.client._report(
+                    report = self.client._report(
                         synthetic_dataset_id=self.id,
                         synthetic_table_id=table.id,
                         model_type="TABULAR",
                         report_type=report_type,
                         short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
                     )
+                    html_for_display += (
+                        f'<p><iframe srcdoc="{html.escape(report)}" width="100%" height="500"></iframe></p>'
+                    )
+                    reports[f"{table.name}-tabular{report_infix}.html"] = report
                 if table.language_model_metrics:
-                    reports[f"{table.name}-language{report_infix}.html"] = self.client._report(
+                    report = self.client._report(
                         synthetic_dataset_id=self.id,
                         synthetic_table_id=table.id,
                         model_type="LANGUAGE",
                         report_type=report_type,
                         short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
                     )
+                    html_for_display += (
+                        f'<p><iframe srcdoc="{html.escape(report)}" width="100%" height="500"></iframe></p>'
+                    )
+                    reports[f"{table.name}-language{report_infix}.html"] = report
+        if display:
+            if not rich.console._is_jupyter():
+                import warnings
 
+                warnings.filterwarnings("default", category=UserWarning)
+                warnings.warn("`reports(..., display=True)` is only effective when in Jupyter notebook.")
+            else:
+                from IPython.display import HTML, display  # noqa
+
+                display(HTML(html_for_display))
+                return
         file_path = Path(file_path or ".")
         if file_path.is_dir():
             file_path = file_path / f"synthetic-dataset-{self.id[:8]}-reports.zip"
