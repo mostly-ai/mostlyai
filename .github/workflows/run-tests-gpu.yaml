@@ -46,4 +46,4 @@ jobs:
 
           - name: Test | End-to-End Tests
             run: |
-                uv run -- pytest -vv tests/_local/end_to_end
+                uv run --no-sync pytest -vv tests/_local/end_to_end

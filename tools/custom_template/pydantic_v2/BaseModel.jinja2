@@ -508,6 +508,23 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
     def convert_data_before(cls, value):
         return convert_to_base64(value) if isinstance(value, pd.DataFrame) else value
 
+    @field_validator("columns", mode="before")
+    @classmethod
+    def filter_excluded_columns(cls, columns):
+        if columns is None or not isinstance(columns, list):
+            return columns
+        included_columns = []
+        for column in columns:
+            is_included = any(
+                (
+                    isinstance(column, dict) and bool(column.get("included", True)),
+                    isinstance(column, SourceColumn) and column.included,
+                )
+            )
+            if is_included:
+                included_columns.append(column)
+        return included_columns
+
     @model_validator(mode="after")
     @classmethod
     def add_model_configuration(cls, values):
@@ -528,11 +545,11 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
             for fk in values.foreign_keys:
                 if fk.is_context:
                     has_tabular_model = True
-        # Raise error if model configurations were incorrectly provided
+        # Remove model configurations that are not applicable for the model type
         if values.tabular_model_configuration and not has_tabular_model:
-            raise ValueError("Tabular model configuration is not applicable for language models.")
+            values.tabular_model_configuration = None
         if values.language_model_configuration and not has_language_model:
-            raise ValueError("Language model configuration is not applicable for tabular models.")
+            values.language_model_configuration = None
         # Add default model configurations if none were provided
         if has_tabular_model and not values.tabular_model_configuration:
             default_model = "MOSTLY_AI/Medium"
