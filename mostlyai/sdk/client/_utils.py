@@ -99,8 +99,6 @@ def job_wait(
         layout.add_row(Text("\n\n"))
         log_text = Panel(Text("No logs available", style="bright_black"), title="Logs")
         layout.add_row(log_text)
-        # layout["progress"].update(progress)
-        # layout["log"].update(Panel(Text("No logs available", style="bold green"), title="Logs"))
         live = Live(layout, refresh_per_second=1 / interval)
     try:
         if progress_bar:
