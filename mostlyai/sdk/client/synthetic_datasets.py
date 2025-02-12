@@ -286,6 +286,23 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         synthetic_dataset = self.get(synthetic_dataset_id)
         return synthetic_dataset
 
+    def _generation_logs(self, synthetic_dataset_id: str, short_lived_file_token: str | None = None) -> (bytes, str):
+        response = self.request(
+            verb=GET,
+            path=[synthetic_dataset_id, "generation", "logs"],
+            params={
+                "slft": short_lived_file_token,
+            },
+            headers={
+                "Content-Type": "application/zip",
+                "Accept": "application/json, text/plain, */*",
+            },
+            raw_response=True,
+        )
+        content_bytes = response.content
+        filename = f"synthetic-dataset-{synthetic_dataset_id[:8]}-logs.zip"
+        return content_bytes, filename
+
 
 class _MostlySyntheticProbesClient(_MostlyBaseClient):
     SECTION = ["synthetic-probes"]

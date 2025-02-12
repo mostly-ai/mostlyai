@@ -302,6 +302,28 @@ class Generator:
                     "Publish it so others can do the same."
                 )
 
+        def logs(self, file_path: str | Path | None = None) -> Path:
+            """
+            Download the training logs and save to file.
+
+            Args:
+                file_path: The file path to save the logs.
+
+            Returns:
+                The path to the saved file.
+            """
+            bytes, filename = self.generator.client._training_logs(
+                generator_id=self.generator.id,
+                short_lived_file_token=self.generator.metadata.short_lived_file_token
+                if self.generator.metadata
+                else None,
+            )
+            file_path = Path(file_path or ".")
+            if file_path.is_dir():
+                file_path = file_path / filename
+            file_path.write_bytes(bytes)
+            return file_path
+
 
 class GeneratorConfig:
     @field_validator("tables", mode="after")
@@ -700,6 +722,28 @@ class SyntheticDataset:
                     "Use it to consume the generated data. "
                     "Publish it so others can do the same."
                 )
+
+        def logs(self, file_path: str | Path | None = None) -> Path:
+            """
+            Download the generation logs and save to file.
+
+            Args:
+                file_path: The file path to save the logs.
+
+            Returns:
+                The path to the saved file.
+            """
+            bytes, filename = self.synthetic_dataset.client._generation_logs(
+                synthetic_dataset_id=self.synthetic_dataset.id,
+                short_lived_file_token=self.synthetic_dataset.metadata.short_lived_file_token
+                if self.synthetic_dataset.metadata
+                else None,
+            )
+            file_path = Path(file_path or ".")
+            if file_path.is_dir():
+                file_path = file_path / filename
+            file_path.write_bytes(bytes)
+            return file_path
 
 
 class SyntheticDatasetConfig:
