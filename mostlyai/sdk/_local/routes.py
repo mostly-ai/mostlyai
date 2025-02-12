@@ -290,7 +290,7 @@ class Routes:
             if len(connector_dirs) < len(generator.tables):
                 raise HTTPException(
                     status_code=400,
-                    detail="One or more connectors not found. File upload connectors are deleted after training and generation.",
+                    detail="Cannot clone a generator whose connectors have been deleted.",
                 )
 
             # check if any connectors are file upload
@@ -333,9 +333,23 @@ class Routes:
             cmd = ["python", cli_py, "run-training", generator.id, str(self.home_dir.absolute())]
             subprocess.Popen(cmd)
 
+        @self.router.get("/generators/{id}/training/logs", response_class=StreamingResponse)
+        async def download_training_logs(id: str, slft: str) -> StreamingResponse:
+            _ = slft  # ignore parameter
+            generator_dir = self.home_dir / "generators" / id
+            zip_buffer = create_zip_in_memory(generator_dir, "*.log")
+            return StreamingResponse(
+                zip_buffer,
+                media_type="application/zip",
+                headers={"Content-Disposition": f"attachment; filename=generator-{id[:8]}-logs.zip"},
+            )
+
         @self.router.get("/generators/{id}/export-to-file", response_class=StreamingResponse)
         async def export_generator_to_file(id: str) -> StreamingResponse:
             generator_dir = self.home_dir / "generators" / id
+            generator = read_generator_from_json(generator_dir)
+            if generator.training_status != ProgressStatus.done:
+                raise HTTPException(status_code=400, detail="Cannot export generator that is not trained")
             zip_buffer = create_zip_in_memory(generator_dir)
             return StreamingResponse(
                 zip_buffer,
@@ -458,6 +472,17 @@ class Routes:
             cli_py = str((Path(os.path.dirname(os.path.realpath(__file__))) / "cli.py").absolute())
             cmd = ["python", cli_py, "run-generation", synthetic_dataset.id, str(self.home_dir.absolute())]
             subprocess.Popen(cmd)
+
+        @self.router.get("/synthetic-datasets/{id}/generation/logs", response_class=StreamingResponse)
+        async def download_generation_logs(id: str, slft: str) -> StreamingResponse:
+            _ = slft  # ignore parameter
+            synthetic_dataset_dir = self.home_dir / "synthetic-datasets" / id
+            zip_buffer = create_zip_in_memory(synthetic_dataset_dir, "*.log")
+            return StreamingResponse(
+                zip_buffer,
+                media_type="application/zip",
+                headers={"Content-Disposition": f"attachment; filename=synthetic-dataset-{id[:8]}-logs.zip"},
+            )
 
         @self.router.get("/synthetic-datasets/{id}/config", response_model=SyntheticDatasetConfig)
         async def get_synthetic_dataset_config(id: str) -> SyntheticDatasetConfig:
