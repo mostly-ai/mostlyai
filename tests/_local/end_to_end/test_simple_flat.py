@@ -123,6 +123,9 @@ def test_simple_flat(tmp_path):
     # reports
     g.reports(tmp_path)
 
+    # logs
+    g.training.logs(tmp_path)
+
     ## SYNTHETIC PROBE
     df = mostly.probe(g, size=10)
     assert len(df) == 10
@@ -169,3 +172,6 @@ def test_simple_flat(tmp_path):
 
     # reports
     sd.reports(tmp_path)
+
+    # logs
+    sd.generation.logs(tmp_path)

@@ -299,3 +299,20 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         job_wait(lambda: self._training_progress(generator_id), interval, progress_bar)
         generator = self.get(generator_id)
         return generator
+
+    def _training_logs(self, generator_id: str, short_lived_file_token: str | None = None) -> (bytes, str):
+        response = self.request(
+            verb=GET,
+            path=[generator_id, "training", "logs"],
+            params={
+                "slft": short_lived_file_token,
+            },
+            headers={
+                "Content-Type": "application/zip",
+                "Accept": "application/json, text/plain, */*",
+            },
+            raw_response=True,
+        )
+        content_bytes = response.content
+        filename = f"generator-{generator_id[:8]}-logs.zip"
+        return content_bytes, filename

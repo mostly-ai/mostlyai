@@ -69,15 +69,19 @@ def write_synthetic_dataset_to_json(synthetic_dataset_dir: Path, synthetic_datas
     write_to_json(json_file, synthetic_dataset)
 
 
-def create_zip_in_memory(directory: Path) -> BytesIO:
+def create_zip_in_memory(path: Path, pattern: str = "*") -> BytesIO:
     # Create an in-memory zip file
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        # Iterate over all files in the directory and subdirectories
-        for file_path in directory.rglob("*"):
-            if file_path.is_file():  # Ensure it's a file (not a directory)
-                # Add file to the zip archive, keeping the directory structure
-                zip_file.write(file_path, file_path.relative_to(directory))
+        if path.is_dir():
+            # Iterate over all files in the directory and subdirectories
+            for file_path in path.rglob(pattern):
+                if file_path.is_file():  # Ensure it's a file (not a directory)
+                    # Add file to the zip archive, keeping the directory structure
+                    zip_file.write(file_path, file_path.relative_to(path))
+        else:
+            # Add the single file to the zip archive
+            zip_file.write(path, path.name)
     # Ensure the buffer is ready for streaming
     zip_buffer.seek(0)
     return zip_buffer
