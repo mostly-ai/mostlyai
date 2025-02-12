@@ -262,7 +262,7 @@ class Generator:
             iframes = ""
             for content in reports.values():
                 content = html.escape(content, quote=True)
-                iframes += f'<p><iframe srcdoc="{content}" width="100%" height="500"></iframe></p> '
+                iframes += f'<p><iframe srcdoc="{content}" width="100%" height="600"></iframe></p> '
 
             display(HTML(iframes))
             return None
@@ -700,7 +700,7 @@ class SyntheticDataset:
             iframes = ""
             for content in reports.values():
                 content = html.escape(content, quote=True)
-                iframes += f'<p><iframe srcdoc="{content}" width="100%" height="500"></iframe></p> '
+                iframes += f'<p><iframe srcdoc="{content}" width="100%" height="600"></iframe></p> '
 
             display(HTML(iframes))
             return None
