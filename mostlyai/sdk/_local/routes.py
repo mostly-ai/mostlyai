@@ -14,6 +14,7 @@
 import os
 import shutil
 import subprocess
+import sys
 import uuid
 import zipfile
 from io import BytesIO
@@ -330,7 +331,7 @@ class Routes:
 
             # call shell script to start training job
             cli_py = str((Path(os.path.dirname(os.path.realpath(__file__))) / "cli.py").absolute())
-            cmd = ["python", cli_py, "run-training", generator.id, str(self.home_dir.absolute())]
+            cmd = [sys.executable, cli_py, "run-training", generator.id, str(self.home_dir.absolute())]
             subprocess.Popen(cmd)
 
         @self.router.get("/generators/{id}/training/logs", response_class=StreamingResponse)
@@ -470,7 +471,7 @@ class Routes:
 
             # call shell script to start generation job
             cli_py = str((Path(os.path.dirname(os.path.realpath(__file__))) / "cli.py").absolute())
-            cmd = ["python", cli_py, "run-generation", synthetic_dataset.id, str(self.home_dir.absolute())]
+            cmd = [sys.executable, cli_py, "run-generation", synthetic_dataset.id, str(self.home_dir.absolute())]
             subprocess.Popen(cmd)
 
         @self.router.get("/synthetic-datasets/{id}/generation/logs", response_class=StreamingResponse)
