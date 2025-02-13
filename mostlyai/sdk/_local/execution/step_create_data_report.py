@@ -25,7 +25,6 @@ def execute_step_create_data_report(
     model_type: ModelType,
     workspace_dir: Path,
     report_credits: str = "",
-    report_extra_info: str = "",
     update_progress: Callable,
 ):
     # create model report and return metrics
@@ -36,6 +35,5 @@ def execute_step_create_data_report(
         model_type=model_type,
         target_table_name=target_table_name,
         report_credits=report_credits,
-        report_extra_info=report_extra_info,
         update_progress=update_progress,
     )
