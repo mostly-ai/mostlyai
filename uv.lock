@@ -3102,9 +3102,9 @@ requires-dist = [
     { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.0.4" },
     { name = "mostlyai-engine", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.0.4" },
     { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.0.4" },
-    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.5.4" },
-    { name = "mostlyai-qa", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.5.4" },
-    { name = "mostlyai-qa", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.5.4" },
+    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.5.5" },
+    { name = "mostlyai-qa", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.5.5" },
+    { name = "mostlyai-qa", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.5.5" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
     { name = "networkx", specifier = ">=3.0,<4" },
     { name = "openpyxl", specifier = ">=3.1.5" },
@@ -3208,7 +3208,7 @@ gpu = [
 
 [[package]]
 name = "mostlyai-qa"
-version = "1.5.4"
+version = "1.5.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastcluster" },
@@ -3229,9 +3229,9 @@ dependencies = [
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-mostlyai-local-gpu' or extra != 'extra-8-mostlyai-local-cpu'" },
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ac/de/87106595fb6b862330963dad81ef0679a87f934fe5f6540a4ed07998471d/mostlyai_qa-1.5.4.tar.gz", hash = "sha256:4ae3e5cede13f19e37257bd781bc70b07b28dea4f2e525455df9ccd7945e48a6", size = 1952109 }
+sdist = { url = "https://files.pythonhosted.org/packages/33/30/cdbe122447fe8e7290f478df14eb1f84f3ff507ba1f9d0f15084ec1d4278/mostlyai_qa-1.5.5.tar.gz", hash = "sha256:75f2d2ecde6775acf5b2989b5ba9e2aae04b41a19e650473faa7e48612288e9c", size = 1952031 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c6/ea/2fe40407d3d2a6a0fb0dd555af460b3e705c3ba9ed9a35eb7830b5dd8578/mostlyai_qa-1.5.4-py3-none-any.whl", hash = "sha256:36a07fd132f77a1fccfa8f66c2e4b3d0fcee5205ba53d95a4a745a2f6b21474c", size = 1974072 },
+    { url = "https://files.pythonhosted.org/packages/59/bd/d2525a973ca302956268fd1fd0281739a47438ebbf7df3c416acb4e1c2dd/mostlyai_qa-1.5.5-py3-none-any.whl", hash = "sha256:6a1e9610114e13e7b3d28f3116562d567b42b908a75af06205f46846fc54cb9d", size = 1973970 },
 ]
 
 [package.optional-dependencies]
