@@ -53,8 +53,9 @@ def postprocess_model_file(file_path):
         if "#   filename:" in line:
             pass
         # Add additional imports
-        elif "import UUID" in line:
+        elif "from enum import Enum" in line:
             new_lines.append(
+                "from enum import Enum\n"
                 "import pandas as pd\nfrom pathlib import Path\n"
                 "from pydantic import field_validator, model_validator\n"
                 "import uuid\n"
