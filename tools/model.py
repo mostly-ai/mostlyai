@@ -221,15 +221,19 @@ class Generator:
         """
         return self.client._clone(generator_id=self.id, training_status=training_status)
 
-    def reports(self, file_path: str | Path | None = None) -> Path:
+    def reports(self, file_path: str | Path | None = None, display: bool = False) -> Path | None:
         """
-        Download the quality assurance reports and save to file.
+        Download or display the quality assurance reports.
+
+        If display is True, the report is rendered inline via IPython display and no file is downloaded.
+        Otherwise, the report is downloaded and saved to file_path (or a default location if None).
 
         Args:
-            file_path: The file path to save the zipped reports.
+            file_path: The file path to save the zipped reports (ignored if display=True).
+            display: If True, render the report inline instead of downloading it.
 
         Returns:
-            The path to the saved file.
+            The path to the saved file if downloading, or None if display=True.
         """
         reports = {}
         for table in self.tables:
@@ -248,15 +252,30 @@ class Generator:
                     short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
                 )
 
-        file_path = Path(file_path or ".")
-        if file_path.is_dir():
-            file_path = file_path / f"generator-{self.id[:8]}-reports.zip"
-        if file_path.exists():
-            file_path.unlink()
-        with zipfile.ZipFile(file_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            for filename, content in reports.items():
-                zip_file.writestr(filename, content)
-        return file_path
+        if display:
+            if not rich.console._is_jupyter():
+                raise ValueError("Displaying reports is only supported in Jupyter notebooks.")
+
+            from IPython.display import HTML, display  # noqa
+            import html  # noqa
+
+            iframes = ""
+            for content in reports.values():
+                content = html.escape(content, quote=True)
+                iframes += f'<p><iframe srcdoc="{content}" width="100%" height="600"></iframe></p> '
+
+            display(HTML(iframes))
+            return None
+        else:
+            file_path = Path(file_path or ".")
+            if file_path.is_dir():
+                file_path = file_path / f"generator-{self.id[:8]}-reports.zip"
+            if file_path.exists():
+                file_path.unlink()
+            with zipfile.ZipFile(file_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                for filename, content in reports.items():
+                    zip_file.writestr(filename, content)
+            return file_path
 
     class Training:
         def __init__(self, _generator: "Generator"):
@@ -301,6 +320,28 @@ class Generator:
                     "Use it to create synthetic data. "
                     "Publish it so others can do the same."
                 )
+
+        def logs(self, file_path: str | Path | None = None) -> Path:
+            """
+            Download the training logs and save to file.
+
+            Args:
+                file_path: The file path to save the logs.
+
+            Returns:
+                The path to the saved file.
+            """
+            bytes, filename = self.generator.client._training_logs(
+                generator_id=self.generator.id,
+                short_lived_file_token=self.generator.metadata.short_lived_file_token
+                if self.generator.metadata
+                else None,
+            )
+            file_path = Path(file_path or ".")
+            if file_path.is_dir():
+                file_path = file_path / filename
+            file_path.write_bytes(bytes)
+            return file_path
 
 
 class GeneratorConfig:
@@ -614,15 +655,19 @@ class SyntheticDataset:
         else:
             return dfs
 
-    def reports(self, file_path: str | Path | None = None) -> Path:
+    def reports(self, file_path: str | Path | None = None, display: bool = False) -> Path | None:
         """
-        Download the quality assurance reports and save to file.
+        Download or display the quality assurance reports.
+
+        If display is True, the report is rendered inline via IPython display and no file is downloaded.
+        Otherwise, the report is downloaded and saved to file_path (or a default location if None).
 
         Args:
-            file_path: The file path to save the zipped reports.
+            file_path: The file path to save the zipped reports (ignored if display=True).
+            display: If True, render the report inline instead of downloading it.
 
         Returns:
-            The path to the saved file.
+            The path to the saved file if downloading, or None if display=True.
         """
         reports = {}
         for report_type in [SyntheticDatasetReportType.model, SyntheticDatasetReportType.data]:
@@ -645,15 +690,30 @@ class SyntheticDataset:
                         short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
                     )
 
-        file_path = Path(file_path or ".")
-        if file_path.is_dir():
-            file_path = file_path / f"synthetic-dataset-{self.id[:8]}-reports.zip"
-        if file_path.exists():
-            file_path.unlink()
-        with zipfile.ZipFile(file_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            for filename, content in reports.items():
-                zip_file.writestr(filename, content)
-        return file_path
+        if display:
+            if not rich.console._is_jupyter():
+                raise ValueError("Displaying reports is only supported in Jupyter notebooks.")
+
+            from IPython.display import HTML, display  # noqa
+            import html  # noqa
+
+            iframes = ""
+            for content in reports.values():
+                content = html.escape(content, quote=True)
+                iframes += f'<p><iframe srcdoc="{content}" width="100%" height="600"></iframe></p> '
+
+            display(HTML(iframes))
+            return None
+        else:
+            file_path = Path(file_path or ".")
+            if file_path.is_dir():
+                file_path = file_path / f"synthetic-dataset-{self.id[:8]}-reports.zip"
+            if file_path.exists():
+                file_path.unlink()
+            with zipfile.ZipFile(file_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                for filename, content in reports.items():
+                    zip_file.writestr(filename, content)
+            return file_path
 
     class Generation:
         def __init__(self, _synthetic_dataset: "SyntheticDataset"):
@@ -700,6 +760,28 @@ class SyntheticDataset:
                     "Use it to consume the generated data. "
                     "Publish it so others can do the same."
                 )
+
+        def logs(self, file_path: str | Path | None = None) -> Path:
+            """
+            Download the generation logs and save to file.
+
+            Args:
+                file_path: The file path to save the logs.
+
+            Returns:
+                The path to the saved file.
+            """
+            bytes, filename = self.synthetic_dataset.client._generation_logs(
+                synthetic_dataset_id=self.synthetic_dataset.id,
+                short_lived_file_token=self.synthetic_dataset.metadata.short_lived_file_token
+                if self.synthetic_dataset.metadata
+                else None,
+            )
+            file_path = Path(file_path or ".")
+            if file_path.is_dir():
+                file_path = file_path / filename
+            file_path.write_bytes(bytes)
+            return file_path
 
 
 class SyntheticDatasetConfig:
