@@ -417,10 +417,9 @@ class MostlyAI(_MostlyBaseClient):
                 name=name,
                 tables=[SourceTableConfig(data=convert_to_base64(df), name=name)],
             )
-        elif isinstance(data, pd.DataFrame):
+        elif isinstance(data, pd.DataFrame) or data.__class__.__module__ == "pyspark.sql.dataframe":
             df = data
             config = GeneratorConfig(
-                name=f"DataFrame {df.shape}",
                 tables=[SourceTableConfig(data=convert_to_base64(df), name="data")],
             )
         if isinstance(config, dict):
