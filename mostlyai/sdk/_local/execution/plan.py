@@ -28,11 +28,14 @@ TRAINING_TASK_STEPS: list[StepCode] = [
     StepCode.generate_model_report_data,
     StepCode.create_model_report,
 ]
+FINALIZE_TRAINING_TASK_STEPS: list[StepCode] = [
+    StepCode.finalize_training,
+]
 GENERATION_TASK_STEPS: list[StepCode] = [
     StepCode.generate_data,
     StepCode.create_data_report,
 ]
-GENERATION_FINAL_STEPS: list[StepCode] = [
+FINALIZE_GENERATION_TASK_STEPS: list[StepCode] = [
     StepCode.finalize_generation,
     StepCode.deliver_data,
 ]
@@ -60,17 +63,37 @@ class Task(BaseModel):
     parent_task_id: str | None = Field(None, alias="parentTaskId", title="Parent Task Id")
     target_table_name: str | None = Field(None, alias="targetTableName", title="Target Table Name")
     type: TaskType
+    steps: list[StepCode] | None
 
 
 class ExecutionPlan(BaseModel):
     tasks: list[Task]
 
     def add_task(self, task_type: TaskType, parent: Task | None = None, target_table_name: str | None = None) -> Task:
+        def get_steps(task_type: TaskType) -> list[StepCode]:
+            match task_type:
+                case TaskType.train_tabular | TaskType.train_language:
+                    return TRAINING_TASK_STEPS
+                case TaskType.finalize_training:
+                    return FINALIZE_TRAINING_TASK_STEPS
+                case (
+                    TaskType.generate_tabular
+                    | TaskType.generate_language
+                    | TaskType.probe_tabular
+                    | TaskType.probe_language
+                ):
+                    return GENERATION_TASK_STEPS
+                case TaskType.finalize_generation | TaskType.finalize_probing:
+                    return FINALIZE_GENERATION_TASK_STEPS
+                case _:
+                    return None
+
         task = Task(
             id=str(uuid.uuid4()),
             type=task_type,
             parent_task_id=parent.id if parent else None,
             target_table_name=target_table_name,
+            steps=get_steps(task_type),
         )
         self.tasks.append(task)
         return task
