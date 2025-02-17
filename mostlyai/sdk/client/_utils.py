@@ -213,41 +213,11 @@ def harmonize_sd_config(
         config.tables = []
         for table in generator.tables:
             configuration = SyntheticTableConfiguration(
-                sample_size=None,
-                sample_seed_data=None,
-                sample_seed_dict=None,
+                sample_size=size.get(table.name),
+                sample_seed_data=seed.get(table.name) if not isinstance(seed.get(table.name), list) else None,
+                sample_seed_dict=seed.get(table.name) if isinstance(seed.get(table.name), list) else None,
             )
-            if table.name in subject_tables:
-                configuration.sample_size = size.get(table.name)
-                configuration.sample_seed_data = (
-                    seed.get(table.name) if not isinstance(seed.get(table.name), list) else None
-                )
-                configuration.sample_seed_dict = (
-                    seed.get(table.name) if isinstance(seed.get(table.name), list) else None
-                )
             config.tables.append(SyntheticTableConfig(name=table.name, configuration=configuration))
-
-    # convert `sample_seed_data` to base64-encoded Parquet files
-    # convert `sample_seed_dict` to base64-encoded dictionaries
-    for table in config.tables:
-        if not table.configuration:
-            continue
-        if table.configuration.sample_seed_data is not None:
-            if (
-                isinstance(table.configuration.sample_seed_data, pd.DataFrame)
-                or table.configuration.sample_seed_data.__class__.__module__ == "pyspark.sql.dataframe"
-            ):
-                table.configuration.sample_seed_data = convert_to_base64(table.configuration.sample_seed_data)
-            elif isinstance(table.configuration.sample_seed_data, (Path, str)):
-                _, df = read_table_from_path(table.configuration.sample_seed_data)
-                table.configuration.sample_seed_data = convert_to_base64(df)
-                del df
-            else:
-                raise ValueError("sample_seed_data must be a DataFrame or a file path")
-        if table.configuration.sample_seed_dict is not None:
-            table.configuration.sample_seed_dict = convert_to_base64(
-                table.configuration.sample_seed_dict, format="jsonl"
-            )
 
     return config
 
