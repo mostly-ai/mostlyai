@@ -28,9 +28,22 @@ def convert_to_base64(
     df: pd.DataFrame | list[dict[str, Any]],
     format: Literal["parquet", "jsonl"] = "parquet",
 ) -> str:
-    # Save the DataFrame to a buffer in Parquet / JSONL format
-    if not isinstance(df, pd.DataFrame):
+    """
+    Convert a DataFrame to a base64 encoded string, representing the content in Parquet or JSONL format.
+
+    Args:
+        df: The DataFrame to convert.
+        format: The format to use for the conversion. Either "parquet" or "jsonl".
+
+    Returns:
+        The base64 encoded string.
+    """
+    if df.__class__.__module__ == "pyspark.sql.dataframe":
+        # Convert PySpark DataFrame to Pandas DataFrame
+        df = df.toPandas()
+    elif not isinstance(df, pd.DataFrame):
         df = pd.DataFrame(df)
+    # Save the DataFrame to a buffer in Parquet / JSONL format
     buffer = io.BytesIO()
     if format == "parquet":
         df.to_parquet(buffer, index=False)

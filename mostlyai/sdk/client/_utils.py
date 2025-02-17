@@ -233,7 +233,10 @@ def harmonize_sd_config(
         if not table.configuration:
             continue
         if table.configuration.sample_seed_data is not None:
-            if isinstance(table.configuration.sample_seed_data, pd.DataFrame):
+            if (
+                isinstance(table.configuration.sample_seed_data, pd.DataFrame)
+                or table.configuration.sample_seed_data.__class__.__module__ == "pyspark.sql.dataframe"
+            ):
                 table.configuration.sample_seed_data = convert_to_base64(table.configuration.sample_seed_data)
             elif isinstance(table.configuration.sample_seed_data, (Path, str)):
                 _, df = read_table_from_path(table.configuration.sample_seed_data)
