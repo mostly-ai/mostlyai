@@ -54,7 +54,7 @@ E.g.
 pip install -U 'mostlyai[local, databricks, snowflake]'
 ```
 
-## Quick Start  [![Run on Colab](https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab)](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb)
+## Quick Start <a href="https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb" target="_blank"><img src="https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab" alt="Run on Colab"></a>
 
 Generate your first samples based on your own trained generator with a few lines of code. For local mode, initialize the SDK with `local=True`. For client mode, initialize the SDK with `base_url` and `api_key` obtained from your [account settings page](https://app.mostly.ai/settings/api-keys).
 
@@ -64,7 +64,7 @@ from mostlyai.sdk import MostlyAI
 
 # load original data
 repo_url = "https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev"
-df_original = pd.read_csv(f"{repo_url}/census/census.csv.gz").sample(n=5_000)
+df_original = pd.read_csv(f"{repo_url}/census/census.csv.gz")
 
 # initialize the SDK in local or client mode
 mostly = MostlyAI(local=True)                       # local mode
@@ -93,6 +93,9 @@ g = mostly.train(
     start=True,  # start training immediately (default: True)
     wait=True,  # wait for completion (default: True)
 )
+
+# display the quality assurance report
+g.reports(display=True)
 ```
 
 Once the generator has been trained, you can use it to generate synthetic data samples. Either via probing:
