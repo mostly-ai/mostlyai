@@ -27,7 +27,7 @@
   "transformers": [
     {
       "pattern": "^([\\w-]+)(?:\\(([^)]+)\\))?: (.+)$",
-      "target": "- $3",
+      "target": "$3",
       "on_property": "title"
     }
   ]
