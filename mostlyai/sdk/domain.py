@@ -27,7 +27,6 @@ import rich
 import zipfile
 from mostlyai.sdk.client._base_utils import convert_to_base64
 from typing import Any, ClassVar, Literal, Annotated
-from uuid import str
 
 from mostlyai.sdk.client.base import CustomBaseModel
 from pydantic import AnyUrl, Field, RootModel
