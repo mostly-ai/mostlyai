@@ -36,10 +36,8 @@ from mostlyai.sdk.domain import (
     GeneratorPatchConfig,
     ModelType,
 )
-from mostlyai.sdk.client._base_utils import (
-    convert_to_base64,
-)
-from mostlyai.sdk.client._utils import job_wait, read_table_from_path
+from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
+from mostlyai.sdk.client._utils import job_wait
 
 
 class _MostlyGeneratorsClient(_MostlyBaseClient):

@@ -38,9 +38,8 @@ from mostlyai.sdk.client.synthetic_datasets import (
     _MostlySyntheticDatasetsClient,
     _MostlySyntheticProbesClient,
 )
-from mostlyai.sdk.client._base_utils import convert_to_base64
+from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from mostlyai.sdk.client._utils import (
-    read_table_from_path,
     harmonize_sd_config,
     Seed,
 )
