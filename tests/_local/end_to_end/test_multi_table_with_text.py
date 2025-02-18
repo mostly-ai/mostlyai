@@ -127,7 +127,9 @@ def test_multi_table_with_text(tmp_path):
     assert len(syn["batting"]) == 80
     assert len(syn["fielding"]) == 40
 
-    syn = mostly.probe(g, seed=[{"cat": "a"}])
+    syn = mostly.probe(
+        g, config={"tables": [{"name": "batting", "configuration": {"sampling_temperature": 2}}]}, seed=[{"cat": "a"}]
+    )
     assert syn["players"]["cat"][0] == "a"
     assert len(syn["batting"]) == 4
     assert len(syn["fielding"]) == 2

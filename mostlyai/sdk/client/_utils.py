@@ -195,13 +195,13 @@ def harmonize_sd_config(
     else:
         subject_tables = []
 
-    # normalize size
+    # normalize size, applicable only for the first subject table
     if not isinstance(size, dict):
-        size = {table: size for table in subject_tables}
+        size = {table: size for table in subject_tables[:1]}
 
-    # normalize seed
+    # normalize seed, applicable only for the first subject table
     if not isinstance(seed, dict):
-        seed = {table: seed for table in subject_tables}
+        seed = {table: seed for table in subject_tables[:1]}
 
     # insert name into config
     if name is not None:
