@@ -291,6 +291,6 @@ def test_harmonize_sd_seed_or_size_and_config(multi_table_generator, seed, size,
     seed_b64_or_none = convert_to_base64(seed) if seed is not None else None
     for table in harmonized_config.tables:
         assert table.name in ["subject_1", "linked_1", "subject_2"]
-        assert table.configuration.sample_size == (size if table.name == "subject_1" else None)
+        assert table.configuration.sample_size == (size if "subject" in table.name else None)
         assert table.configuration.sample_seed_data == (seed_b64_or_none if table.name == "subject_1" else None)
         assert table.configuration.sample_seed_dict is None
