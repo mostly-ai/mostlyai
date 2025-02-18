@@ -207,16 +207,29 @@ def harmonize_sd_config(
     if name is not None:
         config.name = name
 
+    def size_and_seed_table_configuration(table_name):
+        return SyntheticTableConfiguration(
+            sample_size=size.get(table_name),
+            sample_seed_data=seed.get(table_name) if not isinstance(seed.get(table_name), list) else None,
+            sample_seed_dict=pd.DataFrame(seed.get(table_name)) if isinstance(seed.get(table_name), list) else None,
+        )
+
     # infer tables if not provided
     if not config.tables:
         config.tables = []
         for table in generator.tables:
-            configuration = SyntheticTableConfiguration(
-                sample_size=size.get(table.name),
-                sample_seed_data=seed.get(table.name) if not isinstance(seed.get(table.name), list) else None,
-                sample_seed_dict=pd.DataFrame(seed.get(table.name)) if isinstance(seed.get(table.name), list) else None,
-            )
+            configuration = size_and_seed_table_configuration(table.name)
             config.tables.append(SyntheticTableConfig(name=table.name, configuration=configuration))
+    else:
+        for table in config.tables:
+            configuration = size_and_seed_table_configuration(table.name)
+            table.configuration.sample_size = table.configuration.sample_size or configuration.sample_size
+            table.configuration.sample_seed_data = (
+                table.configuration.sample_seed_data or configuration.sample_seed_data
+            )
+            table.configuration.sample_seed_dict = (
+                table.configuration.sample_seed_dict or configuration.sample_seed_dict
+            )
 
     return config
 

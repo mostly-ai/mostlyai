@@ -213,6 +213,23 @@ def multi_table_generator():
     )
 
 
+@pytest.fixture
+def multi_table_synthetic_probe_config():
+    return {
+        "tables": [
+            {
+                "name": "subject_1",
+            },
+            {
+                "name": "linked_1",
+            },
+            {
+                "name": "subject_2",
+            },
+        ]
+    }
+
+
 def test_harmonize_sd_config_existing_config(generator_id, single_table_generator_mock, simple_sd_config):
     config = harmonize_sd_config(
         generator=generator_id,
@@ -246,14 +263,14 @@ def test_harmonize_sd_no_config(generator_id, single_table_generator_mock):
 
 
 @pytest.mark.parametrize(
-    "seed, size, config",
+    "seed, size",
     [
-        (pd.DataFrame(), None, SyntheticProbeConfig()),
-        (None, 1234, SyntheticProbeConfig()),
-        (pd.DataFrame(), 1234, SyntheticProbeConfig()),
+        (pd.DataFrame(), None),
+        (None, 1234),
+        (pd.DataFrame(), 1234),
     ],
 )
-def test_harmonize_sd_seed_or_size_and_config(multi_table_generator, seed, size, config):
+def test_harmonize_sd_seed_or_size_and_config(multi_table_generator, seed, size, multi_table_synthetic_probe_config):
     generator_id = str(uuid.uuid4())
 
     mock_get_generator = Mock(return_value=multi_table_generator)
@@ -263,7 +280,7 @@ def test_harmonize_sd_seed_or_size_and_config(multi_table_generator, seed, size,
         get_generator=mock_get_generator,
         seed=seed,
         size=size,
-        config=config,
+        config=multi_table_synthetic_probe_config,
         config_type=SyntheticProbeConfig,
     )
 
