@@ -28,7 +28,6 @@ from rich.progress import (
 )
 from rich.style import Style
 
-from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from mostlyai.sdk.domain import (
     StepCode,
     ProgressStatus,

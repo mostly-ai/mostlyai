@@ -518,7 +518,11 @@ class SyntheticTableConfiguration:
     @field_validator("sample_seed_data", mode="before")
     @classmethod
     def convert_data_before(cls, value):
-        return convert_to_base64(value) if isinstance(value, pd.DataFrame) or value.__class__.__module__ == "pyspark.sql.dataframe" else value
+        return (
+            convert_to_base64(value)
+            if isinstance(value, pd.DataFrame) or value.__class__.__module__ == "pyspark.sql.dataframe"
+            else value
+        )
 
     @model_validator(mode="after")
     @classmethod
