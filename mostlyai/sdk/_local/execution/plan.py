@@ -107,9 +107,10 @@ def make_generator_execution_plan(generator: Generator) -> ExecutionPlan:
             execution_plan.add_task(TaskType.train_tabular, parent=sync_task, target_table_name=table.name)
         if has_language_model(table):
             execution_plan.add_task(TaskType.train_language, parent=sync_task, target_table_name=table.name)
-    post_training_sync = execution_plan.add_task(TaskType.sync)
-    finalize_task = execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
-    execution_plan.add_task(TaskType.sync, parent=finalize_task)
+    execution_plan.add_task(TaskType.sync)
+    # post_training_sync = execution_plan.add_task(TaskType.sync)
+    # finalize_task = execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
+    # execution_plan.add_task(TaskType.sync, parent=finalize_task)
     return execution_plan
 
 

@@ -167,10 +167,10 @@ def test_make_generator_execution_plan():
     expected_execution_plan.add_task(TaskType.train_language, parent=sync_task, target_table_name="posts")
     expected_execution_plan.add_task(TaskType.train_tabular, parent=sync_task, target_table_name="comments")
     expected_execution_plan.add_task(TaskType.train_language, parent=sync_task, target_table_name="comments")
+    expected_execution_plan.add_task(TaskType.sync)
     # expected_execution_plan.add_task(TaskType.sync)
-    post_training_sync = expected_execution_plan.add_task(TaskType.sync)
-    finalize_task = expected_execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
-    expected_execution_plan.add_task(TaskType.sync, parent=finalize_task)
+    # finalize_task = expected_execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
+    # expected_execution_plan.add_task(TaskType.sync, parent=finalize_task)
 
     assert len(execution_plan.tasks) == len(expected_execution_plan.tasks)
     for actual, expected in zip(execution_plan.tasks, expected_execution_plan.tasks):
