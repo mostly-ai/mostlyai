@@ -1906,7 +1906,7 @@ class SyntheticTableConfiguration(CustomBaseModel):
     @field_validator("sample_seed_dict", mode="before")
     @classmethod
     def convert_dict_before(cls, value):
-        return convert_to_base64(value, format="jsonl") if isinstance(value, dict) else value
+        return convert_to_base64(value, format="jsonl") if isinstance(value, (dict, pd.DataFrame)) else value
 
     @field_validator("sample_seed_data", mode="before")
     @classmethod

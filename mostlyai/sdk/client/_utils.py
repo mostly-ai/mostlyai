@@ -214,7 +214,7 @@ def harmonize_sd_config(
             configuration = SyntheticTableConfiguration(
                 sample_size=size.get(table.name),
                 sample_seed_data=seed.get(table.name) if not isinstance(seed.get(table.name), list) else None,
-                sample_seed_dict=seed.get(table.name) if isinstance(seed.get(table.name), list) else None,
+                sample_seed_dict=pd.DataFrame(seed.get(table.name)) if isinstance(seed.get(table.name), list) else None,
             )
             config.tables.append(SyntheticTableConfig(name=table.name, configuration=configuration))
 
