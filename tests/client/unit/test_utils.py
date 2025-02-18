@@ -36,7 +36,8 @@ from mostlyai.sdk.domain import (
     SourceTable,
     SyntheticDatasetConfig,
     SyntheticTableConfig,
-    SyntheticProbeConfig, SourceForeignKey,
+    SyntheticProbeConfig,
+    SourceForeignKey,
 )
 from mostlyai.sdk.client._base_utils import (
     convert_to_base64,
@@ -184,9 +185,10 @@ def single_table_generator():
             id=id,
             training_status=ProgressStatus.done,
             metadata=Metadata(),
-            tables=[SourceTable(id=str(uuid.uuid4()), name="table", columns=[])]
+            tables=[SourceTable(id=str(uuid.uuid4()), name="table", columns=[])],
         )
     )
+
 
 @pytest.fixture
 def multi_table_generator():
@@ -201,27 +203,28 @@ def multi_table_generator():
                 id=str(uuid.uuid4()),
                 name="linked_1",
                 columns=[],
-                foreign_keys=[SourceForeignKey(
-                    id=str(uuid.uuid4()),
-                    column="subject_1_id",
-                    referenced_table="subject_1",
-                    is_context=True
-                )]
+                foreign_keys=[
+                    SourceForeignKey(
+                        id=str(uuid.uuid4()), column="subject_1_id", referenced_table="subject_1", is_context=True
+                    )
+                ],
             ),
-            SourceTable(id=str(uuid.uuid4()), name="subject_2", columns=[])
-        ]
+            SourceTable(id=str(uuid.uuid4()), name="subject_2", columns=[]),
+        ],
     )
+
 
 def test_harmonize_sd_config_existing_config(generator_id, single_table_generator, simple_sd_config):
     config = harmonize_sd_config(
         generator=generator_id,
         get_generator=single_table_generator,
         config=simple_sd_config,
-        config_type=SyntheticDatasetConfig
+        config_type=SyntheticDatasetConfig,
     )
 
     expected_config = SyntheticDatasetConfig(generator_id=generator_id, tables=[SyntheticTableConfig(name="subject")])
     assert config == expected_config
+
 
 def test_harmonize_sd_no_config(generator_id, single_table_generator):
     config = harmonize_sd_config(
@@ -229,7 +232,7 @@ def test_harmonize_sd_no_config(generator_id, single_table_generator):
         get_generator=single_table_generator,
         size=1234,
         seed=pd.DataFrame(),
-        config_type=SyntheticProbeConfig
+        config_type=SyntheticProbeConfig,
     )
 
     assert isinstance(config, SyntheticProbeConfig)
@@ -242,11 +245,12 @@ def test_harmonize_sd_no_config(generator_id, single_table_generator):
     assert table.configuration.sample_seed_data == ANY
     assert table.configuration.sample_seed_dict is None
 
+
 @pytest.mark.parametrize(
     "seed, size, config",
     [
         (pd.DataFrame(), None, SyntheticProbeConfig()),  # Scenario 1: seed and config provided
-        (None, 1234, SyntheticProbeConfig()),            # Scenario 2: size and config provided
+        (None, 1234, SyntheticProbeConfig()),  # Scenario 2: size and config provided
         (pd.DataFrame(), 1234, SyntheticProbeConfig()),  # Scenario 3: seed, size, and config provided
     ],
 )
