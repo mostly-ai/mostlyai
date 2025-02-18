@@ -179,7 +179,7 @@ def generator_id():
 
 
 @pytest.fixture
-def single_table_generator():
+def single_table_generator_mock():
     return Mock(
         side_effect=lambda id: Generator(
             id=id,
@@ -192,7 +192,6 @@ def single_table_generator():
 
 @pytest.fixture
 def multi_table_generator():
-    """Fixture providing a generator with 'subject_1', 'linked_1', and 'subject_2' tables."""
     return Generator(
         id=str(uuid.uuid4()),
         training_status=ProgressStatus.done,
@@ -214,10 +213,10 @@ def multi_table_generator():
     )
 
 
-def test_harmonize_sd_config_existing_config(generator_id, single_table_generator, simple_sd_config):
+def test_harmonize_sd_config_existing_config(generator_id, single_table_generator_mock, simple_sd_config):
     config = harmonize_sd_config(
         generator=generator_id,
-        get_generator=single_table_generator,
+        get_generator=single_table_generator_mock,
         config=simple_sd_config,
         config_type=SyntheticDatasetConfig,
     )
@@ -226,10 +225,10 @@ def test_harmonize_sd_config_existing_config(generator_id, single_table_generato
     assert config == expected_config
 
 
-def test_harmonize_sd_no_config(generator_id, single_table_generator):
+def test_harmonize_sd_no_config(generator_id, single_table_generator_mock):
     config = harmonize_sd_config(
         generator=generator_id,
-        get_generator=single_table_generator,
+        get_generator=single_table_generator_mock,
         size=1234,
         seed=pd.DataFrame(),
         config_type=SyntheticProbeConfig,
@@ -249,16 +248,14 @@ def test_harmonize_sd_no_config(generator_id, single_table_generator):
 @pytest.mark.parametrize(
     "seed, size, config",
     [
-        (pd.DataFrame(), None, SyntheticProbeConfig()),  # Scenario 1: seed and config provided
-        (None, 1234, SyntheticProbeConfig()),  # Scenario 2: size and config provided
-        (pd.DataFrame(), 1234, SyntheticProbeConfig()),  # Scenario 3: seed, size, and config provided
+        (pd.DataFrame(), None, SyntheticProbeConfig()),
+        (None, 1234, SyntheticProbeConfig()),
+        (pd.DataFrame(), 1234, SyntheticProbeConfig()),
     ],
 )
 def test_harmonize_sd_seed_or_size_and_config(multi_table_generator, seed, size, config):
-    """Test harmonization with different combinations of seed, size, and config."""
     generator_id = str(uuid.uuid4())
 
-    # Mock get_generator to return multi_table_generator
     mock_get_generator = Mock(return_value=multi_table_generator)
 
     harmonized_config = harmonize_sd_config(
