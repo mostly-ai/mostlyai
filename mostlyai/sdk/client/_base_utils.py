@@ -41,7 +41,7 @@ def convert_to_base64(
     if df.__class__.__module__ == "pyspark.sql.dataframe":
         # Convert PySpark DataFrame to Pandas DataFrame
         df = df.toPandas()
-        df.attr.clears()  # clear any metadata, as eg PlanMetrics are non-serializable
+        df.attrs.clear()  # clear any metadata, as eg PlanMetrics are non-serializable
     elif not isinstance(df, pd.DataFrame):
         df = pd.DataFrame(df)
     # Save the DataFrame to a buffer in Parquet / JSONL format
