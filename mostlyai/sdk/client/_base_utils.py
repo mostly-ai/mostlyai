@@ -39,9 +39,8 @@ def convert_to_base64(
         The base64 encoded string.
     """
     if df.__class__.__module__ == "pyspark.sql.dataframe":
-        # Convert PySpark DataFrame to Pandas DataFrame
-        df = df.toPandas()
-        df.attrs.clear()  # clear any metadata, as eg PlanMetrics are non-serializable
+        # Convert PySpark DataFrame to Pandas DataFrame (safely)
+        df = pd.DataFrame(df.collect(), columns=df.columns)
     elif not isinstance(df, pd.DataFrame):
         df = pd.DataFrame(df)
     # Save the DataFrame to a buffer in Parquet / JSONL format
