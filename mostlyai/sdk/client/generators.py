@@ -161,7 +161,10 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
                         if "name" not in table:
                             table["name"] = name
                         del df
-                    elif isinstance(table["data"], pd.DataFrame):
+                    elif isinstance(table["data"], pd.DataFrame) or (
+                        table["data"].__class__.__name__ == "DataFrame"
+                        and table["data"].__class__.__module__.startswith("pyspark.sql")
+                    ):
                         table["data"] = convert_to_base64(table["data"])
                     else:
                         raise ValueError("data must be a DataFrame or a file path")

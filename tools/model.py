@@ -397,7 +397,12 @@ class SourceTableConfig:
     @field_validator("data", mode="before")
     @classmethod
     def convert_data_before(cls, value):
-        return convert_to_base64(value) if isinstance(value, pd.DataFrame) else value
+        return (
+            convert_to_base64(value)
+            if isinstance(value, pd.DataFrame)
+            or (value.__class__.__name__ == "DataFrame" and value.__class__.__module__.startswith("pyspark.sql"))
+            else value
+        )
 
     @field_validator("columns", mode="before")
     @classmethod
