@@ -2983,7 +2983,7 @@ class _SyntheticTableConfigValidation(CustomBaseModel):
                 )
             if not rebalancing_col.included:
                 raise ValueError(
-                    f"Rebalancing column '{rebalancing_column}' in table '{validation.source_table.name}' must have `included=True` in the source table"
+                    f"Rebalancing column '{rebalancing_column}' in table '{validation.source_table.name}' must have `included=True`"
                 )
             for value in config.rebalancing.probabilities.keys():
                 if value not in rebalancing_col.value_range.values:
