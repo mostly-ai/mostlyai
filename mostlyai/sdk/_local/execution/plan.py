@@ -14,11 +14,13 @@
 
 from pydantic import BaseModel, Field, ConfigDict
 from collections import deque
-from mostlyai.sdk.domain import ModelEncodingType, Generator, SourceTable, StepCode, TaskType
+from mostlyai.sdk.domain import ModelEncodingType, Generator, SourceTable, StepCode, TaskType, ModelType
 import uuid
 
-TABULAR_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith("TABULAR")] + [ModelEncodingType.auto]
-LANGUAGE_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith("LANGUAGE")]
+TABULAR_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith(ModelType.tabular)] + [
+    ModelEncodingType.auto
+]
+LANGUAGE_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith(ModelType.language)]
 
 TRAINING_TASK_STEPS: list[StepCode] = [
     StepCode.pull_training_data,
