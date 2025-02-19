@@ -3111,9 +3111,9 @@ requires-dist = [
     { name = "ipywidgets", specifier = ">=8.1.0" },
     { name = "joblib", specifier = ">=1.2.0" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
-    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.1.2" },
-    { name = "mostlyai-engine", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.1.2" },
-    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.1.2" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.1.3" },
+    { name = "mostlyai-engine", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.1.3" },
+    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.1.3" },
     { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.5.5" },
     { name = "mostlyai-qa", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.5.5" },
     { name = "mostlyai-qa", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.5.5" },
@@ -3180,7 +3180,7 @@ docs = [
 
 [[package]]
 name = "mostlyai-engine"
-version = "1.1.2"
+version = "1.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
@@ -3202,9 +3202,9 @@ dependencies = [
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu'" },
     { name = "transformers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7a/46/2cdf3bbd9f0f18c20c376b163929c92b64fa902e99f3424d8879244441df/mostlyai_engine-1.1.2.tar.gz", hash = "sha256:289411bd7a7348893c662982efdbd86e7231c60177574ec7fd9dbba1eaa1df53", size = 106050 }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/c7/ce59e2d7094c46e34c1f351173f805363db589b002ca9ef60448f441a7bf/mostlyai_engine-1.1.3.tar.gz", hash = "sha256:a12f020c294332c0699fc2b1a4046394846809f9f9c04a2ecda67a7e42f96a20", size = 106119 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/49/c72d320f611326678918c63ee3511a26a8462b63547c4702c5b9abbf78d2/mostlyai_engine-1.1.2-py3-none-any.whl", hash = "sha256:c71ac5a8b3afa2944a0376451935e6f0da3c385ce83865c4220b535c1fc475d8", size = 145311 },
+    { url = "https://files.pythonhosted.org/packages/60/48/1464c39124b7f6af620a0cce01b560336ca841963b68d030ab36f742542c/mostlyai_engine-1.1.3-py3-none-any.whl", hash = "sha256:96b458a8da6a69718412f6c5b37a8a7affa90552ac47504dec838e079d46b384", size = 145395 },
 ]
 
 [package.optional-dependencies]
@@ -3747,7 +3747,7 @@ wheels = [
 
 [[package]]
 name = "opacus"
-version = "1.5.2"
+version = "1.5.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
@@ -3757,9 +3757,9 @@ dependencies = [
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-mostlyai-local-gpu' or extra != 'extra-8-mostlyai-local-cpu'" },
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/77/22/5238f00f2c1c04e86e8a05fd6219e169af0369c881e8d7dbbaaee629d111/opacus-1.5.2.tar.gz", hash = "sha256:167b66a5f7d5313df396dda143f21d2303b82e554b6798b30675a04103afaeb6", size = 143371 }
+sdist = { url = "https://files.pythonhosted.org/packages/5d/e1/55c37e9f32817552420e4becebe79912806cd178b8b3d178084ecacd56db/opacus-1.5.3.tar.gz", hash = "sha256:ed2021ba7ce3f09aab14d0e494da4c8c8895baa2b8a6e33ad9d67d5b85d8ac7e", size = 150503 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b1/1b/cbda9a60565afb32b9aea07c717638ba7c6e6a566370dc08db6984e6e089/opacus-1.5.2-py3-none-any.whl", hash = "sha256:2599207b2f6d3d56f41604b255d8b8529209544c9a1a6bafcf0b032cf2278a7d", size = 239857 },
+    { url = "https://files.pythonhosted.org/packages/40/b9/00f864848022a962d6feb518df34cbc3f5aa37e7624d82bacf21b6094a4f/opacus-1.5.3-py3-none-any.whl", hash = "sha256:7d85a5541f2830278552788923a6c0da4c867b257377d8514a205e51c9a4d88a", size = 251693 },
 ]
 
 [[package]]
