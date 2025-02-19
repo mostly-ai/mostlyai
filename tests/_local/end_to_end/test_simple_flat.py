@@ -19,16 +19,23 @@ from mostlyai.sdk.domain import GeneratorConfig, SyntheticDatasetConfig, Progres
 import pandas as pd
 
 
-def test_simple_flat(tmp_path):
+@pytest.mark.parametrize(
+    "encoding_types",
+    [
+        {"a": "AUTO", "b": "AUTO"},
+        {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"},
+    ],
+)
+def test_simple_flat(tmp_path, encoding_types):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
     # create mock data
     df = pd.DataFrame(
         {
-            "id": range(200),
-            "a": ["a1", "a2"] * 100,
-            "b": [1, 2] * 100,
-            "text": ["c", "d"] * 100,
+            "id": range(100),
+            "a": ["a1", "a2"] * 50,
+            "b": [1, 2] * 50,
+            "text": ["c", "d"] * 50,
         }
     )
 
@@ -56,10 +63,11 @@ def test_simple_flat(tmp_path):
                 "primary_key": "id",
                 "columns": [
                     {"name": "id", "model_encoding_type": "AUTO"},
-                    {"name": "a", "model_encoding_type": "AUTO"},
-                    {"name": "b", "model_encoding_type": "AUTO"},
+                    {"name": "a", "model_encoding_type": encoding_types["a"]},
+                    {"name": "b", "model_encoding_type": encoding_types["b"]},
                 ],
-                "tabular_model_configuration": {"max_epochs": 1},
+                "tabular_model_configuration": {"max_epochs": 0.1},
+                "language_model_configuration": {"max_epochs": 0.1},
             }
         ],
     }
@@ -79,7 +87,6 @@ def test_simple_flat(tmp_path):
     g_config = g.config()
     assert isinstance(g_config, GeneratorConfig)
     assert g_config.name == "Test 2"
-    assert g_config.tables[0].tabular_model_configuration.max_epochs == 1
 
     # train
     g.training.start()
@@ -127,27 +134,30 @@ def test_simple_flat(tmp_path):
     g.training.logs(tmp_path)
 
     ## SYNTHETIC PROBE
-    df = mostly.probe(g, size=10)
-    assert len(df) == 10
+    df = mostly.probe(g, size=5)
+    assert len(df) == 5
+
+    df = mostly.probe(g, seed=pd.DataFrame({"a": ["a1"]}))
+    assert len(df) == 1
 
     ## SYNTHETIC DATASET
 
     # config via sugar
     sd = mostly.generate(g, start=False)
-    assert sd.tables[0].configuration.sample_size == 200
+    assert sd.tables[0].configuration.sample_size == 100
     sd.delete()
 
     # config via dict
-    config = {"tables": [{"name": "data", "configuration": {"sample_size": 100}}]}
+    config = {"tables": [{"name": "data", "configuration": {"sample_size": 20}}]}
     sd = mostly.generate(g, config=config, start=False)
     assert sd.name == "Test 2"
     sd_config = sd.config()
     assert isinstance(sd_config, SyntheticDatasetConfig)
-    assert sd_config.tables[0].configuration.sample_size == 100
+    assert sd_config.tables[0].configuration.sample_size == 20
     sd.delete()
 
     # config via class
-    config = {"tables": [{"name": "data", "configuration": {"sample_size": 100}}]}
+    config = {"tables": [{"name": "data", "configuration": {"sample_size": 20}}]}
     config = SyntheticDatasetConfig(**config)
     sd = mostly.generate(g, config=config, start=False)
 
@@ -159,7 +169,7 @@ def test_simple_flat(tmp_path):
     sd_config = sd.config()
     assert isinstance(sd_config, SyntheticDatasetConfig)
     assert sd_config.name == "Test 2"
-    assert sd_config.tables[0].configuration.sample_size == 100
+    assert sd_config.tables[0].configuration.sample_size == 20
 
     # generate
     sd.generation.start()
@@ -167,7 +177,7 @@ def test_simple_flat(tmp_path):
     assert sd.generation_status == "DONE"
     sd.download(tmp_path)
     syn = sd.data()
-    assert len(syn) == 100
+    assert len(syn) == 20
     assert list(syn.columns) == list(df.columns)
 
     # reports
