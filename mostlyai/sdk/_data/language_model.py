@@ -17,7 +17,7 @@ import uuid
 
 import pandas as pd
 
-from mostlyai.sdk.domain import ModelEncodingType
+from mostlyai.sdk.domain import ModelType
 
 from mostlyai.sdk._data.base import Schema
 from mostlyai.sdk._data.util.common import TABLE_COLUMN_INFIX, TEMPORARY_PRIMARY_KEY
@@ -37,7 +37,7 @@ def split_language_model(
     :return: ctx_data, tgt_data
     """
     enctypes = schema.tables[tgt].encoding_types
-    language_cols = [col for col in enctypes if enctypes[col] == ModelEncodingType.language_text]
+    language_cols = [col for col in enctypes if enctypes[col].startswith(ModelType.language)]
     if len(language_cols) == 0:
         # if no LANGUAGE columns are present, then leave data as-is
         return ctx_data, tgt_data
@@ -88,7 +88,7 @@ def drop_language_columns_in_target(
     tgt_table = schema.tables[tgt]
     drop_columns = []
     for col_name, encoding_type in tgt_table.encoding_types.items():
-        if encoding_type == ModelEncodingType.language_text:
+        if encoding_type.startswith(ModelType.language):
             drop_columns.append(col_name)
     if drop_columns:
         _LOG.info(f"drop LANGUAGE columns from target: {drop_columns}")

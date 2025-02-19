@@ -34,6 +34,7 @@ from mostlyai.sdk.domain import (
     ProgressStatus,
     ModelConfiguration,
     SyntheticDatasetReportType,
+    ModelType,
 )
 
 
@@ -425,8 +426,8 @@ class SourceTableConfig:
                 keys.append(values.primary_key)
             model_columns = [c for c in values.columns if c.name not in keys]
             enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
-            has_tabular_model = any(not enc_type.startswith("LANGUAGE_") for enc_type in enc_types)
-            has_language_model = any(enc_type.startswith("LANGUAGE_") for enc_type in enc_types)
+            has_tabular_model = any(not enc_type.startswith(ModelType.language) for enc_type in enc_types)
+            has_language_model = any(enc_type.startswith(ModelType.language) for enc_type in enc_types)
         else:
             has_tabular_model = True
             has_language_model = False
