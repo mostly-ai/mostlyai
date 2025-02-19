@@ -56,7 +56,8 @@ def execute_step_generate_data(
         if not ctx_data_dir.exists():
             ctx_data_dir.mkdir(parents=True)
             ctx_primary_key = f"{tgt_g_table.name}{TABLE_COLUMN_INFIX}{TEMPORARY_PRIMARY_KEY}"
-            dummy_ctx = pd.DataFrame({ctx_primary_key: [str(uuid.uuid4()) for _ in range(config.sample_size)]})
+            dummy_ctx_length = config.sample_size if sample_seed is None else sample_seed.shape[0]
+            dummy_ctx = pd.DataFrame({ctx_primary_key: [str(uuid.uuid4()) for _ in range(dummy_ctx_length)]})
             dummy_ctx.to_parquet(ctx_data_dir / "part.00000-ctx.parquet")
         ### TODO: FIX
 
