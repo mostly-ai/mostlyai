@@ -521,7 +521,8 @@ class SyntheticTableConfiguration:
     def convert_data_before(cls, value):
         return (
             convert_to_base64(value)
-            if isinstance(value, pd.DataFrame) or value.__class__.__module__ == "pyspark.sql.dataframe"
+            if isinstance(value, pd.DataFrame)
+            or (value.__class__.__name__ == "DataFrame" and value.__class__.__module__.startswith("pyspark.sql"))
             else value
         )
 
