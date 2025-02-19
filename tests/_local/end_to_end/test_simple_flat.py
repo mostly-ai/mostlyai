@@ -22,6 +22,7 @@ import pandas as pd
 @pytest.mark.parametrize(
     "encoding_types",
     [{"a": "AUTO", "b": "AUTO"}, {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"}],
+    ids=["AUTO encoding types", "LANGUAGE-only encoding types"],
 )
 def test_simple_flat(tmp_path, encoding_types):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
