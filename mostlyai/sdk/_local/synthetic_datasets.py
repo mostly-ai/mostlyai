@@ -25,7 +25,7 @@ from mostlyai.sdk._local.execution.plan import (
     has_tabular_model,
     has_language_model,
     GENERATION_TASK_STEPS,
-    GENERATION_FINAL_STEPS,
+    FINALIZE_GENERATION_TASK_STEPS,
 )
 from mostlyai.sdk.client._base_utils import convert_to_df
 from mostlyai.sdk.domain import (
@@ -137,7 +137,7 @@ def create_synthetic_dataset(
                         status=ProgressStatus.new,
                     )
                 )
-    for step in GENERATION_FINAL_STEPS:
+    for step in FINALIZE_GENERATION_TASK_STEPS:
         progress_steps.append(
             ProgressStep(
                 task_type=TaskType.finalize_generation,

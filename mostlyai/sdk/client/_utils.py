@@ -32,7 +32,6 @@ from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 
-from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from mostlyai.sdk.domain import (
     StepCode,
     ProgressStatus,
@@ -239,50 +238,36 @@ def harmonize_sd_config(
     if not isinstance(size, dict):
         size = {table: size for table in subject_tables}
 
-    # normalize seed
+    # normalize seed, applicable only for the first subject table
     if not isinstance(seed, dict):
-        seed = {table: seed for table in subject_tables}
+        seed = {table: seed for table in subject_tables[:1]}
 
     # insert name into config
     if name is not None:
         config.name = name
 
+    def size_and_seed_table_configuration(table_name):
+        return SyntheticTableConfiguration(
+            sample_size=size.get(table_name),
+            sample_seed_data=seed.get(table_name) if not isinstance(seed.get(table_name), list) else None,
+            sample_seed_dict=pd.DataFrame(seed.get(table_name)) if isinstance(seed.get(table_name), list) else None,
+        )
+
     # infer tables if not provided
     if not config.tables:
         config.tables = []
         for table in generator.tables:
-            configuration = SyntheticTableConfiguration(
-                sample_size=None,
-                sample_seed_data=None,
-                sample_seed_dict=None,
-            )
-            if table.name in subject_tables:
-                configuration.sample_size = size.get(table.name)
-                configuration.sample_seed_data = (
-                    seed.get(table.name) if not isinstance(seed.get(table.name), list) else None
-                )
-                configuration.sample_seed_dict = (
-                    seed.get(table.name) if isinstance(seed.get(table.name), list) else None
-                )
+            configuration = size_and_seed_table_configuration(table.name)
             config.tables.append(SyntheticTableConfig(name=table.name, configuration=configuration))
-
-    # convert `sample_seed_data` to base64-encoded Parquet files
-    # convert `sample_seed_dict` to base64-encoded dictionaries
-    for table in config.tables:
-        if not table.configuration:
-            continue
-        if table.configuration.sample_seed_data is not None:
-            if isinstance(table.configuration.sample_seed_data, pd.DataFrame):
-                table.configuration.sample_seed_data = convert_to_base64(table.configuration.sample_seed_data)
-            elif isinstance(table.configuration.sample_seed_data, (Path, str)):
-                _, df = read_table_from_path(table.configuration.sample_seed_data)
-                table.configuration.sample_seed_data = convert_to_base64(df)
-                del df
-            else:
-                raise ValueError("sample_seed_data must be a DataFrame or a file path")
-        if table.configuration.sample_seed_dict is not None:
-            table.configuration.sample_seed_dict = convert_to_base64(
-                table.configuration.sample_seed_dict, format="jsonl"
+    else:
+        for table in config.tables:
+            configuration = size_and_seed_table_configuration(table.name)
+            table.configuration.sample_size = table.configuration.sample_size or configuration.sample_size
+            table.configuration.sample_seed_data = (
+                table.configuration.sample_seed_data or configuration.sample_seed_data
+            )
+            table.configuration.sample_seed_dict = (
+                table.configuration.sample_seed_dict or configuration.sample_seed_dict
             )
 
     return config

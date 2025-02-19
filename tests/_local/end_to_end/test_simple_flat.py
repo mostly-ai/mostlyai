@@ -19,7 +19,12 @@ from mostlyai.sdk.domain import GeneratorConfig, SyntheticDatasetConfig, Progres
 import pandas as pd
 
 
-def test_simple_flat(tmp_path):
+@pytest.mark.parametrize(
+    "encoding_types",
+    [{"a": "AUTO", "b": "AUTO"}, {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"}],
+    ids=["AUTO encoding types", "LANGUAGE-only encoding types"],
+)
+def test_simple_flat(tmp_path, encoding_types):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
     # create mock data
@@ -56,10 +61,11 @@ def test_simple_flat(tmp_path):
                 "primary_key": "id",
                 "columns": [
                     {"name": "id", "model_encoding_type": "AUTO"},
-                    {"name": "a", "model_encoding_type": "AUTO"},
-                    {"name": "b", "model_encoding_type": "AUTO"},
+                    {"name": "a", "model_encoding_type": encoding_types["a"]},
+                    {"name": "b", "model_encoding_type": encoding_types["b"]},
                 ],
-                "tabular_model_configuration": {"max_epochs": 1},
+                "tabular_model_configuration": {"max_epochs": 0.1},
+                "language_model_configuration": {"max_epochs": 0.1},
             }
         ],
     }
@@ -79,7 +85,6 @@ def test_simple_flat(tmp_path):
     g_config = g.config()
     assert isinstance(g_config, GeneratorConfig)
     assert g_config.name == "Test 2"
-    assert g_config.tables[0].tabular_model_configuration.max_epochs == 1
 
     # train
     g.training.start()
@@ -128,6 +133,9 @@ def test_simple_flat(tmp_path):
 
     ## SYNTHETIC PROBE
     df = mostly.probe(g, size=10)
+    assert len(df) == 10
+
+    df = mostly.probe(g, seed=pd.DataFrame({"a": ["a1"] * 10}))
     assert len(df) == 10
 
     ## SYNTHETIC DATASET

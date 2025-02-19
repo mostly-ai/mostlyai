@@ -101,7 +101,14 @@ def test_make_synthetic_dataset_execution_plan():
     for actual, expected in zip(execution_plan.tasks, expected_execution_plan.tasks):
         assert actual.type == expected.type
         assert actual.target_table_name == expected.target_table_name
-        assert actual.parent_task == expected.parent_task
+        actual_parent = next((t for t in execution_plan.tasks if t.id == actual.parent_task_id), None)
+        expected_parent = next((t for t in expected_execution_plan.tasks if t.id == expected.parent_task_id), None)
+        if actual_parent is None and expected_parent is None:
+            continue
+        assert actual_parent is not None
+        assert expected_parent is not None
+        assert actual_parent.type == expected_parent.type
+        assert actual_parent.target_table_name == expected_parent.target_table_name
 
 
 def test_make_generator_execution_plan():
@@ -160,16 +167,23 @@ def test_make_generator_execution_plan():
     expected_execution_plan.add_task(TaskType.train_language, parent=sync_task, target_table_name="posts")
     expected_execution_plan.add_task(TaskType.train_tabular, parent=sync_task, target_table_name="comments")
     expected_execution_plan.add_task(TaskType.train_language, parent=sync_task, target_table_name="comments")
+    expected_execution_plan.add_task(TaskType.sync)
     # expected_execution_plan.add_task(TaskType.sync)
-    post_training_sync = expected_execution_plan.add_task(TaskType.sync)
-    finalize_task = expected_execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
-    expected_execution_plan.add_task(TaskType.sync, parent=finalize_task)
+    # finalize_task = expected_execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
+    # expected_execution_plan.add_task(TaskType.sync, parent=finalize_task)
 
     assert len(execution_plan.tasks) == len(expected_execution_plan.tasks)
     for actual, expected in zip(execution_plan.tasks, expected_execution_plan.tasks):
         assert actual.type == expected.type
         assert actual.target_table_name == expected.target_table_name
-        assert actual.parent_task == expected.parent_task
+        actual_parent = next((t for t in execution_plan.tasks if t.id == actual.parent_task_id), None)
+        expected_parent = next((t for t in expected_execution_plan.tasks if t.id == expected.parent_task_id), None)
+        if actual_parent is None and expected_parent is None:
+            continue
+        assert actual_parent is not None
+        assert expected_parent is not None
+        assert actual_parent.type == expected_parent.type
+        assert actual_parent.target_table_name == expected_parent.target_table_name
 
 
 def test_make_synthetic_dataset_execution_plan_with_probe():

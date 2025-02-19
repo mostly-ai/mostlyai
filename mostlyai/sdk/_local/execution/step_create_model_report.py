@@ -41,7 +41,6 @@ def execute_step_create_model_report(
     target_table_name: str,
     workspace_dir: Path,
     report_credits: str = "",
-    report_extra_info: str = "",
     update_progress: Callable,
 ) -> ModelMetrics | None:
     # create model report and return metrics
@@ -52,7 +51,6 @@ def execute_step_create_model_report(
         model_type=model_type,
         target_table_name=target_table_name,
         report_credits=report_credits,
-        report_extra_info=report_extra_info,
         update_progress=update_progress,
     )
     return metrics
@@ -66,7 +64,6 @@ def create_report(
     model_type: ModelType,
     target_table_name: str,
     report_credits: str = "",
-    report_extra_info: str = "",
     update_progress: Callable,
 ) -> ModelMetrics | None:
     _LOG.info(f"mostlyai-qa: {qa.__version__}")
@@ -186,7 +183,6 @@ def create_report(
             report_title="Model Report",
             report_subtitle=f" for {target_table_name[:30]}:{model_type.name}",
             report_credits=report_credits,
-            report_extra_info=report_extra_info,
             max_sample_size_accuracy=100_000,
             max_sample_size_embeddings=1_000,
             statistics_path=workspace_dir / "ModelQAStatistics",
@@ -207,7 +203,6 @@ def create_report(
             report_title="Data Report",
             report_subtitle=f" for {target_table_name[:30]}:{model_type.name}",
             report_credits=report_credits,
-            report_extra_info=report_extra_info,
             max_sample_size_accuracy=100_000,
             max_sample_size_embeddings=1_000,
             update_progress=update_progress,

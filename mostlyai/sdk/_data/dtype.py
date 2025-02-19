@@ -282,6 +282,7 @@ def coerce_dtype_by_encoding(
         ModelEncodingType.tabular_numeric_binned,
         ModelEncodingType.tabular_numeric_digit,
         ModelEncodingType.tabular_numeric_discrete,
+        ModelEncodingType.language_numeric,
     ]:
         if pd.api.types.is_bool_dtype(x):
             # convert booleans to integer -> True=1, False=0
@@ -303,6 +304,7 @@ def coerce_dtype_by_encoding(
     elif encoding_type in [
         ModelEncodingType.tabular_datetime,
         ModelEncodingType.tabular_datetime_relative,
+        ModelEncodingType.language_datetime,
     ]:
         # convert all others to pyarrow timestamp; and coerce any errors to NAs
         x = pd.to_datetime(x, errors="coerce", utc=True)
@@ -315,6 +317,7 @@ def coerce_dtype_by_encoding(
         ModelEncodingType.tabular_lat_long,
         ModelEncodingType.tabular_character,
         ModelEncodingType.language_text,
+        ModelEncodingType.language_categorical,
     ]:
         x = x.astype(STRING)
     elif encoding_type is None or encoding_type == ModelEncodingType.auto:

@@ -36,10 +36,8 @@ from mostlyai.sdk.domain import (
     GeneratorPatchConfig,
     ModelType,
 )
-from mostlyai.sdk.client._base_utils import (
-    convert_to_base64,
-)
-from mostlyai.sdk.client._utils import job_wait, read_table_from_path
+from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
+from mostlyai.sdk.client._utils import job_wait
 
 
 class _MostlyGeneratorsClient(_MostlyBaseClient):
@@ -163,7 +161,10 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
                         if "name" not in table:
                             table["name"] = name
                         del df
-                    elif isinstance(table["data"], pd.DataFrame):
+                    elif isinstance(table["data"], pd.DataFrame) or (
+                        table["data"].__class__.__name__ == "DataFrame"
+                        and table["data"].__class__.__module__.startswith("pyspark.sql")
+                    ):
                         table["data"] = convert_to_base64(table["data"])
                     else:
                         raise ValueError("data must be a DataFrame or a file path")

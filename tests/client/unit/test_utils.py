@@ -37,6 +37,7 @@ from mostlyai.sdk.domain import (
     SyntheticDatasetConfig,
     SyntheticTableConfig,
     SyntheticProbeConfig,
+    SourceForeignKey,
 )
 from mostlyai.sdk.client._base_utils import (
     convert_to_base64,
@@ -172,8 +173,14 @@ def simple_sd_config():
     return SyntheticDatasetConfig(tables=[SyntheticTableConfig(name="subject")])
 
 
-def test__harmonize_sd_config(simple_sd_config):
-    mock_get_generator = Mock(
+@pytest.fixture
+def generator_id():
+    return str(uuid.uuid4())
+
+
+@pytest.fixture
+def single_table_generator_mock():
+    return Mock(
         side_effect=lambda id: Generator(
             id=id,
             training_status=ProgressStatus.done,
@@ -182,30 +189,108 @@ def test__harmonize_sd_config(simple_sd_config):
         )
     )
 
-    # case 1: existing config
-    id = str(uuid.uuid4())
+
+@pytest.fixture
+def multi_table_generator():
+    return Generator(
+        id=str(uuid.uuid4()),
+        training_status=ProgressStatus.done,
+        metadata=Metadata(),
+        tables=[
+            SourceTable(id=str(uuid.uuid4()), name="subject_1", columns=[]),
+            SourceTable(
+                id=str(uuid.uuid4()),
+                name="linked_1",
+                columns=[],
+                foreign_keys=[
+                    SourceForeignKey(
+                        id=str(uuid.uuid4()), column="subject_1_id", referenced_table="subject_1", is_context=True
+                    )
+                ],
+            ),
+            SourceTable(id=str(uuid.uuid4()), name="subject_2", columns=[]),
+        ],
+    )
+
+
+@pytest.fixture
+def multi_table_synthetic_probe_config():
+    return {
+        "tables": [
+            {
+                "name": "subject_1",
+            },
+            {
+                "name": "linked_1",
+            },
+            {
+                "name": "subject_2",
+            },
+        ]
+    }
+
+
+def test_harmonize_sd_config_existing_config(generator_id, single_table_generator_mock, simple_sd_config):
     config = harmonize_sd_config(
-        generator=id,
-        get_generator=mock_get_generator,
+        generator=generator_id,
+        get_generator=single_table_generator_mock,
         config=simple_sd_config,
         config_type=SyntheticDatasetConfig,
     )
-    assert config == SyntheticDatasetConfig(generator_id=id, tables=[SyntheticTableConfig(name="subject")])
 
-    # case 2: existing config
-    id2 = str(uuid.uuid4())
+    expected_config = SyntheticDatasetConfig(generator_id=generator_id, tables=[SyntheticTableConfig(name="subject")])
+    assert config == expected_config
+
+
+def test_harmonize_sd_no_config(generator_id, single_table_generator_mock):
     config = harmonize_sd_config(
-        generator=id2,
-        get_generator=mock_get_generator,
+        generator=generator_id,
+        get_generator=single_table_generator_mock,
         size=1234,
         seed=pd.DataFrame(),
         config_type=SyntheticProbeConfig,
     )
+
     assert isinstance(config, SyntheticProbeConfig)
-    assert config.generator_id == id2
+    assert config.generator_id == generator_id
     assert len(config.tables) == 1
+
     table = config.tables[0]
     assert table.name == "table"
     assert table.configuration.sample_size == 1234
     assert table.configuration.sample_seed_data == ANY
     assert table.configuration.sample_seed_dict is None
+
+
+@pytest.mark.parametrize(
+    "seed, size",
+    [
+        (pd.DataFrame(), None),
+        (None, 1234),
+        (pd.DataFrame(), 1234),
+    ],
+)
+def test_harmonize_sd_seed_or_size_and_config(multi_table_generator, seed, size, multi_table_synthetic_probe_config):
+    generator_id = str(uuid.uuid4())
+
+    mock_get_generator = Mock(return_value=multi_table_generator)
+
+    harmonized_config = harmonize_sd_config(
+        generator=generator_id,
+        get_generator=mock_get_generator,
+        seed=seed,
+        size=size,
+        config=multi_table_synthetic_probe_config,
+        config_type=SyntheticProbeConfig,
+    )
+
+    assert isinstance(harmonized_config, SyntheticProbeConfig)
+    assert harmonized_config.generator_id == generator_id
+    assert len(harmonized_config.tables) == len(multi_table_generator.tables)
+
+    seed_b64_or_none = convert_to_base64(seed) if seed is not None else None
+    for table in harmonized_config.tables:
+        assert table.name in ["subject_1", "linked_1", "subject_2"]
+        assert table.configuration.sample_size == (size if "subject" in table.name else None)
+        assert table.configuration.sample_seed_data == (seed_b64_or_none if table.name == "subject_1" else None)
+        assert table.configuration.sample_seed_dict is None

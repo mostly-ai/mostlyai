@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from collections import deque
-from mostlyai.sdk.domain import ModelEncodingType, Generator, SourceTable, StepCode, TaskType
+from mostlyai.sdk.domain import ModelEncodingType, Generator, SourceTable, StepCode, TaskType, ModelType
+import uuid
 
-TABULAR_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith("TABULAR")] + [ModelEncodingType.auto]
-LANGUAGE_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith("LANGUAGE")]
+TABULAR_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith(ModelType.tabular)] + [
+    ModelEncodingType.auto
+]
+LANGUAGE_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith(ModelType.language)]
 
 TRAINING_TASK_STEPS: list[StepCode] = [
     StepCode.pull_training_data,
@@ -27,11 +30,14 @@ TRAINING_TASK_STEPS: list[StepCode] = [
     StepCode.generate_model_report_data,
     StepCode.create_model_report,
 ]
+FINALIZE_TRAINING_TASK_STEPS: list[StepCode] = [
+    StepCode.finalize_training,
+]
 GENERATION_TASK_STEPS: list[StepCode] = [
     StepCode.generate_data,
     StepCode.create_data_report,
 ]
-GENERATION_FINAL_STEPS: list[StepCode] = [
+FINALIZE_GENERATION_TASK_STEPS: list[StepCode] = [
     StepCode.finalize_generation,
     StepCode.deliver_data,
 ]
@@ -53,16 +59,44 @@ def has_language_model(table: SourceTable) -> bool:
 
 
 class Task(BaseModel):
-    parent_task: "Task | None" = None
-    target_table_name: str | None = None
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    parent_task_id: str | None = Field(None, alias="parentTaskId", title="Parent Task Id")
+    target_table_name: str | None = Field(None, alias="targetTableName", title="Target Table Name")
     type: TaskType
+    steps: list[StepCode] | None
 
 
 class ExecutionPlan(BaseModel):
     tasks: list[Task]
 
     def add_task(self, task_type: TaskType, parent: Task | None = None, target_table_name: str | None = None) -> Task:
-        task = Task(type=task_type, parent_task=parent, target_table_name=target_table_name)
+        def get_steps(task_type: TaskType) -> list[StepCode]:
+            match task_type:
+                case TaskType.train_tabular | TaskType.train_language:
+                    return TRAINING_TASK_STEPS
+                case TaskType.finalize_training:
+                    return FINALIZE_TRAINING_TASK_STEPS
+                case (
+                    TaskType.generate_tabular
+                    | TaskType.generate_language
+                    | TaskType.probe_tabular
+                    | TaskType.probe_language
+                ):
+                    return GENERATION_TASK_STEPS
+                case TaskType.finalize_generation | TaskType.finalize_probing:
+                    return FINALIZE_GENERATION_TASK_STEPS
+                case _:
+                    return None
+
+        task = Task(
+            id=str(uuid.uuid4()),
+            type=task_type,
+            parent_task_id=parent.id if parent else None,
+            target_table_name=target_table_name,
+            steps=get_steps(task_type),
+        )
         self.tasks.append(task)
         return task
 
@@ -75,9 +109,10 @@ def make_generator_execution_plan(generator: Generator) -> ExecutionPlan:
             execution_plan.add_task(TaskType.train_tabular, parent=sync_task, target_table_name=table.name)
         if has_language_model(table):
             execution_plan.add_task(TaskType.train_language, parent=sync_task, target_table_name=table.name)
-    post_training_sync = execution_plan.add_task(TaskType.sync)
-    finalize_task = execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
-    execution_plan.add_task(TaskType.sync, parent=finalize_task)
+    execution_plan.add_task(TaskType.sync)
+    # post_training_sync = execution_plan.add_task(TaskType.sync)
+    # finalize_task = execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
+    # execution_plan.add_task(TaskType.sync, parent=finalize_task)
     return execution_plan
 
 

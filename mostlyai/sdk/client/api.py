@@ -39,9 +39,8 @@ from mostlyai.sdk.client.synthetic_datasets import (
     _MostlySyntheticDatasetsClient,
     _MostlySyntheticProbesClient,
 )
-from mostlyai.sdk.client._base_utils import convert_to_base64
+from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from mostlyai.sdk.client._utils import (
-    read_table_from_path,
     harmonize_sd_config,
     Seed,
 )
@@ -418,10 +417,11 @@ class MostlyAI(_MostlyBaseClient):
                 name=name,
                 tables=[SourceTableConfig(data=convert_to_base64(df), name=name)],
             )
-        elif isinstance(data, pd.DataFrame):
+        elif isinstance(data, pd.DataFrame) or (
+            data.__class__.__name__ == "DataFrame" and data.__class__.__module__.startswith("pyspark.sql")
+        ):
             df = data
             config = GeneratorConfig(
-                name=f"DataFrame {df.shape}",
                 tables=[SourceTableConfig(data=convert_to_base64(df), name="data")],
             )
         if isinstance(config, dict):

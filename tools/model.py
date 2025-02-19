@@ -34,6 +34,7 @@ from mostlyai.sdk.domain import (
     ProgressStatus,
     ModelConfiguration,
     SyntheticDatasetReportType,
+    ModelType,
 )
 
 
@@ -262,7 +263,7 @@ class Generator:
             iframes = ""
             for content in reports.values():
                 content = html.escape(content, quote=True)
-                iframes += f'<p><iframe srcdoc="{content}" width="100%" height="500"></iframe></p> '
+                iframes += f'<p><iframe srcdoc="{content}" width="100%" height="600"></iframe></p> '
 
             display(HTML(iframes))
             return None
@@ -396,7 +397,12 @@ class SourceTableConfig:
     @field_validator("data", mode="before")
     @classmethod
     def convert_data_before(cls, value):
-        return convert_to_base64(value) if isinstance(value, pd.DataFrame) else value
+        return (
+            convert_to_base64(value)
+            if isinstance(value, pd.DataFrame)
+            or (value.__class__.__name__ == "DataFrame" and value.__class__.__module__.startswith("pyspark.sql"))
+            else value
+        )
 
     @field_validator("columns", mode="before")
     @classmethod
@@ -425,8 +431,8 @@ class SourceTableConfig:
                 keys.append(values.primary_key)
             model_columns = [c for c in values.columns if c.name not in keys]
             enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
-            has_tabular_model = any(not enc_type.startswith("LANGUAGE_") for enc_type in enc_types)
-            has_language_model = any(enc_type.startswith("LANGUAGE_") for enc_type in enc_types)
+            has_tabular_model = any(not enc_type.startswith(ModelType.language) for enc_type in enc_types)
+            has_language_model = any(enc_type.startswith(ModelType.language) for enc_type in enc_types)
         else:
             has_tabular_model = True
             has_language_model = False
@@ -513,12 +519,17 @@ class SyntheticTableConfiguration:
     @field_validator("sample_seed_dict", mode="before")
     @classmethod
     def convert_dict_before(cls, value):
-        return convert_to_base64(value, format="jsonl") if isinstance(value, dict) else value
+        return convert_to_base64(value, format="jsonl") if isinstance(value, (dict, pd.DataFrame)) else value
 
     @field_validator("sample_seed_data", mode="before")
     @classmethod
     def convert_data_before(cls, value):
-        return convert_to_base64(value) if isinstance(value, pd.DataFrame) else value
+        return (
+            convert_to_base64(value)
+            if isinstance(value, pd.DataFrame)
+            or (value.__class__.__name__ == "DataFrame" and value.__class__.__module__.startswith("pyspark.sql"))
+            else value
+        )
 
     @model_validator(mode="after")
     @classmethod
@@ -700,7 +711,7 @@ class SyntheticDataset:
             iframes = ""
             for content in reports.values():
                 content = html.escape(content, quote=True)
-                iframes += f'<p><iframe srcdoc="{content}" width="100%" height="500"></iframe></p> '
+                iframes += f'<p><iframe srcdoc="{content}" width="100%" height="600"></iframe></p> '
 
             display(HTML(iframes))
             return None

@@ -33,9 +33,7 @@ class LocalServer:
     ):
         self.home_dir = Path(home_dir or "~/mostlyai").expanduser()
         self.home_dir.mkdir(parents=True, exist_ok=True)
-        self.uds = tempfile.NamedTemporaryFile(
-            dir=self.home_dir, prefix=".mostlyai-", suffix=".sock", delete=False
-        ).name
+        self.uds = tempfile.NamedTemporaryFile(prefix=".mostlyai-", suffix=".sock", delete=False).name
         self.base_url = "http://127.0.0.1"
         self._app = FastAPI(
             root_path="/api/v2",

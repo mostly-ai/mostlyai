@@ -1,0 +1,34 @@
+{
+  "template": "# What's Changed\n\n#{{CHANGELOG}}\n\n**Full Changelog**: [#{{FROM_TAG}}...#{{TO_TAG}}](#{{RELEASE_DIFF}})",
+  "pr_template": "- #{{TITLE}} [##{{NUMBER}}](#{{URL}})",
+  "empty_template": "# No Changes",
+  "categories": [
+    {
+      "title": "## 🚀 Features",
+      "labels": ["feat"]
+    },
+    {
+      "title": "## 🐛 Fixes",
+      "labels": ["fix"]
+    },
+    {
+      "title": "## 📦 Uncategorized",
+      "labels": []
+    }
+  ],
+  "ignore_labels": ["chore", "build", "docs", "refactor", "style", "bump", "ci"],
+  "label_extractor": [
+    {
+      "pattern": "^([\\w-]+)(?:\\(([^)]+)\\))?: (.+)$",
+      "target": "$1",
+      "on_property": "title"
+    }
+  ],
+  "transformers": [
+    {
+      "pattern": "^(?:.*?:\\s+)?(.*)$",
+      "target": "$1",
+      "on_property": "title"
+    }
+  ]
+}
