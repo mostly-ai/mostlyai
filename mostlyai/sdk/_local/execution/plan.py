@@ -41,6 +41,12 @@ FINALIZE_GENERATION_TASK_STEPS: list[StepCode] = [
     StepCode.finalize_generation,
     StepCode.deliver_data,
 ]
+PROBING_TASK_STEPS: list[StepCode] = [
+    StepCode.generate_data,
+]
+FINALIZE_PROBING_TASK_STEPS: list[StepCode] = [
+    StepCode.finalize_probing,
+]
 
 
 def _get_keys(table: SourceTable) -> list[str]:
@@ -72,21 +78,20 @@ class ExecutionPlan(BaseModel):
     tasks: list[Task]
 
     def add_task(self, task_type: TaskType, parent: Task | None = None, target_table_name: str | None = None) -> Task:
-        def get_steps(task_type: TaskType) -> list[StepCode]:
+        def get_steps(task_type: TaskType) -> list[StepCode] | None:
             match task_type:
                 case TaskType.train_tabular | TaskType.train_language:
                     return TRAINING_TASK_STEPS
                 case TaskType.finalize_training:
                     return FINALIZE_TRAINING_TASK_STEPS
-                case (
-                    TaskType.generate_tabular
-                    | TaskType.generate_language
-                    | TaskType.probe_tabular
-                    | TaskType.probe_language
-                ):
+                case TaskType.generate_tabular | TaskType.generate_language:
                     return GENERATION_TASK_STEPS
-                case TaskType.finalize_generation | TaskType.finalize_probing:
+                case TaskType.finalize_generation:
                     return FINALIZE_GENERATION_TASK_STEPS
+                case TaskType.probe_tabular | TaskType.probe_language:
+                    return PROBING_TASK_STEPS
+                case TaskType.finalize_probing:
+                    return FINALIZE_PROBING_TASK_STEPS
                 case _:
                     return None
 

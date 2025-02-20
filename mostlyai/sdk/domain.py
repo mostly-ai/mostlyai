@@ -2974,11 +2974,6 @@ class _SyntheticTableConfigValidation(CustomBaseModel):
     def validate_rebalancing_config(cls, validation):
         config = validation.synthetic_table.configuration
         if config and config.rebalancing:
-            has_tabular_model = validation.source_table.tabular_model_configuration is not None
-            if not has_tabular_model:
-                raise ValueError(
-                    f"Table '{validation.source_table.name}' specifies rebalancing but has no tabular model"
-                )
             rebalancing_column = config.rebalancing.column
             rebalancing_col = next(
                 (col for col in validation.source_table.columns or [] if col.name == rebalancing_column), None
@@ -2990,6 +2985,10 @@ class _SyntheticTableConfigValidation(CustomBaseModel):
             if not rebalancing_col.model_encoding_type == ModelEncodingType.tabular_categorical:
                 raise ValueError(
                     f"Rebalancing column '{rebalancing_column}' in table '{validation.source_table.name}' must be categorical"
+                )
+            if not rebalancing_col.included:
+                raise ValueError(
+                    f"Rebalancing column '{rebalancing_column}' in table '{validation.source_table.name}' must have `included=True`"
                 )
             for value in config.rebalancing.probabilities.keys():
                 if value not in rebalancing_col.value_range.values:
