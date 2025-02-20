@@ -7,8 +7,8 @@
 
 The Synthetic Data SDK is a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
 
-- **Client mode** connects to a remote [MOSTLY AI platform](https://app.mostly.ai/) for training & generating synthetic data there.
 - **Local mode** trains and generates synthetic data locally on your own compute resources.
+- **Client mode** connects to a remote [MOSTLY AI platform](https://app.mostly.ai/) for training & generating synthetic data there.
 - Generators, that were trained locally, can be easily imported to a platform for further sharing.
 
 ## Overview
