@@ -21,6 +21,7 @@ from mostlyai.sdk.domain import (
     ProgressStatus,
     GeneratorConfig,
     TaskType,
+    StepCode,
 )
 from mostlyai.sdk._local.execution.plan import (
     ExecutionPlan,
@@ -235,3 +236,6 @@ def test_make_synthetic_dataset_execution_plan_with_probe():
     assert TaskType.generate_tabular not in task_types
     assert TaskType.generate_language not in task_types
     assert TaskType.finalize_generation not in task_types
+
+    step_codes = [step for task in execution_plan.tasks for step in task.steps or []]
+    assert step_codes == [StepCode.generate_data, StepCode.generate_data, StepCode.finalize_probing]
