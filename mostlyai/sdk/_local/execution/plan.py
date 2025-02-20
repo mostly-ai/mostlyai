@@ -37,12 +37,12 @@ GENERATION_TASK_STEPS: list[StepCode] = [
     StepCode.generate_data,
     StepCode.create_data_report,
 ]
-PROBING_TASK_STEPS: list[StepCode] = [
-    StepCode.generate_data,
-]
 FINALIZE_GENERATION_TASK_STEPS: list[StepCode] = [
     StepCode.finalize_generation,
     StepCode.deliver_data,
+]
+PROBING_TASK_STEPS: list[StepCode] = [
+    StepCode.generate_data,
 ]
 FINALIZE_PROBING_TASK_STEPS: list[StepCode] = [
     StepCode.finalize_probing,
