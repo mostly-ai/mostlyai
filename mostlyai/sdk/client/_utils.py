@@ -209,7 +209,6 @@ def job_wait(
     finally:
         if progress_bar:
             live.stop()
-            # progress.stop()
 
 
 def _get_subject_table_names(generator: Generator) -> list[str]:
