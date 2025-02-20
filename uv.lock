@@ -1066,7 +1066,7 @@ wheels = [
 
 [[package]]
 name = "databricks-sql-connector"
-version = "4.0.0"
+version = "3.7.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "lz4" },
@@ -1074,25 +1074,14 @@ dependencies = [
     { name = "oauthlib" },
     { name = "openpyxl" },
     { name = "pandas" },
+    { name = "pyarrow" },
     { name = "requests" },
     { name = "thrift" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1d/9d/1ae930a513debad79a5fecf9542d1aaf1e37090025a0a29e1eb2a90dd550/databricks_sql_connector-4.0.0.tar.gz", hash = "sha256:3634fe3d19ee4641cdf76a77854573d9fe234ccdebd20230aaf94053397bc693", size = 315978 }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/2c/bfb918b1afc19f0c1db53aa6a17d0b54acc8e6b62490cbf077e78d0eb9d7/databricks_sql_connector-3.7.2.tar.gz", hash = "sha256:11bf894060d271f9c776f2b6e1e042d803479577bb23ea4c970efc13868ae863", size = 414292 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/40/5f/9682d4ba3e46964c8934a2481fcd8a0740c276af0c765d027a9c1cf7af9c/databricks_sql_connector-4.0.0-py3-none-any.whl", hash = "sha256:798ebc740e992eaf435754510d1035872d3ebbc8c5cb597aa939217220463236", size = 324593 },
-]
-
-[[package]]
-name = "databricks-sqlalchemy"
-version = "2.0.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "sqlalchemy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a7/83/5478b486dfcb3a8347b4e1a2a33bd983d0ec6990f9efa6f2f48965be252f/databricks_sqlalchemy-2.0.1.tar.gz", hash = "sha256:ce18879b4d84bd46ee3fdc864f097bdd573acc7310156d68049b0e17cfe9a6f9", size = 109794 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f9/00/8288e810cf0d0879281e0e42b11a383c36e29c47f9c8744aec7b1ae66bf7/databricks_sqlalchemy-2.0.1-py3-none-any.whl", hash = "sha256:b8e5aa7ef9add762a8ead039fe94e0f3a6e073ae4e644c88ebf29c97ec160998", size = 114861 },
+    { url = "https://files.pythonhosted.org/packages/3e/41/5ee54b0c6aeabf92f6356e3135bec40344cb2e53390e41551f2590bbcb7a/databricks_sql_connector-3.7.2-py3-none-any.whl", hash = "sha256:20ed48f76f82c0397e12e13bce211e3467cd609add8b007165d10503e73fc40b", size = 430766 },
 ]
 
 [[package]]
@@ -3040,7 +3029,6 @@ dependencies = [
 [package.optional-dependencies]
 databricks = [
     { name = "databricks-sql-connector" },
-    { name = "databricks-sqlalchemy" },
 ]
 googlebigquery = [
     { name = "sqlalchemy-bigquery" },
@@ -3121,8 +3109,7 @@ requires-dist = [
     { name = "adlfs", specifier = ">=2023.4.0" },
     { name = "azure-storage-blob", specifier = ">=12.16.0" },
     { name = "cloudpathlib", extras = ["gs", "s3", "azure"], specifier = ">=0.17.0" },
-    { name = "databricks-sql-connector", marker = "extra == 'databricks'", specifier = ">=3.2.0" },
-    { name = "databricks-sqlalchemy", marker = "extra == 'databricks'", specifier = ">=2.0.0" },
+    { name = "databricks-sql-connector", marker = "extra == 'databricks'", specifier = ">=3.2.0,<4" },
     { name = "environs", specifier = ">=9.5.0" },
     { name = "fastapi", marker = "extra == 'local'", specifier = ">=0.115.6,<0.116" },
     { name = "fastapi", marker = "extra == 'local-cpu'", specifier = ">=0.115.6,<0.116" },

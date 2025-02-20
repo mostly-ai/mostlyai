@@ -85,7 +85,7 @@ local-cpu = [
     "torch>=2.5.1,<2.6.0; sys_platform != 'linux'",
 ]
 # connectors
-databricks = ["databricks-sql-connector>=3.2.0", "databricks-sqlalchemy>=2.0.0"]
+databricks = ["databricks-sql-connector>=3.2.0,<4"]
 googlebigquery = ["sqlalchemy-bigquery>=1.6.1,<2"]
 hive = [
     "pyhive[hive-pure-sasl]>=0.7.0,<0.8",
