@@ -1084,6 +1084,18 @@ wheels = [
 ]
 
 [[package]]
+name = "databricks-sqlalchemy"
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "sqlalchemy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a7/83/5478b486dfcb3a8347b4e1a2a33bd983d0ec6990f9efa6f2f48965be252f/databricks_sqlalchemy-2.0.1.tar.gz", hash = "sha256:ce18879b4d84bd46ee3fdc864f097bdd573acc7310156d68049b0e17cfe9a6f9", size = 109794 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f9/00/8288e810cf0d0879281e0e42b11a383c36e29c47f9c8744aec7b1ae66bf7/databricks_sqlalchemy-2.0.1-py3-none-any.whl", hash = "sha256:b8e5aa7ef9add762a8ead039fe94e0f3a6e073ae4e644c88ebf29c97ec160998", size = 114861 },
+]
+
+[[package]]
 name = "datamodel-code-generator"
 version = "0.26.5"
 source = { registry = "https://pypi.org/simple" }
@@ -3028,6 +3040,7 @@ dependencies = [
 [package.optional-dependencies]
 databricks = [
     { name = "databricks-sql-connector" },
+    { name = "databricks-sqlalchemy" },
 ]
 googlebigquery = [
     { name = "sqlalchemy-bigquery" },
@@ -3109,6 +3122,7 @@ requires-dist = [
     { name = "azure-storage-blob", specifier = ">=12.16.0" },
     { name = "cloudpathlib", extras = ["gs", "s3", "azure"], specifier = ">=0.17.0" },
     { name = "databricks-sql-connector", marker = "extra == 'databricks'", specifier = ">=3.2.0" },
+    { name = "databricks-sqlalchemy", marker = "extra == 'databricks'", specifier = ">=2.0.0" },
     { name = "environs", specifier = ">=9.5.0" },
     { name = "fastapi", marker = "extra == 'local'", specifier = ">=0.115.6,<0.116" },
     { name = "fastapi", marker = "extra == 'local-cpu'", specifier = ">=0.115.6,<0.116" },
