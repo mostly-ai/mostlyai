@@ -47,14 +47,14 @@ dependencies = [
     "openpyxl>=3.1.5",
     "networkx>=3.0,<4",
     "ipywidgets>=8.1.0",
-    # cloud-based connectors
-    "s3fs>=2023.1.0,<2024",
-    "gcsfs>=2023.1.0,<2024",
-    "cloudpathlib[gs, s3, azure]>=0.17.0,<0.18",
-    "smart-open[gcs, s3, azure]>=6.3.0,<7",
-    "azure-storage-blob>=12.16.0,<13",
-    "adlfs>=2023.4.0,<2024",
     "filelock>=3.16.1",
+    # cloud-based connectors
+    "s3fs>=2023.1.0",
+    "gcsfs>=2023.1.0",
+    "cloudpathlib[gs, s3, azure]>=0.17.0",
+    "smart-open[gcs, s3, azure]>=6.3.0",
+    "azure-storage-blob>=12.16.0",
+    "adlfs>=2023.4.0",
 ]
 
 [project.optional-dependencies]
@@ -85,7 +85,7 @@ local-cpu = [
     "torch>=2.5.1,<2.6.0; sys_platform != 'linux'",
 ]
 # connectors
-databricks = ["databricks-sql-connector>=3.2.0,<4"]
+databricks = ["databricks-sql-connector>=3.2.0"]
 googlebigquery = ["sqlalchemy-bigquery>=1.6.1,<2"]
 hive = [
     "pyhive[hive-pure-sasl]>=0.7.0,<0.8",
