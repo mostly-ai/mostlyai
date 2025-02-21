@@ -18,11 +18,11 @@ from pathlib import Path
 
 from threading import Thread
 
-import psutil
 import rich
-import torch
 from fastapi import FastAPI
 import uvicorn
+
+from mostlyai import sdk
 from mostlyai.sdk._local.routes import Routes
 
 import os
@@ -67,15 +67,6 @@ class LocalServer:
 
     def start(self):
         if not self._server:
-            msg = f"Starting Synthetic Data SDK in local mode using [link=file://{self.home_dir} dodger_blue2 underline]{self.home_dir}[/]"
-            # report local compute resources
-            compute = f"{psutil.virtual_memory().total / (1024**3):.0f} GB RAM, {psutil.cpu_count(logical=True)} CPUs"
-            if torch.cuda.is_available():
-                compute += f", {torch.cuda.device_count()}x {torch.cuda.get_device_name()}"
-            else:
-                compute += ", 0 GPUs"
-            msg += f" ({compute})"
-            rich.print(msg)
             self._create_server()
             self._thread = Thread(target=self._run_server, daemon=True)
             self._thread.start()

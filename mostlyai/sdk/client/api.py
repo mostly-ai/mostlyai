@@ -18,6 +18,7 @@ from typing import Any, Literal
 import pandas as pd
 import rich
 
+from mostlyai import sdk
 from mostlyai.sdk.client.base import GET, _MostlyBaseClient
 from mostlyai.sdk.client.connectors import _MostlyConnectorsClient
 from mostlyai.sdk.client.exceptions import APIError
@@ -44,7 +45,6 @@ from mostlyai.sdk.client._utils import (
     harmonize_sd_config,
     Seed,
 )
-
 
 class MostlyAI(_MostlyBaseClient):
     """
@@ -117,10 +117,12 @@ class MostlyAI(_MostlyBaseClient):
                 )
 
             self.local = LocalServer(home_dir=local_dir)
+            home_dir = self.local.home_dir
             base_url = self.local.base_url
             api_key = "local"
             uds = self.local.uds
         else:
+            home_dir = None
             uds = None
 
         client_kwargs = {
@@ -135,19 +137,30 @@ class MostlyAI(_MostlyBaseClient):
         self.generators = _MostlyGeneratorsClient(**client_kwargs)
         self.synthetic_datasets = _MostlySyntheticDatasetsClient(**client_kwargs)
         self.synthetic_probes = _MostlySyntheticProbesClient(**client_kwargs)
-        try:
-            if local:
-                msg = "Connected to Synthetic Data SDK in local mode"
+        if local:
+            rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]local[/bold] mode")
+            msg = f"Connected to [link=file://{home_dir} dodger_blue2 underline]{home_dir}[/]"
+            import torch  # noqa
+            import psutil  # noqa
+            msg += f" with {psutil.virtual_memory().total / (1024**3):.0f} GB RAM"
+            msg += f", {psutil.cpu_count(logical=True)} CPUs"
+            if torch.cuda.is_available():
+                msg += f", {torch.cuda.device_count()}x {torch.cuda.get_device_name()}"
             else:
-                msg = f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
-            version = self.about().version
-            msg += f" ({version})"
-            email = self.me().email
-            if email:
-                msg += f" as [bold]{email}[/bold]"
+                msg += ", 0 GPUs"
+            msg += " available"
             rich.print(msg)
-        except Exception as e:
-            rich.print(f"Failed to connect to {self.base_url}: {e}.")
+        else:
+            rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]client[/bold] mode")
+            try:
+                server_version = self.about().version
+                email = self.me().email
+                msg = (f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
+                       f" {server_version}"
+                       f" as [bold]{email}[/bold]")
+                rich.print(msg)
+            except Exception as e:
+                rich.print(f"Failed to connect to {self.base_url}: {e}.")
 
     def __repr__(self) -> str:
         if self.local:

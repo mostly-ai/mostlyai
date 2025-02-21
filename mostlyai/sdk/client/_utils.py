@@ -152,17 +152,22 @@ def job_wait(
                             expand=True,
                             header_style="none",
                         )
-                        columns = ["Epochs", "Samples", "Elapsed time", "Val loss"]
+                        columns = ["Epochs", "Samples", "Elapsed Time", "Val Loss"]
                         if messages and messages[0].get("dp_eps"):
                             columns.append("Diff Privacy (ε/δ)")
                         for col in columns:
                             training_log.add_column(col, justify="right")
                         for j, message in enumerate(messages):
                             formatted_message = [
-                                str(message[k]) for k in ["epoch", "samples", "total_time", "val_loss"]
+                                f"{message['epoch']:.2f}" if message.get("epoch") else "-",
+                                f"{message['samples']:,}" if message.get("samples") else "-",
+                                f"{message['total_time']:.0f}s" if message.get("total_time") else "-",
+                                f"{message['val_loss']:.4f}" if message.get("val_loss") else "-",
                             ]
                             if message.get("dp_eps"):
-                                formatted_message.append(f"{message['dp_eps']:.2f} / {message['dp_delta']:.1e}")
+                                formatted_message += [
+                                    f"{message['dp_eps']:.2f} / {message['dp_delta']:.0e}"
+                                ]
                             style = "#14b57d on #f0fff7" if j == last_checkpoint_idx else "bright_black"
                             training_log.add_row(*formatted_message, style=style)
                     current_task_id = progress_bars[step.id]
