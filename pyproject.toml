@@ -48,13 +48,6 @@ dependencies = [
     "networkx>=3.0,<4",
     "ipywidgets>=8.1.0",
     "filelock>=3.16.1",
-    # cloud-based connectors
-    "s3fs>=2023.1.0",
-    "gcsfs>=2023.1.0",
-    "cloudpathlib[gs, s3, azure]>=0.17.0",
-    "smart-open[gcs, s3, azure]>=6.3.0",
-    "azure-storage-blob>=12.16.0",
-    "adlfs>=2023.4.0",
 ]
 
 [project.optional-dependencies]
@@ -66,6 +59,13 @@ local = [
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
     "torch>=2.5.1,<2.6.0",
+    # cloud-based connectors
+    "s3fs>=2023.1.0",
+    "gcsfs>=2023.1.0",
+    "cloudpathlib[gs, s3, azure]>=0.17.0",
+    "smart-open[gcs, s3, azure]>=6.3.0",
+    "azure-storage-blob>=12.16.0",
+    "adlfs>=2023.4.0",
 ]
 local-gpu = [
     "mostlyai-engine[gpu]==1.1.4",
@@ -74,6 +74,13 @@ local-gpu = [
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
     "torch>=2.5.1,<2.6.0",
+    # cloud-based connectors
+    "s3fs>=2023.1.0",
+    "gcsfs>=2023.1.0",
+    "cloudpathlib[gs, s3, azure]>=0.17.0",
+    "smart-open[gcs, s3, azure]>=6.3.0",
+    "azure-storage-blob>=12.16.0",
+    "adlfs>=2023.4.0",
 ]
 local-cpu = [
     "mostlyai-engine[cpu]==1.1.4",
@@ -83,6 +90,13 @@ local-cpu = [
     "python-multipart>=0.0.20",
     "torch==2.5.1+cpu; sys_platform == 'linux'",
     "torch>=2.5.1,<2.6.0; sys_platform != 'linux'",
+    # cloud-based connectors
+    "s3fs>=2023.1.0",
+    "gcsfs>=2023.1.0",
+    "cloudpathlib[gs, s3, azure]>=0.17.0",
+    "smart-open[gcs, s3, azure]>=6.3.0",
+    "azure-storage-blob>=12.16.0",
+    "adlfs>=2023.4.0",
 ]
 # connectors
 databricks = ["databricks-sql-connector>=3.2.0,<4"]

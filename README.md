@@ -45,7 +45,7 @@ pip install -U mostlyai
 # for CPU on macOS
 pip install -U 'mostlyai[local]'
 # for CPU on Linux
-#pip install -U mostlyai[local] --extra-index-url https://download.pytorch.org/whl/cpu
+#pip install -U mostlyai[local-cpu] --extra-index-url https://download.pytorch.org/whl/cpu
 # for GPU on Linux
 #pip install -U mostlyai[local-gpu]
 ```
