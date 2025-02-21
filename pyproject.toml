@@ -32,22 +32,15 @@ dependencies = [
     "rich>=13.7.0",
     "psutil>=5.9.5",
     "requests>=2.31.0",
-    "sqlalchemy>=2.0.0",
     "typer>=0.9.0",
     "semantic-version>=2.10.0",
-    "joblib>=1.2.0",
     "gunicorn>=23.0.0",
     "environs>=9.5.0",
     "schema>=0.7.5",
     "xxhash>=3.2.0",
     "greenlet>=3.1.1,<4",
     "pycryptodomex>=3.10.0,<4",
-    "sshtunnel>=0.4.0,<0.5",
-    "xlsxwriter>=3.1.9,<4",
-    "openpyxl>=3.1.5",
-    "networkx>=3.0,<4",
     "ipywidgets>=8.1.0",
-    "filelock>=3.16.1",
 ]
 
 [project.optional-dependencies]
@@ -59,6 +52,10 @@ local = [
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
     "torch>=2.5.1,<2.6.0",
+    "networkx>=3.0,<4",
+    "xlsxwriter>=3.1.9,<4",
+    "openpyxl>=3.1.5",
+    "filelock>=3.16.1",
     # cloud-based connectors
     "s3fs>=2023.1.0",
     "gcsfs>=2023.1.0",
@@ -74,6 +71,10 @@ local-gpu = [
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
     "torch>=2.5.1,<2.6.0",
+    "networkx>=3.0,<4",
+    "xlsxwriter>=3.1.9,<4",
+    "openpyxl>=3.1.5",
+    "filelock>=3.16.1",
     # cloud-based connectors
     "s3fs>=2023.1.0",
     "gcsfs>=2023.1.0",
@@ -90,6 +91,10 @@ local-cpu = [
     "python-multipart>=0.0.20",
     "torch==2.5.1+cpu; sys_platform == 'linux'",
     "torch>=2.5.1,<2.6.0; sys_platform != 'linux'",
+    "networkx>=3.0,<4",
+    "xlsxwriter>=3.1.9,<4",
+    "openpyxl>=3.1.5",
+    "filelock>=3.16.1",
     # cloud-based connectors
     "s3fs>=2023.1.0",
     "gcsfs>=2023.1.0",
@@ -99,18 +104,54 @@ local-cpu = [
     "adlfs>=2023.4.0",
 ]
 # connectors
-databricks = ["databricks-sql-connector>=3.2.0,<4"]
-googlebigquery = ["sqlalchemy-bigquery>=1.6.1,<2"]
+databricks = [
+    "sqlalchemy>=2.0.0",
+    "sshtunnel>=0.4.0,<0.5",
+    "joblib>=1.2.0",
+    "databricks-sql-connector>=3.2.0,<4",
+]
+googlebigquery = [
+    "sqlalchemy>=2.0.0",
+    "sshtunnel>=0.4.0,<0.5",
+    "joblib>=1.2.0",
+    "sqlalchemy-bigquery>=1.6.1,<2",
+]
 hive = [
+    "sqlalchemy>=2.0.0",
+    "sshtunnel>=0.4.0,<0.5",
+    "joblib>=1.2.0",
     "pyhive[hive-pure-sasl]>=0.7.0,<0.8",
     "kerberos>=1.3.1,<2",
     "impyla>=0.19.0,<0.20",
 ]
-mssql = ["pyodbc>=5.1.0,<6"]
-mysql = ["mysql-connector-python>=9.1.0,<10"]
-oracle = ["oracledb>=2.2.1,<3"]
-postgres = ["psycopg2>=2.9.4,<3"]
-snowflake = ["snowflake-sqlalchemy>=1.6.1,<2"]
+mssql = [
+    "sqlalchemy>=2.0.0",
+    "sshtunnel>=0.4.0,<0.5",
+    "joblib>=1.2.0",
+    "pyodbc>=5.1.0,<6",
+]
+mysql = [
+    "sqlalchemy>=2.0.0",
+    "sshtunnel>=0.4.0,<0.5",
+    "joblib>=1.2.0",
+    "mysql-connector-python>=9.1.0,<10",
+]
+oracle = [
+    "sqlalchemy>=2.0.0",
+    "sshtunnel>=0.4.0,<0.5",
+    "joblib>=1.2.0",
+    "oracledb>=2.2.1,<3"
+]
+postgres = [
+    "sqlalchemy>=2.0.0",
+    "sshtunnel>=0.4.0,<0.5",
+    "psycopg2>=2.9.4,<3"
+]
+snowflake = [
+    "sqlalchemy>=2.0.0",
+    "sshtunnel>=0.4.0,<0.5",
+    "snowflake-sqlalchemy>=1.6.1,<2"
+]
 
 [dependency-groups]
 dev = [
