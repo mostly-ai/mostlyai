@@ -26,10 +26,10 @@ The SDK allows you to programmatically create, browse and manage 3 key resources
 
 | Intent                                        | Primitive                         | Documentation                                                                                                     |
 |-----------------------------------------------|-----------------------------------|-------------------------------------------------------------------------------------------------------------------|
-| Train a Generator on tabular or language data | `g = mostly.train(config)`        | see [mostly.train](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.train)       |
-| Generate any number of synthetic data records | `sd = mostly.generate(g, config)` | see [mostly.generate](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.generate) |
-| Live probe the generator on demand            | `df = mostly.probe(g, config)`    | see [mostly.probe](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.probe)       |
-| Connect to any data source within your org    | `c = mostly.connect(config)`      | see [mostly.connect](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.connect)   |
+| Train a Generator on tabular or language data | `g = mostly.train(config)`        | see&nbsp;[mostly.train](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.train)       |
+| Generate any number of synthetic data records | `sd = mostly.generate(g, config)` | see&nbsp;[mostly.generate](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.generate) |
+| Live probe the generator on demand            | `df = mostly.probe(g, config)`    | see&nbsp;[mostly.probe](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.probe)       |
+| Connect to any data source within your org    | `c = mostly.connect(config)`      | see&nbsp;[mostly.connect](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.connect)   |
 
 https://github.com/user-attachments/assets/d1613636-06e4-4147-bef7-25bb4699e8fc
 
