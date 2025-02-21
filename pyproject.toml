@@ -52,6 +52,7 @@ local = [
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
     "torch>=2.5.1,<2.6.0",
+    "joblib>=1.2.0",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
     "networkx>=3.0,<4",
@@ -73,6 +74,7 @@ local-gpu = [
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
     "torch>=2.5.1,<2.6.0",
+    "joblib>=1.2.0",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
     "networkx>=3.0,<4",
@@ -95,6 +97,7 @@ local-cpu = [
     "python-multipart>=0.0.20",
     "torch==2.5.1+cpu; sys_platform == 'linux'",
     "torch>=2.5.1,<2.6.0; sys_platform != 'linux'",
+    "joblib>=1.2.0",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
     "networkx>=3.0,<4",
@@ -111,37 +114,29 @@ local-cpu = [
 ]
 # connectors
 databricks = [
-    "joblib>=1.2.0",
     "databricks-sql-connector>=3.2.0,<4",
 ]
 googlebigquery = [
-    "joblib>=1.2.0",
     "sqlalchemy-bigquery>=1.6.1,<2",
 ]
 hive = [
-    "joblib>=1.2.0",
     "pyhive[hive-pure-sasl]>=0.7.0,<0.8",
     "kerberos>=1.3.1,<2",
     "impyla>=0.19.0,<0.20",
 ]
 mssql = [
-    "joblib>=1.2.0",
     "pyodbc>=5.1.0,<6",
 ]
 mysql = [
-    "joblib>=1.2.0",
     "mysql-connector-python>=9.1.0,<10",
 ]
 oracle = [
-    "joblib>=1.2.0",
     "oracledb>=2.2.1,<3"
 ]
 postgres = [
-    "joblib>=1.2.0",
     "psycopg2>=2.9.4,<3"
 ]
 snowflake = [
-    "joblib>=1.2.0",
     "snowflake-sqlalchemy>=1.6.1,<2"
 ]
 
