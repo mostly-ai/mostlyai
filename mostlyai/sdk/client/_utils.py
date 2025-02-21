@@ -150,6 +150,7 @@ def job_wait(
                             title=f"Latest training log for `{step.model_label}`",
                             box=box.SIMPLE_HEAD,
                             expand=True,
+                            header_style="none",
                         )
                         columns = ["Epochs", "Samples", "Elapsed time", "Val loss"]
                         if messages and messages[0].get("dp_eps"):
