@@ -148,8 +148,7 @@ def job_wait(
                         )
                         training_log = Table(
                             title=f"Latest training log for `{step.model_label}`",
-                            header_style="grey19",
-                            box=box.SQUARE_DOUBLE_HEAD,
+                            box=box.SIMPLE_HEAD,
                             expand=True,
                         )
                         columns = ["Epochs", "Samples", "Elapsed time", "Val loss"]
@@ -163,8 +162,7 @@ def job_wait(
                             ]
                             if message.get("dp_eps"):
                                 formatted_message.append(f"{message['dp_eps']:.2f} / {message['dp_delta']:.1e}")
-                            # TODO: check the actual HEX colors used in the platform
-                            style = "#54b281 on #f3fff7" if j == last_checkpoint_idx else "bright_black"
+                            style = "#14b57d on #f0fff7" if j == last_checkpoint_idx else "bright_black"
                             training_log.add_row(*formatted_message, style=style)
                     current_task_id = progress_bars[step.id]
                     current_task = progress.tasks[current_task_id]
