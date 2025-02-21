@@ -45,6 +45,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         limit: int | None = None,
         access_type: str | None = None,
         search_term: str | None = None,
+        owner_id: str | list[str] | None = None,
     ) -> Iterator[ConnectorListItem]:
         """
         List connectors.
@@ -64,6 +65,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             limit: Limit for the number of entities in the response.
             access_type: Filter by access type (e.g., "SOURCE" or "DESTINATION").
             search_term: Filter by string in the connector name.
+            owner_id: Filter by owner ID.
 
         Returns:
             Iterator[ConnectorListItem]: An iterator over connector list items.
@@ -75,6 +77,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             limit=limit,
             access_type=access_type,
             search_term=search_term,
+            owner_id=owner_id,
         ) as paginator:
             yield from paginator
 

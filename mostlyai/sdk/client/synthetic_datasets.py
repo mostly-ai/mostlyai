@@ -54,6 +54,7 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         limit: int | None = None,
         status: str | list[str] | None = None,
         search_term: str | None = None,
+        owner_id: str | list[str] | None = None,
     ) -> Iterator[SyntheticDatasetListItem]:
         """
         List synthetic datasets.
@@ -81,6 +82,7 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             limit: Limit for the number of entities in the response.
             status: Filter by generation status.
             search_term: Filter by name or description.
+            owner_id: Filter by owner ID.
 
         Returns:
             An iterator over synthetic datasets.
@@ -93,6 +95,7 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             limit=limit,
             status=status,
             search_term=search_term,
+            owner_id=owner_id,
         ) as paginator:
             yield from paginator
 

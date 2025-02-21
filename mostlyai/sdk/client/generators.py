@@ -51,6 +51,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         limit: int | None = None,
         status: str | list[str] | None = None,
         search_term: str | None = None,
+        owner_id: str | list[str] | None = None,
     ) -> Iterator[GeneratorListItem]:
         """
         List generators.
@@ -78,6 +79,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             limit: Limit for the number of entities in the response.
             status: Filter by training status.
             search_term: Filter by name or description.
+            owner_id: Filter by owner ID.
 
         Returns:
             Iterator[GeneratorListItem]: An iterator over generator list items.
@@ -90,6 +92,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             limit=limit,
             status=status,
             search_term=search_term,
+            owner_id=owner_id,
         ) as paginator:
             yield from paginator
 
