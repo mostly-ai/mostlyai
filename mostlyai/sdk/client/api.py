@@ -46,6 +46,7 @@ from mostlyai.sdk.client._utils import (
     Seed,
 )
 
+
 class MostlyAI(_MostlyBaseClient):
     """
     Instantiate an SDK instance, either in client or in local mode.
@@ -142,6 +143,7 @@ class MostlyAI(_MostlyBaseClient):
             msg = f"Connected to [link=file://{home_dir} dodger_blue2 underline]{home_dir}[/]"
             import torch  # noqa
             import psutil  # noqa
+
             msg += f" with {psutil.virtual_memory().total / (1024**3):.0f} GB RAM"
             msg += f", {psutil.cpu_count(logical=True)} CPUs"
             if torch.cuda.is_available():
@@ -155,9 +157,11 @@ class MostlyAI(_MostlyBaseClient):
             try:
                 server_version = self.about().version
                 email = self.me().email
-                msg = (f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
-                       f" {server_version}"
-                       f" as [bold]{email}[/bold]")
+                msg = (
+                    f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
+                    f" {server_version}"
+                    f" as [bold]{email}[/bold]"
+                )
                 rich.print(msg)
             except Exception as e:
                 rich.print(f"Failed to connect to {self.base_url}: {e}.")

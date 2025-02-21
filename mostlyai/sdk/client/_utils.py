@@ -165,9 +165,7 @@ def job_wait(
                                 f"{message['val_loss']:.4f}" if message.get("val_loss") else "-",
                             ]
                             if message.get("dp_eps"):
-                                formatted_message += [
-                                    f"{message['dp_eps']:.2f} / {message['dp_delta']:.0e}"
-                                ]
+                                formatted_message += [f"{message['dp_eps']:.2f} / {message['dp_delta']:.0e}"]
                             style = "#14b57d on #f0fff7" if j == last_checkpoint_idx else "bright_black"
                             training_log.add_row(*formatted_message, style=style)
                     current_task_id = progress_bars[step.id]
