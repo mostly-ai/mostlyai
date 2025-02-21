@@ -3102,12 +3102,10 @@ dependencies = [
 databricks = [
     { name = "databricks-sql-connector" },
     { name = "joblib" },
-    { name = "sqlalchemy" },
     { name = "sshtunnel" },
 ]
 googlebigquery = [
     { name = "joblib" },
-    { name = "sqlalchemy" },
     { name = "sqlalchemy-bigquery" },
     { name = "sshtunnel" },
 ]
@@ -3116,7 +3114,6 @@ hive = [
     { name = "joblib" },
     { name = "kerberos" },
     { name = "pyhive", extra = ["hive-pure-sasl"] },
-    { name = "sqlalchemy" },
     { name = "sshtunnel" },
 ]
 local = [
@@ -3133,6 +3130,7 @@ local = [
     { name = "python-multipart" },
     { name = "s3fs" },
     { name = "smart-open", extra = ["azure", "gcs", "s3"] },
+    { name = "sqlalchemy" },
     { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'darwin' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-mostlyai-local-gpu' or extra != 'extra-8-mostlyai-local-cpu'" },
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
@@ -3153,6 +3151,7 @@ local-cpu = [
     { name = "python-multipart" },
     { name = "s3fs" },
     { name = "smart-open", extra = ["azure", "gcs", "s3"] },
+    { name = "sqlalchemy" },
     { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'darwin'" },
     { name = "torch", version = "2.5.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform != 'darwin'" },
     { name = "uvicorn" },
@@ -3172,6 +3171,7 @@ local-gpu = [
     { name = "python-multipart" },
     { name = "s3fs" },
     { name = "smart-open", extra = ["azure", "gcs", "s3"] },
+    { name = "sqlalchemy" },
     { name = "torch", version = "2.5.1", source = { registry = "https://pypi.org/simple" } },
     { name = "uvicorn" },
     { name = "xlsxwriter" },
@@ -3179,29 +3179,24 @@ local-gpu = [
 mssql = [
     { name = "joblib" },
     { name = "pyodbc" },
-    { name = "sqlalchemy" },
     { name = "sshtunnel" },
 ]
 mysql = [
     { name = "joblib" },
     { name = "mysql-connector-python" },
-    { name = "sqlalchemy" },
     { name = "sshtunnel" },
 ]
 oracle = [
     { name = "joblib" },
     { name = "oracledb" },
-    { name = "sqlalchemy" },
     { name = "sshtunnel" },
 ]
 postgres = [
     { name = "psycopg2" },
-    { name = "sqlalchemy" },
     { name = "sshtunnel" },
 ]
 snowflake = [
     { name = "snowflake-sqlalchemy" },
-    { name = "sqlalchemy" },
     { name = "sshtunnel" },
 ]
 
@@ -3299,14 +3294,9 @@ requires-dist = [
     { name = "smart-open", extras = ["gcs", "s3", "azure"], marker = "extra == 'local-cpu'", specifier = ">=6.3.0" },
     { name = "smart-open", extras = ["gcs", "s3", "azure"], marker = "extra == 'local-gpu'", specifier = ">=6.3.0" },
     { name = "snowflake-sqlalchemy", marker = "extra == 'snowflake'", specifier = ">=1.6.1,<2" },
-    { name = "sqlalchemy", marker = "extra == 'databricks'", specifier = ">=2.0.0" },
-    { name = "sqlalchemy", marker = "extra == 'googlebigquery'", specifier = ">=2.0.0" },
-    { name = "sqlalchemy", marker = "extra == 'hive'", specifier = ">=2.0.0" },
-    { name = "sqlalchemy", marker = "extra == 'mssql'", specifier = ">=2.0.0" },
-    { name = "sqlalchemy", marker = "extra == 'mysql'", specifier = ">=2.0.0" },
-    { name = "sqlalchemy", marker = "extra == 'oracle'", specifier = ">=2.0.0" },
-    { name = "sqlalchemy", marker = "extra == 'postgres'", specifier = ">=2.0.0" },
-    { name = "sqlalchemy", marker = "extra == 'snowflake'", specifier = ">=2.0.0" },
+    { name = "sqlalchemy", marker = "extra == 'local'", specifier = ">=2.0.0" },
+    { name = "sqlalchemy", marker = "extra == 'local-cpu'", specifier = ">=2.0.0" },
+    { name = "sqlalchemy", marker = "extra == 'local-gpu'", specifier = ">=2.0.0" },
     { name = "sqlalchemy-bigquery", marker = "extra == 'googlebigquery'", specifier = ">=1.6.1,<2" },
     { name = "sshtunnel", marker = "extra == 'databricks'", specifier = ">=0.4.0,<0.5" },
     { name = "sshtunnel", marker = "extra == 'googlebigquery'", specifier = ">=0.4.0,<0.5" },
@@ -6034,7 +6024,7 @@ name = "sqlalchemy"
 version = "2.0.38"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "greenlet", marker = "platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64' or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
+    { name = "greenlet", marker = "platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e4/08/9a90962ea72acd532bda71249a626344d855c4032603924b1b547694b837/sqlalchemy-2.0.38.tar.gz", hash = "sha256:e5a4d82bdb4bf1ac1285a68eab02d253ab73355d9f0fe725a97e1e0fa689decb", size = 9634782 }
