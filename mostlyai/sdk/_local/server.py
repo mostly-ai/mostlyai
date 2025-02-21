@@ -69,7 +69,7 @@ class LocalServer:
         if not self._server:
             msg = f"Starting Synthetic Data SDK in local mode using [link=file://{self.home_dir} dodger_blue2 underline]{self.home_dir}[/]"
             # report local compute resources
-            compute = f"{psutil.virtual_memory().total / (1024**3):.0f} GB, {psutil.cpu_count(logical=True)} CPUs"
+            compute = f"{psutil.virtual_memory().total / (1024**3):.0f} GB RAM, {psutil.cpu_count(logical=True)} CPUs"
             if torch.cuda.is_available():
                 compute += f", {torch.cuda.device_count()}x {torch.cuda.get_device_name()}"
             else:
