@@ -22,7 +22,6 @@ import rich
 from fastapi import FastAPI
 import uvicorn
 
-from mostlyai import sdk
 from mostlyai.sdk._local.routes import Routes
 
 import os
