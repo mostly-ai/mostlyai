@@ -55,7 +55,6 @@ def check_local_mode_available() -> None:
     try:
         from mostlyai.sdk._local.server import LocalServer  # noqa
         from mostlyai import qa  # noqa
-        raise ImportError('This is a test')
 
         return
     except ImportError:
