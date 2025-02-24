@@ -22,7 +22,6 @@ from rich.prompt import Prompt
 from mostlyai import sdk
 from mostlyai.sdk.client.base import GET, _MostlyBaseClient, DEFAULT_BASE_URL
 from mostlyai.sdk.client.connectors import _MostlyConnectorsClient
-from mostlyai.sdk.client.exceptions import APIError
 from mostlyai.sdk.client.generators import _MostlyGeneratorsClient
 from mostlyai.sdk.domain import (
     Connector,
@@ -47,6 +46,7 @@ from mostlyai.sdk.client._utils import (
     Seed,
     check_local_mode_available,
     validate_api_key,
+    validate_base_url,
 )
 from mostlyai.sdk._local.server import LocalServer
 
@@ -116,18 +116,18 @@ class MostlyAI(_MostlyBaseClient):
         # confirm CLIENT or LOCAL setup
         if not api_key and not local:
             choice = Prompt.ask(
-                "API key required for [bold]CLIENT[/bold] mode!\n\nChoose an option:\n"
-                "1) Enter your API key\n"
-                "2) Obtain an API key\n"
-                "3) Run in [bold]LOCAL[/bold] mode\n\n",
+                f"API key required for [bold]CLIENT[/bold] mode!\n\n"
+                "Choose an option:\n"
+                f"1) Enter your API key for [link={base_url}]{base_url}[/]\n"
+                f"2) Obtain an API key for [link={base_url}]{base_url}[/]\n"
+                "3) Or run SDK in [bold]LOCAL[/bold] mode\n\n",
                 choices=["1", "2", "3"],
             )
             if choice == "1" or choice == "2":
                 if choice == "2":
                     url = f"{base_url}/settings/api-keys"
                     rich.print(f"\nVisit [link={url}]{url}[/] to generate an API key.")
-                api_key = Prompt.ask("\nEnter your API key: ", password=True)
-                validate_api_key(api_key)
+                api_key = Prompt.ask("\nEnter your API key", password=True)
                 rich.print(
                     "Tip: Set the API key as environment variable [bold]MOSTLY_API_KEY[/bold] "
                     "to skip this prompt in the future."
@@ -148,6 +148,8 @@ class MostlyAI(_MostlyBaseClient):
             api_key = "local"
             uds = self.local.uds
         else:
+            validate_base_url(base_url)
+            validate_api_key(api_key)
             home_dir = None
             uds = None
 

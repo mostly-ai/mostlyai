@@ -67,8 +67,8 @@ class _MostlyBaseClient:
         timeout: float = 60.0,
         ssl_verify: bool = True,
     ):
-        self.base_url = base_url
-        self.api_key = api_key
+        self.base_url = (base_url or os.getenv("MOSTLY_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
+        self.api_key = api_key or os.getenv("MOSTLY_API_KEY")
         self.local = uds is not None
         self.transport = httpx.HTTPTransport(uds=uds) if uds else None
         self.timeout = timeout

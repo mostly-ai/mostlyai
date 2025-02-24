@@ -16,6 +16,7 @@ import time
 from pathlib import Path
 from typing import Union, Any
 from collections.abc import Callable
+from urllib.parse import urlparse
 
 import pandas as pd
 import rich
@@ -42,8 +43,6 @@ from mostlyai.sdk.domain import (
     SyntheticProbeConfig,
     SyntheticTableConfiguration,
     SyntheticTableConfig,
-    Connector,
-    SyntheticDataset,
     GeneratorListItem,
 )
 from mostlyai.sdk.client._naming_conventions import map_camel_to_snake_case
@@ -60,6 +59,18 @@ def check_local_mode_available() -> None:
         return
     except ImportError:
         raise APIError("LOCAL mode requires additional packages to be installed. Run `pip install 'mostlyai[local]'`.")
+
+
+def validate_base_url(base_url: str) -> None:
+    """
+    Check if the provided base URL is valid. Raise an exception if it is not.
+    """
+    base_url = str(base_url)
+    if not base_url:
+        raise APIError("Missing base URL.")
+    parsed = urlparse(base_url)
+    if not all([parsed.scheme, parsed.netloc]):
+        raise APIError("Invalid base URL.")
 
 
 def validate_api_key(api_key: str) -> None:
