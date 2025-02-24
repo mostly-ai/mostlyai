@@ -55,6 +55,7 @@ def check_local_mode_available() -> None:
     try:
         from mostlyai.sdk._local.server import LocalServer  # noqa
         from mostlyai import qa  # noqa
+        raise ImportError('This is a test')
 
         return
     except ImportError:
@@ -133,19 +134,15 @@ def job_wait(
         live = Live(layout, refresh_per_second=1 / interval)
         step_id_to_layout_idx = {}
 
-    def rich_table_delete_row(table: Table, idx: int = -1) -> Table:
-        """
-        Delete a row from a rich table.
-        """
+    def _rich_table_delete_row(table: Table, idx: int = -1) -> Table:
+        # helper method to delete a row from a rich table
         for column in table.columns:
             column._cells = column._cells[:idx] + column._cells[idx + 1 :]
         table.rows = table.rows[:idx] + table.rows[idx + 1 :]
         return table
 
-    def rich_table_insert_row(*renderables: RenderableType | None, table: Table, idx: int = -1) -> Table:
-        """
-        Insert a row into a rich table.
-        """
+    def _rich_table_insert_row(*renderables: RenderableType | None, table: Table, idx: int = -1) -> Table:
+        # helper method to insert a row into a rich table
         table.add_row(*renderables)
         for column in table.columns:
             column._cells.insert(idx, column._cells[-1])
@@ -224,8 +221,8 @@ def job_wait(
                         )
                     if current_task.started:
                         if step.step_code == StepCode.train_model:
-                            rich_table_delete_row(layout, step_id_to_layout_idx[step.id])
-                            rich_table_insert_row(training_log, table=layout, idx=step_id_to_layout_idx[step.id])
+                            _rich_table_delete_row(layout, step_id_to_layout_idx[step.id])
+                            _rich_table_insert_row(training_log, table=layout, idx=step_id_to_layout_idx[step.id])
                         if step.end_date is not None:
                             progress.stop_task(current_task_id)
                     live.update(layout)
