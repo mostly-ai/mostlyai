@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
 import rich
+from rich.prompt import Prompt
 
 from mostlyai import sdk
-from mostlyai.sdk.client.base import GET, _MostlyBaseClient
+from mostlyai.sdk.client.base import GET, _MostlyBaseClient, DEFAULT_BASE_URL
 from mostlyai.sdk.client.connectors import _MostlyConnectorsClient
 from mostlyai.sdk.client.exceptions import APIError
 from mostlyai.sdk.client.generators import _MostlyGeneratorsClient
@@ -44,7 +45,10 @@ from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_p
 from mostlyai.sdk.client._utils import (
     harmonize_sd_config,
     Seed,
+    check_local_mode_available,
+    validate_api_key,
 )
+from mostlyai.sdk._local.server import LocalServer
 
 
 class MostlyAI(_MostlyBaseClient):
@@ -106,17 +110,38 @@ class MostlyAI(_MostlyBaseClient):
         # suppress deprecation warnings, also those stemming from external libs
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+        base_url = (base_url or os.getenv("MOSTLY_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
+        api_key = api_key or os.getenv("MOSTLY_API_KEY")
+
+        # confirm CLIENT or LOCAL setup
+        if not api_key and not local:
+            choice = Prompt.ask(
+                "API key required for [bold]CLIENT[/bold] mode!\n\nChoose an option:\n"
+                "1) Enter your API key\n"
+                "2) Obtain an API key\n"
+                "3) Run in [bold]LOCAL[/bold] mode\n\n",
+                choices=["1", "2", "3"],
+            )
+            if choice == "1" or choice == "2":
+                if choice == "2":
+                    url = f"{base_url}/settings/api-keys"
+                    rich.print(f"\nVisit [link={url}]{url}[/] to generate an API key.")
+                api_key = Prompt.ask("\nEnter your API key: ", password=True)
+                validate_api_key(api_key)
+                rich.print(
+                    "Tip: Set the API key as environment variable [bold]MOSTLY_API_KEY[/bold] "
+                    "to skip this prompt in the future."
+                )
+            elif choice == "3":
+                local = True
+                rich.print(
+                    "Tip: Pass [bold]local=True[/bold] when instantiating the SDK to skip this prompt in the future."
+                )
+
         if quiet:
             rich.get_console().quiet = True
         if local:
-            try:
-                from mostlyai.sdk._local.server import LocalServer
-                from mostlyai import qa  # noqa
-            except ImportError:
-                raise APIError(
-                    "LOCAL mode requires additional packages to be installed. Run `pip install 'mostlyai[local]'`."
-                )
-
+            check_local_mode_available()
             self.local = LocalServer(home_dir=local_dir)
             home_dir = self.local.home_dir
             base_url = self.local.base_url
@@ -139,7 +164,7 @@ class MostlyAI(_MostlyBaseClient):
         self.synthetic_datasets = _MostlySyntheticDatasetsClient(**client_kwargs)
         self.synthetic_probes = _MostlySyntheticProbesClient(**client_kwargs)
         if local:
-            rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]local[/bold] mode")
+            rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]LOCAL[/bold] mode")
             msg = f"Connected to [link=file://{home_dir} dodger_blue2 underline]{home_dir}[/]"
             import torch  # noqa
             import psutil  # noqa
@@ -153,7 +178,7 @@ class MostlyAI(_MostlyBaseClient):
             msg += " available"
             rich.print(msg)
         else:
-            rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]client[/bold] mode")
+            rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]CLIENT[/bold] mode")
             try:
                 server_version = self.about().version
                 email = self.me().email

@@ -33,6 +33,7 @@ from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 
+from mostlyai.sdk.client.exceptions import APIError
 from mostlyai.sdk.domain import (
     StepCode,
     ProgressStatus,
@@ -48,22 +49,28 @@ from mostlyai.sdk.domain import (
 from mostlyai.sdk.client._naming_conventions import map_camel_to_snake_case
 
 
-## utils for manipulating rich's Table object
-def _delete_row(table: Table, idx: int = -1) -> Table:
-    for column in table.columns:
-        column._cells = column._cells[:idx] + column._cells[idx + 1 :]
-    table.rows = table.rows[:idx] + table.rows[idx + 1 :]
-    return table
+def check_local_mode_available() -> None:
+    """
+    Check if the local mode is available. Raise an exception if it is not.
+    """
+    try:
+        from mostlyai.sdk._local.server import LocalServer  # noqa
+        from mostlyai import qa  # noqa
+
+        return
+    except ImportError:
+        raise APIError("LOCAL mode requires additional packages to be installed. Run `pip install 'mostlyai[local]'`.")
 
 
-def _insert_row(*renderables: RenderableType | None, table: Table, idx: int = -1) -> Table:
-    table.add_row(*renderables)
-    for column in table.columns:
-        column._cells.insert(idx, column._cells[-1])
-        column._cells.pop()
-    table.rows.insert(idx, table.rows[-1])
-    table.rows.pop()
-    return table
+def validate_api_key(api_key: str) -> None:
+    """
+    Check if the provided API key is valid. Raise an exception if it is not.
+    """
+    api_key = str(api_key)
+    if not api_key:
+        raise APIError("Missing API key.")
+    elif len(api_key) != 71:
+        raise APIError("Invalid API key. It must be 71 characters long.")
 
 
 def job_wait(
@@ -114,6 +121,28 @@ def job_wait(
         layout.add_row(progress)
         live = Live(layout, refresh_per_second=1 / interval)
         step_id_to_layout_idx = {}
+
+    def rich_table_delete_row(table: Table, idx: int = -1) -> Table:
+        """
+        Delete a row from a rich table.
+        """
+        for column in table.columns:
+            column._cells = column._cells[:idx] + column._cells[idx + 1 :]
+        table.rows = table.rows[:idx] + table.rows[idx + 1 :]
+        return table
+
+    def rich_table_insert_row(*renderables: RenderableType | None, table: Table, idx: int = -1) -> Table:
+        """
+        Insert a row into a rich table.
+        """
+        table.add_row(*renderables)
+        for column in table.columns:
+            column._cells.insert(idx, column._cells[-1])
+            column._cells.pop()
+        table.rows.insert(idx, table.rows[-1])
+        table.rows.pop()
+        return table
+
     try:
         if progress_bar:
             # loop until job has completed
@@ -184,8 +213,8 @@ def job_wait(
                         )
                     if current_task.started:
                         if step.step_code == StepCode.train_model:
-                            _delete_row(layout, step_id_to_layout_idx[step.id])
-                            _insert_row(training_log, table=layout, idx=step_id_to_layout_idx[step.id])
+                            rich_table_delete_row(layout, step_id_to_layout_idx[step.id])
+                            rich_table_insert_row(training_log, table=layout, idx=step_id_to_layout_idx[step.id])
                         if step.end_date is not None:
                             progress.stop_task(current_task_id)
                     live.update(layout)
@@ -213,7 +242,7 @@ def job_wait(
             live.stop()
 
 
-def _get_subject_table_names(generator: Generator) -> list[str]:
+def get_subject_table_names(generator: Generator) -> list[str]:
     subject_tables = []
     for table in generator.tables:
         ctx_fks = [fk for fk in table.foreign_keys or [] if fk.is_context]
@@ -259,7 +288,7 @@ def harmonize_sd_config(
     config.generator_id = generator_id
 
     if not isinstance(size, dict) or not isinstance(seed, dict) or not config.tables:
-        subject_tables = _get_subject_table_names(generator)
+        subject_tables = get_subject_table_names(generator)
     else:
         subject_tables = []
 
@@ -300,6 +329,3 @@ def harmonize_sd_config(
             )
 
     return config
-
-
-ShareableResource = Union[Connector, Generator, SyntheticDataset]
