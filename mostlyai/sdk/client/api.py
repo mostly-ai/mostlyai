@@ -140,13 +140,13 @@ class MostlyAI(_MostlyBaseClient):
                     password=True,
                 )
                 rich.print(
-                    "[dim][bold]Note[/bold]: Instantiate via [bold]MostlyAI(base_url=..., api_key=...)[/bold] to skip this prompt in the future.\n\n"
+                    "[dim][bold]Note[/bold]: To skip this prompt in the future, instantiate via [bold]MostlyAI(base_url=..., api_key=...)[/bold].\n\n"
                     "Alternatively set [bold]MOSTLY_BASE_URL[/bold] and [bold]MOSTLY_API_KEY[/bold] as environment variables.[/dim]"
                 )
             else:
                 mode = "LOCAL"
                 rich.print(
-                    "[dim][bold]Note[/bold]: Instantiate via [bold]MostlyAI(local=True)[/bold] to skip this prompt in the future.\n\n"
+                    "[dim][bold]Note[/bold]: To skip this prompt in the future, instantiate via [bold]MostlyAI(local=True)[/bold].\n\n"
                     "Alternatively set [bold]MOSTLY_LOCAL=1[/bold] as an environment variable.[/dim]"
                 )
 
