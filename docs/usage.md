@@ -18,7 +18,7 @@ repo_url = 'https://github.com/mostly-ai/public-demo-data'
 df_original = pd.read_csv(f'{repo_url}/raw/dev/census/census.csv.gz')
 
 # instantiate SDK
-mostly = MostlyAI(local=True)  # or: MostlyAI(base_url='xxx', api_key='xxx')
+mostly = MostlyAI()
 
 # train a generator
 g = mostly.train(config={
@@ -83,7 +83,7 @@ df_original_seasons = pd.read_csv(f'{repo_url}/raw/dev/baseball/batting.csv.gz')
 df_original_seasons = df_original_seasons[['players_id', 'year', 'team', 'G', 'AB', 'HR']]
 
 # instantiate SDK
-mostly = MostlyAI(local=True)  # or: MostlyAI(base_url='xxx', api_key='xxx')
+mostly = MostlyAI()
 
 # train a generator
 g = mostly.train(config={
@@ -126,7 +126,7 @@ repo_url = 'https://github.com/mostly-ai/public-demo-data'
 trn_df = pd.read_parquet(f'{repo_url}/raw/refs/heads/dev/headlines/headlines.parquet')
 
 # instantiate SDK
-mostly = MostlyAI(local=True)  # or: MostlyAI(base_url='xxx', api_key='xxx')
+mostly = MostlyAI()
 
 # print out available LANGUAGE models
 print(mostly.models()["LANGUAGE"])
@@ -173,7 +173,7 @@ import pandas as pd
 from mostlyai.sdk import MostlyAI
 
 # instantiate SDK
-mostly = MostlyAI(local=True)  # or: MostlyAI(base_url='xxx', api_key='xxx')
+mostly = MostlyAI()
 
 # define a source connector for reading
 src_c = mostly.connect(config={
