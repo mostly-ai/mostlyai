@@ -174,15 +174,17 @@ pip install -U 'mostlyai[local, databricks, snowflake]'
 
 ### Using Docker
 
-The docker image acts as an isolated environment for running the SDK in LOCAL mode, with all connector dependencies readily installed.
+The Docker image provides an isolated environment for running the SDK in LOCAL mode, with all connector dependencies pre-installed. Ensure [Docker](https://docs.docker.com/get-started/get-docker/) is installed on your system.
 
 ```shell
-# pull the docker image
+# pull the docker image (several GB in size)
 docker pull mostlyai/mostlyai:latest
 
 # run the docker container, exposing Jupyter Lab on port 8888 and mounting a local folder
 docker run -it -p 8888:8888 -v ~/mostlyai:/workspace/mostlyai --platform linux/amd64 mostlyai/mostlyai
 ```
+
+Once the container is running, open your web browser and navigate to http://localhost:8888.
 
 <details>
 <summary>Building the Docker Image</summary>
