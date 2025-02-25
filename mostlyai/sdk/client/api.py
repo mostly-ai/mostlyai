@@ -77,8 +77,8 @@ class MostlyAI(_MostlyBaseClient):
         ```python
         import os
         from mostlyai.sdk import MostlyAI
-        os.environ["MOSTLYAI_API_KEY"] = "INSERT_YOUR_API_KEY"
-        os.environ["MOSTLYAI_BASE_URL"] = "https://app.mostly.ai"
+        os.environ["MOSTLY_API_KEY"] = "INSERT_YOUR_API_KEY"
+        os.environ["MOSTLY_BASE_URL"] = "https://app.mostly.ai"
         mostly = MostlyAI()
         mostly
         # MostlyAI(base_url='https://app.mostly.ai', api_key='***')

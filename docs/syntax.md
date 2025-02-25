@@ -19,8 +19,8 @@ mostly = MostlyAI(
 
 # client mode
 mostly = MostlyAI(
-    base_url='https://app.mostly.ai', # or set env var `MOSTLYAI_BASE_URL`
-    api_key='INSERT_YOUR_API_KEY',    # or set env var `MOSTLYAI_API_KEY`
+    base_url='https://app.mostly.ai', # or set env var `MOSTLY_BASE_URL`
+    api_key='INSERT_YOUR_API_KEY',    # or set env var `MOSTLY_API_KEY`
 )
 ```
 
