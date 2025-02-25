@@ -34,6 +34,9 @@ class LocalServer:
     ):
         self.home_dir = Path(home_dir or "~/mostlyai").expanduser()
         self.home_dir.mkdir(parents=True, exist_ok=True)
+        # check read/write access to `home_dir`
+        if not os.access(self.home_dir, os.R_OK) or not os.access(self.home_dir, os.W_OK):
+            raise PermissionError(f"Cannot read/write to {self.home_dir}")
         self.uds = tempfile.NamedTemporaryFile(prefix=".mostlyai-", suffix=".sock", delete=False).name
         self.base_url = "http://127.0.0.1"
         self._app = FastAPI(
