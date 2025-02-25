@@ -78,7 +78,7 @@ RUN uv run --no-sync python -c \
 EXPOSE 8888
 
 WORKDIR /workspace
-ADD ./docker/entrypoint.sh /
+ADD ./tools/entrypoint.sh /
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]

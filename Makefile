@@ -46,7 +46,7 @@ HOST_PATH ?=
 
 .PHONY: docker-build
 docker-build:
-	DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 --progress=plain -t mostlyai/mostlyai -f docker/Dockerfile
+	DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t mostlyai/mostlyai
 
 .PHONY: docker-run
 docker-run:
