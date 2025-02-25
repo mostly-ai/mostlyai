@@ -116,26 +116,29 @@ class MostlyAI(_MostlyBaseClient):
         # confirm CLIENT or LOCAL setup
         if not api_key and not local:
             choice = Prompt.ask(
-                f"API key required for [bold]CLIENT[/bold] mode!\n\n"
-                "Choose an option:\n"
-                f"1) Enter your API key for [link={base_url}]{base_url}[/]\n"
-                f"2) Obtain an API key for [link={base_url}]{base_url}[/]\n"
-                "3) Or run SDK in [bold]LOCAL[/bold] mode\n\n",
-                choices=["1", "2", "3"],
+                "Select your desired SDK mode:\n\n"
+                "1) Run in [bold]CLIENT mode[/bold] 📡, connecting to a remote MOSTLY AI platform\n\n"
+                "2) Run in [bold]LOCAL mode[/bold] 🏠, operating offline using your own compute\n\n"
+                "Enter your choice",
+                choices=["1", "2"],
+                default="1",
             )
-            if choice == "1" or choice == "2":
-                if choice == "2":
-                    url = f"{base_url}/settings/api-keys"
-                    rich.print(f"\nVisit [link={url}]{url}[/] to generate an API key.")
-                api_key = Prompt.ask("\nEnter your API key", password=True)
-                rich.print(
-                    "Tip: Set the API key as environment variable [bold]MOSTLY_API_KEY[/bold] "
-                    "to skip this prompt in the future."
+            if choice == "1":
+                base_url = Prompt.ask("Enter the [bold]Base URL[/bold] 🌐 of the MOSTLY AI platform", default=base_url)
+                api_key_url = f"{base_url}/settings/api-keys"
+                api_key = Prompt.ask(
+                    f"Enter your [bold]API key[/bold] 🔑 for {base_url} (obtain [link={api_key_url} dodger_blue2 underline]here[/link])",
+                    default="mostly-xxx",
+                    password=True,
                 )
-            elif choice == "3":
+                rich.print(
+                    "[dim][bold]Note[/bold]: Instantiate via [bold]MostlyAI(base_url=..., api_key=...)[/bold] to skip this prompt in the future.\n\n"
+                    "Alternatively set [bold]MOSTLY_BASE_URL[/bold] and [bold]MOSTLY_API_KEY[/bold] as environment variables.[/dim]"
+                )
+            else:
                 local = True
                 rich.print(
-                    "Tip: Pass [bold]local=True[/bold] when instantiating the SDK to skip this prompt in the future."
+                    "[dim][bold]Note[/bold]: Instantiate via [bold]MostlyAI(local=True)[/bold] to skip this prompt in the future.[/dim]"
                 )
 
         if quiet:
@@ -166,7 +169,7 @@ class MostlyAI(_MostlyBaseClient):
         self.synthetic_datasets = _MostlySyntheticDatasetsClient(**client_kwargs)
         self.synthetic_probes = _MostlySyntheticProbesClient(**client_kwargs)
         if local:
-            rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]LOCAL[/bold] mode")
+            rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]LOCAL mode[/bold] 🏠")
             msg = f"Connected to [link=file://{home_dir} dodger_blue2 underline]{home_dir}[/]"
             import torch  # noqa
             import psutil  # noqa
@@ -180,7 +183,7 @@ class MostlyAI(_MostlyBaseClient):
             msg += " available"
             rich.print(msg)
         else:
-            rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]CLIENT[/bold] mode")
+            rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]CLIENT mode[/bold] 📡")
             try:
                 server_version = self.about().version
                 email = self.me().email

@@ -81,7 +81,7 @@ def validate_api_key(api_key: str) -> None:
     if not api_key:
         raise APIError("Missing API key.")
     elif len(api_key) != 71:
-        raise APIError("Invalid API key. It must be 71 characters long.")
+        raise APIError("Invalid API key format.")
 
 
 def job_wait(
