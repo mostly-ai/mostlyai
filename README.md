@@ -71,9 +71,20 @@ The docker image acts as an isolated environment for running the SDK as well as 
 
 #### Launching the container
 
-Start the container with `docker run -it -p {HOST_PORT}:8888 mostlyai/mostlyai`, where `HOST_PORT` is the port that enables you to access the Jupyter Lab in the container directly from `http://localhost:{HOST_PORT}` of the host. The default is `8888`.
+Start the container with
+```bash
+docker run -it -p {HOST_PORT}:8888 mostlyai/mostlyai
+```
+where `HOST_PORT` is the port that enables you to access the Jupyter Lab in the container directly from `http://localhost:{HOST_PORT}` of the host. The default is `8888`.
 
-Alternatively, one can also use the make command with additional arguments `make docker-run HOST_PORT=your_port HOST_PATH=path/to/your/folder` to pass the port and the folder that you would like to mount to the container.
+Alternatively, one can also use the make command from this repo as a shortcut
+```bash
+make docker-run
+```
+and optionally provide extra arguments for setting the port and the folder that you would like to mount to the container
+```bash
+make docker-run HOST_PORT=your_port HOST_PATH=path/to/your/folder
+```
 
 ## Quick Start <a href="https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb" target="_blank"><img src="https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab" alt="Run on Colab"></a>
 
