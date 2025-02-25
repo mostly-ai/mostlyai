@@ -1,11 +1,11 @@
 
 # Synthetic Data SDK ✨
 
-[![Documentation](https://img.shields.io/badge/docs-latest-green)](https://mostly-ai.github.io/mostlyai/) 
-[![PyPI Downloads](https://static.pepy.tech/badge/mostlyai)](https://pepy.tech/projects/mostlyai) 
-[![License](https://img.shields.io/github/license/mostly-ai/mostlyai)](https://github.com/mostly-ai/mostlyai/blob/main/LICENSE) 
-[![GitHub Release](https://img.shields.io/github/v/release/mostly-ai/mostlyai)](https://github.com/mostly-ai/mostlyai/releases) 
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai)](https://pypi.org/project/mostlyai/) 
+[![Documentation](https://img.shields.io/badge/docs-latest-green)](https://mostly-ai.github.io/mostlyai/)
+[![PyPI Downloads](https://static.pepy.tech/badge/mostlyai)](https://pepy.tech/projects/mostlyai)
+[![License](https://img.shields.io/github/license/mostly-ai/mostlyai)](https://github.com/mostly-ai/mostlyai/blob/main/LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/mostly-ai/mostlyai)](https://github.com/mostly-ai/mostlyai/releases)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai)](https://pypi.org/project/mostlyai/)
 [![GitHub stars](https://img.shields.io/github/stars/mostly-ai/mostlyai?style=social)](https://github.com/mostly-ai/mostlyai/stargazers)
 
 [SDK Documentation](https://mostly-ai.github.io/mostlyai/) | [Platform Documentation](https://mostly.ai/docs) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/)
@@ -60,6 +60,20 @@ E.g.
 ```shell
 pip install -U 'mostlyai[local, databricks, snowflake]'
 ```
+
+## Using Docker
+The docker image acts as an isolated environment for running the SDK as well as the tutorials. It can be used as an alternative to preparing a virtual environment and installing via pip or uv on your own.
+
+#### Getting the docker image
+
+- (TODO) Option 1: pulling the official image with `docker pull mostlyai/mostlyai`
+- Option 2: build the image from this repo with `make docker-build`
+
+#### Launching the container
+
+Start the container with `docker run -it -p {HOST_PORT}:8888 mostlyai/mostlyai`, where `HOST_PORT` is the port that enables you to access the Jupyter Lab in the container directly from `http://localhost:{HOST_PORT}` of the host. The default is `8888`.
+
+Alternatively, one can also use the make command with additional arguments `make docker-run HOST_PORT=your_port HOST_PATH=path/to/your/folder` to pass the port and the folder that you would like to mount to the container.
 
 ## Quick Start <a href="https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb" target="_blank"><img src="https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab" alt="Run on Colab"></a>
 
