@@ -48,7 +48,6 @@ from mostlyai.sdk.client._utils import (
     validate_api_key,
     validate_base_url,
 )
-from mostlyai.sdk._local.server import LocalServer
 
 
 class MostlyAI(_MostlyBaseClient):
@@ -145,6 +144,8 @@ class MostlyAI(_MostlyBaseClient):
             rich.get_console().quiet = True
         if local:
             check_local_mode_available()
+            from mostlyai.sdk._local.server import LocalServer  # noqa
+
             self.local = LocalServer(home_dir=local_dir)
             home_dir = self.local.home_dir
             base_url = self.local.base_url
