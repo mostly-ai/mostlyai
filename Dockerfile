@@ -70,11 +70,6 @@ ADD ./README.md .
 RUN uv sync --frozen --all-extras --no-extra local --no-extra local-gpu
 RUN uv pip install jupyterlab
 
-# download embedder and store in cache
-ENV MOSTLY_HF_HOME=$HOME/.cache
-RUN uv run --no-sync python -c \
-"import os; from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', cache_folder=os.getenv('MOSTLY_HF_HOME'))"
-
 EXPOSE 8888
 
 WORKDIR /workspace
