@@ -33,62 +33,44 @@ The SDK allows you to programmatically create, browse and manage 3 key resources
 
 https://github.com/user-attachments/assets/d1613636-06e4-4147-bef7-25bb4699e8fc
 
-## Installation
 
-#### CLIENT mode only
+## Key Features
 
-```shell
-pip install -U mostlyai
-```
+- **Broad Data Support**
+    - Mixed-type data (categorical, numerical, geospatial, text, etc.)
+    - Single-table, multi-table, and time-series
+- **Multiple Model Types**
+    - TabularARGN for SOTA tabular performance
+    - Fine-tune HuggingFace-based language models
+    - Efficient LSTM for text synthesis from scratch
+- **Advanced Training Options**
+    - GPU/CPU support
+    - Differential Privacy
+    - Progress Monitoring
+- **Automated Quality Assurance**
+    - Quality metrics for fidelity and privacy
+    - In-depth HTML reports for visual analysis
+- **Flexible Sampling**
+    - Up-sample to any data volumes
+    - Conditional generation by any columns
+    - Re-balance underrepresented segments
+    - Context-aware data imputation
+    - Statistical fairness controls
+    - Rule-adherence via temperature
+- **Seamless Integration**
+    - Connect to external data sources (DBs, cloud storages)
+    - Fully permissive open-source license
 
-#### CLIENT + LOCAL mode
-
-```shell
-# for CPU on macOS
-pip install -U 'mostlyai[local]'
-# for CPU on Linux
-#pip install -U mostlyai[local-cpu] --extra-index-url https://download.pytorch.org/whl/cpu
-# for GPU on Linux
-#pip install -U mostlyai[local-gpu]
-```
-
-#### Optional Connectors
-
-Add any of the following extras for further data connectors support: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`.
-
-E.g.
-```shell
-pip install -U 'mostlyai[local, databricks, snowflake]'
-```
-
-## Using Docker
-The docker image acts as an isolated environment for running the SDK as well as the tutorials. It can be used as an alternative to preparing a virtual environment and installing via pip or uv on your own.
-
-#### Getting the docker image
-
-- Option 1: pulling the official image with `docker pull mostlyai/mostlyai`
-- Option 2: build the image from this repo with `make docker-build`
-
-#### Launching the container
-
-Start the container with
-```bash
-docker run -it -p {HOST_PORT}:8888 mostlyai/mostlyai
-```
-where `HOST_PORT` is the port that enables you to access the Jupyter Lab in the container directly from `http://localhost:{HOST_PORT}` of the host. The default is `8888`.
-
-Alternatively, one can also use the make command from this repo as a shortcut
-```bash
-make docker-run
-```
-and optionally provide extra arguments for setting the port and the folder that you would like to mount to the container
-```bash
-make docker-run HOST_PORT=your_port HOST_PATH=path/to/your/folder
-```
 
 ## Quick Start <a href="https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb" target="_blank"><img src="https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab" alt="Run on Colab"></a>
 
-Generate your first samples based on your own trained generator with a few lines of code. For LOCAL mode, initialize the SDK with `local=True`. For CLIENT mode, initialize the SDK with `base_url` and `api_key` obtained from your [account settings page](https://app.mostly.ai/settings/api-keys).
+Install the SDK via pip:
+
+```shell
+pip install mostlyai
+```
+
+Train your first generator:
 
 ```python
 import pandas as pd
@@ -130,7 +112,7 @@ g = mostly.train(
 g.reports(display=True)
 ```
 
-Once the generator has been trained, you can use it to generate synthetic data samples. Either via probing:
+Once the generator has been trained, generate synthetic data samples. Either via probing:
 
 ```python
 # probe for some representative synthetic samples
@@ -160,32 +142,59 @@ df_samples = mostly.probe(g, seed=df_seed)
 df_samples
 ```
 
-## Key Features
+## Installation
 
-- **Broad Data Support**
-    - Mixed-type data (categorical, numerical, geospatial, text, etc.)
-    - Single-table, multi-table, and time-series
-- **Multiple Model Types**
-    - TabularARGN for SOTA tabular performance
-    - Fine-tune HuggingFace-based language models
-    - Efficient LSTM for text synthesis from scratch
-- **Advanced Training Options**
-    - GPU/CPU support
-    - Differential Privacy
-    - Progress Monitoring
-- **Automated Quality Assurance**
-    - Quality metrics for fidelity and privacy
-    - In-depth HTML reports for visual analysis
-- **Flexible Sampling**
-    - Up-sample to any data volumes
-    - Conditional generation by any columns
-    - Re-balance underrepresented segments
-    - Context-aware data imputation
-    - Statistical fairness controls
-    - Rule-adherence via temperature
-- **Seamless Integration**
-    - Connect to external data sources (DBs, cloud storages)
-    - Fully permissive open-source license
+### Using pip
+
+Install the `mostlyai` Python package from PyPI. It's recommended to install the package within a dedicated virtual environment.
+
+#### CLIENT mode only
+
+```shell
+pip install -U mostlyai
+```
+
+#### CLIENT + LOCAL mode
+
+```shell
+# for CPU on macOS
+pip install -U 'mostlyai[local]'
+# for CPU on Linux
+pip install -U 'mostlyai[local-cpu]' --extra-index-url https://download.pytorch.org/whl/cpu
+# for GPU on Linux
+pip install -U 'mostlyai[local-gpu]'
+```
+
+#### Optional Connectors
+
+Add any of the following extras for further data connectors support in LOCAL mode: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`. E.g.
+```shell
+pip install -U 'mostlyai[local, databricks, snowflake]'
+```
+
+### Using Docker
+
+The docker image acts as an isolated environment for running the SDK in LOCAL mode, with all connector dependencies readily installed.
+
+```shell
+# pull the docker image
+docker pull mostlyai/mostlyai:latest
+
+# run the docker container, exposing Jupyter Lab on port 8888 and mounting a local folder
+docker run -it -p 8888:8888 -v ~/mostlyai:/workspace/mostlyai --platform linux/amd64 mostlyai/mostlyai
+```
+
+<details>
+<summary>Building the Docker Image</summary>
+
+```shell
+# build the docker image from scratch
+make docker-build
+
+# run the docker container, exposing Jupyter Lab on port 8888 and mounting a local folder
+make docker-run HOST_PORT=8888 HOST_PATH=~/mostlyai
+```
+</details>
 
 ## Citation
 
