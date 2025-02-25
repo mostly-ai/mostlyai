@@ -181,7 +181,10 @@ The Docker image provides an isolated environment for running the SDK in LOCAL m
 docker pull mostlyai/mostlyai:latest
 
 # run the docker container, exposing Jupyter Lab on port 8888 and mounting a local folder
-docker run -it -p 8888:8888 -v ~/mostlyai:/workspace/mostlyai --platform linux/amd64 mostlyai/mostlyai
+docker run --platform linux/amd64 -it -p 8888:8888 \
+  -v ~/.cache/huggingface:/opt/app-root/src/.cache/huggingface \
+  -v ~/mostlyai:/opt/app-root/src/mostlyai \
+  mostlyai/mostlyai
 ```
 
 Once the container is running, open your web browser and navigate to http://localhost:8888.
@@ -193,8 +196,8 @@ Once the container is running, open your web browser and navigate to http://loca
 # build the docker image from scratch
 make docker-build
 
-# run the docker container, exposing Jupyter Lab on port 8888 and mounting a local folder
-make docker-run HOST_PORT=8888 HOST_PATH=~/mostlyai
+# run the docker container for development, exposing Jupyter Lab on port 8888 and mounting this repository from the host
+make docker-run HOST_PORT=8888 HOST_PATH=.
 ```
 </details>
 
