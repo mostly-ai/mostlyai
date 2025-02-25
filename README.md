@@ -66,7 +66,7 @@ The docker image acts as an isolated environment for running the SDK as well as 
 
 #### Getting the docker image
 
-- (TODO) Option 1: pulling the official image with `docker pull mostlyai/mostlyai`
+- Option 1: pulling the official image with `docker pull mostlyai/mostlyai`
 - Option 2: build the image from this repo with `make docker-build`
 
 #### Launching the container
