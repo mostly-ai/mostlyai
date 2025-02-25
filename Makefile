@@ -45,11 +45,11 @@ HOST_PORT ?= 8888
 HOST_PATH ?=
 
 .PHONY: docker-build
-docker-build:
+docker-build: ## Build the docker image
 	DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t mostlyai/mostlyai
 
 .PHONY: docker-run
-docker-run:
+docker-run: ## Start the docker container
 	@echo "Mapping port: $(HOST_PORT) (host) <-> 8888 (container)"
 	@# here we have to make sure .venv folder is set as an anonymous volume, so that it will not be overwritten by a bind mount
 	@# ref: https://docs.astral.sh/uv/guides/integration/docker/#mounting-the-project-with-docker-run
