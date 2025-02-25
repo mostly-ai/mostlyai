@@ -35,13 +35,13 @@ https://github.com/user-attachments/assets/d1613636-06e4-4147-bef7-25bb4699e8fc
 
 ## Installation
 
-**CLIENT mode only**
+#### CLIENT mode only
 
 ```shell
 pip install -U mostlyai
 ```
 
-**CLIENT + LOCAL mode**
+#### CLIENT + LOCAL mode
 
 ```shell
 # for CPU on macOS
@@ -52,7 +52,7 @@ pip install -U 'mostlyai[local]'
 #pip install -U mostlyai[local-gpu]
 ```
 
-**Optional Connectors**
+#### Optional Connectors
 
 Add any of the following extras for further data connectors support: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`.
 
