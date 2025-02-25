@@ -54,7 +54,7 @@ docker-run:
 	@# here we have to make sure .venv folder is set as an anonymous volume, so that it will not be overwritten by a bind mount
 	@# ref: https://docs.astral.sh/uv/guides/integration/docker/#mounting-the-project-with-docker-run
 	@if [ -z "$(HOST_PATH)" ]; then \
-            docker run -it -p $(HOST_PORT):8888 mostlyai/mostlyai ; \
+            docker run --platform=linux/amd64 -it -p $(HOST_PORT):8888 mostlyai/mostlyai ; \
         else \
             if [ ! -d $(HOST_PATH) ]; then \
                 echo "Failed to mount volume: $(HOST_PATH) does not exist"; \
@@ -64,7 +64,7 @@ docker-run:
             BASE_NAME=$$(basename $$REAL_PATH); \
             MOUNT_ARGS="--mount type=bind,source=$$REAL_PATH,target=/workspace/$$BASE_NAME"; \
             echo "Mounting volume: $$REAL_PATH (host) <-> /workspace/$$BASE_NAME (container)"; \
-            docker run --rm -it -p $(HOST_PORT):8888 -v /workspace/mostlyai/.venv $$MOUNT_ARGS mostlyai/mostlyai ; \
+            docker run --platform=linux/amd64 --rm -it -p $(HOST_PORT):8888 -v /workspace/mostlyai/.venv $$MOUNT_ARGS mostlyai/mostlyai ; \
         fi;
 
 # Default files to update
