@@ -98,7 +98,7 @@ class MostlyAI(_MostlyBaseClient):
         self,
         base_url: str | None = None,
         api_key: str | None = None,
-        local: bool = False,
+        local: bool | None = None,
         local_dir: str | Path | None = None,
         timeout: float = 60.0,
         ssl_verify: bool = True,
@@ -109,11 +109,18 @@ class MostlyAI(_MostlyBaseClient):
         # suppress deprecation warnings, also those stemming from external libs
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        base_url = (base_url or os.getenv("MOSTLY_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
-        api_key = api_key or os.getenv("MOSTLY_API_KEY")
-
-        # confirm CLIENT or LOCAL setup
-        if not api_key and not local:
+        # determine SDK mode: either CLIENT or LOCAL mode
+        mode: Literal["CLIENT", "LOCAL", None] = None
+        if base_url is not None or api_key is not None:
+            mode = "CLIENT"
+        elif local is not None:
+            mode = "LOCAL" if bool(local) else "CLIENT"
+        elif os.getenv("MOSTLY_LOCAL"):
+            mode = "LOCAL" if os.getenv("MOSTLY_LOCAL").lower()[:1] in ["1", "t", "y"] else "CLIENT"
+        elif os.getenv("MOSTLY_API_KEY"):
+            mode = "CLIENT"
+        else:
+            # prompt for CLIENT or LOCAL setup, if not yet determined
             choice = Prompt.ask(
                 "Select your desired SDK mode:\n\n"
                 "1) Run in [bold]CLIENT mode[/bold] 📡, connecting to a remote MOSTLY AI platform\n\n"
@@ -123,6 +130,8 @@ class MostlyAI(_MostlyBaseClient):
                 default="1",
             )
             if choice == "1":
+                mode = "CLIENT"
+                base_url = os.getenv("MOSTLY_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
                 base_url = Prompt.ask("Enter the [bold]Base URL[/bold] 🌐 of the MOSTLY AI platform", default=base_url)
                 api_key_url = f"{base_url}/settings/api-keys"
                 api_key = Prompt.ask(
@@ -135,14 +144,13 @@ class MostlyAI(_MostlyBaseClient):
                     "Alternatively set [bold]MOSTLY_BASE_URL[/bold] and [bold]MOSTLY_API_KEY[/bold] as environment variables.[/dim]"
                 )
             else:
-                local = True
+                mode = "LOCAL"
                 rich.print(
-                    "[dim][bold]Note[/bold]: Instantiate via [bold]MostlyAI(local=True)[/bold] to skip this prompt in the future.[/dim]"
+                    "[dim][bold]Note[/bold]: Instantiate via [bold]MostlyAI(local=True)[/bold] to skip this prompt in the future.\n\n"
+                    "Alternatively set [bold]MOSTLY_LOCAL=1[/bold] as an environment variable.[/dim]"
                 )
 
-        if quiet:
-            rich.get_console().quiet = True
-        if local:
+        if mode == "LOCAL":
             check_local_mode_available()
             from mostlyai.sdk._local.server import LocalServer  # noqa
 
@@ -151,11 +159,17 @@ class MostlyAI(_MostlyBaseClient):
             base_url = self.local.base_url
             api_key = "local"
             uds = self.local.uds
-        else:
+        elif mode == "CLIENT":
+            if base_url is None:
+                base_url = os.getenv("MOSTLY_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
             validate_base_url(base_url)
+            if api_key is None:
+                api_key = os.getenv("MOSTLY_API_KEY")
             validate_api_key(api_key)
             home_dir = None
             uds = None
+        else:
+            raise ValueError("Invalid SDK mode")
 
         client_kwargs = {
             "base_url": base_url,
@@ -169,7 +183,7 @@ class MostlyAI(_MostlyBaseClient):
         self.generators = _MostlyGeneratorsClient(**client_kwargs)
         self.synthetic_datasets = _MostlySyntheticDatasetsClient(**client_kwargs)
         self.synthetic_probes = _MostlySyntheticProbesClient(**client_kwargs)
-        if local:
+        if mode == "LOCAL":
             rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]LOCAL mode[/bold] 🏠")
             msg = f"Connected to [link=file://{home_dir} dodger_blue2 underline]{home_dir}[/]"
             import torch  # noqa
@@ -183,7 +197,7 @@ class MostlyAI(_MostlyBaseClient):
                 msg += ", 0 GPUs"
             msg += " available"
             rich.print(msg)
-        else:
+        elif mode == "CLIENT":
             rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]CLIENT mode[/bold] 📡")
             try:
                 server_version = self.about().version
@@ -196,6 +210,11 @@ class MostlyAI(_MostlyBaseClient):
                 rich.print(msg)
             except Exception as e:
                 rich.print(f"Failed to connect to {self.base_url}: {e}.")
+        else:
+            raise ValueError("Invalid SDK mode")
+
+        if quiet:
+            rich.get_console().quiet = True
 
     def __repr__(self) -> str:
         if self.local:
