@@ -184,6 +184,7 @@ docker pull mostlyai/mostlyai
 docker run --platform linux/amd64 -it -p 8888:8888 \
   -v ~/.cache/huggingface:/opt/app-root/src/.cache/huggingface \
   -v ~/mostlyai:/opt/app-root/src/mostlyai \
+  -e "MOSTLY_LOCAL=1" \
   mostlyai/mostlyai
 ```
 
