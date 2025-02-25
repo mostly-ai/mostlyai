@@ -178,7 +178,7 @@ The Docker image provides an isolated environment for running the SDK in LOCAL m
 
 ```shell
 # pull the docker image (several GB in size)
-docker pull mostlyai/mostlyai:latest
+docker pull mostlyai/mostlyai
 
 # run the docker container, exposing Jupyter Lab on port 8888 and mounting a local folder
 docker run --platform linux/amd64 -it -p 8888:8888 \
