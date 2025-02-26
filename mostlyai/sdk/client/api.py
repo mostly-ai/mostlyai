@@ -89,6 +89,7 @@ class MostlyAI(_MostlyBaseClient):
         api_key: The API key for authenticating. If not provided, it would rely on environment variables.
         local: Whether to run in local mode or not.
         local_dir: The directory to use for local mode. If not provided, `~/mostlyai` will be used.
+        local_port: The port to use for local mode with TCP transport. If not provided, UDS transport is used by default.
         timeout: Timeout for HTTPS requests in seconds.
         ssl_verify: Whether to verify SSL certificates.
         quiet: Whether to suppress rich output.
@@ -100,6 +101,7 @@ class MostlyAI(_MostlyBaseClient):
         api_key: str | None = None,
         local: bool | None = None,
         local_dir: str | Path | None = None,
+        local_port: int | None = None,
         timeout: float = 60.0,
         ssl_verify: bool = True,
         quiet: bool = False,
@@ -154,11 +156,11 @@ class MostlyAI(_MostlyBaseClient):
             check_local_mode_available()
             from mostlyai.sdk._local.server import LocalServer  # noqa
 
-            self.local = LocalServer(home_dir=local_dir)
-            home_dir = self.local.home_dir
-            base_url = self.local.base_url
+            self.local_server = LocalServer(home_dir=local_dir, port=local_port)
+            home_dir = self.local_server.home_dir
+            base_url = self.local_server.base_url
             api_key = "local"
-            uds = self.local.uds
+            uds = self.local_server.uds
         elif mode == "CLIENT":
             if base_url is None:
                 base_url = os.getenv("MOSTLY_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
@@ -218,10 +220,10 @@ class MostlyAI(_MostlyBaseClient):
 
     def __repr__(self) -> str:
         if self.local:
-            return "MostlyAI(local=True)"
-        else:
-            api_key = "'***'" if self.api_key else "None"
-            return f"MostlyAI(base_url='{self.base_url}', api_key={api_key})"
+            if self.local_server.uds:
+                return "MostlyAI(local=True)"
+            return f"MostlyAI(local=True, local_port={self.local_server.port})"
+        return f"MostlyAI(base_url='{self.base_url}', api_key=***)"
 
     def connect(
         self,

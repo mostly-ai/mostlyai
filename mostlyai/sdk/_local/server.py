@@ -31,14 +31,20 @@ class LocalServer:
     def __init__(
         self,
         home_dir: str | Path | None = None,
+        port: int | None = None,
     ):
         self.home_dir = Path(home_dir or "~/mostlyai").expanduser()
         self.home_dir.mkdir(parents=True, exist_ok=True)
         # check read/write access to `home_dir`
         if not os.access(self.home_dir, os.R_OK) or not os.access(self.home_dir, os.W_OK):
             raise PermissionError(f"Cannot read/write to {self.home_dir}")
-        self.uds = tempfile.NamedTemporaryFile(prefix=".mostlyai-", suffix=".sock", delete=False).name
-        self.base_url = "http://127.0.0.1"
+        self.port = port
+        self.uds = (
+            tempfile.NamedTemporaryFile(prefix=".mostlyai-", suffix=".sock", delete=False).name
+            if self.port is None
+            else None
+        )
+        self.base_url = "http://127.0.0.1" + (f":{self.port}" if self.port else "")
         self._app = FastAPI(
             root_path="/api/v2",
             title="Synthetic Data SDK ✨",
@@ -55,12 +61,12 @@ class LocalServer:
         self.start()  # Automatically start the server during initialization
 
     def _clear_socket_file(self):
-        if os.path.exists(self.uds):
+        if self.uds and os.path.exists(self.uds):
             os.remove(self.uds)
 
     def _create_server(self):
         self._clear_socket_file()
-        config = uvicorn.Config(self._app, uds=self.uds, log_level="error", reload=False)
+        config = uvicorn.Config(self._app, port=self.port, uds=self.uds, log_level="error", reload=False)
         self._server = uvicorn.Server(config)
 
     def _run_server(self):
