@@ -41,10 +41,10 @@ class LocalServer:
         self.port = port
         self.uds = (
             tempfile.NamedTemporaryFile(prefix=".mostlyai-", suffix=".sock", delete=False).name
-            if self.port is None
+            if port is None
             else None
         )
-        self.base_url = "http://127.0.0.1" + (f":{self.port}" if self.port else "")
+        self.base_url = "http://127.0.0.1" + (f":{port}" if port else "")
         self._app = FastAPI(
             root_path="/api/v2",
             title="Synthetic Data SDK ✨",
