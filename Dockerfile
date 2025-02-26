@@ -60,7 +60,6 @@ ENV PATH="$HOME/.local/bin/:$PATH"
 
 # install mostlyai[local]
 ADD ./uv.lock ./pyproject.toml ./mostlyai/
-ADD ./docs ./mostlyai/docs/
 WORKDIR /workspace/mostlyai
 RUN uv sync --frozen --no-editable --all-extras --no-extra local --no-extra local-gpu \
   --no-install-package torch \
@@ -68,12 +67,10 @@ RUN uv sync --frozen --no-editable --all-extras --no-extra local --no-extra loca
 ADD ./mostlyai ./mostlyai/
 ADD ./README.md .
 RUN uv sync --frozen --all-extras --no-extra local --no-extra local-gpu
-RUN uv pip install jupyterlab
 
-EXPOSE 8888
+EXPOSE 8080
 
 WORKDIR /workspace
 ADD ./tools/entrypoint.sh /
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["bash"]

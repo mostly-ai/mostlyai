@@ -1,8 +1,9 @@
 #!/bin/bash
 
-export VIRTUAL_ENV=/workspace/mostlyai/.venv
-export PATH=$VIRTUAL_ENV/bin:$PATH
+source /workspace/mostlyai/.venv/bin/activate
 
-nohup jupyter lab --port=8888 --ip=0.0.0.0 --allow-root --no-browser --IdentityProvider.token="" --ServerApp.root_dir="." --ServerApp.preferred_dir="./mostlyai/docs/tutorials" &> /jupyter.log &
+python -i -c "code='from mostlyai.sdk import MostlyAI\nmostly = MostlyAI(local=True, local_port=8080)'
+print('\n'.join([f'>>> {line}' for line in code.split('\n')]))
+exec(code)"
 
 exec "$@"
