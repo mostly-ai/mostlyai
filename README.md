@@ -1,9 +1,15 @@
+# Synthetic Data SDK ✨
 
-<h1 align="center" style="font-size: 30px;">Synthetic Data SDK ✨</h1>
-<p align="center" style="font-size: 12px;"><a href="https://mostly-ai.github.io/mostlyai/">Documentation</a> - <a href="#installation">Installation</a> - <a href="https://app.mostly.ai/">Free Cloud Platform</a></p>
+[![GitHub Release](https://img.shields.io/github/v/release/mostly-ai/mostlyai)](https://github.com/mostly-ai/mostlyai/releases)
+[![Documentation](https://img.shields.io/badge/docs-latest-green)](https://mostly-ai.github.io/mostlyai/)
+[![PyPI Downloads](https://static.pepy.tech/badge/mostlyai)](https://pepy.tech/projects/mostlyai)
+[![License](https://img.shields.io/github/license/mostly-ai/mostlyai)](https://github.com/mostly-ai/mostlyai/blob/main/LICENSE)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai)](https://pypi.org/project/mostlyai/)
+[![GitHub stars](https://img.shields.io/github/stars/mostly-ai/mostlyai?style=social)](https://github.com/mostly-ai/mostlyai/stargazers)
 
+[Documentation](https://img.shields.io/badge/docs-latest-green) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/) | [Free Cloud Service](https://app.mostly.ai/)
 
-The Synthetic Data SDK is a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
+The **Synthetic Data SDK** is a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
 
 - **LOCAL** mode trains and generates synthetic data locally on your own compute resources.
 - **CLIENT** mode connects to a remote MOSTLY AI platform for training & generating synthetic data there.
