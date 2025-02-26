@@ -39,6 +39,8 @@ class LocalServer:
         if not os.access(self.home_dir, os.R_OK) or not os.access(self.home_dir, os.W_OK):
             raise PermissionError(f"Cannot read/write to {self.home_dir}")
         self.port = port
+        # binding to all interfaces (0.0.0.0) is required for docker use case
+        self.host = "0.0.0.0" if port is not None else None
         self.uds = (
             tempfile.NamedTemporaryFile(prefix=".mostlyai-", suffix=".sock", delete=False).name
             if port is None
@@ -66,7 +68,9 @@ class LocalServer:
 
     def _create_server(self):
         self._clear_socket_file()
-        config = uvicorn.Config(self._app, port=self.port, uds=self.uds, log_level="error", reload=False)
+        config = uvicorn.Config(
+            self._app, host=self.host, port=self.port, uds=self.uds, log_level="error", reload=False
+        )
         self._server = uvicorn.Server(config)
 
     def _run_server(self):
