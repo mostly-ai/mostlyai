@@ -388,18 +388,24 @@ class Execution:
         )
 
         # step: CREATE_MODEL_REPORT
-        model_metrics = execute_step_create_model_report(
-            generator=generator,
-            model_type=model_type,
-            target_table_name=task.target_table_name,
-            workspace_dir=workspace_dir,
-            update_progress=update_progress_fn(step_code=StepCode.create_model_report),
+        model_configuration = (
+            tgt_table.tabular_model_configuration
+            if model_type == ModelType.tabular
+            else tgt_table.language_model_configuration
         )
-        # update generator with model metrics
-        if model_type == ModelType.tabular:
-            tgt_table.tabular_model_metrics = model_metrics
-        else:
-            tgt_table.language_model_metrics = model_metrics
+        if model_configuration.enable_model_report:
+            model_metrics = execute_step_create_model_report(
+                generator=generator,
+                model_type=model_type,
+                target_table_name=task.target_table_name,
+                workspace_dir=workspace_dir,
+                update_progress=update_progress_fn(step_code=StepCode.create_model_report),
+            )
+            # update generator with model metrics
+            if model_type == ModelType.tabular:
+                tgt_table.tabular_model_metrics = model_metrics
+            else:
+                tgt_table.language_model_metrics = model_metrics
 
     def execute_task_finalize_training(self, task: Task):
         pass
