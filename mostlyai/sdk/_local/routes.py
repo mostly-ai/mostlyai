@@ -22,7 +22,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Body, HTTPException, UploadFile, File
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse, RedirectResponse
 
 from mostlyai import sdk
 from mostlyai.sdk._data.conversions import create_container_from_connector
@@ -104,6 +104,10 @@ class Routes:
                 """
 
     def _initialize_routes(self):
+        @self.router.get("/", include_in_schema=False)
+        async def root() -> RedirectResponse:
+            return RedirectResponse(url="/docs")
+
         ## GENERAL
 
         @self.router.get("/about", response_model=AboutService)

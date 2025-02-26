@@ -28,6 +28,14 @@ import os
 
 
 class LocalServer:
+    """
+    Instantiate a local server for the Synthetic Data SDK.
+
+    Args:
+        home_dir: The directory where the SDK stores its data. Defaults to `~/mostlyai`.
+        port: The port to bind the server to. If `None`, a Unix Domain Socket (UDS) will be used. Defaults to `None`.
+    """
+
     def __init__(
         self,
         home_dir: str | Path | None = None,

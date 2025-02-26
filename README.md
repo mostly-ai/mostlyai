@@ -1,16 +1,15 @@
-
 # Synthetic Data SDK ✨
 
+[![GitHub Release](https://img.shields.io/github/v/release/mostly-ai/mostlyai)](https://github.com/mostly-ai/mostlyai/releases)
 [![Documentation](https://img.shields.io/badge/docs-latest-green)](https://mostly-ai.github.io/mostlyai/)
 [![PyPI Downloads](https://static.pepy.tech/badge/mostlyai)](https://pepy.tech/projects/mostlyai)
 [![License](https://img.shields.io/github/license/mostly-ai/mostlyai)](https://github.com/mostly-ai/mostlyai/blob/main/LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/mostly-ai/mostlyai)](https://github.com/mostly-ai/mostlyai/releases)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai)](https://pypi.org/project/mostlyai/)
 [![GitHub stars](https://img.shields.io/github/stars/mostly-ai/mostlyai?style=social)](https://github.com/mostly-ai/mostlyai/stargazers)
 
-[SDK Documentation](https://mostly-ai.github.io/mostlyai/) | [Platform Documentation](https://mostly.ai/docs) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/)
+[Documentation](https://mostly-ai.github.io/mostlyai/) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/) | [Free Cloud Service](https://app.mostly.ai/)
 
-The Synthetic Data SDK is a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
+The **Synthetic Data SDK** is a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
 
 - **LOCAL** mode trains and generates synthetic data locally on your own compute resources.
 - **CLIENT** mode connects to a remote MOSTLY AI platform for training & generating synthetic data there.
@@ -33,37 +32,44 @@ The SDK allows you to programmatically create, browse and manage 3 key resources
 
 https://github.com/user-attachments/assets/d1613636-06e4-4147-bef7-25bb4699e8fc
 
-## Installation
 
-**CLIENT mode only**
+## Key Features
 
-```shell
-pip install -U mostlyai
-```
+- **Broad Data Support**
+    - Mixed-type data (categorical, numerical, geospatial, text, etc.)
+    - Single-table, multi-table, and time-series
+- **Multiple Model Types**
+    - TabularARGN for SOTA tabular performance
+    - Fine-tune HuggingFace-based language models
+    - Efficient LSTM for text synthesis from scratch
+- **Advanced Training Options**
+    - GPU/CPU support
+    - Differential Privacy
+    - Progress Monitoring
+- **Automated Quality Assurance**
+    - Quality metrics for fidelity and privacy
+    - In-depth HTML reports for visual analysis
+- **Flexible Sampling**
+    - Up-sample to any data volumes
+    - Conditional generation by any columns
+    - Re-balance underrepresented segments
+    - Context-aware data imputation
+    - Statistical fairness controls
+    - Rule-adherence via temperature
+- **Seamless Integration**
+    - Connect to external data sources (DBs, cloud storages)
+    - Fully permissive open-source license
 
-**CLIENT + LOCAL mode**
-
-```shell
-# for CPU on macOS
-pip install -U 'mostlyai[local]'
-# for CPU on Linux
-#pip install -U mostlyai[local-cpu] --extra-index-url https://download.pytorch.org/whl/cpu
-# for GPU on Linux
-#pip install -U mostlyai[local-gpu]
-```
-
-**Optional Connectors**
-
-Add any of the following extras for further data connectors support: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`.
-
-E.g.
-```shell
-pip install -U 'mostlyai[local, databricks, snowflake]'
-```
 
 ## Quick Start <a href="https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb" target="_blank"><img src="https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab" alt="Run on Colab"></a>
 
-Generate your first samples based on your own trained generator with a few lines of code. For LOCAL mode, initialize the SDK with `local=True`. For CLIENT mode, initialize the SDK with `base_url` and `api_key` obtained from your [account settings page](https://app.mostly.ai/settings/api-keys).
+Install the SDK via pip:
+
+```shell
+pip install mostlyai
+```
+
+Train your first generator:
 
 ```python
 import pandas as pd
@@ -73,9 +79,8 @@ from mostlyai.sdk import MostlyAI
 repo_url = "https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev"
 df_original = pd.read_csv(f"{repo_url}/census/census.csv.gz")
 
-# initialize the SDK in local or client mode
-mostly = MostlyAI(local=True)                       # local mode
-# mostly = MostlyAI(base_url='xxx', api_key='xxx')  # client mode
+# initialize the SDK
+mostly = MostlyAI()
 
 # train a synthetic data generator
 g = mostly.train(
@@ -105,7 +110,7 @@ g = mostly.train(
 g.reports(display=True)
 ```
 
-Once the generator has been trained, you can use it to generate synthetic data samples. Either via probing:
+Once the generator has been trained, generate synthetic data samples. Either via probing:
 
 ```python
 # probe for some representative synthetic samples
@@ -135,32 +140,35 @@ df_samples = mostly.probe(g, seed=df_seed)
 df_samples
 ```
 
-## Key Features
+## Installation
 
-- **Broad Data Support**
-    - Mixed-type data (categorical, numerical, geospatial, text, etc.)
-    - Single-table, multi-table, and time-series
-- **Multiple Model Types**
-    - TabularARGN for SOTA tabular performance
-    - Fine-tune HuggingFace-based language models
-    - Efficient LSTM for text synthesis from scratch
-- **Advanced Training Options**
-    - GPU/CPU support
-    - Differential Privacy
-    - Progress Monitoring
-- **Automated Quality Assurance**
-    - Quality metrics for fidelity and privacy
-    - In-depth HTML reports for visual analysis
-- **Flexible Sampling**
-    - Up-sample to any data volumes
-    - Conditional generation by any columns
-    - Re-balance underrepresented segments
-    - Context-aware data imputation
-    - Statistical fairness controls
-    - Rule-adherence via temperature
-- **Seamless Integration**
-    - Connect to external data sources (DBs, cloud storages)
-    - Fully permissive open-source license
+ Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required. It is recommended to install the package within a dedicated virtual environment.
+
+**CLIENT mode only**
+
+This is a light-weight installation for using the SDK in CLIENT mode only. It communicates to a MOSTLY AI platform to perform requested tasks. See e.g. [app.mostly.ai](https://app.mostly.ai/) for a free-to-use hosted version.
+
+```shell
+pip install -U mostlyai
+```
+
+**CLIENT + LOCAL mode**
+
+This is a full installation for using the SDK in both CLIENT and LOCAL mode. It includes all dependencies, incl. PyTorch, for training and generating synthetic data locally.
+
+```shell
+# for CPU on macOS
+pip install -U 'mostlyai[local]'
+# for CPU on Linux
+pip install -U 'mostlyai[local-cpu]' --extra-index-url https://download.pytorch.org/whl/cpu
+# for GPU on Linux
+pip install -U 'mostlyai[local-gpu]'
+```
+
+Add any of the following extras for further data connectors support in LOCAL mode: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`. E.g.
+```shell
+pip install -U 'mostlyai[local, databricks, snowflake]'
+```
 
 ## Citation
 

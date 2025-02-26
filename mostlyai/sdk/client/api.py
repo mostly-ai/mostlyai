@@ -52,17 +52,9 @@ from mostlyai.sdk.client._utils import (
 
 class MostlyAI(_MostlyBaseClient):
     """
-    Instantiate an SDK instance, either in client or in local mode.
+    Instantiate an SDK instance, either in CLIENT or in LOCAL mode.
 
-    Example for instantiating the SDK in local mode:
-        ```python
-        from mostlyai.sdk import MostlyAI
-        mostly = MostlyAI(local=True)
-        mostly
-        # MostlyAI(local=True)
-        ```
-
-    Example for instantiating the SDK in client mode with explicit arguments:
+    Example for instantiating the SDK in CLIENT mode with explicit arguments:
         ```python
         from mostlyai.sdk import MostlyAI
         mostly = MostlyAI(
@@ -73,7 +65,7 @@ class MostlyAI(_MostlyBaseClient):
         # MostlyAI(base_url='https://app.mostly.ai', api_key='***')
         ```
 
-    Example for instantiating the SDK with environment variables:
+    Example for instantiating the SDK in CLIENT mode with environment variables:
         ```python
         import os
         from mostlyai.sdk import MostlyAI
@@ -82,6 +74,22 @@ class MostlyAI(_MostlyBaseClient):
         mostly = MostlyAI()
         mostly
         # MostlyAI(base_url='https://app.mostly.ai', api_key='***')
+        ```
+
+    Example for instantiating the SDK in LOCAL mode, and connect via Unix Domain Socket (UDS):
+        ```python
+        from mostlyai.sdk import MostlyAI
+        mostly = MostlyAI(local=True)
+        mostly
+        # MostlyAI(local=True)
+        ```
+
+    Example for instantiating the SDK in LOCAL mode, and connect via Transmission Control Protocol (TCP):
+        ```python
+        from mostlyai.sdk import MostlyAI
+        mostly = MostlyAI(local=True, local_port=8080)
+        mostly
+        # MostlyAI(local=True, local_port=8080)
         ```
 
     Args:
