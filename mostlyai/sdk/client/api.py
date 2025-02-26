@@ -187,7 +187,10 @@ class MostlyAI(_MostlyBaseClient):
         self.synthetic_probes = _MostlySyntheticProbesClient(**client_kwargs)
         if mode == "LOCAL":
             rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]LOCAL mode[/bold] 🏠")
-            msg = f"Connected to [link=file://{home_dir} dodger_blue2 underline]{home_dir}[/]"
+            if self.local_server.uds:
+                msg = f"Connected to [link=file://{home_dir} dodger_blue2 underline]{home_dir}[/]"
+            else:
+                msg = f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
             import torch  # noqa
             import psutil  # noqa
 
@@ -204,11 +207,8 @@ class MostlyAI(_MostlyBaseClient):
             try:
                 server_version = self.about().version
                 email = self.me().email
-                msg = (
-                    f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
-                    f" {server_version}"
-                    f" as [bold]{email}[/bold]"
-                )
+                msg = f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/] {server_version}"
+                msg += f" as [bold]{email}[/bold]" if email else ""
                 rich.print(msg)
             except Exception as e:
                 rich.print(f"Failed to connect to {self.base_url}: {e}.")
