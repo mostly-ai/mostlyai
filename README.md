@@ -7,7 +7,7 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai)](https://pypi.org/project/mostlyai/)
 [![GitHub stars](https://img.shields.io/github/stars/mostly-ai/mostlyai?style=social)](https://github.com/mostly-ai/mostlyai/stargazers)
 
-[Documentation](https://img.shields.io/badge/docs-latest-green) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/) | [Free Cloud Service](https://app.mostly.ai/)
+[Documentation](https://mostly-ai.github.io/mostlyai/) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/) | [Free Cloud Service](https://app.mostly.ai/)
 
 The **Synthetic Data SDK** is a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
 
