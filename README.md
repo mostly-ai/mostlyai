@@ -80,9 +80,8 @@ from mostlyai.sdk import MostlyAI
 repo_url = "https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev"
 df_original = pd.read_csv(f"{repo_url}/census/census.csv.gz")
 
-# initialize the SDK in local or client mode
-mostly = MostlyAI(local=True)                       # local mode
-# mostly = MostlyAI(base_url='xxx', api_key='xxx')  # client mode
+# initialize the SDK
+mostly = MostlyAI()
 
 # train a synthetic data generator
 g = mostly.train(
@@ -144,17 +143,19 @@ df_samples
 
 ## Installation
 
-### Using pip
+Install the `mostlyai` Python package from PyPI. It is recommended to install the package within a dedicated virtual environment.
 
-Install the `mostlyai` Python package from PyPI. It's recommended to install the package within a dedicated virtual environment.
+**CLIENT mode only**
 
-#### CLIENT mode only
+This is a light-weight installation for using the SDK in CLIENT mode only. It communicates to a MOSTLY AI platform to perform requested tasks. See e.g. [app.mostly.ai](https://app.mostly.ai/) for a free-to-use hosted version.
 
 ```shell
 pip install -U mostlyai
 ```
 
-#### CLIENT + LOCAL mode
+**CLIENT + LOCAL mode**
+
+This is a full installation for using the SDK in both CLIENT and LOCAL mode. It includes all dependencies, incl. PyTorch, for training and generating synthetic data locally.
 
 ```shell
 # for CPU on macOS
@@ -165,42 +166,10 @@ pip install -U 'mostlyai[local-cpu]' --extra-index-url https://download.pytorch.
 pip install -U 'mostlyai[local-gpu]'
 ```
 
-#### Optional Connectors
-
 Add any of the following extras for further data connectors support in LOCAL mode: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`. E.g.
 ```shell
 pip install -U 'mostlyai[local, databricks, snowflake]'
 ```
-
-### Using Docker
-
-The Docker image provides an isolated environment for running the SDK in LOCAL mode, with all connector dependencies pre-installed. Ensure [Docker](https://docs.docker.com/get-started/get-docker/) is installed on your system.
-
-```shell
-# pull the docker image (several GB in size)
-docker pull mostlyai/mostlyai
-
-# run the docker container, exposing Jupyter Lab on port 8888 and mounting a local folder
-docker run --platform linux/amd64 -it -p 8888:8888 \
-  -v ~/.cache/huggingface:/opt/app-root/src/.cache/huggingface \
-  -v ~/mostlyai:/opt/app-root/src/mostlyai \
-  -e "MOSTLY_LOCAL=1" \
-  mostlyai/mostlyai
-```
-
-Once the container is running, open your web browser and navigate to http://localhost:8888.
-
-<details>
-<summary>Building the Docker Image</summary>
-
-```shell
-# build the docker image from scratch
-make docker-build
-
-# run the docker container for development, exposing Jupyter Lab on port 8888 and mounting this repository from the host
-make docker-run HOST_PORT=8888 HOST_PATH=.
-```
-</details>
 
 ## Citation
 
