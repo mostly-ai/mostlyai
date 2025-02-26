@@ -1,14 +1,7 @@
 
-# Synthetic Data SDK ✨
+<h1 align="center" style="font-size: 30px;">Synthetic Data SDK ✨</h1>
+<p align="center" style="font-size: 12px;"><a href="https://mostly-ai.github.io/mostlyai/">Documentation</a> - <a href="#installation">Installation</a> - <a href="https://app.mostly.ai/">Free Cloud Platform</a></p>
 
-[![Documentation](https://img.shields.io/badge/docs-latest-green)](https://mostly-ai.github.io/mostlyai/)
-[![PyPI Downloads](https://static.pepy.tech/badge/mostlyai)](https://pepy.tech/projects/mostlyai)
-[![License](https://img.shields.io/github/license/mostly-ai/mostlyai)](https://github.com/mostly-ai/mostlyai/blob/main/LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/mostly-ai/mostlyai)](https://github.com/mostly-ai/mostlyai/releases)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai)](https://pypi.org/project/mostlyai/)
-[![GitHub stars](https://img.shields.io/github/stars/mostly-ai/mostlyai?style=social)](https://github.com/mostly-ai/mostlyai/stargazers)
-
-[SDK Documentation](https://mostly-ai.github.io/mostlyai/) | [Platform Documentation](https://mostly.ai/docs) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/)
 
 The Synthetic Data SDK is a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
 
@@ -143,7 +136,7 @@ df_samples
 
 ## Installation
 
-Install the `mostlyai` Python package from PyPI. It is recommended to install the package within a dedicated virtual environment.
+ Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required. It is recommended to install the package within a dedicated virtual environment.
 
 **CLIENT mode only**
 
