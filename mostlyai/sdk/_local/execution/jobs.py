@@ -297,12 +297,8 @@ class Execution:
             TaskType.train_tabular: self.execute_task_train,
             TaskType.train_language: self.execute_task_train,
             TaskType.finalize_training: self.execute_task_finalize_training,
-            TaskType.generate_tabular: self.execute_task_generate,
-            TaskType.generate_language: self.execute_task_generate,
-            TaskType.finalize_generation: self.execute_task_finalize_generation,
-            TaskType.probe_tabular: self.execute_task_generate,
-            TaskType.probe_language: self.execute_task_generate,
-            TaskType.finalize_probing: self.execute_task_finalize_probing,
+            TaskType.generate: self.execute_task_generate,
+            TaskType.probe: self.execute_task_generate,
         }
         for task in self._execution_plan.tasks:
             handler = task_handlers.get(task.type)
@@ -405,80 +401,101 @@ class Execution:
         pass
 
     def execute_task_generate(self, task: Task):
-        # gather common step arguments
         generator = self._generator
         synthetic_dataset = self._synthetic_dataset
-        is_probe = task.type in (TaskType.probe_tabular, TaskType.probe_language)
-        model_type = (
-            ModelType.tabular
-            if task.type in (TaskType.generate_tabular, TaskType.probe_tabular)
-            else ModelType.language
-        )
-        model_label = f"{task.target_table_name}:{model_type.value.lower()}"
-        sd_table = next(t for t in synthetic_dataset.tables if t.name == task.target_table_name)
         synthetic_dataset_dir = self._home_dir / "synthetic-datasets" / synthetic_dataset.id
         generator_dir = self._home_dir / "generators" / generator.id
-        workspace_dir = self._job_workspace_dir / model_label
-        workspace_dir.mkdir()
-        update_progress_fn = partial(
-            LocalProgressCallback, resource_path=synthetic_dataset_dir, model_label=model_label
-        )
 
-        # copy AI model to workspace
-        _copy_model(generator_dir=generator_dir, model_label=model_label, workspace_dir=workspace_dir)
+        visited_tables = set()
+        table_lookup = {table.name: table for table in synthetic_dataset.tables}
 
-        # step: GENERATE_DATA
-        if sd_table.configuration.sample_seed_connector_id is not None:
-            sample_seed = _fetch_sample_seed(
-                home_dir=self._home_dir,
-                connector_id=sd_table.configuration.sample_seed_connector_id,
-            )
-        else:
-            sample_seed = None
-        schema = create_generation_schema(
-            generator=generator,
-            job_workspace_dir=self._job_workspace_dir,
-            step="pull_context_data",
-        )
-        execute_step_generate_data(
-            generator=generator,
-            synthetic_dataset=synthetic_dataset,
-            target_table_name=task.target_table_name,
-            model_type=model_type,
-            sample_seed=sample_seed,
-            schema=schema,
-            workspace_dir=workspace_dir,
-            update_progress=update_progress_fn(step_code=StepCode.generate_data),
-        )
-
-        if not is_probe:
-            # copy QA statistics to workspace
-            _copy_statistics(generator_dir=generator_dir, model_label=model_label, workspace_dir=workspace_dir)
-            # step: GENERATE_DATA_REPORT
-            execute_step_create_data_report(
-                generator=generator,
-                target_table_name=task.target_table_name,
-                model_type=model_type,
-                workspace_dir=workspace_dir,
-                update_progress=update_progress_fn(step_code=StepCode.create_data_report),
+        for step in task.steps:
+            model_type = (
+                ModelType.tabular
+                if step.step_code in {StepCode.generate_data_tabular, StepCode.create_data_report_tabular}
+                else ModelType.language
             )
 
-        # as a last step of LANGUAGE model generation, merge context and generated data
-        if model_type == ModelType.language:
-            _merge_tabular_language_data(workspace_dir=workspace_dir)
-            # overwrite tabular SyntheticData with tabular+language SyntheticData
-            tabular_workspace_dir = self._job_workspace_dir / f"{task.target_table_name}:tabular"
-            tabular_workspace_dir.mkdir(parents=True, exist_ok=True)
-            shutil.rmtree(tabular_workspace_dir / "SyntheticData", ignore_errors=True)
-            shutil.move(workspace_dir / "SyntheticData", tabular_workspace_dir / "SyntheticData")
+            model_label = f"{step.target_table_name}:{model_type.value.lower()}"
+            workspace_dir = self._job_workspace_dir / model_label
+            workspace_dir.mkdir(exist_ok=True)
 
-    def execute_task_finalize_generation(self, task: Task):
+            update_progress = partial(
+                LocalProgressCallback, resource_path=synthetic_dataset_dir, model_label=model_label
+            )
+
+            if step.step_code in {StepCode.generate_data_tabular, StepCode.generate_data_language}:
+                # step: GENERATE_DATA
+                _copy_model(generator_dir=generator_dir, model_label=model_label, workspace_dir=workspace_dir)
+
+                visited_tables.add(step.target_table_name)
+
+                table = table_lookup[step.target_table_name]
+                sample_seed = (
+                    _fetch_sample_seed(
+                        home_dir=self._home_dir, connector_id=table.configuration.sample_seed_connector_id
+                    )
+                    if table.configuration.sample_seed_connector_id
+                    else None
+                )
+
+                schema = create_generation_schema(
+                    generator=generator,
+                    job_workspace_dir=self._job_workspace_dir,
+                    step="pull_context_data",
+                )
+
+                execute_step_generate_data(
+                    generator=generator,
+                    synthetic_dataset=synthetic_dataset,
+                    target_table_name=step.target_table_name,
+                    model_type=model_type,
+                    sample_seed=sample_seed,
+                    schema=schema,
+                    workspace_dir=workspace_dir,
+                    update_progress=update_progress(step_code=step.step_code),
+                )
+
+            elif step.step_code in {StepCode.create_data_report_tabular, StepCode.create_data_report_language}:
+                _copy_statistics(generator_dir=generator_dir, model_label=model_label, workspace_dir=workspace_dir)
+                # step: GENERATE_DATA_REPORT
+                execute_step_create_data_report(
+                    generator=generator,
+                    target_table_name=step.target_table_name,
+                    model_type=model_type,
+                    workspace_dir=workspace_dir,
+                    update_progress=update_progress(step_code=step.step_code),
+                )
+
+            elif step.step_code in {StepCode.finalize_generation, StepCode.finalize_probing}:
+                # for every LANGUAGE model generation, merge context and generated data
+                for table in visited_tables:
+                    language_path = self._job_workspace_dir / f"{table}:{ModelType.language.value.lower()}"
+                    if language_path.exists():
+                        _merge_tabular_language_data(workspace_dir=language_path)
+
+                        tabular_workspace = self._job_workspace_dir / f"{table}:{ModelType.tabular.value.lower()}"
+                        tabular_workspace.mkdir(parents=True, exist_ok=True)
+                        shutil.rmtree(tabular_workspace / "SyntheticData", ignore_errors=True)
+                        shutil.move(language_path / "SyntheticData", tabular_workspace / "SyntheticData")
+
+                finalize_method = (
+                    self.execute_finalize_generation
+                    if step.step_code == StepCode.finalize_generation
+                    else self.execute_finalize_probing
+                )
+                finalize_method()
+
+            elif step.step_code == StepCode.deliver_data:
+                self.execute_deliver_data()
+
+    def execute_finalize_generation(self):
         schema = create_generation_schema(
             generator=self._generator,
             job_workspace_dir=self._job_workspace_dir,
             step="finalize_generation",
         )
-        # step: FINALIZE_GENERATION
+
         usage = execute_step_finalize_generation(
             schema=schema,
             is_probe=False,
@@ -489,20 +506,23 @@ class Execution:
                 step_code=StepCode.finalize_generation,
             ),
         )
-        # update total rows and datapoints
+
         update_total_rows_and_datapoints(self._synthetic_dataset, usage)
 
-        # step: DELIVER_DATA
+    def execute_deliver_data(self):
         schema = create_generation_schema(
             generator=self._generator,
             job_workspace_dir=self._job_workspace_dir,
             step="deliver_data",
         )
+
         delivery = self._synthetic_dataset.delivery
-        if delivery is not None and delivery.destination_connector_id is not None:
-            connector = read_connector_from_json(self._home_dir / "connectors" / delivery.destination_connector_id)
-        else:
-            connector = None
+        connector = (
+            read_connector_from_json(self._home_dir / "connectors" / delivery.destination_connector_id)
+            if delivery and delivery.destination_connector_id
+            else None
+        )
+
         execute_step_deliver_data(
             generator=self._generator,
             delivery=delivery,
@@ -511,7 +531,7 @@ class Execution:
             job_workspace_dir=self._job_workspace_dir,
         )
 
-    def execute_task_finalize_probing(self, task: Task):
+    def execute_finalize_probing(self):
         schema = create_generation_schema(
             generator=self._generator,
             job_workspace_dir=self._job_workspace_dir,

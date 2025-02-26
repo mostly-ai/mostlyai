@@ -155,7 +155,7 @@ def create_report(
             ctx_data=sorted(report_ctx_input_path.glob("part.*-val.parquet")) if has_context else None,
             **pull_kwargs,
         )
-    else:  # step_code == StepCode.create_data_report:
+    else:  # step_code == StepCode.create_data_report_*:
         syn_tgt_data, syn_ctx_data = pull_data_for_report(
             tgt_data=workspace.generated_data.fetch_all(),
             ctx_data=workspace.ctx_data.fetch_all() if has_context else None,
@@ -190,7 +190,7 @@ def create_report(
         )
         # convert metrics from QA domain to SDK domain (if applicable)
         metrics = ModelMetrics(**metrics.model_dump()) if metrics else None
-    else:  # if step_code == StepCode.create_data_report:
+    else:  # if step_code == StepCode.create_data_report_*:
         # generate Data QA report
         (workspace_dir / "DataQAReports").mkdir(exist_ok=True, parents=True)
         _ = qa.report_from_statistics(
