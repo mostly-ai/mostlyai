@@ -89,6 +89,7 @@ class MostlyAI(_MostlyBaseClient):
         api_key: The API key for authenticating. If not provided, it would rely on environment variables.
         local: Whether to run in local mode or not.
         local_dir: The directory to use for local mode. If not provided, `~/mostlyai` will be used.
+        local_port: The port to use for local mode with TCP transport. If not provided, UDS transport is used by default.
         timeout: Timeout for HTTPS requests in seconds.
         ssl_verify: Whether to verify SSL certificates.
         quiet: Whether to suppress rich output.
@@ -100,6 +101,7 @@ class MostlyAI(_MostlyBaseClient):
         api_key: str | None = None,
         local: bool | None = None,
         local_dir: str | Path | None = None,
+        local_port: int | None = None,
         timeout: float = 60.0,
         ssl_verify: bool = True,
         quiet: bool = False,
@@ -154,11 +156,11 @@ class MostlyAI(_MostlyBaseClient):
             check_local_mode_available()
             from mostlyai.sdk._local.server import LocalServer  # noqa
 
-            self.local = LocalServer(home_dir=local_dir)
-            home_dir = self.local.home_dir
-            base_url = self.local.base_url
+            self.local_server = LocalServer(home_dir=local_dir, port=local_port)
+            home_dir = self.local_server.home_dir
+            base_url = self.local_server.base_url
             api_key = "local"
-            uds = self.local.uds
+            uds = self.local_server.uds
         elif mode == "CLIENT":
             if base_url is None:
                 base_url = os.getenv("MOSTLY_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
@@ -185,7 +187,10 @@ class MostlyAI(_MostlyBaseClient):
         self.synthetic_probes = _MostlySyntheticProbesClient(**client_kwargs)
         if mode == "LOCAL":
             rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]LOCAL mode[/bold] 🏠")
-            msg = f"Connected to [link=file://{home_dir} dodger_blue2 underline]{home_dir}[/]"
+            if self.local_server.uds:
+                msg = f"Connected to [link=file://{home_dir} dodger_blue2 underline]{home_dir}[/]"
+            else:
+                msg = f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
             import torch  # noqa
             import psutil  # noqa
 
@@ -202,11 +207,8 @@ class MostlyAI(_MostlyBaseClient):
             try:
                 server_version = self.about().version
                 email = self.me().email
-                msg = (
-                    f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
-                    f" {server_version}"
-                    f" as [bold]{email}[/bold]"
-                )
+                msg = f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/] {server_version}"
+                msg += f" as [bold]{email}[/bold]" if email else ""
                 rich.print(msg)
             except Exception as e:
                 rich.print(f"Failed to connect to {self.base_url}: {e}.")
@@ -218,10 +220,10 @@ class MostlyAI(_MostlyBaseClient):
 
     def __repr__(self) -> str:
         if self.local:
-            return "MostlyAI(local=True)"
-        else:
-            api_key = "'***'" if self.api_key else "None"
-            return f"MostlyAI(base_url='{self.base_url}', api_key={api_key})"
+            if self.local_server.uds:
+                return "MostlyAI(local=True)"
+            return f"MostlyAI(local=True, local_port={self.local_server.port})"
+        return f"MostlyAI(base_url='{self.base_url}', api_key=***)"
 
     def connect(
         self,
