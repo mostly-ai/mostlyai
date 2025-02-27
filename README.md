@@ -89,14 +89,14 @@ g = mostly.train(
                 "name": "census",
                 "data": df_original,
                 "tabular_model_configuration": {  # tabular model configuration (optional)
-                    "max_training_time": 1,  # - limit training time (in minutes)
-                    # model, max_epochs,,..        # further model configurations (optional)
-                    # 'differential_privacy': {    # differential privacy configuration (optional)
-                    #     'max_epsilon': 5.0,      # - max epsilon value, used as stopping criterion
-                    #     'delta': 1e-5,           # - delta value
+                    "max_training_time": 1,       # - limit training time (in minutes)
+                    # model, max_epochs,,..       # further model configurations (optional)
+                    # 'differential_privacy': {   # differential privacy configuration (optional)
+                    #     'max_epsilon': 5.0,     # - max epsilon value, used as stopping criterion
+                    #     'delta': 1e-5,          # - delta value
                     # }
                 },
-                # columns, keys, compute,..      # further table configurations (optional)
+                # columns, keys, compute,..       # further table configurations (optional)
             }
         ],
     },
