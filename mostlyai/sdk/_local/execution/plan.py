@@ -151,9 +151,9 @@ def make_synthetic_dataset_execution_plan(generator: Generator, is_probe: bool =
             )
 
         # Traverse child tables in tree level order traversal
-        queue = deque([(root_table.name, generate_task)])
+        queue = deque([root_table.name])
         while queue:
-            current_table_name, parent_task = queue.popleft()
+            current_table_name = queue.popleft()
 
             # Find child tables
             child_tables = sorted(
@@ -162,7 +162,6 @@ def make_synthetic_dataset_execution_plan(generator: Generator, is_probe: bool =
             )
             # Process each child table
             for child_table in child_tables:
-                generate_task = parent_task
                 if has_tabular_model(child_table):
                     generate_task = execution_plan.add_task(
                         generate_tabular_task_type, parent=generate_task, target_table_name=child_table.name
@@ -172,7 +171,7 @@ def make_synthetic_dataset_execution_plan(generator: Generator, is_probe: bool =
                         generate_language_task_type, parent=generate_task, target_table_name=child_table.name
                     )
 
-                queue.append((child_table.name, generate_task))
+                queue.append(child_table.name)
 
     post_generation_sync_task = execution_plan.add_task(TaskType.sync)
     finalize_task = execution_plan.add_task(finalize_task_type, parent=post_generation_sync_task)

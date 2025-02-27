@@ -90,10 +90,12 @@ def test_make_synthetic_dataset_execution_plan():
     order_items_tabular_task = expected_execution_plan.add_task(
         TaskType.generate_tabular, parent=orders_task, target_table_name="order_items"
     )
-    expected_execution_plan.add_task(
+    order_items_language_task = expected_execution_plan.add_task(
         TaskType.generate_language, parent=order_items_tabular_task, target_table_name="order_items"
     )
-    expected_execution_plan.add_task(TaskType.generate_tabular, parent=orders_task, target_table_name="prices")
+    expected_execution_plan.add_task(
+        TaskType.generate_tabular, parent=order_items_language_task, target_table_name="prices"
+    )
     post_generation_sync = expected_execution_plan.add_task(TaskType.sync)
     finalize_task = expected_execution_plan.add_task(TaskType.finalize_generation, parent=post_generation_sync)
     expected_execution_plan.add_task(TaskType.sync, parent=finalize_task)
