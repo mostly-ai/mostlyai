@@ -87,6 +87,53 @@ def test_source_table_config():
         )
 
 
+def test_source_table_config_add_model_configuration():
+    def assert_model_configuration(s: SourceTableConfig, has_tabular_model: bool, has_language_model: bool):
+        assert (s.tabular_model_configuration is not None) is has_tabular_model
+        assert (s.language_model_configuration is not None) is has_language_model
+
+    # PK only
+    s = SourceTableConfig(**{"name": "tbl1", "primary_key": "id"})
+    assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
+    s = SourceTableConfig(**{"name": "tbl1", "primary_key": "id", "columns": [{"name": "id"}]})
+    assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
+
+    # PK + FK
+    s = SourceTableConfig(
+        **{
+            "name": "tbl1",
+            "primary_key": "id",
+            "foreign_keys": [{"column": "fk", "referenced_table": "tbl2", "is_context": True}],
+            "columns": [{"name": "id"}, {"name": "fk"}],
+        }
+    )
+    assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
+
+    # tabular model only
+    s = SourceTableConfig(
+        **{"name": "tbl1", "columns": [{"name": "col", "model_encoding_type": ModelEncodingType.tabular_categorical}]}
+    )
+    assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
+
+    # language model only
+    s = SourceTableConfig(
+        **{"name": "tbl1", "columns": [{"name": "col", "model_encoding_type": ModelEncodingType.language_text}]}
+    )
+    assert_model_configuration(s, has_tabular_model=False, has_language_model=True)
+
+    # tabular and language model
+    s = SourceTableConfig(
+        **{
+            "name": "tbl1",
+            "columns": [
+                {"name": "col", "model_encoding_type": ModelEncodingType.tabular_categorical},
+                {"name": "col2", "model_encoding_type": ModelEncodingType.language_text},
+            ],
+        }
+    )
+    assert_model_configuration(s, has_tabular_model=True, has_language_model=True)
+
+
 def test_generator_config():
     cols = [{"name": "id"}, {"name": "col1"}, {"name": "col2"}]
     # test valid calls
