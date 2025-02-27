@@ -59,7 +59,7 @@ The SDK allows you to programmatically create, browse and manage 3 key resources
   - Connect to external data sources (DBs, cloud storages)
   - Fully permissive open-source license
 
-## Quick Start [![Open in Colab](https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab)](https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb)
+## Quick Start <a href="https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb" target="_blank"><img src="https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab" alt="Run on Colab"></a>
 
 Install the SDK via pip:
 
@@ -89,7 +89,7 @@ g = mostly.train(
                 "name": "census",
                 "data": df_original,
                 "tabular_model_configuration": {  # tabular model configuration (optional)
-                    "max_training_time": 1,       # - limit training time (in minutes)
+                    "max_training_time": 1,       # - cap time to 1 min for demo; increase for max accuracy
                     # model, max_epochs,,..       # further model configurations (optional)
                     # 'differential_privacy': {   # differential privacy configuration (optional)
                     #     'max_epsilon': 5.0,     # - max epsilon value, used as stopping criterion
@@ -142,7 +142,7 @@ df_samples
 
  Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required. It is recommended to install the package within a dedicated virtual environment.
 
-### CLIENT mode only
+### CLIENT mode
 
 This is a light-weight installation for using the SDK in CLIENT mode only. It communicates to a MOSTLY AI platform to perform requested tasks. See e.g. [app.mostly.ai](https://app.mostly.ai/) for a free-to-use hosted version.
 

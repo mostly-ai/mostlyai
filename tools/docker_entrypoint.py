@@ -15,7 +15,7 @@
 
 def main() -> None:
     """
-    Entrypoint for the MostlyAI SDK Docker image.
+    Entrypoint for the Synthetic Data SDK Docker image.
     Can be called without any arguments which would start in a Local mode, running on port 8080.
     Alternatively, any arguments can be passed as key-value pairs and they will be used when initiating the MostlyAI class.
 
@@ -31,7 +31,7 @@ def main() -> None:
     from argparse import ArgumentParser
     from time import sleep
 
-    parser = ArgumentParser(description="MostlyAI SDK Docker Entrypoint.")
+    parser = ArgumentParser(description="Synthetic Data SDK Docker Entrypoint")
     _, args = parser.parse_known_args()
     kwargs = {}
     for arg in args:
