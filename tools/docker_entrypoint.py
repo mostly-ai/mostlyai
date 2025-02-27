@@ -24,10 +24,7 @@ def main() -> None:
             key, value = arg.lstrip("--").split("=", 1)
             kwargs[key] = value
     if len(kwargs) == 0:
-        kwargs = {
-            "local": True,
-            "local_port": 8080
-        }
+        kwargs = {"local": True, "local_port": 8080}
 
     print("Startup may take a few seconds while libraries are being loaded...")
 
