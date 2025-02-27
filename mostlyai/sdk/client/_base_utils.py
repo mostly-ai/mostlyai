@@ -46,9 +46,15 @@ def convert_to_base64(
     # Save the DataFrame to a buffer in Parquet / JSONL format
     buffer = io.BytesIO()
     if format == "parquet":
+        # clear any (potentially non-serializable) attributes that might stop us from saving to PQT
+        if df.attrs:
+            df.attrs.clear()
+        # persist the DataFrame to Parquet format
         df.to_parquet(buffer, index=False)
     else:  # format == "jsonl"
+        # persist the DataFrame to JSONL format
         df.to_json(buffer, orient="records", date_format="iso", lines=True, index=False)
+    # read in persisted file as base64 encoded string
     buffer.seek(0)
     binary_data = buffer.read()
     base64_encoded_str = base64.b64encode(binary_data).decode()
