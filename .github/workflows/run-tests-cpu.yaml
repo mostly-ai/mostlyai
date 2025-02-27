@@ -39,3 +39,4 @@ jobs:
               uv run --no-sync pytest -vv tests/client/unit
               uv run --no-sync pytest -vv tests/_data/unit
               uv run --no-sync pytest -vv tests/_local/unit
+              uv run --no-sync pytest -vv tests/test_domain.py
