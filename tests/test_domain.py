@@ -69,22 +69,6 @@ def test_source_table_config():
                 "foreign_keys": [fk_non | {"column": "id"}],
             }
         )
-    with pytest.raises(ValueError):  # incorrectly provided tabular model configuration
-        SourceTableConfig(
-            **{
-                "name": "tbl1",
-                "columns": [{"name": "col1", "model_encoding_type": ModelEncodingType.language_text}],
-                "tabular_model_configuration": {"max_epochs": 1},
-            }
-        )
-    with pytest.raises(ValueError):  # incorrectly provided language model configuration
-        SourceTableConfig(
-            **{
-                "name": "tbl1",
-                "columns": [{"name": "col1", "model_encoding_type": ModelEncodingType.tabular_categorical}],
-                "language_model_configuration": {"max_epochs": 1},
-            }
-        )
 
 
 def test_source_table_config_add_model_configuration():
@@ -92,13 +76,13 @@ def test_source_table_config_add_model_configuration():
         assert (s.tabular_model_configuration is not None) is has_tabular_model
         assert (s.language_model_configuration is not None) is has_language_model
 
-    # PK only
+    # PK column only
     s = SourceTableConfig(**{"name": "tbl1", "primary_key": "id"})
     assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
     s = SourceTableConfig(**{"name": "tbl1", "primary_key": "id", "columns": [{"name": "id"}]})
     assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
 
-    # PK + FK
+    # PK + FK columns
     s = SourceTableConfig(
         **{
             "name": "tbl1",
@@ -109,19 +93,19 @@ def test_source_table_config_add_model_configuration():
     )
     assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
 
-    # tabular model only
+    # tabular column only
     s = SourceTableConfig(
         **{"name": "tbl1", "columns": [{"name": "col", "model_encoding_type": ModelEncodingType.tabular_categorical}]}
     )
     assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
 
-    # language model only
+    # language column only
     s = SourceTableConfig(
         **{"name": "tbl1", "columns": [{"name": "col", "model_encoding_type": ModelEncodingType.language_text}]}
     )
     assert_model_configuration(s, has_tabular_model=False, has_language_model=True)
 
-    # tabular and language model
+    # tabular and language columns
     s = SourceTableConfig(
         **{
             "name": "tbl1",
@@ -132,6 +116,26 @@ def test_source_table_config_add_model_configuration():
         }
     )
     assert_model_configuration(s, has_tabular_model=True, has_language_model=True)
+
+    # language column with tabular model configuration
+    s = SourceTableConfig(
+        **{
+            "name": "tbl1",
+            "columns": [{"name": "col1", "model_encoding_type": ModelEncodingType.language_text}],
+            "tabular_model_configuration": {"max_epochs": 1},
+        }
+    )
+    assert_model_configuration(s, has_tabular_model=False, has_language_model=True)
+
+    # tabular column with language model configuration
+    s = SourceTableConfig(
+        **{
+            "name": "tbl1",
+            "columns": [{"name": "col1", "model_encoding_type": ModelEncodingType.tabular_categorical}],
+            "language_model_configuration": {"max_epochs": 1},
+        }
+    )
+    assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
 
 
 def test_generator_config():

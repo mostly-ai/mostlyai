@@ -501,6 +501,15 @@ class SourceTableConfig:
                     raise ValueError(f"Foreign key column '{fk.column}' does not exist in the table's columns.")
         return values
 
+    @model_validator(mode="after")
+    @classmethod
+    def validate_pk_and_fks_are_not_overlapping(cls, values):
+        primary_key = values.primary_key
+        foreign_keys = [fk.column for fk in values.foreign_keys or []]
+        if primary_key is not None and primary_key in foreign_keys:
+            raise ValueError(f"Column '{primary_key}' is both a primary key and a foreign key.")
+        return values
+
 
 class SourceColumn:
     @model_validator(mode="before")
