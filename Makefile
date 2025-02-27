@@ -64,11 +64,11 @@ docker-run: ## Start the docker container
             fi; \
             REAL_PATH=$$(realpath $(HOST_PATH)); \
             BASE_NAME=$$(basename $$REAL_PATH); \
-            MOUNT_ARGS="--mount type=bind,source=$$REAL_PATH,target=/workspace/$$BASE_NAME"; \
-            echo "Mounting volume: $$REAL_PATH (host) <-> /workspace/$$BASE_NAME (container)"; \
+            MOUNT_ARGS="--mount type=bind,source=$$REAL_PATH,target=/opt/app-root/src/$$BASE_NAME"; \
+            echo "Mounting volume: $$REAL_PATH (host) <-> /opt/app-root/src/$$BASE_NAME (container)"; \
             docker run --platform=linux/amd64 --rm -it -p $(HOST_PORT):8080 \
               -v ~/.cache/huggingface:/opt/app-root/src/.cache/huggingface \
-              -v /workspace/mostlyai/.venv \
+              -v /opt/app-root/src/mostlyai/.venv \
               $$MOUNT_ARGS mostlyai/mostlyai ; \
         fi;
 

@@ -1,7 +1,7 @@
 FROM python:3.11-slim AS base
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ACCEPT_EULA=y
-WORKDIR /opt/app-root/src/
+WORKDIR /opt/app-root/src/mostlyai/
 
 FROM base AS deps
 
@@ -46,7 +46,7 @@ FROM deps AS build
 ENV UV_SYSTEM_PYTHON=1
 ENV UV_FROZEN=true
 ENV UV_NO_CACHE=true
-ENV COMMON_UV_ARGS="--no-dev --no-editable --all-extras --no-extra local --no-extra local-gpu"
+ENV COMMON_UV_ARGS="--no-dev --all-extras --no-extra local --no-extra local-gpu"
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
