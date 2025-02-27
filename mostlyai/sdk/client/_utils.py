@@ -183,7 +183,7 @@ def job_wait(
                             -1,
                         )
                         training_log = Table(
-                            title=f"Latest training log for `{step.model_label}`",
+                            title=f"Training log for `{step.model_label}`",
                             box=box.SIMPLE_HEAD,
                             expand=True,
                             header_style="none",

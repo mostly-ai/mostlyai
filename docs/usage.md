@@ -27,7 +27,7 @@ g = mostly.train(config={
             'name': 'census',                # name of the table
             'data': df_original,             # the original data as pd.DataFrame
             'tabular_model_configuration': { # tabular model configuration (optional)
-                'max_training_time': 2,      # - limit training time (in minutes)
+                'max_training_time': 2,      # cap runtime for demo; comment out for max accuracy
                 # model, max_epochs,,..      # further model configurations (optional)
                 'differential_privacy': {    # differential privacy configuration (optional)
                     'max_epsilon': 5.0,      # - max epsilon value, used as stopping criterion
@@ -67,20 +67,70 @@ df_synthetic = sd.data()
 df_synthetic
 ```
 
+## Time-series data
+
+Train a two-table generator on a time-series dataset with a parent-child relationship.
+
+```python
+import pandas as pd
+from mostlyai.sdk import MostlyAI
+
+# load original time series data
+repo_url = 'https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/cdnow/'
+df_original_purchases = pd.read_csv(f'{repo_url}/purchases.csv.gz')[['users_id', 'date', 'cds', 'amt']]
+
+# ensure correct data type for DATE column
+df_original_purchases['date'] = pd.to_datetime(df_original_purchases['date'])
+
+# extract subject table from time-series data
+df_original_users = df_original_purchases[['users_id']].drop_duplicates()
+
+# instantiate SDK
+mostly = MostlyAI()
+
+# train a generator
+g = mostly.train(config={
+    'name': 'CDNOW',                      # name of the generator
+    'tables': [{                          # provide list of table(s)
+        'name': 'users',                  # name of the table
+        'data': df_original_users,        # the original data as pd.DataFrame
+        'primary_key': 'users_id',
+    }, {
+        'name': 'purchases',              # name of the table
+        'data': df_original_purchases,    # the original data as pd.DataFrame
+        'foreign_keys': [                 # foreign key configurations
+            {'column': 'users_id', 'referenced_table': 'users', 'is_context': True},
+        ],
+        'tabular_model_configuration': {
+            'max_training_time': 2,       # cap runtime for demo; comment out for max accuracy
+        },
+    }],
+})
+
+# show Model QA reports
+g.reports(display=True)
+```
+
+Generate a new dataset of 1k synthetic users and their synthetic purchases.
+```python
+syn = mostly.probe(g, size=1000)
+syn['purchases'].sort_values(['users_id', 'date'])
+```
+
+
 ## Multi-table tabular data
 
-Train a multi-table tabular generator on baseball players and their seasonal statistics.
+Train a 3-table tabular generator on baseball players and their seasonal statistics.
 
 ```python
 import pandas as pd
 from mostlyai.sdk import MostlyAI
 
 # load original data
-repo_url = 'https://github.com/mostly-ai/public-demo-data'
-df_original_players = pd.read_csv(f'{repo_url}/raw/dev/baseball/players.csv.gz')
-df_original_players = df_original_players[['id', 'country', 'weight', 'height']]
-df_original_seasons = pd.read_csv(f'{repo_url}/raw/dev/baseball/batting.csv.gz')
-df_original_seasons = df_original_seasons[['players_id', 'year', 'team', 'G', 'AB', 'HR']]
+repo_url = 'https://github.com/mostly-ai/public-demo-data/raw/dev/baseball'
+df_original_players = pd.read_csv(f'{repo_url}/players.csv.gz')[['id', 'country', 'weight', 'height']]
+df_original_batting = pd.read_csv(f'{repo_url}/batting.csv.gz')[['players_id', 'G', 'AB', 'R', 'H', 'HR']]
+df_original_fielding = pd.read_csv(f'{repo_url}/fielding.csv.gz')[['players_id', 'POS', 'G', 'PO', 'A', 'E', 'DP']]
 
 # instantiate SDK
 mostly = MostlyAI()
@@ -92,23 +142,41 @@ g = mostly.train(config={
         'name': 'players',                # name of the table
         'data': df_original_players,      # the original data as pd.DataFrame
         'primary_key': 'id',
+        'tabular_model_configuration': {
+            'max_training_time': 2,       # cap runtime for demo; comment out for max accuracy
+        },
     }, {
-        'name': 'seasons',                # name of the table
-        'data': df_original_seasons,      # the original data as pd.DataFrame
+        'name': 'batting',                # name of the table
+        'data': df_original_batting,      # the original data as pd.DataFrame
         'foreign_keys': [                 # foreign key configurations
             {'column': 'players_id', 'referenced_table': 'players', 'is_context': True},
         ],
+        'tabular_model_configuration': {
+            'max_training_time': 2,       # cap runtime for demo; comment out for max accuracy
+        },
+    }, {
+        'name': 'fielding',               # name of the table
+        'data': df_original_fielding,     # the original data as pd.DataFrame
+        'foreign_keys': [                 # foreign key configurations
+            {'column': 'players_id', 'referenced_table': 'players', 'is_context': True},
+        ],
+        'tabular_model_configuration': {
+            'max_training_time': 2,       # cap runtime for demo; comment out for max accuracy
+        },
     }],
-}, start=True, wait=True)
+})
+
+# show Model QA reports
+g.reports(display=True)
 ```
 
 Generate a new dataset of 10k synthetic players and their synthetic season stats.
 ```python
 sd = mostly.generate(g, size=10_000)
-df_synthetic_players = sd.data()['players']
-display(df_synthetic_players)
-df_synthetic_seasons = sd.data()['seasons']
-display(df_synthetic_seasons)
+syn = sd.data()
+display(syn['players'].sort_values('id'))
+display(syn['batting'].sort_values('players_id'))
+display(syn['fielding'].sort_values('players_id'))
 ```
 
 ## Tabular and textual data
@@ -143,15 +211,15 @@ g = mostly.train(config={
             {'name': 'headline', 'model_encoding_type': 'LANGUAGE_TEXT'},
         ],
         'tabular_model_configuration': {             # tabular model configuration (optional)
-            'max_training_time': 5,                  # - limit training time (in minutes)
+            'max_training_time': 5,                  # cap runtime for demo; comment out for max accuracy
         },
         'language_model_configuration': {             # language model configuration (optional)
-            'max_training_time': 5,                   # - limit training time (in minutes)
+            'max_training_time': 5,                   # cap runtime for demo; comment out for max accuracy
             'model': 'MOSTLY_AI/LSTMFromScratch-3m',  # use a light-weight LSTM model, trained from scratch (GPU recommended)
             #'model': 'microsoft/phi-1.5',            # alternatively use a pre-trained HF-hosted LLM model (GPU required)
         }
     }],
-}, start=True, wait=True)
+})
 ```
 
 Conditionally generate 100 new headlines for the WELLNESS category.
@@ -218,7 +286,7 @@ g = mostly.train(config={
         'source_connector_id': src_c.id,    # the ID of the source connector
         'location': 'bucket/path_to_data',  # the location of the source data
         'tabular_model_configuration': {    # tabular model configuration (optional)
-            'max_epochs': 20,               # - limit training epochs
+            'max_epochs': 20,               # cap runtime for demo; comment out for max accuracy
         },
     }],
 }, start=True, wait=True)
