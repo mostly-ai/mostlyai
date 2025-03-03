@@ -14,6 +14,7 @@
 
 from pathlib import Path
 
+from mostlyai.sdk._local import connectors
 from mostlyai.sdk._local.storage import (
     write_generator_to_json,
     write_connector_to_json,
@@ -58,12 +59,14 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
             t.data = None
             t.source_connector_id = connector.id
             t.location = str(fn.absolute())
+            column_schema = connectors.location_schema(connector, t.location).columns
             if t.columns is None:
                 t.columns = [
                     SourceColumnConfig(
-                        name=c,
+                        name=c.name,
+                        model_encoding_type=c.default_model_encoding_type,
                     )
-                    for c in list(df.columns)
+                    for c in column_schema
                 ]
             write_connector_to_json(home_dir / "connectors" / connector.id, connector)
 
