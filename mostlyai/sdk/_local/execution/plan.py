@@ -13,7 +13,15 @@
 # limitations under the License.
 from pydantic import BaseModel, Field, ConfigDict
 from collections import deque
-from mostlyai.sdk.domain import ModelEncodingType, Generator, SourceTable, StepCode, TaskType, ModelType
+from mostlyai.sdk.domain import (
+    ModelEncodingType,
+    Generator,
+    SourceTable,
+    StepCode,
+    TaskType,
+    ModelType,
+    SyntheticDataset,
+)
 import uuid
 
 TABULAR_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith(ModelType.tabular)] + [
@@ -132,7 +140,9 @@ def make_generator_execution_plan(generator: Generator) -> ExecutionPlan:
     return execution_plan
 
 
-def make_synthetic_dataset_execution_plan(generator: Generator, is_probe: bool = False) -> ExecutionPlan:
+def make_synthetic_dataset_execution_plan(
+    generator: Generator, synthetic_dataset: SyntheticDataset | None = None, is_probe: bool = False
+) -> ExecutionPlan:
     execution_plan = ExecutionPlan(tasks=[])
     sync_task = execution_plan.add_task(TaskType.sync)
     generate_task_type = TaskType.probe if is_probe else TaskType.generate
@@ -140,15 +150,20 @@ def make_synthetic_dataset_execution_plan(generator: Generator, is_probe: bool =
     generate_steps = []
 
     def add_generation_steps(table: SourceTable):
+        if synthetic_dataset:
+            synthetic_table = next(t for t in synthetic_dataset.tables if t.name == table.name)
+            enable_data_report = synthetic_table.configuration.enable_data_report
+        else:  # could be removed later
+            enable_data_report = True
         if has_tabular_model(table):
             steps = [Step(step_code=StepCode.generate_data_tabular, target_table_name=table.name)]
-            if not is_probe:
+            if not is_probe and enable_data_report:
                 steps.append(Step(step_code=StepCode.create_data_report_tabular, target_table_name=table.name))
             generate_steps.extend(steps)
 
         if has_language_model(table):
             steps = [Step(step_code=StepCode.generate_data_language, target_table_name=table.name)]
-            if not is_probe:
+            if not is_probe and enable_data_report:
                 steps.append(Step(step_code=StepCode.create_data_report_language, target_table_name=table.name))
             generate_steps.extend(steps)
 

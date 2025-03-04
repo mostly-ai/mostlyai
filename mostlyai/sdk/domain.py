@@ -611,6 +611,12 @@ class SyntheticDatasetDelivery(CustomBaseModel):
     location: str = Field(..., description="The location for the destination connector.")
 
 
+class SyntheticDatasetPatchConfig(CustomBaseModel):
+    name: str | None = Field(None, description="The name of a synthetic dataset.")
+    description: str | None = Field(None, description="The description of a synthetic dataset.")
+    delivery: SyntheticDatasetDelivery | None = None
+
+
 class AssistantLiteLlmExtraItem(CustomBaseModel):
     key: str | None = None
     value: str | None = None
@@ -847,6 +853,22 @@ class ComputePatchConfig(CustomBaseModel):
         alias="orderIndex",
         description="The index for determining the sort order when listing computes",
     )
+
+
+class OrganizationListItem(CustomBaseModel):
+    """
+    Essential organization details for listings.
+    """
+
+    id: str = Field(..., description="The unique identifier of an organization.")
+    name: str | None = Field(
+        None,
+        description="The name of an organization.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique.\n",
+        max_length=64,
+    )
+    display_name: str = Field(..., alias="displayName", description="The display name of an organization.")
+    description: str | None = Field(None, description="The description of an organization. Supports markdown.")
+    logo: str | None = Field(None, description="The URL of the organization's logo.")
 
 
 class MemberRole(str, Enum):
@@ -1312,6 +1334,22 @@ class Distances(CustomBaseModel):
     )
 
 
+class User(CustomBaseModel):
+    """
+    A user of the service.
+    """
+
+    id: str | None = Field(None, description="The unique identifier of a user.")
+    name: str | None = Field(
+        None,
+        description="The name of a user. As of now, it is the concatenation of the first name and last name.",
+    )
+    first_name: str | None = Field(None, alias="firstName", description="First name of a user", max_length=30)
+    last_name: str | None = Field(None, alias="lastName", description="Last name of a user", max_length=30)
+    email: str | None = Field(None, description="The email of a user")
+    avatar: str | None = Field(None, description="The URL of the user's avatar")
+
+
 class UserListItem(CustomBaseModel):
     """
     Essential information about a user for public listings.
@@ -1320,11 +1358,29 @@ class UserListItem(CustomBaseModel):
     id: str | None = Field(None, description="The unique identifier of a user.")
     name: str | None = Field(
         None,
-        description="The name of a user.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique considering organizations and users.\n",
+        description="The name of a user. As of now, it is the concatenation of the first name and last name.",
     )
+    avatar: str | None = Field(None, description="The URL of the user's avatar")
+
+
+class CurrentUser(CustomBaseModel):
+    """
+    Information on the current user.
+    """
+
+    id: str | None = Field(None, description="The unique identifier of a user.")
     first_name: str | None = Field(None, alias="firstName", description="First name of a user", max_length=30)
     last_name: str | None = Field(None, alias="lastName", description="Last name of a user", max_length=30)
+    email: str | None = Field(None, description="The email of a user")
     avatar: str | None = Field(None, description="The URL of the user's avatar")
+    settings: dict[str, Any] | None = None
+    usage: UserUsage | None = None
+    unread_notifications: int | None = Field(
+        None,
+        alias="unreadNotifications",
+        description="Number of unread notifications for the user",
+    )
+    organizations: list[OrganizationListItem] | None = Field(None, description="The organizations the user belongs to")
 
 
 class UserSettingsUpdateConfig(CustomBaseModel):
@@ -1383,7 +1439,7 @@ class Metadata(CustomBaseModel):
     creator_name: str | None = Field(
         None,
         alias="creatorName",
-        description="The name of a user.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique considering organizations and users.\n",
+        description="The name of a user. As of now, it is the concatenation of the first name and last name.",
     )
     created_at: datetime | None = Field(
         None,
@@ -1746,6 +1802,11 @@ class ModelConfiguration(CustomBaseModel):
         None,
         description="The unique identifier of a compute resource. Not applicable for SDK.",
     )
+    enable_model_report: bool | None = Field(
+        True,
+        alias="enableModelReport",
+        description="If false, then the Model report is not generated.\n",
+    )
 
 
 class ProgressStep(CustomBaseModel):
@@ -1867,6 +1928,11 @@ class SyntheticTableConfiguration(CustomBaseModel):
     rebalancing: RebalancingConfig | None = None
     imputation: ImputationConfig | None = None
     fairness: FairnessConfig | None = None
+    enable_data_report: bool | None = Field(
+        True,
+        alias="enableDataReport",
+        description="If false, then the Data report is not generated.\nIf enableDataReport is set to false on generator, then enableDataReport is automatically set to false.\n",
+    )
 
     @field_validator("sample_seed_dict", mode="before")
     @classmethod
@@ -1891,16 +1957,6 @@ class SyntheticTableConfiguration(CustomBaseModel):
         if values.sampling_top_p is None:
             values.sampling_top_p = 1.0
         return values
-
-
-class SyntheticDatasetPatchConfig(CustomBaseModel):
-    name: str | None = Field(None, description="The name of a synthetic dataset.")
-    description: str | None = Field(None, description="The description of a synthetic dataset.")
-    delivery: SyntheticDatasetDelivery | None = None
-    compute: str | None = Field(
-        None,
-        description="The unique identifier of a compute resource. Not applicable for SDK.",
-    )
 
 
 class SyntheticTablePatchConfig(CustomBaseModel):
@@ -1973,14 +2029,6 @@ class AssistantThread(CustomBaseModel):
     usage: AssistantThreadUsage | None = None
 
 
-class OrganizationMetadata(CustomBaseModel):
-    """
-    The metadata of an organization.
-    """
-
-    current_user_member_role: MemberRole | None = Field(None, alias="currentUserMemberRole")
-
-
 class Organization(CustomBaseModel):
     """
     An organization that owns resources.
@@ -1998,7 +2046,6 @@ class Organization(CustomBaseModel):
     email: str | None = Field(None, description="The email address of the organization.")
     website: str | None = Field(None, description="The URL of the organization's website.")
     members: list[UserListItem] | None = None
-    metadata: OrganizationMetadata | None = None
 
 
 class OrganizationMember(CustomBaseModel):
@@ -2006,7 +2053,7 @@ class OrganizationMember(CustomBaseModel):
     A member of an organization.
     """
 
-    user: UserListItem | None = None
+    user: User | None = None
     role: MemberRole | None = None
 
 
@@ -2391,63 +2438,6 @@ class SyntheticProbeConfig(CustomBaseModel):
 
     def validate_against_generator(self, generator: Generator) -> None:
         _SyntheticDataConfigValidation(synthetic_config=self, generator=generator)
-
-
-class OrganizationListItem(CustomBaseModel):
-    """
-    Essential organization details for listings.
-    """
-
-    id: str = Field(..., description="The unique identifier of an organization.")
-    name: str | None = Field(
-        None,
-        description="The name of an organization.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique.\n",
-        max_length=64,
-    )
-    display_name: str = Field(..., alias="displayName", description="The display name of an organization.")
-    description: str | None = Field(None, description="The description of an organization. Supports markdown.")
-    logo: str | None = Field(None, description="The URL of the organization's logo.")
-    metadata: OrganizationMetadata | None = None
-
-
-class User(CustomBaseModel):
-    """
-    The public attributes of a user of the service.
-    """
-
-    id: str | None = Field(None, description="The unique identifier of a user.")
-    name: str | None = Field(
-        None,
-        description="The name of a user.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique considering organizations and users.\n",
-    )
-    first_name: str | None = Field(None, alias="firstName", description="First name of a user", max_length=30)
-    last_name: str | None = Field(None, alias="lastName", description="Last name of a user", max_length=30)
-    avatar: str | None = Field(None, description="The URL of the user's avatar")
-    organizations: list[OrganizationListItem] | None = Field(None, description="The organizations the user belongs to")
-
-
-class CurrentUser(CustomBaseModel):
-    """
-    Information on the current user.
-    """
-
-    id: str | None = Field(None, description="The unique identifier of a user.")
-    name: str | None = Field(
-        None,
-        description="The name of a user.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique considering organizations and users.\n",
-    )
-    first_name: str | None = Field(None, alias="firstName", description="First name of a user", max_length=30)
-    last_name: str | None = Field(None, alias="lastName", description="Last name of a user", max_length=30)
-    email: str | None = Field(None, description="The email of a user")
-    avatar: str | None = Field(None, description="The URL of the user's avatar")
-    settings: dict[str, Any] | None = None
-    usage: UserUsage | None = None
-    unread_notifications: int | None = Field(
-        None,
-        alias="unreadNotifications",
-        description="Number of unread notifications for the user",
-    )
-    organizations: list[OrganizationListItem] | None = Field(None, description="The organizations the user belongs to")
 
 
 class Generator(CustomBaseModel):
