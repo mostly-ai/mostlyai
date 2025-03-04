@@ -74,12 +74,16 @@ def test_simple_flat(tmp_path, encoding_types):
     g.delete()
 
     # config via dict and sugar
-    g = mostly.train(config={
-        'tables': [{
-            'name': 'data',
-            'data': 'https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/census/census.csv.gz'
-        }]
-    }, start=False
+    g = mostly.train(
+        config={
+            "tables": [
+                {
+                    "name": "data",
+                    "data": "https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/census/census.csv.gz",
+                }
+            ]
+        },
+        start=False,
     )
     g.delete()
 
