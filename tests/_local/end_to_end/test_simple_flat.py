@@ -73,6 +73,16 @@ def test_simple_flat(tmp_path, encoding_types):
     assert g.name == "Test 1"
     g.delete()
 
+    # config via dict and sugar
+    g = mostly.train(config={
+        'tables': [{
+            'name': 'data',
+            'data': 'https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/census/census.csv.gz'
+        }]
+    }, start=False
+    )
+    g.delete()
+
     # config via class
     g = mostly.train(config=GeneratorConfig(**config), start=False)
     assert g.name == "Test 1"
