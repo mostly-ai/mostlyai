@@ -131,7 +131,7 @@ def create_synthetic_dataset(
                         task_type=TaskType.generate_tabular
                         if model_type == ModelType.tabular
                         else TaskType.generate_language,
-                        model_label=f"{table.name}:{model_type.value.lower()}",
+                        model_label=f"{table.name}_{model_type.value.lower()}",
                         step_code=step,
                         progress=ProgressValue(value=0, max=1),
                         status=ProgressStatus.new,
