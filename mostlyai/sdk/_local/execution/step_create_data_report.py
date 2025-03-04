@@ -30,7 +30,9 @@ def execute_step_create_data_report(
 ):
     # create model report and return metrics
     create_report(
-        step_code=StepCode.create_data_report,
+        step_code=StepCode.create_data_report_tabular
+        if model_type == ModelType.tabular
+        else StepCode.create_data_report_language,
         generator=generator,
         workspace_dir=workspace_dir,
         model_type=model_type,

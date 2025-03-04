@@ -27,6 +27,7 @@ from mostlyai.sdk._local.execution.plan import (
     ExecutionPlan,
     make_synthetic_dataset_execution_plan,
     make_generator_execution_plan,
+    Step,
 )
 from mostlyai.sdk.domain import (
     ModelConfiguration,
@@ -45,6 +46,18 @@ def arbitrary_model_config():
         value_protection=True,
         rare_category_replacement_method=None,
     )
+
+
+def assert_equivalent_execution_plan(plan_a, plan_b):
+    assert len(plan_a.tasks) == len(plan_b.tasks)
+    for actual, expected in zip(plan_a.tasks, plan_b.tasks):
+        assert actual.type == expected.type
+        if not actual.steps:
+            assert actual.steps == expected.steps
+            continue
+        assert [(step.step_code, step.target_table_name) for step in actual.steps] == [
+            (step.step_code, step.target_table_name) for step in expected.steps
+        ]
 
 
 def test_make_synthetic_dataset_execution_plan():
@@ -80,38 +93,29 @@ def test_make_synthetic_dataset_execution_plan():
 
     expected_execution_plan = ExecutionPlan(tasks=[])
     sync_task = expected_execution_plan.add_task(TaskType.sync)
-    expected_execution_plan.add_task(TaskType.generate_tabular, parent=sync_task, target_table_name="admins")
-    users_task = expected_execution_plan.add_task(
-        TaskType.generate_tabular, parent=sync_task, target_table_name="users"
+    generate_task = expected_execution_plan.add_task_with_steps(
+        TaskType.generate,
+        parent=sync_task,
+        steps=[
+            Step(step_code=StepCode.generate_data_tabular, target_table_name="admins"),
+            Step(step_code=StepCode.create_data_report_tabular, target_table_name="admins"),
+            Step(step_code=StepCode.generate_data_tabular, target_table_name="users"),
+            Step(step_code=StepCode.create_data_report_tabular, target_table_name="users"),
+            Step(step_code=StepCode.generate_data_tabular, target_table_name="orders"),
+            Step(step_code=StepCode.create_data_report_tabular, target_table_name="orders"),
+            Step(step_code=StepCode.generate_data_tabular, target_table_name="order_items"),
+            Step(step_code=StepCode.create_data_report_tabular, target_table_name="order_items"),
+            Step(step_code=StepCode.generate_data_language, target_table_name="order_items"),
+            Step(step_code=StepCode.create_data_report_language, target_table_name="order_items"),
+            Step(step_code=StepCode.generate_data_tabular, target_table_name="prices"),
+            Step(step_code=StepCode.create_data_report_tabular, target_table_name="prices"),
+            Step(step_code=StepCode.finalize_generation),
+            Step(step_code=StepCode.deliver_data),
+        ],
     )
-    orders_task = expected_execution_plan.add_task(
-        TaskType.generate_tabular, parent=users_task, target_table_name="orders"
-    )
-    order_items_tabular_task = expected_execution_plan.add_task(
-        TaskType.generate_tabular, parent=orders_task, target_table_name="order_items"
-    )
-    order_items_language_task = expected_execution_plan.add_task(
-        TaskType.generate_language, parent=order_items_tabular_task, target_table_name="order_items"
-    )
-    expected_execution_plan.add_task(
-        TaskType.generate_tabular, parent=order_items_language_task, target_table_name="prices"
-    )
-    post_generation_sync = expected_execution_plan.add_task(TaskType.sync)
-    finalize_task = expected_execution_plan.add_task(TaskType.finalize_generation, parent=post_generation_sync)
-    expected_execution_plan.add_task(TaskType.sync, parent=finalize_task)
+    expected_execution_plan.add_task(TaskType.sync, parent=generate_task)
 
-    assert len(execution_plan.tasks) == len(expected_execution_plan.tasks)
-    for actual, expected in zip(execution_plan.tasks, expected_execution_plan.tasks):
-        assert actual.type == expected.type
-        assert actual.target_table_name == expected.target_table_name
-        actual_parent = next((t for t in execution_plan.tasks if t.id == actual.parent_task_id), None)
-        expected_parent = next((t for t in expected_execution_plan.tasks if t.id == expected.parent_task_id), None)
-        if actual_parent is None and expected_parent is None:
-            continue
-        assert actual_parent is not None
-        assert expected_parent is not None
-        assert actual_parent.type == expected_parent.type
-        assert actual_parent.target_table_name == expected_parent.target_table_name
+    assert_equivalent_execution_plan(execution_plan, expected_execution_plan)
 
 
 def test_make_generator_execution_plan():
@@ -229,15 +233,17 @@ def test_make_synthetic_dataset_execution_plan_with_probe():
 
     execution_plan = make_synthetic_dataset_execution_plan(config, is_probe=True)
 
-    task_types = [task.type for task in execution_plan.tasks]
+    expected_execution_plan = ExecutionPlan(tasks=[])
+    sync_task = expected_execution_plan.add_task(TaskType.sync)
+    generate_task = expected_execution_plan.add_task_with_steps(
+        TaskType.probe,
+        parent=sync_task,
+        steps=[
+            Step(step_code=StepCode.generate_data_tabular, target_table_name="users"),
+            Step(step_code=StepCode.generate_data_language, target_table_name="posts"),
+            Step(step_code=StepCode.finalize_probing),
+        ],
+    )
+    expected_execution_plan.add_task(TaskType.sync, parent=generate_task)
 
-    assert TaskType.probe_tabular in task_types
-    assert TaskType.probe_language in task_types
-    assert TaskType.finalize_probing in task_types
-
-    assert TaskType.generate_tabular not in task_types
-    assert TaskType.generate_language not in task_types
-    assert TaskType.finalize_generation not in task_types
-
-    step_codes = [step for task in execution_plan.tasks for step in task.steps or []]
-    assert step_codes == [StepCode.generate_data, StepCode.generate_data, StepCode.finalize_probing]
+    assert_equivalent_execution_plan(execution_plan, expected_execution_plan)
