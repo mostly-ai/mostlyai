@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from pathlib import Path
 
 import pandas as pd
 import pyarrow as pa
@@ -28,24 +26,13 @@ from mostlyai.sdk._data.dtype import (
 )
 from mostlyai.sdk._data.file.table.json import JsonDataTable
 
-SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
-FIXTURES_DIR = SCRIPT_DIR / "fixtures"
-PQT_FIXTURES_DIR = FIXTURES_DIR / "parquet"
-
-
-@pytest.fixture()
-def sample_data():
-    return pd.read_parquet(
-        PQT_FIXTURES_DIR / "sample_pyarrow.parquet",
-        dtype_backend="pyarrow",
-    )
-
 
 @pytest.mark.parametrize(
     "file_name",
     ["sample.json", "sample.json.gz"],
 )
-def test_read_write_data(tmp_path, sample_data, file_name):
+def test_read_write_data(tmp_path, sample_pyarrow_parquet_file, file_name):
+    sample_data = pd.read_parquet(sample_pyarrow_parquet_file, dtype_backend="pyarrow")
     sample_data["date"] = sample_data["date"].astype(pd.ArrowDtype(pa.date32()))
     # write
     table1 = JsonDataTable(path=tmp_path / file_name, is_output=True)

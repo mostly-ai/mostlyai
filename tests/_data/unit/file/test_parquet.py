@@ -14,7 +14,6 @@
 
 import os
 from pathlib import Path
-import tempfile
 
 import numpy as np
 import pandas as pd
@@ -52,17 +51,15 @@ def test_row_count(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "dtype_backend",
+    "parquet_file",
     [
-        "numpy_nullable",
-        "pyarrow",
+        "sample_numpy_parquet_file",
+        "sample_pyarrow_parquet_file",
     ],
 )
-def test_read_data(sample_csv_file, dtype_backend):
+def test_read_data(sample_csv_file, parquet_file, request):
     # create parquet file on the fly
-    fn = tempfile.NamedTemporaryFile(suffix=".parquet").name
-    df = pd.read_csv(sample_csv_file, engine="pyarrow", dtype_backend=dtype_backend)
-    df.to_parquet(fn, engine="pyarrow")
+    fn = request.getfixturevalue(parquet_file)
     orig_df = pd.read_parquet(fn, engine="pyarrow", dtype_backend="pyarrow")
     table = ParquetDataTable(path=fn, name="sample")
     # test metadata
