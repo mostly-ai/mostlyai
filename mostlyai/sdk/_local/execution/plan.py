@@ -13,7 +13,15 @@
 # limitations under the License.
 from pydantic import BaseModel, Field, ConfigDict
 from collections import deque
-from mostlyai.sdk.domain import ModelEncodingType, Generator, SourceTable, StepCode, TaskType, ModelType
+from mostlyai.sdk.domain import (
+    ModelEncodingType,
+    Generator,
+    SourceTable,
+    StepCode,
+    TaskType,
+    ModelType,
+    SyntheticDataset,
+)
 import uuid
 
 TABULAR_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith(ModelType.tabular)] + [
@@ -26,6 +34,8 @@ TRAINING_TASK_STEPS: list[StepCode] = [
     StepCode.analyze_training_data,
     StepCode.encode_training_data,
     StepCode.train_model,
+]
+TRAINING_TASK_REPORT_STEPS: list[StepCode] = [
     StepCode.generate_model_report_data,
     StepCode.create_model_report,
 ]
@@ -34,12 +44,14 @@ FINALIZE_TRAINING_TASK_STEPS: list[StepCode] = [
 ]
 GENERATION_TASK_TABULAR_STEPS: list[StepCode] = [
     StepCode.generate_data_tabular,
-    StepCode.create_data_report_tabular,
 ]
 GENERATION_TASK_LANGUAGE_STEPS: list[StepCode] = [
     StepCode.generate_data_language,
-    StepCode.create_data_report_language,
 ]
+GENERATION_TASK_REPORT_STEPS: set[StepCode] = {
+    StepCode.create_data_report_tabular,
+    StepCode.create_data_report_language,
+}
 MODEL_TYPE_STEPS_MAP = {
     ModelType.tabular: GENERATION_TASK_TABULAR_STEPS,
     ModelType.language: GENERATION_TASK_LANGUAGE_STEPS,
@@ -86,11 +98,20 @@ class Task(BaseModel):
 class ExecutionPlan(BaseModel):
     tasks: list[Task]
 
-    def add_task(self, task_type: TaskType, parent: Task | None = None, target_table_name: str | None = None) -> Task:
+    def add_task(
+        self,
+        task_type: TaskType,
+        parent: Task | None = None,
+        target_table_name: str | None = None,
+        include_report: bool = True,
+    ) -> Task:
         def get_steps(task_type: TaskType) -> list[Step] | None:
             match task_type:
                 case TaskType.train_tabular | TaskType.train_language:
-                    return [Step(step_code=code) for code in TRAINING_TASK_STEPS]
+                    return [
+                        Step(step_code=code)
+                        for code in TRAINING_TASK_STEPS + (TRAINING_TASK_REPORT_STEPS if include_report else [])
+                    ]
                 case TaskType.finalize_training:
                     return [Step(step_code=code) for code in FINALIZE_TRAINING_TASK_STEPS]
                 case _:
@@ -122,9 +143,19 @@ def make_generator_execution_plan(generator: Generator) -> ExecutionPlan:
     sync_task = execution_plan.add_task(TaskType.sync)
     for table in generator.tables:
         if has_tabular_model(table):
-            execution_plan.add_task(TaskType.train_tabular, parent=sync_task, target_table_name=table.name)
+            execution_plan.add_task(
+                TaskType.train_tabular,
+                parent=sync_task,
+                target_table_name=table.name,
+                include_report=table.tabular_model_configuration.enable_model_report,
+            )
         if has_language_model(table):
-            execution_plan.add_task(TaskType.train_language, parent=sync_task, target_table_name=table.name)
+            execution_plan.add_task(
+                TaskType.train_language,
+                parent=sync_task,
+                target_table_name=table.name,
+                include_report=table.language_model_configuration.enable_model_report,
+            )
     execution_plan.add_task(TaskType.sync)
     # post_training_sync = execution_plan.add_task(TaskType.sync)
     # finalize_task = execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
@@ -132,7 +163,9 @@ def make_generator_execution_plan(generator: Generator) -> ExecutionPlan:
     return execution_plan
 
 
-def make_synthetic_dataset_execution_plan(generator: Generator, is_probe: bool = False) -> ExecutionPlan:
+def make_synthetic_dataset_execution_plan(
+    generator: Generator, synthetic_dataset: SyntheticDataset | None = None, is_probe: bool = False
+) -> ExecutionPlan:
     execution_plan = ExecutionPlan(tasks=[])
     sync_task = execution_plan.add_task(TaskType.sync)
     generate_task_type = TaskType.probe if is_probe else TaskType.generate
@@ -140,15 +173,20 @@ def make_synthetic_dataset_execution_plan(generator: Generator, is_probe: bool =
     generate_steps = []
 
     def add_generation_steps(table: SourceTable):
+        if synthetic_dataset:
+            synthetic_table = next(t for t in synthetic_dataset.tables if t.name == table.name)
+            enable_data_report = synthetic_table.configuration.enable_data_report
+        else:  # could be removed later
+            enable_data_report = True
         if has_tabular_model(table):
             steps = [Step(step_code=StepCode.generate_data_tabular, target_table_name=table.name)]
-            if not is_probe:
+            if not is_probe and enable_data_report:
                 steps.append(Step(step_code=StepCode.create_data_report_tabular, target_table_name=table.name))
             generate_steps.extend(steps)
 
         if has_language_model(table):
             steps = [Step(step_code=StepCode.generate_data_language, target_table_name=table.name)]
-            if not is_probe:
+            if not is_probe and enable_data_report:
                 steps.append(Step(step_code=StepCode.create_data_report_language, target_table_name=table.name))
             generate_steps.extend(steps)
 

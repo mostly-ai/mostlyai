@@ -20,7 +20,12 @@ from mostlyai.sdk._local.storage import (
     write_job_progress_to_json,
     read_generator_from_json,
 )
-from mostlyai.sdk._local.execution.plan import has_tabular_model, has_language_model, TRAINING_TASK_STEPS
+from mostlyai.sdk._local.execution.plan import (
+    has_tabular_model,
+    has_language_model,
+    TRAINING_TASK_STEPS,
+    TRAINING_TASK_REPORT_STEPS,
+)
 from mostlyai.sdk.client._base_utils import convert_to_df
 from mostlyai.sdk.domain import (
     GeneratorConfig,
@@ -96,7 +101,15 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
             if check
         ]
         for model_type in model_types:
-            for step in TRAINING_TASK_STEPS:
+            model_configuration = (
+                table.tabular_model_configuration
+                if model_type == ModelType.tabular
+                else table.language_model_configuration
+            )
+            steps = TRAINING_TASK_STEPS + (
+                TRAINING_TASK_REPORT_STEPS if model_configuration.enable_model_report else []
+            )
+            for step in steps:
                 progress_steps.append(
                     ProgressStep(
                         task_type=TaskType.train_tabular

@@ -26,6 +26,7 @@ from mostlyai.sdk._local.execution.plan import (
     has_language_model,
     FINALIZE_GENERATION_TASK_STEPS,
     MODEL_TYPE_STEPS_MAP,
+    GENERATION_TASK_REPORT_STEPS,
 )
 from mostlyai.sdk.client._base_utils import convert_to_df
 from mostlyai.sdk.domain import (
@@ -126,6 +127,14 @@ def create_synthetic_dataset(
         ]
         for model_type in model_types:
             for step in MODEL_TYPE_STEPS_MAP[model_type]:
+                model_configuration = (
+                    table.tabular_model_configuration
+                    if model_type == ModelType.tabular
+                    else table.language_model_configuration
+                )
+                # TODO revise -> enable_data_report
+                if not model_configuration.enable_model_report and step in GENERATION_TASK_REPORT_STEPS:
+                    continue
                 progress_steps.append(
                     ProgressStep(
                         task_type=TaskType.generate,

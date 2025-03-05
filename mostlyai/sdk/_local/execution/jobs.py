@@ -593,7 +593,7 @@ def execute_generation_job(synthetic_dataset_id: str, home_dir: Path):
 
     _mark_in_progress(resource=synthetic_dataset, resource_dir=synthetic_dataset_dir)
     # PLAN
-    plan = make_synthetic_dataset_execution_plan(generator)
+    plan = make_synthetic_dataset_execution_plan(generator, synthetic_dataset)
     # EXECUTE
     execution = Execution(
         execution_plan=plan,
@@ -627,7 +627,7 @@ def execute_probing_job(synthetic_dataset_id: str, home_dir: Path) -> list[Probe
     generator = read_generator_from_json(generator_dir)
 
     # PLAN
-    plan = make_synthetic_dataset_execution_plan(generator, is_probe=True)
+    plan = make_synthetic_dataset_execution_plan(generator, synthetic_dataset, is_probe=True)
     # EXECUTE
     execution = Execution(
         execution_plan=plan, generator=generator, synthetic_dataset=synthetic_dataset, home_dir=home_dir
