@@ -20,21 +20,19 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pyarrow.dataset as ds
 import pytest
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
+
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 FIXTURES_DIR = SCRIPT_DIR / "fixtures"
 CSV_FIXTURES_DIR = FIXTURES_DIR / "csv"
 
 
-def test_read_data():
-    fn = CSV_FIXTURES_DIR / "sample.csv"
-    orig_df = ds.dataset(source=fn, format=ds.CsvFileFormat()).scanner().to_table().to_pandas()
-    table = CsvDataTable(path=fn, name="sample")
+def test_read_data(sample_df, sample_csv_file):
+    table = CsvDataTable(path=sample_csv_file, name="sample")
     # test metadata
-    assert table.columns == list(orig_df.columns)
+    assert table.columns == list(sample_df.columns)
     dtypes = table.dtypes
     assert pd.api.types.is_integer_dtype(dtypes["id"].wrapped)
     assert pd.api.types.is_bool_dtype(dtypes["bool"].wrapped)
@@ -47,9 +45,9 @@ def test_read_data():
     assert pd.api.types.is_string_dtype(dtypes["text"].wrapped)
     # test content
     df = table.read_data(do_coerce_dtypes=True)
-    assert df.shape == orig_df.shape
+    assert df.shape == sample_df.shape
     for col in df:
-        assert df[col].isna().sum() == orig_df[col].isna().sum()
+        assert df[col].isna().sum() == sample_df[col].isna().sum()
     df = table.read_data(where={"id": 1})
     assert len(df) == 1
     df = table.read_data(where={"id": [2, 3]}, columns=["float", "id"])
