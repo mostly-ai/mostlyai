@@ -42,20 +42,6 @@ TRAINING_TASK_REPORT_STEPS: list[StepCode] = [
 FINALIZE_TRAINING_TASK_STEPS: list[StepCode] = [
     StepCode.finalize_training,
 ]
-GENERATION_TASK_TABULAR_STEPS: list[StepCode] = [
-    StepCode.generate_data_tabular,
-]
-GENERATION_TASK_LANGUAGE_STEPS: list[StepCode] = [
-    StepCode.generate_data_language,
-]
-GENERATION_TASK_REPORT_STEPS: set[StepCode] = {
-    StepCode.create_data_report_tabular,
-    StepCode.create_data_report_language,
-}
-MODEL_TYPE_STEPS_MAP = {
-    ModelType.tabular: GENERATION_TASK_TABULAR_STEPS,
-    ModelType.language: GENERATION_TASK_LANGUAGE_STEPS,
-}
 FINALIZE_GENERATION_TASK_STEPS: list[StepCode] = [
     StepCode.finalize_generation,
     StepCode.deliver_data,
@@ -75,6 +61,15 @@ def has_tabular_model(table: SourceTable) -> bool:
 
 def has_language_model(table: SourceTable) -> bool:
     return table.language_model_configuration is not None
+
+
+def get_model_type_generation_steps_map(include_report: bool) -> dict[ModelType, list[StepCode]]:
+    return {
+        ModelType.tabular: [StepCode.generate_data_tabular]
+        + ([StepCode.create_data_report_tabular] if include_report else []),
+        ModelType.language: [StepCode.generate_data_language]
+        + ([StepCode.create_data_report_language] if include_report else []),
+    }
 
 
 class Step(BaseModel):
