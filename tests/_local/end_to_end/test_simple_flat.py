@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import zipfile
 
 from mostlyai.sdk.client.exceptions import APIStatusError
 import pytest
@@ -140,9 +141,8 @@ def test_simple_flat(tmp_path, encoding_types):
         g.clone()
 
     # reports
-    g.reports(tmp_path)
-    # model_report_exists = (reports_dir / "model_report").exists()
-    # assert not model_report_exists  # Model report should not exist since we set enable_model_report to False
+    file_path = g.reports(tmp_path)
+    assert not zipfile.ZipFile(file_path).namelist()
 
     # logs
     g.training.logs(tmp_path)
@@ -196,9 +196,8 @@ def test_simple_flat(tmp_path, encoding_types):
     assert list(syn.columns) == list(df.columns)
 
     # reports
-    sd.reports(tmp_path)
-    # data_report_exists = (reports_dir / "data_report").exists()
-    # assert not data_report_exists  # Data report should not exist since we set enable_data_report to False
+    file_path = sd.reports(tmp_path)
+    assert not zipfile.ZipFile(file_path).namelist()
 
     # logs
     sd.generation.logs(tmp_path)
