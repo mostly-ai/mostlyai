@@ -25,7 +25,7 @@ from pydantic import field_validator, model_validator
 import uuid
 import rich
 import zipfile
-from mostlyai.sdk.client._base_utils import convert_to_base64
+from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from typing import Any, ClassVar, Literal, Annotated
 
 from mostlyai.sdk.client.base import CustomBaseModel
@@ -2124,6 +2124,9 @@ class SourceTableConfig(CustomBaseModel):
     @field_validator("data", mode="before")
     @classmethod
     def convert_data_before(cls, value):
+        # an empty (pd.DataFrame()) parquet in base64 is 800 chars. Assuming a shorter str is a URI
+        if isinstance(value, Path) or (isinstance(value, str) and len(value) < 512):
+            _, value = read_table_from_path(value)
         return (
             convert_to_base64(value)
             if isinstance(value, pd.DataFrame)
