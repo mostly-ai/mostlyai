@@ -25,7 +25,7 @@ import pandas as pd
     ids=["AUTO encoding types", "LANGUAGE-only encoding types"],
 )
 def test_simple_flat(tmp_path, encoding_types):
-    mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
+    mostly = MostlyAI(local=True, quiet=True)
 
     # create mock data
     df = pd.DataFrame(
@@ -64,8 +64,8 @@ def test_simple_flat(tmp_path, encoding_types):
                     {"name": "a", "model_encoding_type": encoding_types["a"]},
                     {"name": "b", "model_encoding_type": encoding_types["b"]},
                 ],
-                "tabular_model_configuration": {"max_epochs": 0.1},
-                "language_model_configuration": {"max_epochs": 0.1},
+                "tabular_model_configuration": {"max_epochs": 0.1, "enable_model_report": False},
+                "language_model_configuration": {"max_epochs": 0.1, "enable_model_report": False},
             }
         ],
     }
@@ -141,6 +141,8 @@ def test_simple_flat(tmp_path, encoding_types):
 
     # reports
     g.reports(tmp_path)
+    # model_report_exists = (reports_dir / "model_report").exists()
+    # assert not model_report_exists  # Model report should not exist since we set enable_model_report to False
 
     # logs
     g.training.logs(tmp_path)
@@ -160,7 +162,7 @@ def test_simple_flat(tmp_path, encoding_types):
     sd.delete()
 
     # config via dict
-    config = {"tables": [{"name": "data", "configuration": {"sample_size": 100}}]}
+    config = {"tables": [{"name": "data", "configuration": {"sample_size": 100, "enable_data_report": False}}]}
     sd = mostly.generate(g, config=config, start=False)
     assert sd.name == "Test 2"
     sd_config = sd.config()
@@ -171,6 +173,7 @@ def test_simple_flat(tmp_path, encoding_types):
     # config via class
     config = {"tables": [{"name": "data", "configuration": {"sample_size": 100}}]}
     config = SyntheticDatasetConfig(**config)
+    config.validate_against_generator(g)
     sd = mostly.generate(g, config=config, start=False)
 
     # update
@@ -194,6 +197,8 @@ def test_simple_flat(tmp_path, encoding_types):
 
     # reports
     sd.reports(tmp_path)
+    # data_report_exists = (reports_dir / "data_report").exists()
+    # assert not data_report_exists  # Data report should not exist since we set enable_data_report to False
 
     # logs
     sd.generation.logs(tmp_path)

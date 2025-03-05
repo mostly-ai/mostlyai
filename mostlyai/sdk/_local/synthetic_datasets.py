@@ -111,7 +111,8 @@ def create_synthetic_dataset(
     # copy ModelQA reports into synthetic dataset directory
     source_reports_dir = generator_dir / "ModelQAReports"
     dest_reports_dir = synthetic_dataset_dir / "ModelQAReports"
-    shutil.copytree(source_reports_dir, dest_reports_dir)
+    if source_reports_dir.exists():
+        shutil.copytree(source_reports_dir, dest_reports_dir)
 
     # create job progress
     progress_steps: list[ProgressStep] = []

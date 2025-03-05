@@ -153,9 +153,12 @@ def _copy_model(generator_dir: Path, model_label: str, workspace_dir: Path):
     shutil.copytree(model_path, workspace_dir / "ModelStore")
 
 
-def _copy_statistics(generator_dir: Path, model_label: str, workspace_dir: Path):
+def _copy_statistics(generator_dir: Path, model_label: str, workspace_dir: Path) -> bool:
     statistics_path = generator_dir / "ModelQAStatistics" / model_label
-    shutil.copytree(statistics_path, workspace_dir / "ModelQAStatistics")
+    if statistics_path.exists():
+        shutil.copytree(statistics_path, workspace_dir / "ModelQAStatistics")
+        return True
+    return False
 
 
 def _set_overall_accuracy(generator: Generator) -> None:
@@ -376,26 +379,28 @@ class Execution:
             upload_model_data_callback=None,  # not applicable in local mode
         )
 
-        # step: GENERATE_MODEL_REPORT_DATA
-        execute_step_generate_model_report_data(
-            workspace_dir=workspace_dir,
-            model_type=model_type,
-            update_progress=update_progress_fn(step_code=StepCode.generate_model_report_data),
-        )
+        step_codes = [s.step_code for s in task.steps]
+        if StepCode.generate_model_report_data in step_codes:
+            # step: GENERATE_MODEL_REPORT_DATA
+            execute_step_generate_model_report_data(
+                workspace_dir=workspace_dir,
+                model_type=model_type,
+                update_progress=update_progress_fn(step_code=StepCode.generate_model_report_data),
+            )
 
-        # step: CREATE_MODEL_REPORT
-        model_metrics = execute_step_create_model_report(
-            generator=generator,
-            model_type=model_type,
-            target_table_name=task.target_table_name,
-            workspace_dir=workspace_dir,
-            update_progress=update_progress_fn(step_code=StepCode.create_model_report),
-        )
-        # update generator with model metrics
-        if model_type == ModelType.tabular:
-            tgt_table.tabular_model_metrics = model_metrics
-        else:
-            tgt_table.language_model_metrics = model_metrics
+            # step: CREATE_MODEL_REPORT
+            model_metrics = execute_step_create_model_report(
+                generator=generator,
+                model_type=model_type,
+                target_table_name=task.target_table_name,
+                workspace_dir=workspace_dir,
+                update_progress=update_progress_fn(step_code=StepCode.create_model_report),
+            )
+            # update generator with model metrics
+            if model_type == ModelType.tabular:
+                tgt_table.tabular_model_metrics = model_metrics
+            else:
+                tgt_table.language_model_metrics = model_metrics
 
     def execute_task_finalize_training(self, task: Task):
         pass
@@ -457,7 +462,10 @@ class Execution:
                 )
 
             elif step.step_code in {StepCode.create_data_report_tabular, StepCode.create_data_report_language}:
-                _copy_statistics(generator_dir=generator_dir, model_label=model_label, workspace_dir=workspace_dir)
+                if not _copy_statistics(
+                    generator_dir=generator_dir, model_label=model_label, workspace_dir=workspace_dir
+                ):
+                    continue
                 # step: GENERATE_DATA_REPORT
                 execute_step_create_data_report(
                     generator=generator,
