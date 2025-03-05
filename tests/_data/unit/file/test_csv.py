@@ -212,18 +212,56 @@ def csv_file(request):
     os.remove(file_path)
 
 
-def test_read_file_zoo():
-    files = Path(f"{CSV_FIXTURES_DIR}/file_zoo").glob("*")
-    for file in files:
-        table = CsvDataTable(path=f"file://{file}")
-        assert table.delimiter is not None
-        assert table.columns is not None
-        assert table.dtypes is not None
-        assert table.read_data() is not None
+@pytest.mark.parametrize(
+    "csv_string",
+    [
+        "a,b\n",  # empty csv
+        '"a"\n1\n',  # single column
+        "a,b\n1,🌈\n",  # non-ascii character
+        '"a", "  b  "\n1,2\n',  # quoted fields with spaces
+        "a|b\n1|2\n",  # pipe-separated
+        "a\tb\n1\t2\n",  # tab-separated
+        "a;b\n1;2\n",  # semicolon-separated
+        'a,b\n1,"Hello, World"\n',  # unquoted field with comma
+    ],
+)
+def test_edge_cases(csv_string):
+    fn = tempfile.NamedTemporaryFile(suffix=".csv").name
+    with open(fn, "w") as f:
+        f.write(csv_string)
+    table = CsvDataTable(path=fn)
+    assert table.delimiter is not None
+    assert table.columns is not None
+    assert table.dtypes is not None
+    assert table.read_data() is not None
+
+
+def test_compressed_csv():
+    data = b"a,b\n1,2\n"
+
+    import bz2
+
+    fn_bz2 = tempfile.NamedTemporaryFile(suffix=".csv.bz2").name
+    with bz2.open(fn_bz2, "wb") as f:
+        f.write(data)
+    table_bz2 = CsvDataTable(path=fn_bz2)
+    assert table_bz2.delimiter is not None
+    assert table_bz2.columns is not None
+
+    import gzip
+
+    fn_gz = tempfile.NamedTemporaryFile(suffix=".csv.gz").name
+    with gzip.open(fn_gz, "wb") as f:
+        f.write(data)
+    table_gz = CsvDataTable(path=fn_gz)
+    assert table_gz.delimiter is not None
+    assert table_gz.columns is not None
 
 
 def test_non_utf8_encoding():
-    fn = CSV_FIXTURES_DIR / "file_zoo" / "enc_iso8859_1.csv"
+    fn = tempfile.NamedTemporaryFile(suffix=".csv").name
+    with open(fn, "w", encoding="iso-8859-1") as f:
+        f.write("category\none é two\n")
     table = CsvDataTable(path=fn)
     df = table.read_data(do_coerce_dtypes=True)
     # check that we get a column with string values, rather than
