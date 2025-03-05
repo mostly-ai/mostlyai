@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import json
-import os
 from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
@@ -45,9 +44,6 @@ from mostlyai.sdk._data.pull_utils import (
 )
 from pandas.testing import assert_series_equal
 
-SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
-CSV_FIXTURES_DIR = SCRIPT_DIR / "file" / "fixtures" / "csv"
-PARQUET_FIXTURES_DIR = SCRIPT_DIR / "file" / "fixtures" / "parquet"
 
 PULL_MODULE = "mostlyai.sdk._data.pull_utils"
 

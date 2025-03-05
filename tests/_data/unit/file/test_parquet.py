@@ -20,7 +20,6 @@ import pandas as pd
 import pytest
 from mostlyai.sdk._data.dtype import VirtualVarchar
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
-from tests._data.unit.test_pull import PARQUET_FIXTURES_DIR
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 FIXTURES_DIR = SCRIPT_DIR / "fixtures"
@@ -53,8 +52,8 @@ def test_row_count(tmp_path):
 @pytest.mark.parametrize(
     "fixture",
     [
-        PARQUET_FIXTURES_DIR / "sample_numpy.parquet",
-        PARQUET_FIXTURES_DIR / "sample_pyarrow.parquet",
+        PQT_FIXTURES_DIR / "sample_numpy.parquet",
+        PQT_FIXTURES_DIR / "sample_pyarrow.parquet",
     ],
 )
 def test_read_data(fixture):
@@ -130,11 +129,6 @@ def test_filter_data(tmp_path):
     df.to_parquet(fn, index=False)
     tbl = ParquetDataTable(path=fn, primary_key="id")
     assert len(tbl.read_data(where={"id": [None, "uuid"]})) == 3
-
-
-@pytest.fixture()
-def customer_table():
-    return ParquetDataTable(path=PQT_FIXTURES_DIR / "order_management" / "Customer.parquet")
 
 
 @pytest.fixture()
