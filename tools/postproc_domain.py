@@ -61,7 +61,7 @@ def postprocess_model_file(file_path):
                 "import uuid\n"
                 "import rich\n"
                 "import zipfile\n"
-                "from mostlyai.sdk.client._base_utils import convert_to_base64\n"
+                "from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path\n"
             )
         elif "from typing" in line and not import_typing_updated:
             # Append ', ClassVar' to the line if it doesn't already contain ClassVar
