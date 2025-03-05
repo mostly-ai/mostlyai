@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import tempfile
 import numpy as np
 import pandas as pd
 import pyarrow.dataset as ds
@@ -20,7 +19,7 @@ import pytest
 
 
 @pytest.fixture
-def sample_csv_file():
+def sample_csv_file(tmp_path):
     df = pd.DataFrame(
         {
             "id": [1, 2, 3, 4, 5, 6, 7],
@@ -67,7 +66,7 @@ def sample_csv_file():
             ],
         }
     )
-    fn = tempfile.NamedTemporaryFile(suffix=".csv", delete=False).name
+    fn = tmp_path / "sample.csv"
     df.to_csv(fn, index=False)
     return fn
 
@@ -78,16 +77,16 @@ def sample_df(sample_csv_file):
 
 
 @pytest.fixture
-def sample_numpy_parquet_file(sample_csv_file):
+def sample_numpy_parquet_file(tmp_path, sample_csv_file):
     df = pd.read_csv(sample_csv_file, engine="pyarrow", dtype_backend="numpy_nullable")
-    fn = tempfile.NamedTemporaryFile(suffix=".parquet").name
-    df.to_parquet(fn)
+    fn = tmp_path / "sample_numpy.parquet"
+    df.to_parquet(fn, engine="pyarrow")
     return fn
 
 
 @pytest.fixture
-def sample_pyarrow_parquet_file(sample_csv_file):
+def sample_pyarrow_parquet_file(tmp_path, sample_csv_file):
     df = pd.read_csv(sample_csv_file, engine="pyarrow", dtype_backend="pyarrow")
-    fn = tempfile.NamedTemporaryFile(suffix=".parquet").name
+    fn = tmp_path / "sample_pyarrow.parquet"
     df.to_parquet(fn, engine="pyarrow")
     return fn

@@ -226,14 +226,14 @@ def csv_file(request):
     ],
 )
 def test_edge_cases(csv_string):
-    fn = tempfile.NamedTemporaryFile(suffix=".csv").name
-    with open(fn, "w") as f:
+    with tempfile.NamedTemporaryFile(suffix=".csv", mode="w", delete=True) as f:
         f.write(csv_string)
-    table = CsvDataTable(path=fn)
-    assert table.delimiter is not None
-    assert table.columns is not None
-    assert table.dtypes is not None
-    assert table.read_data() is not None
+        f.flush()
+        table = CsvDataTable(path=f.name)
+        assert table.delimiter is not None
+        assert table.columns is not None
+        assert table.dtypes is not None
+        assert table.read_data() is not None
 
 
 def test_compressed_csv():
@@ -241,21 +241,21 @@ def test_compressed_csv():
 
     import bz2
 
-    fn_bz2 = tempfile.NamedTemporaryFile(suffix=".csv.bz2").name
-    with bz2.open(fn_bz2, "wb") as f:
-        f.write(data)
-    table_bz2 = CsvDataTable(path=fn_bz2)
-    assert table_bz2.delimiter is not None
-    assert table_bz2.columns is not None
+    with tempfile.NamedTemporaryFile(suffix=".csv.bz2") as tmp_file:
+        with bz2.open(tmp_file.name, "wb") as f:
+            f.write(data)
+        table_bz2 = CsvDataTable(path=tmp_file.name)
+        assert table_bz2.delimiter is not None
+        assert table_bz2.columns is not None
 
     import gzip
 
-    fn_gz = tempfile.NamedTemporaryFile(suffix=".csv.gz").name
-    with gzip.open(fn_gz, "wb") as f:
-        f.write(data)
-    table_gz = CsvDataTable(path=fn_gz)
-    assert table_gz.delimiter is not None
-    assert table_gz.columns is not None
+    with tempfile.NamedTemporaryFile(suffix=".csv.gz") as tmp_file:
+        with gzip.open(tmp_file.name, "wb") as f:
+            f.write(data)
+        table_gz = CsvDataTable(path=tmp_file.name)
+        assert table_gz.delimiter is not None
+        assert table_gz.columns is not None
 
 
 def test_non_utf8_encoding():
