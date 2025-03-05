@@ -18,6 +18,7 @@ import tempfile
 
 import numpy as np
 import pandas as pd
+from pyarrow import Table
 import pytest
 from mostlyai.sdk._data.dtype import VirtualVarchar
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
@@ -159,8 +160,11 @@ def test_write_data(tmp_path):
     assert df_read.equals(df)
 
 
-def test_parquet_ignore_index_column():
-    table = ParquetDataTable(path=PQT_FIXTURES_DIR / "file_zoo" / "extra_index_column.parquet")
+def test_parquet_ignore_index_column(tmp_path):
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    # this will result in a parquet file with an extra "__index_level_0__" column
+    df = Table.from_pandas(df, preserve_index=True).to_pandas().to_parquet(tmp_path / "test.parquet")
+    table = ParquetDataTable(path=tmp_path / "test.parquet")
     assert "__index_level_0__" not in table.columns
 
 
@@ -179,19 +183,23 @@ def test_parquet_ignore_complex_columns(tmp_path):
     assert table.columns == ["text", "number"]
 
 
-def test_mismatch_columns():
-    table = ParquetDataTable(path=PQT_FIXTURES_DIR / "file_zoo" / "mismatch")
+def test_mismatch_columns(tmp_path):
+    pd.DataFrame({"col1": [1, 2, 3]}).to_parquet(tmp_path / "part.000000.parquet")
+    pd.DataFrame({"col2": [4, 5, 6]}).to_parquet(tmp_path / "part.000001.parquet")
+    table = ParquetDataTable(path=tmp_path)
     assert table.columns == ["col1"]
 
 
-def test_no_columns():
-    table = ParquetDataTable(path=PQT_FIXTURES_DIR / "file_zoo" / "no_columns")
+def test_no_columns(tmp_path):
+    pd.DataFrame().to_parquet(tmp_path / "test.parquet")
+    table = ParquetDataTable(path=tmp_path)
     assert table.columns == []
     assert table.read_data().empty
 
 
-def test_no_records():
-    table = ParquetDataTable(path=PQT_FIXTURES_DIR / "file_zoo" / "no_records")
+def test_no_records(tmp_path):
+    pd.DataFrame({"col_a": [], "col_b": []}).to_parquet(tmp_path / "test.parquet")
+    table = ParquetDataTable(path=tmp_path)
     assert table.columns == ["col_a", "col_b"]
     assert table.read_data().empty
 
