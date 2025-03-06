@@ -35,6 +35,7 @@ from mostlyai.sdk.domain import (
     ModelConfiguration,
     SyntheticDatasetReportType,
     ModelType,
+    SourceColumnConfig,
 )
 
 
@@ -418,6 +419,7 @@ class SourceTableConfig:
                 (
                     isinstance(column, dict) and bool(column.get("included", True)),
                     isinstance(column, SourceColumn) and column.included,
+                    isinstance(column, SourceColumnConfig),
                 )
             )
             if is_included:

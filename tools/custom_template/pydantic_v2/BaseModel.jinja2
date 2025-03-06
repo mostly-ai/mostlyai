@@ -609,6 +609,7 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
                 (
                     isinstance(column, dict) and bool(column.get("included", True)),
                     isinstance(column, SourceColumn) and column.included,
+                    isinstance(column, SourceColumnConfig),
                 )
             )
             if is_included:

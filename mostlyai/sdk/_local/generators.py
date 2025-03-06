@@ -136,7 +136,7 @@ def get_generator_config(home_dir: Path, generator_id: str) -> GeneratorConfig:
                 foreign_keys=[SourceForeignKeyConfig.model_construct(**k.model_dump()) for k in t.foreign_keys]
                 if t.foreign_keys
                 else None,
-                columns=[SourceColumnConfig.model_construct(**c.model_dump()) for c in t.columns]
+                columns=[SourceColumnConfig.model_construct(**c.model_dump()) for c in t.columns if c.included]
                 if t.columns
                 else None,
             )
