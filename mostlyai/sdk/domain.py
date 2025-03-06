@@ -3082,6 +3082,20 @@ class _SyntheticTableConfigValidation(CustomBaseModel):
                 raise ValueError(f"Target column '{target_col}' cannot be a sensitive column")
         return validation
 
+    @model_validator(mode="after")
+    def validate_data_report_disabled_if_any_model_report_disabled(cls, validation):
+        is_tabular_model_report_enabled = (
+            validation.source_table.tabular_model_configuration is not None
+            and validation.source_table.tabular_model_configuration.enable_model_report
+        )
+        is_language_model_report_enabled = (
+            validation.source_table.language_model_configuration is not None
+            and validation.source_table.language_model_configuration.enable_model_report
+        )
+        if not (is_tabular_model_report_enabled and is_language_model_report_enabled):
+            validation.synthetic_table.configuration.enable_data_report = False
+        return validation
+
 
 class _SyntheticDataConfigValidation(CustomBaseModel):
     """
