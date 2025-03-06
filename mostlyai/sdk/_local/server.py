@@ -18,6 +18,8 @@ from pathlib import Path
 
 from threading import Thread
 
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 import rich
 from fastapi import FastAPI
 import uvicorn
@@ -66,6 +68,7 @@ class LocalServer:
         )
         routes = Routes(self.home_dir)
         self._app.include_router(routes.router)
+        self.register_exception_handlers()
         self._server = None
         self._thread = None
         self.start()  # Automatically start the server during initialization
@@ -116,3 +119,12 @@ class LocalServer:
         if self._server and self._server.started:
             print("Automatically shutting down server")
             self.stop()
+
+    def register_exception_handlers(self):
+        @self._app.exception_handler(Exception)
+        async def global_exception_handler(request, exc):
+            if isinstance(exc, ValidationError):
+                return JSONResponse(status_code=422, content={"detail": str(exc)})
+            # for fastapi.HTTPException: it will be raised as is
+            # for other unhandled exceptions: client will receive a 500 Internal Server Error
+            raise exc

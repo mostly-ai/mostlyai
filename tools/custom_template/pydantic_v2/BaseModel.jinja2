@@ -1147,9 +1147,12 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
         generator_table_map = {t.name: t for t in validation.generator.tables}
         synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables or []}
 
-        extra_tables = set(synthetic_table_map.keys()) - set(generator_table_map.keys())
+        generator_tables = set(generator_table_map.keys())
+        extra_tables = set(synthetic_table_map.keys()) - generator_tables
         if extra_tables:
-            raise ValueError(f"Extra tables in synthetic config not present in generator: {extra_tables}")
+            raise ValueError(
+                f"Tables {extra_tables} are not present in the generator. Only {generator_tables} are available."
+            )
         return validation
 
     @model_validator(mode="after")
