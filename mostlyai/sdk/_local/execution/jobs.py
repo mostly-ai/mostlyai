@@ -462,9 +462,10 @@ class Execution:
                 )
 
             elif step.step_code in {StepCode.create_data_report_tabular, StepCode.create_data_report_language}:
-                if not _copy_statistics(
+                model_report_available = _copy_statistics(
                     generator_dir=generator_dir, model_label=model_label, workspace_dir=workspace_dir
-                ):
+                )
+                if not model_report_available:
                     continue
                 # step: GENERATE_DATA_REPORT
                 execute_step_create_data_report(

@@ -171,7 +171,7 @@ def make_synthetic_dataset_execution_plan(
         if synthetic_dataset:
             synthetic_table = next(t for t in synthetic_dataset.tables if t.name == table.name)
             enable_data_report = synthetic_table.configuration.enable_data_report
-        else:  # could be removed later
+        else:
             enable_data_report = True
         if has_tabular_model(table):
             steps = [Step(step_code=StepCode.generate_data_tabular, target_table_name=table.name)]

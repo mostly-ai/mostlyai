@@ -26,7 +26,7 @@ import pandas as pd
     ids=["AUTO encoding types", "LANGUAGE-only encoding types"],
 )
 def test_simple_flat(tmp_path, encoding_types):
-    mostly = MostlyAI(local=True, quiet=True)
+    mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
     # create mock data
     df = pd.DataFrame(
