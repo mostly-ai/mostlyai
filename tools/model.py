@@ -1011,6 +1011,30 @@ class _SyntheticDataConfigValidation(CustomBaseModel):
             )
         return validation
 
+    @model_validator(mode="after")
+    def validate_data_report_requires_model_report(cls, validation):
+        generator_table_map = {t.name: t for t in validation.generator.tables}
+        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables or []}
+
+        for table_name, synthetic_table in synthetic_table_map.items():
+            if not synthetic_table.configuration or not synthetic_table.configuration.enable_data_report:
+                continue
+
+            generator_table = generator_table_map[table_name]
+            tabular_report_enabled = (
+                generator_table.tabular_model_configuration is None
+                or generator_table.tabular_model_configuration.enable_model_report
+            )
+            language_report_enabled = (
+                generator_table.language_model_configuration is None
+                or generator_table.language_model_configuration.enable_model_report
+            )
+
+            if not (tabular_report_enabled or language_report_enabled):
+                raise ValueError(f"Cannot enable data report for '{table_name}' without an enabled model report.")
+
+        return validation
+
 
 class ProgressStep:
     @model_validator(mode="after")
