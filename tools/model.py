@@ -976,7 +976,7 @@ class _SyntheticTableConfigValidation(CustomBaseModel):
             is_tabular_model_report_enabled = validation.source_table.tabular_model_configuration.enable_model_report
         if validation.source_table.language_model_configuration is not None:
             is_language_model_report_enabled = validation.source_table.language_model_configuration.enable_model_report
-        if not (is_tabular_model_report_enabled and is_language_model_report_enabled):
+        if not is_tabular_model_report_enabled and not is_language_model_report_enabled:
             if validation.synthetic_table.configuration is not None:
                 validation.synthetic_table.configuration.enable_data_report = False
         return validation
