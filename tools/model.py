@@ -969,7 +969,7 @@ class _SyntheticTableConfigValidation(CustomBaseModel):
         return validation
 
     @model_validator(mode="after")
-    def validate_data_report_disabled_if_any_of_model_reports_disabled(cls, validation):
+    def validate_data_report_disabled_if_both_model_reports_disabled(cls, validation):
         is_tabular_model_report_enabled = True
         is_language_model_report_enabled = True
         if validation.source_table.tabular_model_configuration is not None:
