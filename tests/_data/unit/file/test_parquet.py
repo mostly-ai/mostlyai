@@ -12,19 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from pyarrow import Table
 import pytest
 from mostlyai.sdk._data.dtype import VirtualVarchar
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
-from tests._data.unit.test_pull import PARQUET_FIXTURES_DIR
-
-SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
-FIXTURES_DIR = SCRIPT_DIR / "fixtures"
-PQT_FIXTURES_DIR = FIXTURES_DIR / "parquet"
 
 
 def test_row_count(tmp_path):
@@ -51,15 +45,14 @@ def test_row_count(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "fixture",
-    [
-        PARQUET_FIXTURES_DIR / "sample_numpy.parquet",
-        PARQUET_FIXTURES_DIR / "sample_pyarrow.parquet",
-    ],
+    "sample_parquet_file",
+    ("numpy_nullable", "pyarrow"),
+    indirect=True,
 )
-def test_read_data(fixture):
-    orig_df = pd.read_parquet(fixture, engine="pyarrow", dtype_backend="pyarrow")
-    table = ParquetDataTable(path=fixture, name="sample")
+def test_read_data(sample_csv_file, sample_parquet_file):
+    # create parquet file on the fly
+    orig_df = pd.read_parquet(sample_parquet_file, engine="pyarrow", dtype_backend="pyarrow")
+    table = ParquetDataTable(path=sample_parquet_file, name="sample")
     # test metadata
     assert table.columns == list(orig_df.columns)
     dtypes = table.dtypes
@@ -133,11 +126,6 @@ def test_filter_data(tmp_path):
 
 
 @pytest.fixture()
-def customer_table():
-    return ParquetDataTable(path=PQT_FIXTURES_DIR / "order_management" / "Customer.parquet")
-
-
-@pytest.fixture()
 def simple_partitions_generator():
     df_1 = pd.DataFrame({"id": [1, 2, 3], "str": ["a", "b", "c"]})
     df_2 = pd.DataFrame({"id": [4, 5, 6], "str": ["d", "e", "f"]})
@@ -160,8 +148,11 @@ def test_write_data(tmp_path):
     assert df_read.equals(df)
 
 
-def test_parquet_ignore_index_column():
-    table = ParquetDataTable(path=PQT_FIXTURES_DIR / "file_zoo" / "extra_index_column.parquet")
+def test_parquet_ignore_index_column(tmp_path):
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    # this will result in a parquet file with an extra "__index_level_0__" column
+    df = Table.from_pandas(df, preserve_index=True).to_pandas().to_parquet(tmp_path / "test.parquet")
+    table = ParquetDataTable(path=tmp_path / "test.parquet")
     assert "__index_level_0__" not in table.columns
 
 
@@ -180,19 +171,23 @@ def test_parquet_ignore_complex_columns(tmp_path):
     assert table.columns == ["text", "number"]
 
 
-def test_mismatch_columns():
-    table = ParquetDataTable(path=PQT_FIXTURES_DIR / "file_zoo" / "mismatch")
+def test_mismatch_columns(tmp_path):
+    pd.DataFrame({"col1": [1, 2, 3]}).to_parquet(tmp_path / "part.000000.parquet")
+    pd.DataFrame({"col2": [4, 5, 6]}).to_parquet(tmp_path / "part.000001.parquet")
+    table = ParquetDataTable(path=tmp_path)
     assert table.columns == ["col1"]
 
 
-def test_no_columns():
-    table = ParquetDataTable(path=PQT_FIXTURES_DIR / "file_zoo" / "no_columns")
+def test_no_columns(tmp_path):
+    pd.DataFrame().to_parquet(tmp_path / "test.parquet")
+    table = ParquetDataTable(path=tmp_path)
     assert table.columns == []
     assert table.read_data().empty
 
 
-def test_no_records():
-    table = ParquetDataTable(path=PQT_FIXTURES_DIR / "file_zoo" / "no_records")
+def test_no_records(tmp_path):
+    pd.DataFrame({"col_a": [], "col_b": []}).to_parquet(tmp_path / "test.parquet")
+    table = ParquetDataTable(path=tmp_path)
     assert table.columns == ["col_a", "col_b"]
     assert table.read_data().empty
 

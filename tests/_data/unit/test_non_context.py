@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from pathlib import Path
-
 import pandas as pd
 
 from mostlyai.sdk._data.base import DataIdentifier, Schema, NonContextRelation, ForeignKey
@@ -25,9 +22,6 @@ from mostlyai.sdk._data.non_context import (
     postproc_non_context,
     sample_non_context_keys,
 )
-
-SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
-CSV_FIXTURES_DIR = SCRIPT_DIR / "file" / "fixtures" / "csv"
 
 
 def test_handle_non_context_relation(tmp_path):

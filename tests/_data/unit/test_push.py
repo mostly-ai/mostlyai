@@ -30,11 +30,11 @@ from mostlyai.sdk._data.push import adapt_dtypes_to_destination, push_data
 
 
 @pytest.fixture
-def user_df_with_self_ref(user_df):
+def user_df_with_self_ref():
     # populate reports_to_user_id and follow referential integrity
+    user_df = pd.DataFrame({"id": np.arange(1, 101)})
     n = len(user_df)
     n_admins = n // 10
-    assert all(user_df["id"].values == np.arange(1, n + 1))
     user_df["reports_to_user_id"] = np.random.randint(n_admins + 1, n + 1, size=n)
     user_df.loc[user_df["id"] <= n_admins, "reports_to_user_id"] = np.nan
     user_df["id"] = user_df["id"].astype("Int64")

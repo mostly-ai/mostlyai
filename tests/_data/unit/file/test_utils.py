@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from pathlib import Path
 
 import pandas as pd
 
@@ -22,10 +20,6 @@ from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.file.utils import read_data_table_from_path
-
-SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
-FIXTURES_DIR = SCRIPT_DIR / "fixtures"
-CSV_FIXTURES_DIR = FIXTURES_DIR / "csv"
 
 
 def test_read_data_table_from_local_path(tmp_path):

@@ -16,7 +16,6 @@ import csv
 import os
 import random
 import tempfile
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -24,17 +23,12 @@ import pyarrow.dataset as ds
 import pytest
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 
-SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
-FIXTURES_DIR = SCRIPT_DIR / "fixtures"
-CSV_FIXTURES_DIR = FIXTURES_DIR / "csv"
 
-
-def test_read_data():
-    fn = CSV_FIXTURES_DIR / "sample.csv"
-    orig_df = ds.dataset(source=fn, format=ds.CsvFileFormat()).scanner().to_table().to_pandas()
-    table = CsvDataTable(path=fn, name="sample")
+def test_read_data(sample_csv_file):
+    sample_df = ds.dataset(source=sample_csv_file, format=ds.CsvFileFormat()).scanner().to_table().to_pandas()
+    table = CsvDataTable(path=sample_csv_file, name="sample")
     # test metadata
-    assert table.columns == list(orig_df.columns)
+    assert table.columns == list(sample_df.columns)
     dtypes = table.dtypes
     assert pd.api.types.is_integer_dtype(dtypes["id"].wrapped)
     assert pd.api.types.is_bool_dtype(dtypes["bool"].wrapped)
@@ -47,9 +41,9 @@ def test_read_data():
     assert pd.api.types.is_string_dtype(dtypes["text"].wrapped)
     # test content
     df = table.read_data(do_coerce_dtypes=True)
-    assert df.shape == orig_df.shape
+    assert df.shape == sample_df.shape
     for col in df:
-        assert df[col].isna().sum() == orig_df[col].isna().sum()
+        assert df[col].isna().sum() == sample_df[col].isna().sum()
     df = table.read_data(where={"id": 1})
     assert len(df) == 1
     df = table.read_data(where={"id": [2, 3]}, columns=["float", "id"])
@@ -214,18 +208,56 @@ def csv_file(request):
     os.remove(file_path)
 
 
-def test_read_file_zoo():
-    files = Path(f"{CSV_FIXTURES_DIR}/file_zoo").glob("*")
-    for file in files:
-        table = CsvDataTable(path=f"file://{file}")
+@pytest.mark.parametrize(
+    "csv_string",
+    [
+        "a,b\n",  # empty csv
+        '"a"\n1\n',  # single column
+        "a,b\n1,🌈\n",  # non-ascii character
+        '"a", "  b  "\n1,2\n',  # quoted fields with spaces
+        "a|b\n1|2\n",  # pipe-separated
+        "a\tb\n1\t2\n",  # tab-separated
+        "a;b\n1;2\n",  # semicolon-separated
+        'a,b\n1,"Hello, World"\n',  # unquoted field with comma
+    ],
+)
+def test_edge_cases(csv_string, tmp_path):
+    with tempfile.NamedTemporaryFile(dir=tmp_path, suffix=".csv", mode="w") as f:
+        f.write(csv_string)
+        f.flush()
+        table = CsvDataTable(path=f.name)
         assert table.delimiter is not None
         assert table.columns is not None
         assert table.dtypes is not None
         assert table.read_data() is not None
 
 
-def test_non_utf8_encoding():
-    fn = CSV_FIXTURES_DIR / "file_zoo" / "enc_iso8859_1.csv"
+def test_compressed_csv(tmp_path):
+    data = b"a,b\n1,2\n"
+
+    import bz2
+
+    fn = tmp_path / "data.csv.bz2"
+    with bz2.open(fn, "wb") as f:
+        f.write(data)
+    table_bz2 = CsvDataTable(path=fn)
+    assert table_bz2.delimiter is not None
+    assert table_bz2.columns is not None
+
+    import gzip
+
+    fn = tmp_path / "data.csv.gz"
+    with gzip.open(fn, "wb") as f:
+        f.write(data)
+    table_gz = CsvDataTable(path=fn)
+    assert table_gz.delimiter is not None
+    assert table_gz.columns is not None
+
+
+def test_non_utf8_encoding(tmp_path):
+    fn = tmp_path / "data.csv"
+    with open(fn, "w", encoding="iso-8859-1") as f:
+        f.write("category\none é two\n")
     table = CsvDataTable(path=fn)
     df = table.read_data(do_coerce_dtypes=True)
     # check that we get a column with string values, rather than

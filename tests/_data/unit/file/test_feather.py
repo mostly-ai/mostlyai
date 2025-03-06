@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -28,21 +26,11 @@ from mostlyai.sdk._data.dtype import (
 )
 from mostlyai.sdk._data.file.table.feather import FeatherDataTable
 
-SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
-FIXTURES_DIR = SCRIPT_DIR / "fixtures"
-PQT_FIXTURES_DIR = FIXTURES_DIR / "parquet"
 
-
-@pytest.fixture()
-def sample_data():
-    return pd.read_parquet(
-        PQT_FIXTURES_DIR / "sample_pyarrow.parquet",
-        dtype_backend="pyarrow",
-    )
-
-
-def test_read_write_data(tmp_path, sample_data):
+@pytest.mark.parametrize("sample_parquet_file", ["pyarrow"], indirect=True)
+def test_read_write_data(tmp_path, sample_parquet_file):
     # write data
+    sample_data = pd.read_parquet(sample_parquet_file, dtype_backend="pyarrow")
     table1 = FeatherDataTable(path=tmp_path / "sample.feather", is_output=True)
     table1.write_data(sample_data)
     # read data
