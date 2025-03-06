@@ -51,7 +51,6 @@ def test_row_count(tmp_path):
 )
 def test_read_data(sample_csv_file, sample_parquet_file):
     # create parquet file on the fly
-    print(sample_parquet_file)
     orig_df = pd.read_parquet(sample_parquet_file, engine="pyarrow", dtype_backend="pyarrow")
     table = ParquetDataTable(path=sample_parquet_file, name="sample")
     # test metadata
