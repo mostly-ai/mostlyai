@@ -27,12 +27,10 @@ from mostlyai.sdk._data.dtype import (
 from mostlyai.sdk._data.file.table.json import JsonDataTable
 
 
-@pytest.mark.parametrize(
-    "file_name",
-    ["sample.json", "sample.json.gz"],
-)
-def test_read_write_data(tmp_path, sample_pyarrow_parquet_file, file_name):
-    sample_data = pd.read_parquet(sample_pyarrow_parquet_file, dtype_backend="pyarrow")
+@pytest.mark.parametrize("file_name", ["sample.json", "sample.json.gz"])
+@pytest.mark.parametrize("sample_parquet_file", ["pyarrow"], indirect=True)
+def test_read_write_data(tmp_path, sample_parquet_file, file_name):
+    sample_data = pd.read_parquet(sample_parquet_file, dtype_backend="pyarrow")
     sample_data["date"] = sample_data["date"].astype(pd.ArrowDtype(pa.date32()))
     # write
     table1 = JsonDataTable(path=tmp_path / file_name, is_output=True)

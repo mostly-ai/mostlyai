@@ -16,20 +16,16 @@ import csv
 import os
 import random
 import tempfile
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pyarrow.dataset as ds
 import pytest
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 
 
-SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
-FIXTURES_DIR = SCRIPT_DIR / "fixtures"
-CSV_FIXTURES_DIR = FIXTURES_DIR / "csv"
-
-
-def test_read_data(sample_df, sample_csv_file):
+def test_read_data(sample_csv_file):
+    sample_df = ds.dataset(source=sample_csv_file, format=ds.CsvFileFormat()).scanner().to_table().to_pandas()
     table = CsvDataTable(path=sample_csv_file, name="sample")
     # test metadata
     assert table.columns == list(sample_df.columns)
@@ -225,8 +221,8 @@ def csv_file(request):
         'a,b\n1,"Hello, World"\n',  # unquoted field with comma
     ],
 )
-def test_edge_cases(csv_string):
-    with tempfile.NamedTemporaryFile(suffix=".csv", mode="w", delete=True) as f:
+def test_edge_cases(csv_string, tmp_path):
+    with tempfile.NamedTemporaryFile(dir=tmp_path, suffix=".csv", mode="w") as f:
         f.write(csv_string)
         f.flush()
         table = CsvDataTable(path=f.name)
@@ -236,30 +232,30 @@ def test_edge_cases(csv_string):
         assert table.read_data() is not None
 
 
-def test_compressed_csv():
+def test_compressed_csv(tmp_path):
     data = b"a,b\n1,2\n"
 
     import bz2
 
-    with tempfile.NamedTemporaryFile(suffix=".csv.bz2") as tmp_file:
-        with bz2.open(tmp_file.name, "wb") as f:
-            f.write(data)
-        table_bz2 = CsvDataTable(path=tmp_file.name)
-        assert table_bz2.delimiter is not None
-        assert table_bz2.columns is not None
+    fn = tmp_path / "data.csv.bz2"
+    with bz2.open(fn, "wb") as f:
+        f.write(data)
+    table_bz2 = CsvDataTable(path=fn)
+    assert table_bz2.delimiter is not None
+    assert table_bz2.columns is not None
 
     import gzip
 
-    with tempfile.NamedTemporaryFile(suffix=".csv.gz") as tmp_file:
-        with gzip.open(tmp_file.name, "wb") as f:
-            f.write(data)
-        table_gz = CsvDataTable(path=tmp_file.name)
-        assert table_gz.delimiter is not None
-        assert table_gz.columns is not None
+    fn = tmp_path / "data.csv.gz"
+    with gzip.open(fn, "wb") as f:
+        f.write(data)
+    table_gz = CsvDataTable(path=fn)
+    assert table_gz.delimiter is not None
+    assert table_gz.columns is not None
 
 
-def test_non_utf8_encoding():
-    fn = tempfile.NamedTemporaryFile(suffix=".csv").name
+def test_non_utf8_encoding(tmp_path):
+    fn = tmp_path / "data.csv"
     with open(fn, "w", encoding="iso-8859-1") as f:
         f.write("category\none é two\n")
     table = CsvDataTable(path=fn)

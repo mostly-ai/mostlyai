@@ -14,6 +14,7 @@
 
 
 import pandas as pd
+import pytest
 
 from mostlyai.sdk._data.dtype import (
     is_boolean_dtype,
@@ -26,9 +27,10 @@ from mostlyai.sdk._data.dtype import (
 from mostlyai.sdk._data.file.table.feather import FeatherDataTable
 
 
-def test_read_write_data(tmp_path, sample_pyarrow_parquet_file):
+@pytest.mark.parametrize("sample_parquet_file", ["pyarrow"], indirect=True)
+def test_read_write_data(tmp_path, sample_parquet_file):
     # write data
-    sample_data = pd.read_parquet(sample_pyarrow_parquet_file, dtype_backend="pyarrow")
+    sample_data = pd.read_parquet(sample_parquet_file, dtype_backend="pyarrow")
     table1 = FeatherDataTable(path=tmp_path / "sample.feather", is_output=True)
     table1.write_data(sample_data)
     # read data

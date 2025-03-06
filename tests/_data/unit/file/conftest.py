@@ -14,7 +14,6 @@
 
 import numpy as np
 import pandas as pd
-import pyarrow.dataset as ds
 import pytest
 
 
@@ -40,21 +39,8 @@ def sample_csv_file(tmp_path):
 
 
 @pytest.fixture
-def sample_df(sample_csv_file):
-    return ds.dataset(source=sample_csv_file, format=ds.CsvFileFormat()).scanner().to_table().to_pandas()
-
-
-@pytest.fixture
-def sample_numpy_parquet_file(tmp_path, sample_csv_file):
-    df = pd.read_csv(sample_csv_file, engine="pyarrow", dtype_backend="numpy_nullable")
-    fn = tmp_path / "sample_numpy.parquet"
-    df.to_parquet(fn, engine="pyarrow")
-    return fn
-
-
-@pytest.fixture
-def sample_pyarrow_parquet_file(tmp_path, sample_csv_file):
-    df = pd.read_csv(sample_csv_file, engine="pyarrow", dtype_backend="pyarrow")
-    fn = tmp_path / "sample_pyarrow.parquet"
+def sample_parquet_file(tmp_path, sample_csv_file, request):
+    df = pd.read_csv(sample_csv_file, engine="pyarrow", dtype_backend=request.param)
+    fn = tmp_path / f"sample_{request.param}.parquet"
     df.to_parquet(fn, engine="pyarrow")
     return fn

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -21,10 +19,6 @@ from pyarrow import Table
 import pytest
 from mostlyai.sdk._data.dtype import VirtualVarchar
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
-
-SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
-FIXTURES_DIR = SCRIPT_DIR / "fixtures"
-PQT_FIXTURES_DIR = FIXTURES_DIR / "parquet"
 
 
 def test_row_count(tmp_path):
@@ -51,17 +45,15 @@ def test_row_count(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "parquet_file",
-    [
-        "sample_numpy_parquet_file",
-        "sample_pyarrow_parquet_file",
-    ],
+    "sample_parquet_file",
+    ("numpy_nullable", "pyarrow"),
+    indirect=True,
 )
-def test_read_data(sample_csv_file, parquet_file, request):
+def test_read_data(sample_csv_file, sample_parquet_file):
     # create parquet file on the fly
-    fn = request.getfixturevalue(parquet_file)
-    orig_df = pd.read_parquet(fn, engine="pyarrow", dtype_backend="pyarrow")
-    table = ParquetDataTable(path=fn, name="sample")
+    print(sample_parquet_file)
+    orig_df = pd.read_parquet(sample_parquet_file, engine="pyarrow", dtype_backend="pyarrow")
+    table = ParquetDataTable(path=sample_parquet_file, name="sample")
     # test metadata
     assert table.columns == list(orig_df.columns)
     dtypes = table.dtypes
