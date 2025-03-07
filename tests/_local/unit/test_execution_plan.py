@@ -22,19 +22,24 @@ from mostlyai.sdk.domain import (
     GeneratorConfig,
     TaskType,
     StepCode,
+    SyntheticTableConfiguration,
 )
 from mostlyai.sdk._local.execution.plan import (
     ExecutionPlan,
     make_synthetic_dataset_execution_plan,
     make_generator_execution_plan,
     Step,
+    TRAINING_TASK_STEPS,
+    TRAINING_TASK_REPORT_STEPS,
 )
 from mostlyai.sdk.domain import (
     ModelConfiguration,
+    SyntheticDataset,
+    SyntheticTable,
 )
 
 
-def arbitrary_model_config():
+def arbitrary_model_config(enable_model_report=True):
     return ModelConfiguration(
         model="some_model",
         max_sample_size=1000,
@@ -45,6 +50,7 @@ def arbitrary_model_config():
         enable_flexible_generation=True,
         value_protection=True,
         rare_category_replacement_method=None,
+        enable_model_report=enable_model_report,
     )
 
 
@@ -71,6 +77,7 @@ def test_make_synthetic_dataset_execution_plan():
                     "name": "orders",
                     "primary_key": "id",
                     "foreign_keys": [{"column": "user_id", "referenced_table": "users", "is_context": True}],
+                    "tabular_model_configuration": {"enable_model_report": False},
                 },
                 {"name": "admins"},
                 {
@@ -89,7 +96,19 @@ def test_make_synthetic_dataset_execution_plan():
         }
     )
     generator = Generator(**config.model_dump(exclude_none=True))
-    execution_plan = make_synthetic_dataset_execution_plan(generator)
+
+    synthetic_dataset = SyntheticDataset(
+        id="test_synthetic_dataset",
+        name="test_synthetic_dataset",
+        tables=[
+            SyntheticTable(
+                name=table.name, configuration=SyntheticTableConfiguration(enable_data_report=table.name != "orders")
+            )
+            for table in generator.tables
+        ],
+    )
+
+    execution_plan = make_synthetic_dataset_execution_plan(generator, synthetic_dataset)
 
     expected_execution_plan = ExecutionPlan(tasks=[])
     sync_task = expected_execution_plan.add_task(TaskType.sync)
@@ -102,7 +121,7 @@ def test_make_synthetic_dataset_execution_plan():
             Step(step_code=StepCode.generate_data_tabular, target_table_name="users"),
             Step(step_code=StepCode.create_data_report_tabular, target_table_name="users"),
             Step(step_code=StepCode.generate_data_tabular, target_table_name="orders"),
-            Step(step_code=StepCode.create_data_report_tabular, target_table_name="orders"),
+            # No data report for orders table
             Step(step_code=StepCode.generate_data_tabular, target_table_name="order_items"),
             Step(step_code=StepCode.create_data_report_tabular, target_table_name="order_items"),
             Step(step_code=StepCode.generate_data_language, target_table_name="order_items"),
@@ -161,7 +180,7 @@ def test_make_generator_execution_plan():
                     ),
                 ],
                 tabular_model_configuration=model_config,
-                language_model_configuration=model_config,
+                language_model_configuration=arbitrary_model_config(enable_model_report=False),
             ),
         ],
     )
@@ -170,14 +189,14 @@ def test_make_generator_execution_plan():
 
     expected_execution_plan = ExecutionPlan(tasks=[])
     sync_task = expected_execution_plan.add_task(TaskType.sync)
+
     expected_execution_plan.add_task(TaskType.train_tabular, parent=sync_task, target_table_name="users")
     expected_execution_plan.add_task(TaskType.train_language, parent=sync_task, target_table_name="posts")
     expected_execution_plan.add_task(TaskType.train_tabular, parent=sync_task, target_table_name="comments")
-    expected_execution_plan.add_task(TaskType.train_language, parent=sync_task, target_table_name="comments")
+    expected_execution_plan.add_task(
+        TaskType.train_language, parent=sync_task, target_table_name="comments", include_report=False
+    )
     expected_execution_plan.add_task(TaskType.sync)
-    # expected_execution_plan.add_task(TaskType.sync)
-    # finalize_task = expected_execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
-    # expected_execution_plan.add_task(TaskType.sync, parent=finalize_task)
 
     assert len(execution_plan.tasks) == len(expected_execution_plan.tasks)
     for actual, expected in zip(execution_plan.tasks, expected_execution_plan.tasks):
@@ -191,6 +210,15 @@ def test_make_generator_execution_plan():
         assert expected_parent is not None
         assert actual_parent.type == expected_parent.type
         assert actual_parent.target_table_name == expected_parent.target_table_name
+        # verify report steps are included/excluded based on configuration
+        if actual.steps:
+            actual_step_codes = [s.step_code for s in actual.steps]
+            expected_step_codes = [s.step_code for s in expected.steps]
+            assert actual_step_codes == expected_step_codes
+            if actual.target_table_name == "comments" and actual.type == TaskType.train_language:
+                assert actual_step_codes == TRAINING_TASK_STEPS
+            else:
+                assert actual_step_codes == TRAINING_TASK_STEPS + TRAINING_TASK_REPORT_STEPS
 
 
 def test_make_synthetic_dataset_execution_plan_with_probe():

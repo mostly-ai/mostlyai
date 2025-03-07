@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import zipfile
 
 from mostlyai.sdk import MostlyAI
 import pandas as pd
@@ -96,9 +97,11 @@ def test_multi_table_with_text(tmp_path):
                     ],
                     "tabular_model_configuration": {
                         "max_epochs": 0.1,
+                        "enable_model_report": False,
                     },
                     "language_model_configuration": {
                         "max_epochs": 0.1,
+                        "enable_model_report": False,
                     },
                 },
             ],
@@ -118,14 +121,26 @@ def test_multi_table_with_text(tmp_path):
     assert g.tables[0].language_model_metrics is not None
     assert g.tables[1].tabular_model_metrics is not None
     assert g.tables[1].language_model_metrics is None
-    assert g.tables[2].tabular_model_metrics is not None
-    assert g.tables[2].language_model_metrics is not None
+    # model report for fielding (both tabular and language) is disabled
+    assert g.tables[2].tabular_model_metrics is None
+    assert g.tables[2].language_model_metrics is None
 
     sd = mostly.generate(g, size=20)
     syn = sd.data()
     assert len(syn["players"]) == 20
     assert len(syn["batting"]) == 80
     assert len(syn["fielding"]) == 40
+    reports_zip_path = sd.reports(tmp_path)
+    with zipfile.ZipFile(reports_zip_path, "r") as zip_ref:
+        expected_files = {
+            "players-tabular-data.html",
+            "players-tabular.html",
+            "players-language-data.html",
+            "players-language.html",
+            "batting-tabular-data.html",
+            "batting-tabular.html",
+        }
+        assert set(zip_ref.namelist()) == expected_files
 
     syn = mostly.probe(g, seed=[{"cat": "a"}])
     assert syn["players"]["cat"][0] == "a"
