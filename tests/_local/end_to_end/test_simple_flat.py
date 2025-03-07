@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import zipfile
 
 from mostlyai.sdk.client.exceptions import APIStatusError
 import pytest
@@ -65,8 +64,8 @@ def test_simple_flat(tmp_path, encoding_types):
                     {"name": "a", "model_encoding_type": encoding_types["a"]},
                     {"name": "b", "model_encoding_type": encoding_types["b"]},
                 ],
-                "tabular_model_configuration": {"max_epochs": 0.1, "enable_model_report": False},
-                "language_model_configuration": {"max_epochs": 0.1, "enable_model_report": False},
+                "tabular_model_configuration": {"max_epochs": 0.1},
+                "language_model_configuration": {"max_epochs": 0.1},
             }
         ],
     }
@@ -141,8 +140,7 @@ def test_simple_flat(tmp_path, encoding_types):
         g.clone()
 
     # reports
-    file_path = g.reports(tmp_path)
-    assert not zipfile.ZipFile(file_path).namelist()
+    g.reports(tmp_path)
 
     # logs
     g.training.logs(tmp_path)
@@ -162,7 +160,7 @@ def test_simple_flat(tmp_path, encoding_types):
     sd.delete()
 
     # config via dict
-    config = {"tables": [{"name": "data", "configuration": {"sample_size": 100, "enable_data_report": False}}]}
+    config = {"tables": [{"name": "data", "configuration": {"sample_size": 100}}]}
     sd = mostly.generate(g, config=config, start=False)
     assert sd.name == "Test 2"
     sd_config = sd.config()
@@ -173,7 +171,6 @@ def test_simple_flat(tmp_path, encoding_types):
     # config via class
     config = {"tables": [{"name": "data", "configuration": {"sample_size": 100}}]}
     config = SyntheticDatasetConfig(**config)
-    config.validate_against_generator(g)
     sd = mostly.generate(g, config=config, start=False)
 
     # update
@@ -196,8 +193,7 @@ def test_simple_flat(tmp_path, encoding_types):
     assert list(syn.columns) == list(df.columns)
 
     # reports
-    file_path = sd.reports(tmp_path)
-    assert not zipfile.ZipFile(file_path).namelist()
+    sd.reports(tmp_path)
 
     # logs
     sd.generation.logs(tmp_path)

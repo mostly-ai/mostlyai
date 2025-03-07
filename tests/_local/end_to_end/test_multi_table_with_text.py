@@ -96,9 +96,11 @@ def test_multi_table_with_text(tmp_path):
                     ],
                     "tabular_model_configuration": {
                         "max_epochs": 0.1,
+                        "enable_model_report": False,
                     },
                     "language_model_configuration": {
                         "max_epochs": 0.1,
+                        "enable_model_report": False,
                     },
                 },
             ],
@@ -118,8 +120,9 @@ def test_multi_table_with_text(tmp_path):
     assert g.tables[0].language_model_metrics is not None
     assert g.tables[1].tabular_model_metrics is not None
     assert g.tables[1].language_model_metrics is None
-    assert g.tables[2].tabular_model_metrics is not None
-    assert g.tables[2].language_model_metrics is not None
+    # model report for fielding (both tabular and language) is disabled
+    assert g.tables[2].tabular_model_metrics is None
+    assert g.tables[2].language_model_metrics is None
 
     sd = mostly.generate(g, size=20)
     syn = sd.data()
