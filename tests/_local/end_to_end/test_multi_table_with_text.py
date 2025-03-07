@@ -19,7 +19,7 @@ import numpy as np
 
 
 def test_multi_table_with_text(tmp_path):
-    mostly = MostlyAI(local=True, quiet=True)
+    mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
     # create mock data
     players_df = pd.DataFrame(
