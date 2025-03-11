@@ -130,6 +130,9 @@ def test_multi_table_with_text(tmp_path):
     assert len(syn["players"]) == 20
     assert len(syn["batting"]) == 80
     assert len(syn["fielding"]) == 40
+    assert sd.tables[0].configuration.enable_data_report  # players
+    assert sd.tables[1].configuration.enable_data_report  # batting
+    assert not sd.tables[2].configuration.enable_data_report  # fielding
     reports_zip_path = sd.reports(tmp_path)
     with zipfile.ZipFile(reports_zip_path, "r") as zip_ref:
         expected_files = {
