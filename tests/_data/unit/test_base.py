@@ -88,9 +88,9 @@ class TheSimplestDataTable(UnbiasedDataTable):
     def read_data(
         self,
         where: dict[str, Any] | None = None,
-        limit_n_rows: int | None = None,
+        limit: int | None = None,
         columns: list[str] | None = None,
-        is_shuffle: bool | None = False,
+        shuffle: bool | None = False,
         order_by: OrderBy | None = None,
         do_coerce_dtypes: bool | None = False,
     ) -> pd.DataFrame:
