@@ -21,7 +21,7 @@ import zipfile
 from io import BytesIO
 from pathlib import Path
 
-from fastapi import APIRouter, Body, HTTPException, UploadFile, File
+from fastapi import APIRouter, Body, HTTPException, UploadFile, File, Form
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse, RedirectResponse
 
@@ -58,8 +58,8 @@ from mostlyai.sdk.domain import (
     SyntheticDatasetReportType,
     SyntheticDatasetListItem,
     ConnectorReadDataConfig,
-    ConnectorWriteDataConfig,
     ConnectorAccessType,
+    IfExists,
 )
 from mostlyai.sdk._local.storage import (
     read_generator_from_json,
@@ -73,6 +73,7 @@ from mostlyai.sdk._local.storage import (
 )
 from mostlyai.sdk._data.file.utils import read_data_table_from_path
 from mostlyai.sdk._data.file.utils import make_data_table_from_container
+import pandas as pd
 
 
 class Routes:
@@ -164,7 +165,7 @@ class Routes:
             )
 
         @self.router.post("/connectors", response_model=Connector)
-        async def create_connector(config: ConnectorConfig = Body(...), testConnection: bool = True) -> Connector:
+        async def create_connector(config: ConnectorConfig, testConnection: bool = True) -> Connector:
             connector = connectors.create_connector(self.home_dir, config, test_connection=testConnection)
             return connector
 
@@ -177,9 +178,7 @@ class Routes:
             return connector
 
         @self.router.patch("/connectors/{id}", response_model=Connector)
-        async def patch_connector(
-            id: str, config: ConnectorPatchConfig = Body(...), testConnection: bool = True
-        ) -> Connector:
+        async def patch_connector(id: str, config: ConnectorPatchConfig, testConnection: bool = True) -> Connector:
             config = connectors.encrypt_connector_config(config)
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
@@ -230,7 +229,7 @@ class Routes:
             return JSONResponse(status_code=200, content=columns)
 
         @self.router.post("/connectors/{id}/read_data")
-        async def read_data(id: str, config: ConnectorReadDataConfig = Body(...)) -> JSONResponse:
+        async def read_data(id: str, config: ConnectorReadDataConfig) -> JSONResponse:
             connector_dir = self.home_dir / "connectors" / id
             if not connector_dir.exists():
                 raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
@@ -247,7 +246,12 @@ class Routes:
                 return FileResponse(tmp_file.name, media_type="application/octet-stream", filename="data.parquet")
 
         @self.router.post("/connectors/{id}/write_data")
-        async def write_data(id: str, config: ConnectorWriteDataConfig = Body(...)) -> None:
+        async def write_data(
+            id: str,
+            file: UploadFile = File(...),  # Handle file separately
+            location: str = Form(...),
+            if_exists: IfExists = Form("fail"),
+        ):
             connector_dir = self.home_dir / "connectors" / id
             if not connector_dir.exists():
                 raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
@@ -255,9 +259,15 @@ class Routes:
             if connector.access_type != ConnectorAccessType.write_data:
                 raise HTTPException(status_code=403, detail="Connector does not have write access")
             container = create_container_from_connector(connector)
-            container.set_location(config.location)
+            container.is_output = True
+            container.set_location(location)
             data_table = make_data_table_from_container(container)
-            data_table.write_data(config.file, if_exists=config.if_exists)
+            data_table.name = "data"
+            data_table.is_output = True
+            file_content = await file.read()
+            df = pd.read_parquet(BytesIO(file_content))
+
+            data_table.write_data(df, if_exists=if_exists)
 
         ## GENERATORS
 

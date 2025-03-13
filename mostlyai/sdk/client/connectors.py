@@ -183,9 +183,23 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         df = pd.read_parquet(io.BytesIO(content_bytes))
         return df
 
-    def _write_data(self, connector_id: str, df: pd.DataFrame, location: str, if_exists: str = "fail") -> None:
+    def _write_data(self, connector_id: str, data: pd.DataFrame, location: str, if_exists: str = "fail") -> None:
+        buffer = io.BytesIO()
+        data.to_parquet(buffer, index=False)
+        buffer.seek(0)
+
+        files = {
+            "file": ("data.parquet", buffer, "application/octet-stream"),  # Correct binary file
+        }
+
+        form_data = {  # FIXED: Send as plain strings, not tuples
+            "location": location,
+            "ifExists": if_exists,
+        }
+
         self.request(
-            verb=POST,
+            verb="POST",
             path=[connector_id, "write_data"],
-            json={"file": df.to_parquet(), "location": location, "if_exists": if_exists},
+            files=files,
+            data=form_data,  # Send correct form fields
         )

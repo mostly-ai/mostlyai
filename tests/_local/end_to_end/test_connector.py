@@ -14,6 +14,7 @@
 
 from mostlyai.sdk import MostlyAI
 import pandas as pd
+from sqlalchemy import create_engine
 
 
 def test_connector(tmp_path):
@@ -79,5 +80,42 @@ def test_read_data(tmp_path):
     assert set(limited_shuffled_df["let"]).issubset(set(df["let"])), (
         "Limited shuffled data should contain a subset of elements"
     )
+
+    c.delete()
+
+
+def test_write_data(tmp_path):
+    mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
+
+    # Create a temporary SQLite database file
+    sqlite_file = tmp_path / "test_data.sqlite"
+    db_uri = f"sqlite:///{sqlite_file}"
+
+    # Create a connector configured for SQLite
+    c = mostly.connect(
+        config={
+            "name": "SQLite Connector",
+            "type": "SQLITE",  # Assuming SQLITE is a valid ConnectorType
+            "access_type": "WRITE_DATA",
+            "config": {
+                "database": str(sqlite_file),
+            },
+            "secrets": {},
+        },
+        test_connection=False,
+    )
+
+    # Create a DataFrame to write
+    df = pd.DataFrame({"num": [1, 2, 3, 4, 5, 6], "let": ["a", "b", "c", "d", "e", "f"]})
+
+    # Write the DataFrame to the specified location using the write_data method
+    c.write_data(data=df, location="test_table")
+
+    # Create a SQLAlchemy engine for the SQLite database
+    engine = create_engine(db_uri)
+
+    # Read back the data from the SQLite database to verify it matches the original DataFrame
+    read_df = pd.read_sql_table("test_table", con=engine)
+    pd.testing.assert_frame_equal(read_df, df, check_dtype=False)
 
     c.delete()

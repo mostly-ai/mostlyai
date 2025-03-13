@@ -1622,6 +1622,15 @@ class Connector(CustomBaseModel):
         """
         return self.client._read_data(connector_id=self.id, location=location, limit=limit, shuffle=shuffle)
 
+    def write_data(self, data: pd.DataFrame, location: str) -> None:
+        """
+        Write data to the connector using the specified location.
+
+        :param file: The DataFrame to write.
+        :param location: The location where the data should be written.
+        """
+        self.client._write_data(connector_id=self.id, data=data, location=location)
+
 
 class GeneratorListItem(CustomBaseModel):
     """
