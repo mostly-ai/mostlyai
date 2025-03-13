@@ -2,15 +2,33 @@ name: "mostlyai CI"
 
 on:
   push:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
 
 jobs:
-  call-lint:
-    uses: ./.github/workflows/lint-check.yaml
-  call-tests-cpu:
-    uses: ./.github/workflows/run-tests-cpu.yaml
-  call-test-gpu:
+  pre-commit-check:
     if: |
-      github.ref == 'refs/heads/main' ||
-      startsWith(github.ref, 'refs/tags/') ||
-      contains(github.event.head_commit.message, '[gpu]')
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
+    uses: ./.github/workflows/pre-commit-check.yaml
+    secrets: inherit
+  run-tests-cpu:
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
+    uses: ./.github/workflows/run-tests-cpu.yaml
+    secrets: inherit
+  run-tests-gpu:
+    if: |
+      (
+        github.event_name == 'push' ||
+        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
+      ) &&
+      (
+        github.ref == 'refs/heads/main' ||
+        startsWith(github.ref, 'refs/tags/') ||
+        contains(github.event.head_commit.message, '[gpu]') ||
+        contains(github.event.pull_request.title, '[gpu]')
+      )
     uses: ./.github/workflows/run-tests-gpu.yaml
+    secrets: inherit
