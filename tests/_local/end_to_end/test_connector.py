@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from mostlyai.sdk import MostlyAI
+import pandas as pd
+from mostlyai.sdk.client._base_utils import convert_to_df
 
 
 def test_connector(tmp_path):
@@ -35,5 +37,33 @@ def test_connector(tmp_path):
     assert c.name == "Test 1"
     c.update(name="Test 2", test_connection=False)
     assert c.name == "Test 2"
+
+    c.delete()
+
+
+def test_local_connector(tmp_path):
+    mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
+
+    # Create a temporary CSV file
+    csv_file = tmp_path / "test_data.csv"
+    df = pd.DataFrame({"column1": [1, 2, 3], "column2": ["a", "b", "c"]})
+    df.to_csv(csv_file, index=False)
+
+    # Create a connector for the CSV file
+    c = mostly.connect(
+        config={
+            "name": "Local CSV Connector",
+            "type": "FILE_UPLOAD",
+            "access_type": "READ_DATA",
+            "config": {},
+            "secrets": {},
+        },
+        test_connection=False,
+    )
+
+    # Test reading data from the connector
+    base64_data = c.read_data(location=str(csv_file))
+    read_df = convert_to_df(base64_data["data"], format="parquet")
+    assert read_df.equals(df)
 
     c.delete()

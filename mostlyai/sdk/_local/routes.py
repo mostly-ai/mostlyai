@@ -56,6 +56,9 @@ from mostlyai.sdk.domain import (
     GeneratorCloneTrainingStatus,
     SyntheticDatasetReportType,
     SyntheticDatasetListItem,
+    ConnectorReadDataConfig,
+    ConnectorWriteDataConfig,
+    ConnectorAccessType,
 )
 from mostlyai.sdk._local.storage import (
     read_generator_from_json,
@@ -68,6 +71,8 @@ from mostlyai.sdk._local.storage import (
     write_connector_to_json,
 )
 from mostlyai.sdk._data.file.utils import read_data_table_from_path
+from mostlyai.sdk._data.file.utils import make_data_table_from_container
+from mostlyai.sdk.client._base_utils import convert_to_base64
 
 
 class Routes:
@@ -223,6 +228,34 @@ class Routes:
                 for col in table.columns
             ]
             return JSONResponse(status_code=200, content=columns)
+
+        @self.router.post("/connectors/{id}/read_data")
+        async def read_data(id: str, config: ConnectorReadDataConfig = Body(...)) -> JSONResponse:
+            connector_dir = self.home_dir / "connectors" / id
+            if not connector_dir.exists():
+                raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
+            connector = read_connector_from_json(connector_dir)
+            if connector.access_type not in {ConnectorAccessType.read_data, ConnectorAccessType.write_data}:
+                raise HTTPException(status_code=403, detail="Connector does not have read access")
+            container = create_container_from_connector(connector)
+            container.set_location(config.location)
+            data_table = make_data_table_from_container(container)
+            df = data_table.read_data(limit=config.limit, shuffle=config.shuffle)
+            parquet_base64 = convert_to_base64(df)
+            return JSONResponse(status_code=200, content={"data": parquet_base64})
+
+        @self.router.post("/connectors/{id}/write_data")
+        async def write_data(id: str, config: ConnectorWriteDataConfig = Body(...)) -> None:
+            connector_dir = self.home_dir / "connectors" / id
+            if not connector_dir.exists():
+                raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
+            connector = read_connector_from_json(connector_dir)
+            if connector.access_type != ConnectorAccessType.write_data:
+                raise HTTPException(status_code=403, detail="Connector does not have write access")
+            container = create_container_from_connector(connector)
+            container.set_location(config.location)
+            data_table = make_data_table_from_container(container)
+            data_table.write_data(config.file, if_exists=config.if_exists)
 
         ## GENERATORS
 
