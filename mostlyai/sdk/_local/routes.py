@@ -228,7 +228,7 @@ class Routes:
             ]
             return JSONResponse(status_code=200, content=columns)
 
-        @self.router.post("/connectors/{id}/read_data")
+        @self.router.post("/connectors/{id}/read-data")
         async def read_data(id: str, config: ConnectorReadDataConfig) -> JSONResponse:
             connector_dir = self.home_dir / "connectors" / id
             if not connector_dir.exists():
@@ -245,7 +245,7 @@ class Routes:
                 df.to_parquet(tmp_file.name, index=False)  # Save DataFrame as Parquet
                 return FileResponse(tmp_file.name, media_type="application/octet-stream", filename="data.parquet")
 
-        @self.router.post("/connectors/{id}/write_data")
+        @self.router.post("/connectors/{id}/write-data")
         async def write_data(
             id: str,
             file: UploadFile = File(...),  # Handle file separately

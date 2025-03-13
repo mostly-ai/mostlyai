@@ -175,7 +175,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
     ) -> pd.DataFrame:
         response = self.request(
             verb=POST,
-            path=[connector_id, "read_data"],
+            path=[connector_id, "read-data"],
             json={"location": location, "limit": limit, "shuffle": shuffle},
             raw_response=True,
         )
@@ -199,7 +199,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
 
         self.request(
             verb="POST",
-            path=[connector_id, "write_data"],
+            path=[connector_id, "write-data"],
             files=files,
             data=form_data,  # Send correct form fields
         )
