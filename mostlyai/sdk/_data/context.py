@@ -165,7 +165,7 @@ def add_scp_context(
             columns=scp_table.columns,
             where={child_key: (ctx_keys[parent_key_prefixed])},
             do_coerce_dtypes=do_coerce_dtypes,
-            is_shuffle=False,
+            shuffle=False,
         )
 
         # filtering sibling data with the keys presented on tgt

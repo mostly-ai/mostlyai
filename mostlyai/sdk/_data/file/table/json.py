@@ -51,9 +51,9 @@ class JsonDataTable(FileDataTable):
     def read_data(
         self,
         where: dict[str, Any] | None = None,
-        limit_n_rows: int | None = None,
+        limit: int | None = None,
         columns: list[str] | None = None,
-        is_shuffle: bool | None = False,
+        shuffle: bool | None = False,
         order_by: OrderBy | None = None,
         do_coerce_dtypes: bool | None = False,
     ) -> pd.DataFrame:
@@ -91,10 +91,10 @@ class JsonDataTable(FileDataTable):
         )
         if columns:
             df = df[columns]
-        if is_shuffle:
+        if shuffle:
             df = df.sample(frac=1)
-        if limit_n_rows is not None:
-            df = df.head(limit_n_rows)
+        if limit is not None:
+            df = df.head(limit)
         if order_by:
             df = order_df_by(df, order_by)
         if do_coerce_dtypes:

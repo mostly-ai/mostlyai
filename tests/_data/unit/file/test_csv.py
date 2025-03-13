@@ -26,10 +26,10 @@ from mostlyai.sdk._data.file.table.csv import CsvDataTable
 
 def test_read_data(sample_csv_file):
     sample_df = ds.dataset(source=sample_csv_file, format=ds.CsvFileFormat()).scanner().to_table().to_pandas()
-    table = CsvDataTable(path=sample_csv_file, name="sample")
+    tbl = CsvDataTable(path=sample_csv_file, name="sample")
     # test metadata
-    assert table.columns == list(sample_df.columns)
-    dtypes = table.dtypes
+    assert tbl.columns == list(sample_df.columns)
+    dtypes = tbl.dtypes
     assert pd.api.types.is_integer_dtype(dtypes["id"].wrapped)
     assert pd.api.types.is_bool_dtype(dtypes["bool"].wrapped)
     assert pd.api.types.is_integer_dtype(dtypes["int"].wrapped)
@@ -40,16 +40,16 @@ def test_read_data(sample_csv_file):
     assert pd.api.types.is_datetime64_any_dtype(dtypes["ts_tz"].wrapped)
     assert pd.api.types.is_string_dtype(dtypes["text"].wrapped)
     # test content
-    df = table.read_data(do_coerce_dtypes=True)
+    df = tbl.read_data(do_coerce_dtypes=True)
     assert df.shape == sample_df.shape
     for col in df:
         assert df[col].isna().sum() == sample_df[col].isna().sum()
-    df = table.read_data(where={"id": 1})
+    df = tbl.read_data(where={"id": 1})
     assert len(df) == 1
-    df = table.read_data(where={"id": [2, 3]}, columns=["float", "id"])
+    df = tbl.read_data(where={"id": [2, 3]}, columns=["float", "id"])
     assert len(df) == 2
     assert set(df.columns) == {"id", "float"}
-    df = table.read_data(limit_n_rows=3, is_shuffle=True)
+    df = tbl.read_data(limit=3, shuffle=True)
     assert len(df) == 3
 
 
@@ -78,13 +78,13 @@ def test_filter_data(tmp_path):
     s = tbl.read_data(columns=["str", "int"])
     assert all(s.columns == ["str", "int"])
     # check shuffle
-    s = tbl.read_data(is_shuffle=True)
+    s = tbl.read_data(shuffle=True)
     assert any(s["id"] != df["id"])
     # check shuffle + limit
-    s = tbl.read_data(is_shuffle=True, limit_n_rows=6)
+    s = tbl.read_data(shuffle=True, limit=6)
     assert sorted(s["id"]) != sorted(df["id"].head(6))
     # check shuffle + limit + where
-    s = tbl.read_data(where={"str": "a"}, is_shuffle=True, limit_n_rows=3)
+    s = tbl.read_data(where={"str": "a"}, shuffle=True, limit=3)
     assert all(s["id"].isin(df.loc[df["str"] == "a", "id"]))
     assert all(s["int"] == 1)
     # test empty data

@@ -972,13 +972,16 @@ class _SyntheticTableConfigValidation(CustomBaseModel):
 
     @model_validator(mode="after")
     def validate_data_report_disabled_if_both_model_reports_disabled(cls, validation):
-        is_tabular_model_report_enabled = True
-        is_language_model_report_enabled = True
-        if validation.source_table.tabular_model_configuration is not None:
-            is_tabular_model_report_enabled = validation.source_table.tabular_model_configuration.enable_model_report
-        if validation.source_table.language_model_configuration is not None:
-            is_language_model_report_enabled = validation.source_table.language_model_configuration.enable_model_report
-        if not is_tabular_model_report_enabled and not is_language_model_report_enabled:
+        configs = [
+            cfg
+            for cfg in [
+                validation.source_table.tabular_model_configuration,
+                validation.source_table.language_model_configuration,
+            ]
+            if cfg
+        ]
+
+        if not all(cfg.enable_model_report for cfg in configs):
             if validation.synthetic_table.configuration is not None:
                 validation.synthetic_table.configuration.enable_data_report = False
         return validation
