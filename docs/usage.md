@@ -234,7 +234,7 @@ df_synthetic = sd.data()
 
 Leverage connectors for fetching original data as well as for delivering synthetic datasets.
 
-See [ConnectorConfig](../api_domain/#mostlyai.sdk.domain.ConnectorConfig) for the full list of available connectors, and their corresponding configuration parameters.
+See [ConnectorConfig](api_domain.md#mostlyai.sdk.domain.ConnectorConfig) for the full list of available connectors, and their corresponding configuration parameters.
 
 ```python
 import pandas as pd

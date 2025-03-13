@@ -61,6 +61,16 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
 
         Paginate through all synthetic datasets accessible by the user.
 
+        Args:
+            offset: Offset for the entities in the response.
+            limit: Limit for the number of entities in the response.
+            status: Filter by generation status.
+            search_term: Filter by name or description.
+            owner_id: Filter by owner ID.
+
+        Returns:
+            An iterator over synthetic datasets.
+
         Example for listing all synthetic datasets:
             ```python
             from mostlyai.sdk import MostlyAI
@@ -76,16 +86,6 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             datasets = list(mostly.synthetic_datasets.list(search_term="census", status="DONE"))
             print(f"Found {len(datasets)} synthetic datasets")
             ```
-
-        Args:
-            offset: Offset for the entities in the response.
-            limit: Limit for the number of entities in the response.
-            status: Filter by generation status.
-            search_term: Filter by name or description.
-            owner_id: Filter by owner ID.
-
-        Returns:
-            An iterator over synthetic datasets.
         """
         status = ",".join(status) if isinstance(status, list) else status
         with Paginator(
@@ -103,6 +103,12 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         """
         Retrieve a synthetic dataset by its ID.
 
+        Args:
+            synthetic_dataset_id: The unique identifier of the synthetic dataset.
+
+        Returns:
+            SyntheticDataset: The retrieved synthetic dataset object.
+
         Example for retrieving a synthetic dataset:
             ```python
             from mostlyai.sdk import MostlyAI
@@ -110,12 +116,6 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             sd = mostly.synthetic_datasets.get('INSERT_YOUR_SYNTHETIC_DATASET_ID')
             sd
             ```
-
-        Args:
-            synthetic_dataset_id: The unique identifier of the synthetic dataset.
-
-        Returns:
-            SyntheticDataset: The retrieved synthetic dataset object.
         """
         if not isinstance(synthetic_dataset_id, str) or len(synthetic_dataset_id) != 36:
             raise ValueError("The provided synthetic_dataset_id must be a UUID string")
@@ -127,6 +127,12 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         Create a synthetic dataset. The synthetic dataset will be in the NEW state and will need to be generated before it can be used.
 
         See [`mostly.generate`](api_client.md#mostlyai.sdk.client.api.MostlyAI.generate) for more details.
+
+        Args:
+            config: Configuration for the synthetic dataset.
+
+        Returns:
+            The created synthetic dataset object.
 
         Example for creating a synthetic dataset:
             ```python
@@ -146,12 +152,6 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             print("status:", sd.generation_status)
             # status: DONE
             ```
-
-        Args:
-            config: Configuration for the synthetic dataset.
-
-        Returns:
-            The created synthetic dataset object.
         """
         synthetic_dataset = self.request(
             verb=POST,
