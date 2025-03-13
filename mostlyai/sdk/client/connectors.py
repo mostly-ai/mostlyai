@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from __future__ import annotations
+
+import io
 from typing import Any
 from collections.abc import Iterator
 
@@ -136,46 +138,6 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             rich.print(f"Created connector [link={self.base_url}/d/connectors/{cid} dodger_blue2 underline]{cid}[/]")
         return connector
 
-    def read_data(
-        self, connector_id: str, location: str, limit: int | None = None, shuffle: bool | None = False
-    ) -> pd.DataFrame:
-        """
-        Read data from a connector.
-
-        Args:
-            connector_id: The unique identifier of the connector.
-            location: The location within the connector to read data from.
-            limit: The maximum number of rows to return.
-            shuffle: Whether to shuffle the results.
-
-        Returns:
-            pd.DataFrame: The data read from the connector.
-        """
-        response = self.request(
-            verb=POST,
-            path=[connector_id, "read_data"],
-            json={"location": location, "limit": limit, "shuffle": shuffle},
-            response_type=pd.DataFrame,
-        )
-        return response
-
-    def write_data(self, connector_id: str, df: pd.DataFrame, location: str, if_exists: str = "fail") -> None:
-        """
-        Write data to a connector.
-
-        Args:
-            connector_id: The unique identifier of the connector.
-            df: The DataFrame to write.
-            location: The location within the connector to write data to.
-            if_exists: The behavior if the target location already exists.
-
-        """
-        self.request(
-            verb=POST,
-            path=[connector_id, "write_data"],
-            json={"file": df.to_parquet(), "location": location, "if_exists": if_exists},
-        )
-
     # PRIVATE METHODS #
 
     def _update(
@@ -207,3 +169,23 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
     def _schema(self, connector_id: str, location: str) -> list[dict[str, Any]]:
         response = self.request(verb=GET, path=[connector_id, "schema"], params={"location": location})
         return response
+
+    def _read_data(
+        self, connector_id: str, location: str, limit: int | None = None, shuffle: bool | None = False
+    ) -> pd.DataFrame:
+        response = self.request(
+            verb=POST,
+            path=[connector_id, "read_data"],
+            json={"location": location, "limit": limit, "shuffle": shuffle},
+            raw_response=True,
+        )
+        content_bytes = response.content
+        df = pd.read_parquet(io.BytesIO(content_bytes))
+        return df
+
+    def _write_data(self, connector_id: str, df: pd.DataFrame, location: str, if_exists: str = "fail") -> None:
+        self.request(
+            verb=POST,
+            path=[connector_id, "write_data"],
+            json={"file": df.to_parquet(), "location": location, "if_exists": if_exists},
+        )

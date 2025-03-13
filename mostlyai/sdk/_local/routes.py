@@ -15,6 +15,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import uuid
 import zipfile
 from io import BytesIO
@@ -72,7 +73,6 @@ from mostlyai.sdk._local.storage import (
 )
 from mostlyai.sdk._data.file.utils import read_data_table_from_path
 from mostlyai.sdk._data.file.utils import make_data_table_from_container
-from mostlyai.sdk.client._base_utils import convert_to_base64
 
 
 class Routes:
@@ -241,8 +241,10 @@ class Routes:
             container.set_location(config.location)
             data_table = make_data_table_from_container(container)
             df = data_table.read_data(limit=config.limit, shuffle=config.shuffle)
-            parquet_base64 = convert_to_base64(df)
-            return JSONResponse(status_code=200, content={"data": parquet_base64})
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".parquet") as tmp_file:
+                df.to_parquet(tmp_file.name, index=False)  # Save DataFrame as Parquet
+                return FileResponse(tmp_file.name, media_type="application/octet-stream", filename="data.parquet")
 
         @self.router.post("/connectors/{id}/write_data")
         async def write_data(id: str, config: ConnectorWriteDataConfig = Body(...)) -> None:

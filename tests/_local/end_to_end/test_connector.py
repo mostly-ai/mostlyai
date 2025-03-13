@@ -14,7 +14,6 @@
 
 from mostlyai.sdk import MostlyAI
 import pandas as pd
-from mostlyai.sdk.client._base_utils import convert_to_df
 
 
 def test_connector(tmp_path):
@@ -62,8 +61,7 @@ def test_local_connector(tmp_path):
     )
 
     # Test reading data from the connector
-    base64_data = c.read_data(location=str(csv_file))
-    read_df = convert_to_df(base64_data["data"], format="parquet")
-    assert read_df.equals(df)
+    read_df = c.read_data(location=str(csv_file))
+    pd.testing.assert_frame_equal(read_df, df, check_dtype=False)
 
     c.delete()

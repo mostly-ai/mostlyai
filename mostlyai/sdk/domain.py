@@ -25,7 +25,7 @@ from pydantic import field_validator, model_validator
 import uuid
 import rich
 import zipfile
-from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path, convert_to_df
+from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from typing import Any, ClassVar, Literal, Annotated
 
 from mostlyai.sdk.client.base import CustomBaseModel
@@ -1613,17 +1613,14 @@ class Connector(CustomBaseModel):
         """
         return self.client._schema(connector_id=self.id, location=location)
 
-    def read_data(self, location: str) -> pd.DataFrame:
+    def read_data(self, location: str, limit: int | None = None, shuffle: bool | None = False) -> pd.DataFrame:
         """
         Read data from the connector using the specified location.
 
         :param location: The location of the data to read.
         :return: A DataFrame containing the data read from the connector.
         """
-        # TODO
-        base64_data = ""
-        # base64_data = mostly.connectors.read_data(self.id, location=location)
-        return convert_to_df(base64_data, format="parquet")
+        return self.client._read_data(connector_id=self.id, location=location, limit=limit, shuffle=shuffle)
 
 
 class GeneratorListItem(CustomBaseModel):
