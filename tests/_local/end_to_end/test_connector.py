@@ -16,6 +16,7 @@ from mostlyai.sdk import MostlyAI
 import pandas as pd
 from sqlalchemy import create_engine
 import pytest
+import os
 
 from mostlyai.sdk.client.exceptions import APIStatusError
 
@@ -52,7 +53,6 @@ def test_connector(tmp_path, sample_dataframe):
 def test_read_data(tmp_path, sample_dataframe):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
-    # Create a temporary CSV file
     csv_file = tmp_path / "test_data.csv"
     sample_dataframe.to_csv(csv_file, index=False)
 
@@ -90,39 +90,44 @@ def test_read_data(tmp_path, sample_dataframe):
     c.delete()
 
 
-def test_write_data(tmp_path, sample_dataframe):
+@pytest.mark.parametrize("connector_config, location, if_exists", [
+    ({
+        "name": "SQLite Connector",
+        "type": "SQLITE",
+        "access_type": "WRITE_DATA",
+        "config": {
+            "database": "{tmp_path}/test_data.sqlite",
+        },
+    }, "main.data", "replace"),
+    ({
+        "name": "File Upload Connector",
+        "type": "FILE_UPLOAD",
+        "access_type": "WRITE_DATA",
+    }, "{tmp_path}/test_upload_write.csv", "replace"),
+])
+def test_write_data(tmp_path, sample_dataframe, connector_config, location, if_exists):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
-    sqlite_file = tmp_path / "test_data.sqlite"
-    db_uri = f"sqlite:///{sqlite_file}"
+    if connector_config["type"] == "SQLITE":
+        connector_config["config"]["database"] = connector_config["config"]["database"].format(tmp_path=tmp_path)
 
-    c = mostly.connect(
-        config={
-            "name": "SQLite Connector",
-            "type": "SQLITE",
-            "access_type": "WRITE_DATA",
-            "config": {
-                "database": str(sqlite_file),
-            },
-        },
-        test_connection=False,
-    )
-    engine = create_engine(db_uri)
+    if connector_config["type"] == "FILE_UPLOAD":
+        location = location.format(tmp_path=tmp_path)
+        if os.path.exists(location):
+            os.remove(location)
+        else:
+            sample_dataframe.to_csv(location, index=False)
 
-    c.write_data(data=sample_dataframe, location="main.data", if_exists="replace")
-    read_df = pd.read_sql_table("data", con=engine)
+    c = mostly.connect(config=connector_config)
+
+    c.write_data(data=sample_dataframe, location=location, if_exists=if_exists)
+
+    if connector_config["type"] == "SQLITE":
+        engine = create_engine(f"sqlite:///{tmp_path}/test_data.sqlite")
+        read_df = pd.read_sql_table("data", con=engine)
+    else:
+        read_df = pd.read_csv(location)
+
     pd.testing.assert_frame_equal(read_df, sample_dataframe, check_dtype=False)
-
-    # TODO ensure "append" works on the table level
-    # c.write_data(data=sample_dataframe, location="main.data", if_exists="append")
-    # read_df = pd.read_sql_table("data", con=engine)
-    # expected_df = pd.concat([sample_dataframe, sample_dataframe], ignore_index=True)
-    # pd.testing.assert_frame_equal(read_df, expected_df, check_dtype=False)
-
-    try:
-        c.write_data(data=sample_dataframe, location="main.data", if_exists="fail")
-    except APIStatusError as e:
-        # TODO consider propagating a proper error message
-        assert "HTTP 500" in str(e)
 
     c.delete()

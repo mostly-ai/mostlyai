@@ -107,8 +107,8 @@ class CsvDataTable(FileDataTable):
             super()._lazy_fetch(item)
             return
 
-    def write_data(self, df: pd.DataFrame, **kwargs):
-        mode = "a" if self.container.path.exists() else "w"
+    def write_data(self, df: pd.DataFrame, if_exists: str = "fail", **kwargs):
+        mode = "w" if if_exists == "replace" else ("a" if self.container.path.exists() else "w")
         df.to_csv(
             self.container.path_str,
             mode=mode,
