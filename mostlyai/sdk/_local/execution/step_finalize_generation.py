@@ -59,7 +59,7 @@ def execute_step_finalize_generation(
 
     random_samples_dir = job_workspace_dir / "RandomSamples"
     zip_dir = job_workspace_dir / "ZIP"
-    export_csv = sum([t["total_datapoints"] for t in usage]) < 100_000_000  # only export CSV if datapoints < 100M
+    export_csv = sum([t["total_rows"] for t in usage]) < 100_000_000  # only export CSV if rows < 100M
 
     with ProgressCallbackWrapper(update_progress, description="Finalize generation") as progress:
         # init progress with total_count; +4 for the 4 steps below
@@ -119,17 +119,14 @@ def calculate_usage(schema: Schema) -> list[dict]:
         )
         if language_columns:
             _LOG.info(f"{table=} has language columns with weights {dict(column_weights)} for usage calculation")
-        n_weighted_columns = sum(column_weights[col] for col in table.encoding_types)
-        total_datapoints = int(n_rows * n_weighted_columns)
-        usage.append(dict(table=table.name, total_datapoints=total_datapoints, total_rows=n_rows))
+        usage.append(dict(table=table.name, total_rows=n_rows))
     return usage
 
 
-def update_total_rows_and_datapoints(synthetic_dataset: SyntheticDataset, usage: list[dict]):
+def update_total_rows(synthetic_dataset: SyntheticDataset, usage: list[dict]):
     for table_usage in usage:
         table = next(t for t in synthetic_dataset.tables if t.name == table_usage["table"])
         table.total_rows = table_usage["total_rows"]
-        table.total_datapoints = table_usage["total_datapoints"]
     return usage
 
 
