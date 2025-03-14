@@ -50,7 +50,7 @@ CONNECTOR_TYPE_CONTAINER_PARAMS_CLASS_MAP = {
     ConnectorType.bigquery: "mostlyai.sdk._data.metadata_objects.BigQueryContainerParameters",
     ConnectorType.databricks: "mostlyai.sdk._data.metadata_objects.DatabricksContainerParameters",
     ConnectorType.hive: "mostlyai.sdk._data.metadata_objects.SqlAlchemyContainerParameters",
-    ConnectorType.sqlite: "mostlyai.sdk._data.metadata_objects.SqliteContainerParameters",
+    ConnectorType.sqlite: "mostlyai.sdk._data.metadata_objects.SqlAlchemyContainerParameters",
     ConnectorType.azure_storage: "mostlyai.sdk._data.metadata_objects.AzureBlobFileContainerParameters",
     ConnectorType.google_cloud_storage: "mostlyai.sdk._data.metadata_objects.GcsContainerParameters",
     ConnectorType.s3_storage: "mostlyai.sdk._data.metadata_objects.AwsS3FileContainerParameters",

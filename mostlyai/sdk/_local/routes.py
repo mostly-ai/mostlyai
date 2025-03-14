@@ -165,7 +165,7 @@ class Routes:
             )
 
         @self.router.post("/connectors", response_model=Connector)
-        async def create_connector(config: ConnectorConfig, testConnection: bool = True) -> Connector:
+        async def create_connector(config: ConnectorConfig = Body(...), testConnection: bool = True) -> Connector:
             connector = connectors.create_connector(self.home_dir, config, test_connection=testConnection)
             return connector
 
@@ -178,7 +178,9 @@ class Routes:
             return connector
 
         @self.router.patch("/connectors/{id}", response_model=Connector)
-        async def patch_connector(id: str, config: ConnectorPatchConfig, testConnection: bool = True) -> Connector:
+        async def patch_connector(
+            id: str, config: ConnectorPatchConfig = Body(...), testConnection: bool = True
+        ) -> Connector:
             config = connectors.encrypt_connector_config(config)
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
@@ -229,7 +231,7 @@ class Routes:
             return JSONResponse(status_code=200, content=columns)
 
         @self.router.post("/connectors/{id}/read-data")
-        async def read_data(id: str, config: ConnectorReadDataConfig) -> FileResponse:
+        async def read_data(id: str, config: ConnectorReadDataConfig = Body(...)) -> FileResponse:
             connector_dir = self.home_dir / "connectors" / id
             if not connector_dir.exists():
                 raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")

@@ -127,10 +127,6 @@ class DatabricksContainerParameters(SqlAlchemyContainerParameters):
     tenant_id: Nullable[str] = Field(None, alias="tenantId")
 
 
-class SqliteContainerParameters(SqlAlchemyContainerParameters):
-    pass
-
-
 class ConnectionResponse(BaseModel):
     connection_succeeded: bool = Field(
         False,
