@@ -24,10 +24,16 @@ from collections.abc import Generator, Iterable
 import networkx as nx
 import pandas as pd
 
+# from mostlyai.sdk._data.auto_detect import auto_detect_encoding_types_and_pk
 from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk.domain import ModelEncodingType
 
-from mostlyai.sdk._data.dtype import V_DTYPE_ENCODING_TYPE_MAP, DType, VirtualDType
+from mostlyai.sdk._data.dtype import (
+    V_DTYPE_TABULAR_ENCODING_TYPE_MAP,
+    V_DTYPE_LANGUAGE_ENCODING_TYPE_MAP,
+    DType,
+    VirtualDType,
+)
 from mostlyai.sdk._data.util.common import (
     as_list,
     decrypt,
@@ -268,11 +274,21 @@ class Schema:
     def resolve_auto_encoding_types(self) -> None:
         for tbl_name, tbl_table in self.tables.items():
             for col_name, encoding_type in tbl_table.encoding_types.items():
-                if encoding_type == ModelEncodingType.auto:
-                    promoted_enctype = V_DTYPE_ENCODING_TYPE_MAP[type(tbl_table.dtypes[col_name].to_virtual())]
+                match encoding_type:
+                    case ModelEncodingType.auto | ModelEncodingType.tabular_auto:
+                        promoted_enctype = V_DTYPE_TABULAR_ENCODING_TYPE_MAP[
+                            type(tbl_table.dtypes[col_name].to_virtual())
+                        ]
+                    case ModelEncodingType.language_auto:
+                        promoted_enctype = V_DTYPE_LANGUAGE_ENCODING_TYPE_MAP[
+                            type(tbl_table.dtypes[col_name].to_virtual())
+                        ]
+                    case _:
+                        promoted_enctype = encoding_type
+                if encoding_type != promoted_enctype:
                     tbl_table.encoding_types[col_name] = promoted_enctype
                     _LOG.info(
-                        f"promoted encoding type {ModelEncodingType.auto.value} to "
+                        f"promoted encoding type {encoding_type.value} to "
                         f"{promoted_enctype.value} for {tbl_name}.{col_name}"
                     )
 
@@ -656,7 +672,8 @@ class DataTable(abc.ABC):
         """
         virtual_dtypes = VirtualDType.from_dtypes(self.dtypes or {})
         encoding_types = {
-            column: V_DTYPE_ENCODING_TYPE_MAP[type(virtual_dtype)] for column, virtual_dtype in virtual_dtypes.items()
+            column: V_DTYPE_TABULAR_ENCODING_TYPE_MAP[type(virtual_dtype)]
+            for column, virtual_dtype in virtual_dtypes.items()
         }
         return encoding_types
 
