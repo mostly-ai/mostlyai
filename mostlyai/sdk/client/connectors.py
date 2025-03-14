@@ -34,6 +34,7 @@ from mostlyai.sdk.domain import (
     ConnectorListItem,
     ConnectorPatchConfig,
     ConnectorConfig,
+    ConnectorWriteDataConfig,
 )
 
 
@@ -189,18 +190,15 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         buffer.seek(0)
 
         files = {
-            "file": ("data.parquet", buffer, "application/octet-stream"),  # Correct binary file
+            "file": ("data.parquet", buffer, "application/octet-stream"),
         }
-
-        # config = ConnectorWriteDataConfig(location=location, if_exists=if_exists)
-        form_data = {
-            "location": location,
-            "ifExists": if_exists,
-        }
+        config_data = ConnectorWriteDataConfig(location=location, if_exists=if_exists).model_dump(
+            mode="json", exclude_unset=True
+        )
 
         self.request(
             verb="POST",
             path=[connector_id, "write-data"],
             files=files,
-            data=form_data,
+            data=config_data,
         )
