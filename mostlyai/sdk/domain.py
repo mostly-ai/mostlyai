@@ -929,13 +929,15 @@ class Visibility(str, Enum):
     """
     Indicates the visibility of the resource.
 
-    - `PUBLIC` resources are visible to all users.
-    - `PRIVATE` resources are visible to the owner. And in case it is owned by an organization, also visible by all members of that organization.
+    - `PUBLIC` - Everyone can access the resource.
+    - `UNLISTED`- Anyone with the direct link can access the resource. No public listings.
+    - `PRIVATE` - Accessible only by the owner. For organizations, all members can access.
 
     """
 
     public = "PUBLIC"
     private = "PRIVATE"
+    unlisted = "UNLISTED"
 
 
 class OrganizationInvite(CustomBaseModel):

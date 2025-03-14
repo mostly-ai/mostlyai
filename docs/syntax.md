@@ -128,7 +128,7 @@ syn_df = mostly.probe(g, config: dict | SyntheticDatasetConfig)
 
 ## Connectors
 
-Connectors can be used both as a source of original data for training a generator, as well as a destination for delivering the generated synthetic data samples to. See [ConnectorConfig](api_domain/#mostlyai.sdk.domain.ConnectorConfig) for the full list of available connectors, and their corresponding configuration parameters.
+Connectors can be used both as a source of original data for training a generator, as well as a destination for delivering the generated synthetic data samples to. See [ConnectorConfig](api_domain.md#mostlyai.sdk.domain.ConnectorConfig) for the full list of available connectors, and their corresponding configuration parameters.
 
 ```python
 # create a new connector

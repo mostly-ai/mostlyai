@@ -88,6 +88,12 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         """
         Retrieve a connector by its ID.
 
+        Args:
+            connector_id: The unique identifier of the connector.
+
+        Returns:
+            Connector: The retrieved connector object.
+
         Example for retrieving a connector:
             ```python
             from mostlyai.sdk import MostlyAI
@@ -95,12 +101,6 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             c = mostly.connectors.get('INSERT_YOUR_CONNECTOR_ID')
             c
             ```
-
-        Args:
-            connector_id: The unique identifier of the connector.
-
-        Returns:
-            Connector: The retrieved connector object.
         """
         if not isinstance(connector_id, str) or len(connector_id) != 36:
             raise ValueError("The provided connector_id must be a UUID string")
