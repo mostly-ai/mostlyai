@@ -192,7 +192,8 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             "file": ("data.parquet", buffer, "application/octet-stream"),  # Correct binary file
         }
 
-        form_data = {  # FIXED: Send as plain strings, not tuples
+        # config = ConnectorWriteDataConfig(location=location, if_exists=if_exists)
+        form_data = {
             "location": location,
             "ifExists": if_exists,
         }
@@ -201,5 +202,5 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             verb="POST",
             path=[connector_id, "write-data"],
             files=files,
-            data=form_data,  # Send correct form fields
+            data=form_data,
         )

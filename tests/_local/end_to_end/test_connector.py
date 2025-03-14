@@ -15,9 +15,17 @@
 from mostlyai.sdk import MostlyAI
 import pandas as pd
 from sqlalchemy import create_engine
+import pytest
+
+from mostlyai.sdk.client.exceptions import APIStatusError
 
 
-def test_connector(tmp_path):
+@pytest.fixture
+def sample_dataframe():
+    return pd.DataFrame({"num": [1, 2, 3, 4, 5, 6], "let": ["a", "b", "c", "d", "e", "f"]})
+
+
+def test_connector(tmp_path, sample_dataframe):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
     c = mostly.connect(
@@ -41,15 +49,13 @@ def test_connector(tmp_path):
     c.delete()
 
 
-def test_read_data(tmp_path):
+def test_read_data(tmp_path, sample_dataframe):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
     # Create a temporary CSV file
     csv_file = tmp_path / "test_data.csv"
-    df = pd.DataFrame({"num": [1, 2, 3, 4, 5, 6], "let": ["a", "b", "c", "d", "e", "f"]})
-    df.to_csv(csv_file, index=False)
+    sample_dataframe.to_csv(csv_file, index=False)
 
-    # Create a connector for the CSV file
     c = mostly.connect(
         config={
             "name": "Local CSV Connector",
@@ -62,60 +68,61 @@ def test_read_data(tmp_path):
     )
 
     read_df = c.read_data(location=str(csv_file))
-    pd.testing.assert_frame_equal(read_df, df, check_dtype=False)
+    pd.testing.assert_frame_equal(read_df, sample_dataframe, check_dtype=False)
 
     limited_df = c.read_data(location=str(csv_file), limit=3)
-    pd.testing.assert_frame_equal(limited_df, df.head(3), check_dtype=False)
+    pd.testing.assert_frame_equal(limited_df, sample_dataframe.head(3), check_dtype=False)
 
     shuffled_df = c.read_data(location=str(csv_file), shuffle=True)
-    assert not shuffled_df.equals(df), "Data should be shuffled"
-    assert set(shuffled_df["num"]) == set(df["num"]), "Shuffled data should contain the same elements"
-    assert set(shuffled_df["let"]) == set(df["let"]), "Shuffled data should contain the same elements"
+    assert not shuffled_df.equals(sample_dataframe), "Data should be shuffled"
+    assert set(shuffled_df["num"]) == set(sample_dataframe["num"]), "Shuffled data should contain the same elements"
+    assert set(shuffled_df["let"]) == set(sample_dataframe["let"]), "Shuffled data should contain the same elements"
 
     limited_shuffled_df = c.read_data(location=str(csv_file), limit=3, shuffle=True)
     assert len(limited_shuffled_df) == 3, "Limited shuffled data should have 3 rows"
-    assert set(limited_shuffled_df["num"]).issubset(set(df["num"])), (
+    assert set(limited_shuffled_df["num"]).issubset(set(sample_dataframe["num"])), (
         "Limited shuffled data should contain a subset of elements"
     )
-    assert set(limited_shuffled_df["let"]).issubset(set(df["let"])), (
+    assert set(limited_shuffled_df["let"]).issubset(set(sample_dataframe["let"])), (
         "Limited shuffled data should contain a subset of elements"
     )
 
     c.delete()
 
 
-def test_write_data(tmp_path):
+def test_write_data(tmp_path, sample_dataframe):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
-    # Create a temporary SQLite database file
     sqlite_file = tmp_path / "test_data.sqlite"
     db_uri = f"sqlite:///{sqlite_file}"
 
-    # Create a connector configured for SQLite
     c = mostly.connect(
         config={
             "name": "SQLite Connector",
-            "type": "SQLITE",  # Assuming SQLITE is a valid ConnectorType
+            "type": "SQLITE",
             "access_type": "WRITE_DATA",
             "config": {
                 "database": str(sqlite_file),
             },
-            "secrets": {},
         },
         test_connection=False,
     )
-
-    # Create a DataFrame to write
-    df = pd.DataFrame({"num": [1, 2, 3, 4, 5, 6], "let": ["a", "b", "c", "d", "e", "f"]})
-
-    # Write the DataFrame to the specified location using the write_data method
-    c.write_data(data=df, location="test_table")
-
-    # Create a SQLAlchemy engine for the SQLite database
     engine = create_engine(db_uri)
 
-    # Read back the data from the SQLite database to verify it matches the original DataFrame
-    read_df = pd.read_sql_table("test_table", con=engine)
-    pd.testing.assert_frame_equal(read_df, df, check_dtype=False)
+    c.write_data(data=sample_dataframe, location="main.data", if_exists="replace")
+    read_df = pd.read_sql_table("data", con=engine)
+    pd.testing.assert_frame_equal(read_df, sample_dataframe, check_dtype=False)
+
+    # TODO ensure "append" works on the table level
+    # c.write_data(data=sample_dataframe, location="main.data", if_exists="append")
+    # read_df = pd.read_sql_table("data", con=engine)
+    # expected_df = pd.concat([sample_dataframe, sample_dataframe], ignore_index=True)
+    # pd.testing.assert_frame_equal(read_df, expected_df, check_dtype=False)
+
+    try:
+        c.write_data(data=sample_dataframe, location="main.data", if_exists="fail")
+    except APIStatusError as e:
+        # TODO consider propagating a proper error message
+        assert "HTTP 500" in str(e)
 
     c.delete()

@@ -191,6 +191,7 @@ class ConnectorType(str, Enum):
     bigquery = "BIGQUERY"
     hive = "HIVE"
     databricks = "DATABRICKS"
+    sqlite = "SQLITE"
     azure_storage = "AZURE_STORAGE"
     google_cloud_storage = "GOOGLE_CLOUD_STORAGE"
     s3_storage = "S3_STORAGE"
@@ -1622,14 +1623,14 @@ class Connector(CustomBaseModel):
         """
         return self.client._read_data(connector_id=self.id, location=location, limit=limit, shuffle=shuffle)
 
-    def write_data(self, data: pd.DataFrame, location: str) -> None:
+    def write_data(self, data: pd.DataFrame, location: str, if_exists="fail") -> None:
         """
         Write data to the connector using the specified location.
 
         :param file: The DataFrame to write.
         :param location: The location where the data should be written.
         """
-        self.client._write_data(connector_id=self.id, data=data, location=location)
+        self.client._write_data(connector_id=self.id, data=data, location=location, if_exists=if_exists)
 
 
 class GeneratorListItem(CustomBaseModel):

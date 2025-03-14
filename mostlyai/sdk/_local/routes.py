@@ -229,7 +229,7 @@ class Routes:
             return JSONResponse(status_code=200, content=columns)
 
         @self.router.post("/connectors/{id}/read-data")
-        async def read_data(id: str, config: ConnectorReadDataConfig) -> JSONResponse:
+        async def read_data(id: str, config: ConnectorReadDataConfig) -> FileResponse:
             connector_dir = self.home_dir / "connectors" / id
             if not connector_dir.exists():
                 raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
@@ -242,31 +242,27 @@ class Routes:
             df = data_table.read_data(limit=config.limit, shuffle=config.shuffle)
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=".parquet") as tmp_file:
-                df.to_parquet(tmp_file.name, index=False)  # Save DataFrame as Parquet
+                df.to_parquet(tmp_file.name, index=False)  # save as Parquet
                 return FileResponse(tmp_file.name, media_type="application/octet-stream", filename="data.parquet")
 
         @self.router.post("/connectors/{id}/write-data")
         async def write_data(
-            id: str,
-            file: UploadFile = File(...),  # Handle file separately
-            location: str = Form(...),
-            if_exists: IfExists = Form("fail"),
-        ):
+            id: str, file: UploadFile = File(...), location: str = Form(...), if_exists: IfExists = Form("fail")
+        ) -> None:
             connector_dir = self.home_dir / "connectors" / id
             if not connector_dir.exists():
                 raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
             connector = read_connector_from_json(connector_dir)
             if connector.access_type != ConnectorAccessType.write_data:
                 raise HTTPException(status_code=403, detail="Connector does not have write access")
+
             container = create_container_from_connector(connector)
-            container.is_output = True
-            container.set_location(location)
+            meta = container.set_location(location)
             data_table = make_data_table_from_container(container)
-            data_table.name = "data"
+            data_table.name = meta["table_name"] if hasattr(container, "dbname") else "data"
             data_table.is_output = True
             file_content = await file.read()
             df = pd.read_parquet(BytesIO(file_content))
-
             data_table.write_data(df, if_exists=if_exists)
 
         ## GENERATORS
