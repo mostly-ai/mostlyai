@@ -109,6 +109,13 @@ class Routes:
                 </html>
                 """
 
+    @staticmethod
+    def _get_connector(home_dir: Path, id: str) -> Connector:
+        connector_dir = home_dir / "connectors" / id
+        if not connector_dir.exists():
+            raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
+        return read_connector_from_json(connector_dir)
+
     def _initialize_routes(self):
         @self.router.get("/", include_in_schema=False)
         async def root() -> RedirectResponse:
@@ -171,11 +178,7 @@ class Routes:
 
         @self.router.get("/connectors/{id}", response_model=Connector)
         async def get_connector(id: str) -> Connector:
-            connector_dir = self.home_dir / "connectors" / id
-            if not connector_dir.exists():
-                raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
-            connector = read_connector_from_json(connector_dir)
-            return connector
+            return self._get_connector(self.home_dir, id)
 
         @self.router.patch("/connectors/{id}", response_model=Connector)
         async def patch_connector(
@@ -199,16 +202,14 @@ class Routes:
 
         @self.router.get("/connectors/{id}/locations")
         async def list_connector_locations(id: str, prefix: str):
-            connector_dir = self.home_dir / "connectors" / id
-            connector = read_connector_from_json(connector_dir)
+            connector = self._get_connector(self.home_dir, id)
             container = create_container_from_connector(connector)
             locations = container.list_locations(prefix)
             return locations
 
         @self.router.get("/connectors/{id}/schema")
         async def location_schema(id: str, location: str):
-            connector_dir = self.home_dir / "connectors" / id
-            connector = read_connector_from_json(connector_dir)
+            connector = self._get_connector(self.home_dir, id)
             container = create_container_from_connector(connector)
             meta = container.set_location(location)
             if hasattr(container, "dbname"):
@@ -232,10 +233,7 @@ class Routes:
 
         @self.router.post("/connectors/{id}/read-data")
         async def read_data(id: str, config: ConnectorReadDataConfig = Body(...)) -> FileResponse:
-            connector_dir = self.home_dir / "connectors" / id
-            if not connector_dir.exists():
-                raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
-            connector = read_connector_from_json(connector_dir)
+            connector = self._get_connector(self.home_dir, id)
             if connector.access_type not in {ConnectorAccessType.read_data, ConnectorAccessType.write_data}:
                 raise HTTPException(status_code=403, detail="Connector does not have read access")
             container = create_container_from_connector(connector)
@@ -251,10 +249,7 @@ class Routes:
         async def write_data(
             id: str, file: UploadFile = File(...), location: str = Form(...), if_exists: IfExists = Form("fail")
         ) -> None:
-            connector_dir = self.home_dir / "connectors" / id
-            if not connector_dir.exists():
-                raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
-            connector = read_connector_from_json(connector_dir)
+            connector = self._get_connector(self.home_dir, id)
             if connector.access_type != ConnectorAccessType.write_data:
                 raise HTTPException(status_code=403, detail="Connector does not have write access")
 
