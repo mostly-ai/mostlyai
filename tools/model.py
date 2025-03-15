@@ -36,6 +36,7 @@ from mostlyai.sdk.domain import (
     SyntheticDatasetReportType,
     ModelType,
     SourceColumnConfig,
+    IfExists,
 )
 
 
@@ -134,6 +135,27 @@ class Connector:
             list[dict[str, Any]]: The retrieved schema.
         """
         return self.client._schema(connector_id=self.id, location=location)
+
+    def read_data(self, location: str, limit: int | None = None, shuffle: bool | None = False) -> pd.DataFrame:
+        """
+        Retrieve data from the specified location within the connector.
+
+        :param location: The target location within the connector to read data from.
+        :param limit: The maximum number of rows to return. Returns all if not specified.
+        :param shuffle: Whether to shuffle the results.
+        :return: A DataFrame containing the retrieved data.
+        """
+        return self.client._read_data(connector_id=self.id, location=location, limit=limit, shuffle=shuffle)
+
+    def write_data(self, data: pd.DataFrame, location: str, if_exists: IfExists = "fail") -> None:
+        """
+        Write data to the specified location within the connector.
+
+        :param data: The DataFrame to write.
+        :param location: The target location within the connector to write data to.
+        :param if_exists: The behavior if the target location already exists (append, replace, fail).
+        """
+        self.client._write_data(connector_id=self.id, data=data, location=location, if_exists=if_exists)
 
 
 class Generator:

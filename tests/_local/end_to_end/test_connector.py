@@ -13,9 +13,20 @@
 # limitations under the License.
 
 from mostlyai.sdk import MostlyAI
+import pandas as pd
+from sqlalchemy import create_engine
+import pytest
+import os
+
+from mostlyai.sdk.client.exceptions import APIStatusError
 
 
-def test_connector(tmp_path):
+@pytest.fixture
+def sample_dataframe():
+    return pd.DataFrame({"num": [1, 2, 3, 4, 5, 6], "let": ["a", "b", "c", "d", "e", "f"]})
+
+
+def test_connector(tmp_path, sample_dataframe):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
     c = mostly.connect(
@@ -35,5 +46,88 @@ def test_connector(tmp_path):
     assert c.name == "Test 1"
     c.update(name="Test 2", test_connection=False)
     assert c.name == "Test 2"
+
+    c.delete()
+
+
+def test_read_data(tmp_path, sample_dataframe):
+    mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
+
+    csv_file = tmp_path / "test_data.csv"
+    sample_dataframe.to_csv(csv_file, index=False)
+
+    c = mostly.connect(
+        config={
+            "name": "Local CSV Connector",
+            "type": "FILE_UPLOAD",
+            "access_type": "READ_DATA",
+            "config": {},
+            "secrets": {},
+        },
+        test_connection=False,
+    )
+
+    read_df = c.read_data(location=str(csv_file))
+    pd.testing.assert_frame_equal(read_df, sample_dataframe, check_dtype=False)
+
+    limited_df = c.read_data(location=str(csv_file), limit=3)
+    pd.testing.assert_frame_equal(limited_df, sample_dataframe.head(3), check_dtype=False)
+
+    shuffled_df = c.read_data(location=str(csv_file), shuffle=True)
+    assert not shuffled_df.equals(sample_dataframe), "Data should be shuffled"
+    assert set(shuffled_df["num"]) == set(sample_dataframe["num"]), "Shuffled data should contain the same elements"
+    assert set(shuffled_df["let"]) == set(sample_dataframe["let"]), "Shuffled data should contain the same elements"
+
+    limited_shuffled_df = c.read_data(location=str(csv_file), limit=3, shuffle=True)
+    assert len(limited_shuffled_df) == 3, "Limited shuffled data should have 3 rows"
+    assert set(limited_shuffled_df["num"]).issubset(set(sample_dataframe["num"])), (
+        "Limited shuffled data should contain a subset of elements"
+    )
+    assert set(limited_shuffled_df["let"]).issubset(set(sample_dataframe["let"])), (
+        "Limited shuffled data should contain a subset of elements"
+    )
+
+    c.delete()
+
+
+@pytest.mark.parametrize("connector_config, location, if_exists", [
+    ({
+        "name": "SQLite Connector",
+        "type": "SQLITE",
+        "access_type": "WRITE_DATA",
+        "config": {
+            "database": "{tmp_path}/test_data.sqlite",
+        },
+    }, "main.data", "replace"),
+    ({
+        "name": "File Upload Connector",
+        "type": "FILE_UPLOAD",
+        "access_type": "WRITE_DATA",
+    }, "{tmp_path}/test_upload_write.csv", "replace"),
+])
+def test_write_data(tmp_path, sample_dataframe, connector_config, location, if_exists):
+    mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
+
+    if connector_config["type"] == "SQLITE":
+        connector_config["config"]["database"] = connector_config["config"]["database"].format(tmp_path=tmp_path)
+
+    if connector_config["type"] == "FILE_UPLOAD":
+        location = location.format(tmp_path=tmp_path)
+        if os.path.exists(location):
+            os.remove(location)
+        else:
+            sample_dataframe.to_csv(location, index=False)
+
+    c = mostly.connect(config=connector_config)
+
+    c.write_data(data=sample_dataframe, location=location, if_exists=if_exists)
+
+    if connector_config["type"] == "SQLITE":
+        engine = create_engine(f"sqlite:///{tmp_path}/test_data.sqlite")
+        read_df = pd.read_sql_table("data", con=engine)
+    else:
+        read_df = pd.read_csv(location)
+
+    pd.testing.assert_frame_equal(read_df, sample_dataframe, check_dtype=False)
 
     c.delete()

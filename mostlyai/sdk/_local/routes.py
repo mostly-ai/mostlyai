@@ -15,12 +15,13 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import uuid
 import zipfile
 from io import BytesIO
 from pathlib import Path
 
-from fastapi import APIRouter, Body, HTTPException, UploadFile, File
+from fastapi import APIRouter, Body, HTTPException, UploadFile, File, Form
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse, RedirectResponse
 
@@ -56,6 +57,9 @@ from mostlyai.sdk.domain import (
     GeneratorCloneTrainingStatus,
     SyntheticDatasetReportType,
     SyntheticDatasetListItem,
+    ConnectorReadDataConfig,
+    ConnectorAccessType,
+    IfExists,
 )
 from mostlyai.sdk._local.storage import (
     read_generator_from_json,
@@ -68,6 +72,8 @@ from mostlyai.sdk._local.storage import (
     write_connector_to_json,
 )
 from mostlyai.sdk._data.file.utils import read_data_table_from_path
+from mostlyai.sdk._data.file.utils import make_data_table_from_container
+import pandas as pd
 
 
 class Routes:
@@ -102,6 +108,13 @@ class Routes:
                 </body>
                 </html>
                 """
+
+    @staticmethod
+    def _get_connector(home_dir: Path, id: str) -> Connector:
+        connector_dir = home_dir / "connectors" / id
+        if not connector_dir.exists():
+            raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
+        return read_connector_from_json(connector_dir)
 
     def _initialize_routes(self):
         @self.router.get("/", include_in_schema=False)
@@ -165,11 +178,7 @@ class Routes:
 
         @self.router.get("/connectors/{id}", response_model=Connector)
         async def get_connector(id: str) -> Connector:
-            connector_dir = self.home_dir / "connectors" / id
-            if not connector_dir.exists():
-                raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
-            connector = read_connector_from_json(connector_dir)
-            return connector
+            return self._get_connector(self.home_dir, id)
 
         @self.router.patch("/connectors/{id}", response_model=Connector)
         async def patch_connector(
@@ -193,16 +202,14 @@ class Routes:
 
         @self.router.get("/connectors/{id}/locations")
         async def list_connector_locations(id: str, prefix: str):
-            connector_dir = self.home_dir / "connectors" / id
-            connector = read_connector_from_json(connector_dir)
+            connector = self._get_connector(self.home_dir, id)
             container = create_container_from_connector(connector)
             locations = container.list_locations(prefix)
             return locations
 
         @self.router.get("/connectors/{id}/schema")
         async def location_schema(id: str, location: str):
-            connector_dir = self.home_dir / "connectors" / id
-            connector = read_connector_from_json(connector_dir)
+            connector = self._get_connector(self.home_dir, id)
             container = create_container_from_connector(connector)
             meta = container.set_location(location)
             if hasattr(container, "dbname"):
@@ -223,6 +230,37 @@ class Routes:
                 for col in table.columns
             ]
             return JSONResponse(status_code=200, content=columns)
+
+        @self.router.post("/connectors/{id}/read-data")
+        async def read_data(id: str, config: ConnectorReadDataConfig = Body(...)) -> FileResponse:
+            connector = self._get_connector(self.home_dir, id)
+            if connector.access_type not in {ConnectorAccessType.read_data, ConnectorAccessType.write_data}:
+                raise HTTPException(status_code=403, detail="Connector does not have read access")
+            container = create_container_from_connector(connector)
+            container.set_location(config.location)
+            data_table = make_data_table_from_container(container)
+            df = data_table.read_data(limit=config.limit, shuffle=config.shuffle)
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".parquet") as tmp_file:
+                df.to_parquet(tmp_file.name, index=False)  # save as Parquet
+                return FileResponse(tmp_file.name, media_type="application/octet-stream", filename="data.parquet")
+
+        @self.router.post("/connectors/{id}/write-data")
+        async def write_data(
+            id: str, file: UploadFile = File(...), location: str = Form(...), if_exists: IfExists = Form("fail")
+        ) -> None:
+            connector = self._get_connector(self.home_dir, id)
+            if connector.access_type != ConnectorAccessType.write_data:
+                raise HTTPException(status_code=403, detail="Connector does not have write access")
+
+            container = create_container_from_connector(connector)
+            meta = container.set_location(location)
+            data_table = make_data_table_from_container(container)
+            data_table.name = meta["table_name"] if hasattr(container, "dbname") else "data"
+            data_table.is_output = True
+            file_content = await file.read()
+            df = pd.read_parquet(BytesIO(file_content))
+            data_table.write_data(df, if_exists=if_exists)
 
         ## GENERATORS
 
