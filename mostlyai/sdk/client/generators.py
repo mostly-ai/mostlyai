@@ -226,15 +226,16 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
                 temp_file.close()
                 file_path = temp_file.name
 
-            generator = self.request(
-                verb=POST,
-                path=["import-from-file"],
-                headers={
-                    "Accept": "application/json, text/plain, */*",
-                },
-                files={"file": open(file_path, "rb")},
-                response_type=Generator,
-            )
+            with open(file_path, "rb") as f:
+                generator = self.request(
+                    verb=POST,
+                    path=["import-from-file"],
+                    headers={
+                        "Accept": "application/json, text/plain, */*",
+                    },
+                    files={"file": f},
+                    response_type=Generator,
+                )
 
             gid = generator.id
             if self.local:
