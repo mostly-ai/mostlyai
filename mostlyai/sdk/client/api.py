@@ -408,73 +408,143 @@ class MostlyAI(_MostlyBaseClient):
         Returns:
             Generator: The created generator.
 
-        Example of short-hand notation reading data from path:
-            ```python
-            from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI()
-            g = mostly.train(
-                data='https://github.com/mostly-ai/public-demo-data/raw/dev/census/census.csv.gz',
-            )
-            ```
-
-        Example of short-hand notation passing data as DataFrame:
+        Example of single table with default configurations:
             ```python
             # read original data
             import pandas as pd
-            df_original = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/titanic/titanic.csv')
+            df = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/census/census.csv.gz')
             # instantiate client
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
             # train generator
             g = mostly.train(
                 name='census',
-                data=df_original,
+                data=df,     # alternatively, pass a path to a CSV or PARQUET file
+                start=True,  # start training immediately
+                wait=True,   # wait for training to finish
             )
             ```
 
-        Example configuration using GeneratorConfig:
+        Example of single table with custom configurations:
             ```python
             # read original data
             import pandas as pd
-            df_original = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/titanic/titanic.csv')
-            # instantiate client
-            from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI()
-            # configure generator via GeneratorConfig
-            from mostlyai.sdk.domain import GeneratorConfig, SourceTableConfig
-            g = mostly.train(
-                config=GeneratorConfig(
-                    name='census',
-                    tables=[
-                        SourceTableConfig(
-                            name='data',
-                            data=df_original
-                        )
-                    ]
-                )
-            )
-            ```
-
-        Example configuration using a dictionary:
-            ```python
-            # read original data
-            import pandas as pd
-            df_original = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/titanic/titanic.csv')
+            df = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/baseball/players.csv.gz')
             # instantiate client
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
             # configure generator via dictionary
             g = mostly.train(
-                config={
-                    'name': 'census',
+                config={                                             # see `mostlyai.sdk.domain.GeneratorConfig`
+                    'name': 'Baseball Players',
                     'tables': [
-                        {
-                            'name': 'data',
-                            'data': df_original
+                        {                                            # see `mostlyai.sdk.domain.SourceTableConfig`
+                            'name': 'players',                       # name of the table (required)
+                            'data': df,                              # either provide data as a pandas DataFrame
+                            'source_connector_id': None,             # - or pass a source_connector_id
+                            'location': None,                        # - together with a table location
+                            'primary_key': 'id',                     # specify the primary key column, if one is present
+                            'tabular_model_configuration': {         # see `mostlyai.sdk.domain.ModelConfiguration`; all settings are optional!
+                                'model': 'MOSTLY_AI/Medium',         # check `mostly.models()` for available models
+                                'batch_size': None,                  # set a custom physical training batch size
+                                'max_sample_size': 10_000,           # cap sample size to 10k; set to None for max accuracy
+                                'max_epochs': 20,                    # cap training to 20 epochs; set to None for max accuracy
+                                'max_training_time': 10,             # cap runtime to 10min; set to None for max accuracy
+                                'enable_flexible_generation': True,  # allow seed, imputation, rebalancing and fairness; set to False for max accuracy
+                                'value_protection': True,            # privacy protect value ranges; set to False for allowing all seen values
+                                'differential_privacy': {            # set DP configs if explicitly requested
+                                    'max_epsilon': 5.0,                # - max epsilon value, used as stopping criterion
+                                    'noise_multiplier': 0.8,           # - DP noise multiplier
+                                    'max_grad_norm': 1.0,              # - DP max grad norm
+                                    'delta': 1e-5,                     # - DP delta value
+                                },
+                                'enable_model_report': True,         # generate a model report, including quality metrics
+                            },
+                            'columns': [                             # list columns (optional); see `mostlyai.sdk.domain.ModelEncodingType`
+                                {'name': 'id', 'model_encoding_type': 'TABULAR_CATEGORICAL'},
+                                {'name': 'bats', 'model_encoding_type': 'TABULAR_CATEGORICAL'},
+                                {'name': 'throws', 'model_encoding_type': 'TABULAR_CATEGORICAL'},
+                                {'name': 'birthDate', 'model_encoding_type': 'TABULAR_DATETIME'},
+                                {'name': 'weight', 'model_encoding_type': 'TABULAR_NUMERIC_AUTO'},
+                                {'name': 'height', 'model_encoding_type': 'TABULAR_NUMERIC_AUTO'},
+                            ],
                         }
                     ]
-                }
+                },
+                start=True,  # start training immediately
+                wait=True,   # wait for training to finish
             )
+            ```
+
+        Example of multi-table with custom configurations:
+            ```python
+            # read original data
+            import pandas as pd
+            df_purchases = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/cdnow/purchases.csv.gz')
+            df_users = df_purchases[['users_id']].drop_duplicates()
+            # instantiate client
+            from mostlyai.sdk import MostlyAI
+            mostly = MostlyAI()
+            # train generator
+            g = mostly.train(config={
+                'name': 'CDNOW',                      # name of the generator
+                'tables': [{                          # provide list of all tables
+                    'name': 'users',
+                    'data': df_users,
+                    'primary_key': 'users_id',        # define PK column
+                }, {
+                    'name': 'purchases',
+                    'data': df_purchases,
+                    'foreign_keys': [{                 # define FK columns, with one providing the context
+                        'column': 'users_id',
+                        'referenced_table': 'users',
+                        'is_context': True
+                    }],
+                    'tabular_model_configuration': {
+                        'max_sample_size': 1000,       # cap sample size to 1k users; set to None for max accuracy
+                        'max_training_time': 1,        # cap runtime to 1min; set to None for max accuracy
+                        'max_sequence_window': 10,     # optionally limit the sequence window
+                    },
+                }],
+            }, start=True, wait=True)
+            ```
+
+        Example of multi-model with TABULAR and LANGUAGE models:
+            ```python
+            # read original data
+            import pandas as pd
+            df = pd.read_parquet('https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/headlines/headlines.parquet')
+
+            # instantiate SDK
+            from mostlyai.sdk import MostlyAI
+            mostly = MostlyAI()
+
+            # print out available LANGUAGE models
+            print(mostly.models()["LANGUAGE"])
+
+            # train a generator; increase max_training_time to improve quality
+            g = mostly.train(config={
+                'name': 'Headlines',
+                'tables': [{
+                    'name': 'headlines',
+                    'data': df,
+                    'columns': [                                 # configure TABULAR + LANGUAGE cols
+                        {'name': 'category', 'model_encoding_type': 'TABULAR_CATEGORICAL'},
+                        {'name': 'date', 'model_encoding_type': 'TABULAR_DATETIME'},
+                        {'name': 'headline', 'model_encoding_type': 'LANGUAGE_TEXT'},
+                    ],
+                    'tabular_model_configuration': {              # tabular model configuration (optional)
+                        'max_sample_size': 2000,                  # cap sample size to 2k; set None for max accuracy
+                        'max_training_time': 1,                   # cap runtime to 1min; set None for max accuracy
+                    },
+                    'language_model_configuration': {             # language model configuration (optional)
+                        'max_sample_size': 1000,                  # cap sample size to 1k; set None for max accuracy
+                        'max_training_time': 5,                   # cap runtime to 5min; set None for max accuracy
+                        'model': 'MOSTLY_AI/LSTMFromScratch-3m',  # use a light-weight LSTM model, trained from scratch (GPU recommended)
+                        #'model': 'microsoft/phi-1.5',            # alternatively use a pre-trained HF-hosted LLM model (GPU required)
+                    }
+                }],
+            }, start=True, wait=True)
             ```
         """
         if data is None and config is None:
