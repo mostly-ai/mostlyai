@@ -97,19 +97,19 @@ class _MostlyBaseClient:
         Extended request helper method to send HTTP requests and process the response.
 
         Args:
-            path: A single string or a list of parts of the path to concatenate.
-            verb: HTTP method (GET, POST, PATCH, DELETE).
-            response_type: Type to cast the response into. Defaults to `dict`.
-            raw_response: Whether to return the raw response object. Defaults to `False`.
-            is_api_call: If `False`, skips prefixing API_SECTION and SECTION. Defaults to `True`.
-            do_json_camel_case: Convert the provided JSON to camelCase. Defaults to `True`.
-            do_response_dict_snake_case: Convert the response dictionary to snake_case. Defaults to `True`.
-            do_include_client: Include the client property in the returned object. Defaults to `True`.
-            extra_key_values: Additional key-value pairs to include in the response object.
+            path (str | list[Any]): A single string or a list of parts of the path to concatenate.
+            verb (HttpVerb): HTTP method (GET, POST, PATCH, DELETE).
+            response_type (type | None): Type to cast the response into. Defaults to dict.
+            raw_response (bool): Whether to return the raw response object. Defaults to False.
+            is_api_call (bool): If False, skips prefixing API_SECTION and SECTION. Defaults to True.
+            do_json_camel_case (bool): Convert the provided JSON to camelCase. Defaults to True.
+            do_response_dict_snake_case (bool): Convert the response dictionary to snake_case. Defaults to True.
+            do_include_client (bool): Include the client property in the returned object. Defaults to True.
+            extra_key_values (dict | None): Additional key-value pairs to include in the response object.
             **kwargs: Additional arguments passed to the HTTP request.
 
         Returns:
-            Processed response based on the `response_type`.
+            Processed response based on the response_type.
 
         Raises:
             APIStatusError: For HTTP errors (non-2XX responses).
@@ -179,9 +179,9 @@ class Paginator(Generic[T]):
         Generic paginator for listing objects with pagination.
 
         Args:
-            client: The client instance to use for the requests.
-            response_class: Class of the objects to be listed.
-            **kwargs: Additional filter parameters including 'offset' and 'limit'.
+            client (_MostlyBaseClient): The client instance to use for the requests.
+            response_class (type[T]): Class of the objects to be listed.
+            **kwargs (dict): Additional filter parameters including 'offset' and 'limit'.
         """
         self.client = client
         self.response_class = response_class
