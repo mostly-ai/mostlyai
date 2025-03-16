@@ -64,7 +64,7 @@ g.delete()
 # export a generator as a ZIP file
 fn = g.export_to_file()
 # import a generator from a ZIP file
-g = mostly.import_from_file(fn)
+g = mostly.generators.import_from_file(fn)
 ```
 
 ## Synthetic Datasets

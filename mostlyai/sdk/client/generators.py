@@ -16,6 +16,10 @@ from pathlib import Path
 from typing import Any
 from collections.abc import Iterator
 import re
+import requests
+from urllib.parse import urlparse
+import tempfile
+import os
 
 import pandas as pd
 import rich
@@ -190,34 +194,62 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         Import a generator from a file.
 
         Args:
-            file_path: Path to the file to import.
+            file_path: Local file path or URL of the generator to import.
 
         Returns:
             The imported generator object.
 
-        Example for importing a generator from a file:
+        Example:
             ```python
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
+
+            # Import from local file
             g = mostly.generators.import_from_file('path/to/generator')
-            g
+
+            # Or import from URL
+            g = mostly.generators.import_from_file('https://example.com/path/to/generator.zip')
             ```
         """
-        generator = self.request(
-            verb=POST,
-            path=["import-from-file"],
-            headers={
-                "Accept": "application/json, text/plain, */*",
-            },
-            files={"file": open(file_path, "rb")},
-            response_type=Generator,
-        )
-        gid = generator.id
-        if self.local:
-            rich.print(f"Imported generator [dodger_blue2]{gid}[/]")
-        else:
-            rich.print(f"Imported generator [link={self.base_url}/d/generators/{gid} dodger_blue2 underline]{gid}[/]")
-        return generator
+        # check if file_path is a URL
+        parsed_url = urlparse(str(file_path))
+        is_url = parsed_url.scheme in ["http", "https"]
+
+        temp_file = None
+        try:
+            if is_url:
+                # download the file from URL to a temporary file
+                response = requests.get(str(file_path), stream=True)
+                response.raise_for_status()  # raise an exception for HTTP errors
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+                temp_file.write(response.content)
+                temp_file.close()
+                file_path = temp_file.name
+
+            with open(file_path, "rb") as f:
+                generator = self.request(
+                    verb=POST,
+                    path=["import-from-file"],
+                    headers={
+                        "Accept": "application/json, text/plain, */*",
+                    },
+                    files={"file": f},
+                    response_type=Generator,
+                )
+
+            gid = generator.id
+            if self.local:
+                rich.print(f"Imported generator [dodger_blue2]{gid}[/]")
+            else:
+                rich.print(
+                    f"Imported generator [link={self.base_url}/d/generators/{gid} dodger_blue2 underline]{gid}[/]"
+                )
+            return generator
+
+        finally:
+            # clean up the temporary file if it exists
+            if temp_file and os.path.exists(temp_file.name):
+                os.unlink(temp_file.name)
 
     # PRIVATE METHODS #
     def _export_to_file(
