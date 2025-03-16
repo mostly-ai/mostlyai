@@ -55,14 +55,14 @@ class MostlyAI(_MostlyBaseClient):
     Instantiate an SDK instance, either in CLIENT or in LOCAL mode.
 
     Args:
-        base_url: The base URL. If not provided, a default value is used.
-        api_key: The API key for authenticating. If not provided, it would rely on environment variables.
-        local: Whether to run in local mode or not.
-        local_dir: The directory to use for local mode. If not provided, `~/mostlyai` will be used.
-        local_port: The port to use for local mode with TCP transport. If not provided, UDS transport is used by default.
-        timeout: Timeout for HTTPS requests in seconds.
-        ssl_verify: Whether to verify SSL certificates.
-        quiet: Whether to suppress rich output.
+        base_url (str | None): The base URL. If not provided, env var `MOSTLY_BASE_URL` is used if available, otherwise `https://app.mostly.ai`.
+        api_key (str | None): The API key for authenticating. If not provided, env var `MOSTLY_API_KEY` is used if available.
+        local (bool | None): Whether to run in local mode or not. If not provided, user is prompted to choose between CLIENT and LOCAL mode.
+        local_dir (str | Path | None): The directory to use for local mode. If not provided, `~/mostlyai` is used.
+        local_port (int | None): The port to use for local mode with TCP transport. If not provided, UDS transport is used.
+        timeout (float): Timeout for HTTPS requests in seconds. Default is 60 seconds.
+        ssl_verify (bool): Whether to verify SSL certificates. Default is True.
+        quiet (bool): Whether to suppress rich output. Default is False.
 
     Example for SDK in CLIENT mode with explicit arguments:
         ```python
@@ -241,14 +241,12 @@ class MostlyAI(_MostlyBaseClient):
         """
         Create a connector and optionally validate the connection before saving.
 
-        See [ConnectorConfig](api_domain.md#mostlyai.sdk.domain.ConnectorConfig) for more information on the available configuration parameters.
-
         Args:
-            config: Configuration for the connector. Can be either a ConnectorConfig object or an equivalent dictionary.
-            test_connection: Whether to validate the connection before saving.
+            config (ConnectorConfig | dict[str, Any]): Configuration for the connector. Can be either a ConnectorConfig object or an equivalent dictionary.
+            test_connection (bool | None): Whether to validate the connection before saving. Default is True.
 
         Returns:
-            The created connector.
+            Connector: The created connector.
 
         Example for creating a connector to a AWS S3 storage:
             ```python
@@ -399,18 +397,16 @@ class MostlyAI(_MostlyBaseClient):
         """
         Train a generator.
 
-        See [GeneratorConfig](api_domain.md#mostlyai.sdk.domain.GeneratorConfig) for more information on the available configuration parameters.
-
         Args:
-            config: The configuration parameters of the generator to be created. Either `config` or `data` must be provided.
-            data: A single pandas DataFrame, or a path to a CSV or PARQUET file. Either `config` or `data` must be provided.
-            name: Name of the generator.
-            start: Whether to start training immediately.
-            wait: Whether to wait for training to finish.
-            progress_bar: Whether to display a progress bar during training.
+            config (GeneratorConfig | dict | None): The configuration parameters of the generator to be created. Either `config` or `data` must be provided.
+            data (pd.DataFrame | str | Path | None): A single pandas DataFrame, or a path to a CSV or PARQUET file. Either `config` or `data` must be provided.
+            name (str | None): Name of the generator.
+            start (bool): Whether to start training immediately. Default is True.
+            wait (bool): Whether to wait for training to finish. Default is True.
+            progress_bar (bool): Whether to display a progress bar during training. Default is True.
 
         Returns:
-            The created generator.
+            Generator: The created generator.
 
         Example of short-hand notation reading data from path:
             ```python
@@ -514,7 +510,7 @@ class MostlyAI(_MostlyBaseClient):
 
     def generate(
         self,
-        generator: Generator | str | None = None,
+        generator: Generator | str,
         config: SyntheticDatasetConfig | dict | None = None,
         size: int | dict[str, int] | None = None,
         seed: Seed | dict[str, Seed] | None = None,
@@ -526,20 +522,18 @@ class MostlyAI(_MostlyBaseClient):
         """
         Generate synthetic data.
 
-        See [SyntheticDatasetConfig](api_domain.md#mostlyai.sdk.domain.SyntheticDatasetConfig) for more information on the available configuration parameters.
-
         Args:
-            generator: The generator instance or its UUID.
-            config: Configuration for the synthetic dataset.
-            size : Sample size(s) for the subject table(s).
-            seed: Seed data for the subject table(s).
-            name: Name of the synthetic dataset.
-            start: Whether to start generation immediately.
-            wait: Whether to wait for generation to finish.
-            progress_bar: Whether to display a progress bar during generation.
+            generator (Generator | str): The generator instance or its UUID.
+            config (SyntheticDatasetConfig | dict | None): Configuration for the synthetic dataset.
+            size (int | dict[str, int] | None): Sample size(s) for the subject table(s).
+            seed (Seed | dict[str, Seed] | None): Seed data for the subject table(s).
+            name (str | None): Name of the synthetic dataset.
+            start (bool): Whether to start generation immediately. Default is True.
+            wait (bool): Whether to wait for generation to finish. Default is True.
+            progress_bar (bool): Whether to display a progress bar during generation. Default is True.
 
         Returns:
-            The created synthetic dataset.
+            SyntheticDataset: The created synthetic dataset.
 
         Example configuration using short-hand notation:
             ```python
@@ -606,7 +600,7 @@ class MostlyAI(_MostlyBaseClient):
 
     def probe(
         self,
-        generator: Generator | str | None = None,
+        generator: Generator | str,
         size: int | dict[str, int] | None = None,
         seed: Seed | dict[str, Seed] | None = None,
         config: SyntheticProbeConfig | dict | None = None,
@@ -615,17 +609,15 @@ class MostlyAI(_MostlyBaseClient):
         """
         Probe a generator.
 
-        See [SyntheticProbeConfig](api_domain.md#mostlyai.sdk.domain.SyntheticProbeConfig) for more information on the available configuration parameters.
-
         Args:
-            generator: The generator instance or its UUID.
-            size: Sample size(s) for the subject table(s).
-            seed: Seed data for the subject table(s).
-            config: Configuration for the probe.
-            return_type: Format of the return value. "auto" for pandas DataFrame if a single table, otherwise a dictionary.
+            generator (Generator | str): The generator instance or its UUID.
+            size (int | dict[str, int] | None): Sample size(s) for the subject table(s). Default is 1, if no seed is provided.
+            seed (Seed | dict[str, Seed] | None): Seed data for the subject table(s).
+            config (SyntheticProbeConfig | dict | None): Configuration for the probe.
+            return_type (Literal["auto", "dict"]): Format of the return value. "auto" for pandas DataFrame if a single table, otherwise a dictionary. Default is "auto".
 
         Returns:
-            The created synthetic probe.
+            pd.DataFrame | dict[str, pd.DataFrame]: The created synthetic probe.
 
         Example for probing a generator for 10 synthetic samples:
             ```python
@@ -677,7 +669,7 @@ class MostlyAI(_MostlyBaseClient):
         Retrieve information about the current user.
 
         Returns:
-            Information about the current user.
+            CurrentUser: Information about the current user.
 
         Example for retrieving information about the current user:
             ```python
@@ -694,7 +686,7 @@ class MostlyAI(_MostlyBaseClient):
         Retrieve information about the platform.
 
         Returns:
-            Information about the platform.
+            AboutService: Information about the platform.
 
         Example for retrieving information about the platform:
             ```python
@@ -711,7 +703,7 @@ class MostlyAI(_MostlyBaseClient):
         Retrieve a list of available models of a specific type.
 
         Returns:
-            A dictionary with list of available models for each ModelType.
+            dict[str, list[str]]: A dictionary with list of available models for each ModelType.
 
         Example for retrieving available models:
             ```python
@@ -729,9 +721,8 @@ class MostlyAI(_MostlyBaseClient):
     def computes(self) -> list[dict[str, Any]]:
         """
         Retrieve a list of available compute resources, that can be used for executing tasks.
-
         Returns:
-            A list of available compute resources.
+            list[dict[str, Any]]: A list of available compute resources.
 
         Example for retrieving available compute resources:
             ```python
