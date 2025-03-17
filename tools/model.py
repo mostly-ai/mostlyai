@@ -18,7 +18,7 @@ from typing import Annotated, Any, ClassVar, Literal
 
 import pandas as pd
 import rich
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, PrivateAttr
 
 from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from mostlyai.sdk.client.base import CustomBaseModel
@@ -388,6 +388,13 @@ class GeneratorConfig:
 
 
 class SourceTableConfig:
+    _enable_model_configuration_validation: bool = PrivateAttr(False)
+
+    def validate_strict(self):
+        """Run strict validation manually."""
+        self._enable_model_configuration_validation = True
+        return self.__class__.model_validate(self)
+
     @field_validator("data", mode="before")
     @classmethod
     def convert_data_before(cls, value):
@@ -422,6 +429,8 @@ class SourceTableConfig:
     @model_validator(mode="after")
     @classmethod
     def add_model_configuration(cls, values):
+        if not values._enable_model_configuration_validation:
+            return values
         # Check if the table has a tabular and/or a language model
         columns = values.columns or []
         keys = [fk.column for fk in values.foreign_keys or []]

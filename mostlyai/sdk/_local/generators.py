@@ -48,7 +48,7 @@ from mostlyai.sdk.domain import (
 
 def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
     # handle file uploads -> create_connectors
-    for t in config.tables or []:
+    for i, t in enumerate(config.tables or []):
         if t.data is not None:
             connector = Connector(
                 **{
@@ -73,6 +73,9 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                     )
                     for c in column_schema
                 ]
+                # reinitialize source table config to ensure that model configurations are filled correctly
+                config.tables[i] = t.validate_strict()
+
             write_connector_to_json(home_dir / "connectors" / connector.id, connector)
 
     # create generator
