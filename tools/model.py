@@ -455,13 +455,18 @@ class SourceTableConfig:
         if values.language_model_configuration and not has_language_model:
             values.language_model_configuration = None
         # Add default model configurations if none were provided
-        if has_tabular_model and not values.tabular_model_configuration:
+        if has_tabular_model:
             default_model = "MOSTLY_AI/Medium"
-            values.tabular_model_configuration = ModelConfiguration(model=default_model)
-        if has_language_model and not values.language_model_configuration:
+            if not values.tabular_model_configuration:
+                values.tabular_model_configuration = ModelConfiguration()
+            if not values.tabular_model_configuration.model:
+                values.tabular_model_configuration.model = default_model
+        if has_language_model:
             default_model = "MOSTLY_AI/LSTMFromScratch-3m"
-            values.language_model_configuration = ModelConfiguration(model=default_model, max_sequence_window=None)
-        if has_language_model and values.language_model_configuration:
+            if not values.language_model_configuration:
+                values.language_model_configuration = ModelConfiguration()
+            if not values.language_model_configuration.model:
+                values.language_model_configuration.model = default_model
             # language models atm do not support max_sequence_window; thus set configuration to None
             values.language_model_configuration.max_sequence_window = None
         return values
