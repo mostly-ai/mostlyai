@@ -13,13 +13,22 @@
 # limitations under the License.
 
 from pathlib import Path
-
+from io import BytesIO
+import pandas as pd
 from fastapi import HTTPException
 
 from mostlyai.sdk._data.conversions import create_container_from_connector
 from mostlyai.sdk._data.util.common import encrypt, get_passphrase
 from mostlyai.sdk._local.storage import write_connector_to_json
-from mostlyai.sdk.domain import ConnectorConfig, Connector, ConnectorPatchConfig
+from mostlyai.sdk.domain import (
+    ConnectorConfig,
+    Connector,
+    ConnectorPatchConfig,
+    ConnectorAccessType,
+    ConnectorReadDataConfig,
+    ConnectorWriteDataConfig,
+)
+from mostlyai.sdk._data.file.utils import make_data_table_from_container
 
 
 def create_connector(home_dir: Path, config: ConnectorConfig, test_connection: bool = True) -> Connector:
@@ -48,3 +57,26 @@ def do_test_connection(connector: Connector) -> bool:
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     return True
+
+
+def read_data_from_connector(connector: Connector, config: ConnectorReadDataConfig) -> pd.DataFrame:
+    if connector.access_type not in {ConnectorAccessType.read_data, ConnectorAccessType.write_data}:
+        raise HTTPException(status_code=403, detail="Connector does not have read access")
+    container = create_container_from_connector(connector)
+    meta = container.set_location(config.location)
+    data_table = make_data_table_from_container(container)
+    data_table.name = meta["table_name"] if hasattr(container, "dbname") else "data"
+    return data_table.read_data(limit=config.limit, shuffle=config.shuffle)
+
+
+def write_data_to_connector(connector: Connector, config: ConnectorWriteDataConfig) -> None:
+    if connector.access_type != ConnectorAccessType.write_data:
+        raise HTTPException(status_code=403, detail="Connector does not have write access")
+
+    container = create_container_from_connector(connector)
+    meta = container.set_location(config.location)
+    data_table = make_data_table_from_container(container)
+    data_table.name = meta["table_name"] if hasattr(container, "dbname") else "data"
+    data_table.is_output = True
+    df = pd.read_parquet(BytesIO(config.file))
+    data_table.write_data(df, if_exists=config.if_exists)

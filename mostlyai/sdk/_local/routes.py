@@ -58,8 +58,8 @@ from mostlyai.sdk.domain import (
     SyntheticDatasetReportType,
     SyntheticDatasetListItem,
     ConnectorReadDataConfig,
-    ConnectorAccessType,
     IfExists,
+    ConnectorWriteDataConfig,
 )
 from mostlyai.sdk._local.storage import (
     read_generator_from_json,
@@ -72,8 +72,6 @@ from mostlyai.sdk._local.storage import (
     write_connector_to_json,
 )
 from mostlyai.sdk._data.file.utils import read_data_table_from_path
-from mostlyai.sdk._data.file.utils import make_data_table_from_container
-import pandas as pd
 
 
 class Routes:
@@ -232,13 +230,7 @@ class Routes:
         async def read_data(id: str, config: ConnectorReadDataConfig = Body(...)) -> FileResponse:
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
-            if connector.access_type not in {ConnectorAccessType.read_data, ConnectorAccessType.write_data}:
-                raise HTTPException(status_code=403, detail="Connector does not have read access")
-            container = create_container_from_connector(connector)
-            meta = container.set_location(config.location)
-            data_table = make_data_table_from_container(container)
-            data_table.name = meta["table_name"] if hasattr(container, "dbname") else "data"
-            df = data_table.read_data(limit=config.limit, shuffle=config.shuffle)
+            df = connectors.read_data_from_connector(connector, config)
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=".parquet") as tmp_file:
                 df.to_parquet(tmp_file.name, index=False)
@@ -262,17 +254,9 @@ class Routes:
         ) -> None:
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
-            if connector.access_type != ConnectorAccessType.write_data:
-                raise HTTPException(status_code=403, detail="Connector does not have write access")
-
-            container = create_container_from_connector(connector)
-            meta = container.set_location(location)
-            data_table = make_data_table_from_container(container)
-            data_table.name = meta["table_name"] if hasattr(container, "dbname") else "data"
-            data_table.is_output = True
             file_content = await file.read()
-            df = pd.read_parquet(BytesIO(file_content))
-            data_table.write_data(df, if_exists=if_exists)
+            config = ConnectorWriteDataConfig(location=location, file=file_content, if_exists=if_exists)
+            connectors.write_data_to_connector(connector, config)
 
         ## GENERATORS
 
