@@ -16,12 +16,23 @@ from mostlyai.sdk import MostlyAI
 import pandas as pd
 from sqlalchemy import create_engine
 import pytest
-import os
 
 
 @pytest.fixture
 def sample_dataframe():
-    return pd.DataFrame({"num": [1, 2, 3, 4, 5, 6], "let": ["a", "b", "c", "d", "e", "f"]})
+    return pd.DataFrame({"num": [1, 2, 3, 4, 5, 6, 7, 8], "let": ["a", "b", "c", "d", "e", "f", "g", "h"]})
+
+
+def prepare_data_for_read(data_format, df, tmp_path):
+    if data_format == "csv":
+        file_path = tmp_path / "test_data.csv"
+        df.to_csv(file_path, index=False)
+        return str(file_path)
+    elif data_format == "sqlite":
+        db_path = tmp_path / "test_data.sqlite"
+        engine = create_engine(f"sqlite:///{db_path}")
+        df.to_sql("data", engine, index=False, if_exists="replace")
+        return "main.data"
 
 
 def test_connector(tmp_path, sample_dataframe):
@@ -48,95 +59,103 @@ def test_connector(tmp_path, sample_dataframe):
     c.delete()
 
 
-def test_read_data(tmp_path, sample_dataframe):
+@pytest.mark.parametrize(
+    "data_format, connector_type",
+    [("csv", "FILE_UPLOAD"), ("sqlite", "SQLITE")],
+)
+def test_read_data(tmp_path, sample_dataframe, data_format, connector_type):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
-    csv_file = tmp_path / "test_data.csv"
-    sample_dataframe.to_csv(csv_file, index=False)
+    location = prepare_data_for_read(data_format, sample_dataframe, tmp_path)
+
+    connector_config = {
+        "name": f"Test {connector_type} Connector",
+        "type": connector_type,
+        "access_type": "READ_DATA",
+        "config": {},
+    }
+
+    if connector_type == "SQLITE":
+        connector_config["config"]["database"] = str(tmp_path / "test_data.sqlite")
 
     c = mostly.connect(
-        config={
-            "name": "Local CSV Connector",
-            "type": "FILE_UPLOAD",
-            "access_type": "READ_DATA",
-            "config": {},
-            "secrets": {},
-        },
+        config=connector_config,
         test_connection=False,
     )
 
-    read_df = c.read_data(location=str(csv_file))
+    read_df = c.read_data(location=location)
     pd.testing.assert_frame_equal(read_df, sample_dataframe, check_dtype=False)
 
-    limited_df = c.read_data(location=str(csv_file), limit=3)
+    limited_df = c.read_data(location=location, limit=3)
     pd.testing.assert_frame_equal(limited_df, sample_dataframe.head(3), check_dtype=False)
 
-    shuffled_df = c.read_data(location=str(csv_file), shuffle=True)
-    assert not shuffled_df.equals(sample_dataframe), "Data should be shuffled"
-    assert set(shuffled_df["num"]) == set(sample_dataframe["num"]), "Shuffled data should contain the same elements"
-    assert set(shuffled_df["let"]) == set(sample_dataframe["let"]), "Shuffled data should contain the same elements"
+    shuffled_df = c.read_data(location=location, shuffle=True)
+    assert not shuffled_df.equals(sample_dataframe)
+    for col in sample_dataframe.columns:
+        assert set(shuffled_df[col]) == set(sample_dataframe[col])
 
-    limited_shuffled_df = c.read_data(location=str(csv_file), limit=3, shuffle=True)
-    assert len(limited_shuffled_df) == 3, "Limited shuffled data should have 3 rows"
-    assert set(limited_shuffled_df["num"]).issubset(set(sample_dataframe["num"])), (
-        "Limited shuffled data should contain a subset of elements"
-    )
-    assert set(limited_shuffled_df["let"]).issubset(set(sample_dataframe["let"])), (
-        "Limited shuffled data should contain a subset of elements"
-    )
+    limited_shuffled_df = c.read_data(location=location, limit=3, shuffle=True)
+    assert len(limited_shuffled_df) == 3
+    for col in sample_dataframe.columns:
+        assert set(limited_shuffled_df[col]).issubset(set(sample_dataframe[col]))
 
     c.delete()
 
 
 @pytest.mark.parametrize(
-    "connector_config, location, if_exists",
+    "connector_type, location_format",
     [
-        (
-            {
-                "name": "SQLite Connector",
-                "type": "SQLITE",
-                "access_type": "WRITE_DATA",
-                "config": {
-                    "database": "{tmp_path}/test_data.sqlite",
-                },
-            },
-            "main.data",
-            "replace",
-        ),
-        (
-            {
-                "name": "File Upload Connector",
-                "type": "FILE_UPLOAD",
-                "access_type": "WRITE_DATA",
-            },
-            "{tmp_path}/test_upload_write.csv",
-            "replace",
-        ),
+        ("SQLITE", "main.data"),
+        ("FILE_UPLOAD", "{tmp_path}/test_write.csv"),
+        ("FILE_UPLOAD", "{tmp_path}/test_write.parquet"),
     ],
 )
-def test_write_data(tmp_path, sample_dataframe, connector_config, location, if_exists):
+def test_write_data(tmp_path, sample_dataframe, connector_type, location_format):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
-    if connector_config["type"] == "SQLITE":
-        connector_config["config"]["database"] = connector_config["config"]["database"].format(tmp_path=tmp_path)
+    connector_config = {
+        "name": f"Test {connector_type} Connector",
+        "type": connector_type,
+        "access_type": "WRITE_DATA",
+        "config": {},
+    }
 
-    if connector_config["type"] == "FILE_UPLOAD":
-        location = location.format(tmp_path=tmp_path)
-        if os.path.exists(location):
-            os.remove(location)
-        else:
-            sample_dataframe.to_csv(location, index=False)
+    if connector_type == "SQLITE":
+        connector_config["config"]["database"] = str(tmp_path / "test_write.sqlite")
+
+    location = location_format.format(tmp_path=tmp_path) if "{tmp_path}" in location_format else location_format
+
+    midpoint = len(sample_dataframe) // 2
+    first_half = sample_dataframe.iloc[:midpoint].copy()
+    second_half = sample_dataframe.iloc[midpoint:].copy()
+
+    if connector_type == "FILE_UPLOAD":
+        file_path = location
+        first_half.to_csv(file_path, index=False)
 
     c = mostly.connect(config=connector_config)
 
-    c.write_data(data=sample_dataframe, location=location, if_exists=if_exists)
+    # parquet is not "appendable", unlike the other formats being tested
+    if "parquet" in location:
+        c.write_data(data=sample_dataframe, location=location)
+    else:
+        c.write_data(data=first_half, location=location, if_exists="fail")
+        c.write_data(data=first_half, location=location, if_exists="replace")
+        c.write_data(data=second_half, location=location, if_exists="append")
 
-    if connector_config["type"] == "SQLITE":
-        engine = create_engine(f"sqlite:///{tmp_path}/test_data.sqlite")
+    if connector_type == "SQLITE":
+        engine = create_engine(f"sqlite:///{tmp_path}/test_write.sqlite")
         read_df = pd.read_sql_table("data", con=engine)
     else:
-        read_df = pd.read_csv(location)
+        read_df = pd.read_csv(location) if "csv" in location else pd.read_parquet(location)
 
-    pd.testing.assert_frame_equal(read_df, sample_dataframe, check_dtype=False)
+    assert len(read_df) == len(first_half) + len(second_half)
+
+    for col in sample_dataframe.columns:
+        assert set(first_half[col]).union(set(second_half[col])) == set(read_df[col])
+
+    if connector_type == "SQLITE":
+        with pytest.raises(Exception):
+            c.write_data(data=sample_dataframe, location=location, if_exists="fail")
 
     c.delete()

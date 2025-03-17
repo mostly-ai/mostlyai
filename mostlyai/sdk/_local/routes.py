@@ -237,8 +237,9 @@ class Routes:
             if connector.access_type not in {ConnectorAccessType.read_data, ConnectorAccessType.write_data}:
                 raise HTTPException(status_code=403, detail="Connector does not have read access")
             container = create_container_from_connector(connector)
-            container.set_location(config.location)
+            meta = container.set_location(config.location)
             data_table = make_data_table_from_container(container)
+            data_table.name = meta["table_name"] if hasattr(container, "dbname") else "data"
             df = data_table.read_data(limit=config.limit, shuffle=config.shuffle)
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=".parquet") as tmp_file:
