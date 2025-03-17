@@ -69,10 +69,8 @@ def auto_detect_encoding_types_and_pk(
         with absorb_errors():
             data_sample = next(table.read_chunks(columns=columns_to_sample, fetch_chunk_size=AUTODETECT_SAMPLE_SIZE))
             primary_key = auto_detect_primary_key(data_sample[primary_key_candidates])
-            # continue auto-detection for column_candidates and the remaining primary_key_candidates that are not numeric
-            remaining_columns_to_auto_detect = [
-                c for c in columns_to_sample if c != primary_key and type(dtypes[c]) is not VirtualInteger
-            ]
+            # continue auto-detection for non-numeric columns
+            remaining_columns_to_auto_detect = [c for c in columns_to_sample if type(dtypes[c]) is not VirtualInteger]
             # auto-detect encoding types for the sampled data
             return_vals = (
                 {
