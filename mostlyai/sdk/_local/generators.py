@@ -14,6 +14,8 @@
 
 from pathlib import Path
 
+import rich
+
 from mostlyai.sdk._local import connectors
 from mostlyai.sdk._local.storage import (
     write_generator_to_json,
@@ -30,6 +32,7 @@ from mostlyai.sdk._local.execution.plan import (
 from mostlyai.sdk.client._base_utils import convert_to_df
 from mostlyai.sdk.domain import (
     GeneratorConfig,
+    ModelEncodingType,
     ProgressStatus,
     Generator,
     SourceColumnConfig,
@@ -64,7 +67,12 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
             t.data = None
             t.source_connector_id = connector.id
             t.location = str(fn.absolute())
-            column_schema = connectors.location_schema(connector, t.location).columns
+            table_schema = connectors.location_schema(connector, t.location)
+            column_schema = table_schema.columns
+            auto_detected_primary_key = table_schema.primary_key
+            if t.primary_key is None:
+                t.primary_key = auto_detected_primary_key
+                rich.print(f"Detected for Table `{t.name}` primary key `{auto_detected_primary_key}`")
             if t.columns is None:
                 t.columns = [
                     SourceColumnConfig(
@@ -75,6 +83,17 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                 ]
                 # reinitialize source table config to ensure that model configurations are filled correctly
                 config.tables[i] = t.validate_strict()
+
+                # summarize auto-detected encoding types
+                encoding_types_counts = {}
+                for enc_type in ModelEncodingType:
+                    encoding_types_counts[enc_type.value] = 0
+                for col in t.columns:
+                    encoding_types_counts[col.model_encoding_type.value] += 1
+                encoding_summary = ", ".join(
+                    f"{count}x {enc_type}" for enc_type, count in encoding_types_counts.items() if count > 0
+                )
+                rich.print(f"Detected for Table `{t.name}` {encoding_summary} columns")
 
             write_connector_to_json(home_dir / "connectors" / connector.id, connector)
 
