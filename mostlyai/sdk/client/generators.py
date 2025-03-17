@@ -16,6 +16,10 @@ from pathlib import Path
 from typing import Any
 from collections.abc import Iterator
 import re
+import requests
+from urllib.parse import urlparse
+import tempfile
+import os
 
 import pandas as pd
 import rich
@@ -58,6 +62,16 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
 
         Paginate through all generators accessible by the user.
 
+        Args:
+            offset: Offset for the entities in the response.
+            limit: Limit for the number of entities in the response.
+            status: Filter by training status.
+            search_term: Filter by name or description.
+            owner_id: Filter by owner ID.
+
+        Returns:
+            Iterator[GeneratorListItem]: An iterator over generator list items.
+
         Example for listing all generators:
             ```python
             from mostlyai.sdk import MostlyAI
@@ -73,16 +87,6 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             generators = list(mostly.generators.list(search_term="census", status="DONE"))
             print(f"Found {len(generators)} generators")
             ```
-
-        Args:
-            offset: Offset for the entities in the response.
-            limit: Limit for the number of entities in the response.
-            status: Filter by training status.
-            search_term: Filter by name or description.
-            owner_id: Filter by owner ID.
-
-        Returns:
-            Iterator[GeneratorListItem]: An iterator over generator list items.
         """
         status = ",".join(status) if isinstance(status, list) else status
         with Paginator(
@@ -103,6 +107,9 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         Args:
             generator_id: The unique identifier of the generator.
 
+        Returns:
+            Generator: The retrieved generator object.
+
         Example for retrieving a generator:
             ```python
             from mostlyai.sdk import MostlyAI
@@ -110,9 +117,6 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             g = mostly.generators.get('INSERT_YOUR_GENERATOR_ID')
             g
             ```
-
-        Returns:
-            Generator: The retrieved generator object.
         """
         if not isinstance(generator_id, str) or len(generator_id) != 36:
             raise ValueError("The provided generator_id must be a UUID string")
@@ -124,6 +128,12 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         Create a generator. The generator will be in the NEW state and will need to be trained before it can be used.
 
         See [`mostly.train`](api_client.md#mostlyai.sdk.client.api.MostlyAI.train) for more details.
+
+        Args:
+            config: Configuration for the generator.
+
+        Returns:
+            The created generator object.
 
         Example for creating a generator:
             ```python
@@ -147,12 +157,6 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             print("status:", g.training_status)
             # status: DONE
             ```
-
-        Args:
-            config: Configuration for the generator.
-
-        Returns:
-            The created generator object.
         """
         if isinstance(config, dict) and config.get("tables"):
             for table in config["tables"]:
@@ -189,35 +193,63 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         """
         Import a generator from a file.
 
-        Example for importing a generator from a file:
-            ```python
-            from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI()
-            g = mostly.generators.import_from_file('path/to/generator')
-            g
-            ```
-
         Args:
-            file_path: Path to the file to import.
+            file_path: Local file path or URL of the generator to import.
 
         Returns:
             The imported generator object.
+
+        Example:
+            ```python
+            from mostlyai.sdk import MostlyAI
+            mostly = MostlyAI()
+
+            # Import from local file
+            g = mostly.generators.import_from_file('path/to/generator')
+
+            # Or import from URL
+            g = mostly.generators.import_from_file('https://example.com/path/to/generator.zip')
+            ```
         """
-        generator = self.request(
-            verb=POST,
-            path=["import-from-file"],
-            headers={
-                "Accept": "application/json, text/plain, */*",
-            },
-            files={"file": open(file_path, "rb")},
-            response_type=Generator,
-        )
-        gid = generator.id
-        if self.local:
-            rich.print(f"Imported generator [dodger_blue2]{gid}[/]")
-        else:
-            rich.print(f"Imported generator [link={self.base_url}/d/generators/{gid} dodger_blue2 underline]{gid}[/]")
-        return generator
+        # check if file_path is a URL
+        parsed_url = urlparse(str(file_path))
+        is_url = parsed_url.scheme in ["http", "https"]
+
+        temp_file = None
+        try:
+            if is_url:
+                # download the file from URL to a temporary file
+                response = requests.get(str(file_path), stream=True)
+                response.raise_for_status()  # raise an exception for HTTP errors
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+                temp_file.write(response.content)
+                temp_file.close()
+                file_path = temp_file.name
+
+            with open(file_path, "rb") as f:
+                generator = self.request(
+                    verb=POST,
+                    path=["import-from-file"],
+                    headers={
+                        "Accept": "application/json, text/plain, */*",
+                    },
+                    files={"file": f},
+                    response_type=Generator,
+                )
+
+            gid = generator.id
+            if self.local:
+                rich.print(f"Imported generator [dodger_blue2]{gid}[/]")
+            else:
+                rich.print(
+                    f"Imported generator [link={self.base_url}/d/generators/{gid} dodger_blue2 underline]{gid}[/]"
+                )
+            return generator
+
+        finally:
+            # clean up the temporary file if it exists
+            if temp_file and os.path.exists(temp_file.name):
+                os.unlink(temp_file.name)
 
     # PRIVATE METHODS #
     def _export_to_file(
