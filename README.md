@@ -122,7 +122,11 @@ df_samples
 
  Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required.
 
- It is highly recommended to install the package within a dedicated virtual environment, such as **venv**, **conda**, or **uv**.
+ It is highly recommended to install the package within a dedicated virtual environment, such as **venv**, **uv**, or **conda**. E.g.
+ ```shell
+conda create -n mostlyai python=3.12
+conda activate mostlyai
+ ```
 
 ### CLIENT mode
 
