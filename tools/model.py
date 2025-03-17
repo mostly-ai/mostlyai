@@ -136,10 +136,13 @@ class Connector:
         """
         Retrieve data from the specified location within the connector.
 
-        :param location: The target location within the connector to read data from.
-        :param limit: The maximum number of rows to return. Returns all if not specified.
-        :param shuffle: Whether to shuffle the results.
-        :return: A DataFrame containing the retrieved data.
+        Args:
+            location (str): The target location within the connector to read data from.
+            limit (int | None, optional): The maximum number of rows to return. Returns all if not specified.
+            shuffle (bool | None, optional): Whether to shuffle the results.
+
+        Returns:
+            pd.DataFrame: A DataFrame containing the retrieved data.
         """
         return self.client._read_data(connector_id=self.id, location=location, limit=limit, shuffle=shuffle)
 
@@ -147,9 +150,10 @@ class Connector:
         """
         Write data to the specified location within the connector.
 
-        :param data: The DataFrame to write.
-        :param location: The target location within the connector to write data to.
-        :param if_exists: The behavior if the target location already exists (append, replace, fail).
+        Args:
+            data (pd.DataFrame): The DataFrame to write.
+            location (str): The target location within the connector to write data to.
+            if_exists (IfExists, optional): The behavior if the target location already exists (append, replace, fail).
         """
         self.client._write_data(connector_id=self.id, data=data, location=location, if_exists=if_exists)
 
