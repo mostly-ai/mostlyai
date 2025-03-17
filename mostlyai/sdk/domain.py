@@ -1549,11 +1549,11 @@ class Connector(CustomBaseModel):
         Update a connector with specific parameters.
 
         Args:
-            name: The name of the connector.
-            config (dict[str, Any], optional): Connector configuration.
-            secrets (dict[str, str], optional): Secret values for the connector.
-            ssl (dict[str, str], optional): SSL configuration for the connector.
-            test_connection: If true, validates the connection before saving.
+            name (str | None): The name of the connector.
+            config (dict[str, Any] | None): Connector configuration.
+            secrets (dict[str, str] | None): Secret values for the connector.
+            ssl (dict[str, str] | None): SSL configuration for the connector.
+            test_connection (bool | None): If true, validates the connection before saving.
         """
         patch_config = ConnectorPatchConfig(
             name=name,
@@ -1571,13 +1571,10 @@ class Connector(CustomBaseModel):
     def delete(self) -> None:
         """
         Delete the connector.
-
-        Returns:
-            None
         """
         return self.client._delete(connector_id=self.id)
 
-    def locations(self, prefix: str = "") -> list:
+    def locations(self, prefix: str = "") -> list[str]:
         """
         List connector locations.
 
@@ -1603,10 +1600,10 @@ class Connector(CustomBaseModel):
             - `SNOWFLAKE`: `schema.table`
 
         Args:
-            prefix: The prefix to filter the results by.
+            prefix (str | None): The prefix to filter the results by.
 
         Returns:
-            list: A list of locations (schemas, databases, directories, etc.)."""
+            list[str]: A list of locations (schemas, databases, directories, etc.)."""
         return self.client._locations(connector_id=self.id, prefix=prefix)
 
     def schema(self, location: str) -> list[dict[str, Any]]:
@@ -1615,7 +1612,7 @@ class Connector(CustomBaseModel):
         Please refer to `locations()` for the format of the location.
 
         Args:
-            location: The location of the table.
+            location (str): The location of the table.
 
         Returns:
             list[dict[str, Any]]: The retrieved schema.
@@ -2595,8 +2592,8 @@ class Generator(CustomBaseModel):
         Update a generator with specific parameters.
 
         Args:
-            name: The name of the generator.
-            description: The description of the generator.
+            name (str | None): The name of the generator.
+            description (str | None): The description of the generator.
         """
         patch_config = GeneratorPatchConfig(
             name=name,
@@ -2608,9 +2605,6 @@ class Generator(CustomBaseModel):
     def delete(self) -> None:
         """
         Delete the generator.
-
-        Returns:
-            None
         """
         return self.client._delete(generator_id=self.id)
 
@@ -2631,10 +2625,10 @@ class Generator(CustomBaseModel):
         Export generator and save to file.
 
         Args:
-            file_path: The file path to save the generator.
+            file_path (str | Path | None): The file path to save the generator.
 
         Returns:
-            The path to the saved file.
+            Path: The path to the saved file.
         """
         bytes, filename = self.client._export_to_file(generator_id=self.id)
         file_path = Path(file_path or ".")
@@ -2648,7 +2642,7 @@ class Generator(CustomBaseModel):
         Clone the generator.
 
         Args:
-            training_status (Literal["NEW", "CONTINUE"]): The training status of the cloned generator.
+            training_status (Literal["NEW", "CONTINUE"]): The training status of the cloned generator. Default is "NEW".
 
         Returns:
             Generator: The cloned generator object.
@@ -2663,11 +2657,11 @@ class Generator(CustomBaseModel):
         Otherwise, the report is downloaded and saved to file_path (or a default location if None).
 
         Args:
-            file_path: The file path to save the zipped reports (ignored if display=True).
-            display: If True, render the report inline instead of downloading it.
+            file_path (str | Path | None): The file path to save the zipped reports (ignored if display=True).
+            display (bool): If True, render the report inline instead of downloading it.
 
         Returns:
-            The path to the saved file if downloading, or None if display=True.
+            Path | None: The path to the saved file if downloading, or None if display=True.
         """
         reports = {}
         for table in self.tables:
@@ -2744,8 +2738,8 @@ class Generator(CustomBaseModel):
             Poll training progress and loop until training has completed.
 
             Args:
-                progress_bar: If true, displays the progress bar.
-                interval: The interval in seconds to poll the job progress.
+                progress_bar (bool): If true, displays the progress bar. Default is True.
+                interval (float): The interval in seconds to poll the job progress. Default is 2 seconds.
             """
             self.generator.client._training_wait(self.generator.id, progress_bar=progress_bar, interval=interval)
             self.generator.reload()
@@ -2761,10 +2755,10 @@ class Generator(CustomBaseModel):
             Download the training logs and save to file.
 
             Args:
-                file_path: The file path to save the logs.
+                file_path (str | Path | None): The file path to save the logs. Default is the current working directory.
 
             Returns:
-                The path to the saved file.
+                Path: The path to the saved file.
             """
             bytes, filename = self.generator.client._training_logs(
                 generator_id=self.generator.id,
@@ -2895,9 +2889,9 @@ class SyntheticDataset(CustomBaseModel):
         Update a synthetic dataset with specific parameters.
 
         Args:
-            name: The name of the synthetic dataset.
-            description: The description of the synthetic dataset.
-            delivery: The delivery configuration for the synthetic dataset.
+            name (str | None): The name of the synthetic dataset.
+            description (str | None): The description of the synthetic dataset.
+            delivery (SyntheticDatasetDelivery | None): The delivery configuration for the synthetic dataset.
         """
         patch_config = SyntheticDatasetPatchConfig(
             name=name,
@@ -2913,9 +2907,6 @@ class SyntheticDataset(CustomBaseModel):
     def delete(self) -> None:
         """
         Delete the synthetic dataset.
-
-        Returns:
-            None
         """
         return self.client._delete(synthetic_dataset_id=self.id)
 
@@ -2937,11 +2928,11 @@ class SyntheticDataset(CustomBaseModel):
         Download synthetic dataset and save to file.
 
         Args:
-            file_path: The file path to save the synthetic dataset.
-            format: The format of the synthetic dataset.
+            file_path (str | Path | None): The file path to save the synthetic dataset.
+            format (SyntheticDatasetFormat): The format of the synthetic dataset. Default is "PARQUET".
 
         Returns:
-            The path to the saved file.
+            Path: The path to the saved file.
         """
         bytes, filename = self.client._download(
             synthetic_dataset_id=self.id,
@@ -2959,7 +2950,7 @@ class SyntheticDataset(CustomBaseModel):
         Download synthetic dataset and return as dictionary of pandas DataFrames.
 
         Args:
-            return_type (Literal["auto", "dict"]): The format of the returned data.
+            return_type (Literal["auto", "dict"]): The format of the returned data. Default is "auto".
 
         Returns:
             Union[pd.DataFrame, dict[str, pd.DataFrame]]: The synthetic dataset as a dictionary of pandas DataFrames.
@@ -2981,11 +2972,11 @@ class SyntheticDataset(CustomBaseModel):
         Otherwise, the report is downloaded and saved to file_path (or a default location if None).
 
         Args:
-            file_path: The file path to save the zipped reports (ignored if display=True).
-            display: If True, render the report inline instead of downloading it.
+            file_path (str | Path | None): The file path to save the zipped reports (ignored if display=True).
+            display (bool): If True, render the report inline instead of downloading it.
 
         Returns:
-            The path to the saved file if downloading, or None if display=True.
+            Path | None: The path to the saved file if downloading, or None if display=True.
         """
         reports = {}
         for report_type in [
@@ -3069,8 +3060,8 @@ class SyntheticDataset(CustomBaseModel):
             Poll the generation progress and wait until the process is complete.
 
             Args:
-                progress_bar: If true, displays a progress bar.
-                interval: Interval in seconds to poll the job progress.
+                progress_bar (bool): If true, displays a progress bar. Default is True.
+                interval (float): Interval in seconds to poll the job progress. Default is 2 seconds.
             """
             self.synthetic_dataset.client._generation_wait(
                 self.synthetic_dataset.id, progress_bar=progress_bar, interval=interval
@@ -3088,10 +3079,10 @@ class SyntheticDataset(CustomBaseModel):
             Download the generation logs and save to file.
 
             Args:
-                file_path: The file path to save the logs.
+                file_path (str | Path | None): The file path to save the logs. Default is the current working directory.
 
             Returns:
-                The path to the saved file.
+                Path: The path to the saved file.
             """
             bytes, filename = self.synthetic_dataset.client._generation_logs(
                 synthetic_dataset_id=self.synthetic_dataset.id,

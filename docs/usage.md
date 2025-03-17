@@ -27,7 +27,7 @@ g = mostly.train(config={
             'name': 'census',                # name of the table
             'data': df_original,             # the original data as pd.DataFrame
             'tabular_model_configuration': { # tabular model configuration (optional)
-                'max_training_time': 2,      # cap runtime for demo; comment out for max accuracy
+                'max_training_time': 2,      # cap runtime for demo; set None for max accuracy
                 # model, max_epochs,,..      # further model configurations (optional)
                 'differential_privacy': {    # differential privacy configuration (optional)
                     'max_epsilon': 5.0,      # - max epsilon value, used as stopping criterion
@@ -102,7 +102,7 @@ g = mostly.train(config={
             {'column': 'users_id', 'referenced_table': 'users', 'is_context': True},
         ],
         'tabular_model_configuration': {
-            'max_training_time': 2,       # cap runtime for demo; comment out for max accuracy
+            'max_training_time': 2,       # cap runtime for demo; set None for max accuracy
         },
     }],
 })
@@ -143,7 +143,7 @@ g = mostly.train(config={
         'data': df_original_players,      # the original data as pd.DataFrame
         'primary_key': 'id',
         'tabular_model_configuration': {
-            'max_training_time': 2,       # cap runtime for demo; comment out for max accuracy
+            'max_training_time': 2,       # cap runtime for demo; set None for max accuracy
         },
     }, {
         'name': 'batting',                # name of the table
@@ -152,7 +152,7 @@ g = mostly.train(config={
             {'column': 'players_id', 'referenced_table': 'players', 'is_context': True},
         ],
         'tabular_model_configuration': {
-            'max_training_time': 2,       # cap runtime for demo; comment out for max accuracy
+            'max_training_time': 2,       # cap runtime for demo; set None for max accuracy
         },
     }, {
         'name': 'fielding',               # name of the table
@@ -161,7 +161,7 @@ g = mostly.train(config={
             {'column': 'players_id', 'referenced_table': 'players', 'is_context': True},
         ],
         'tabular_model_configuration': {
-            'max_training_time': 2,       # cap runtime for demo; comment out for max accuracy
+            'max_training_time': 2,       # cap runtime for demo; set None for max accuracy
         },
     }],
 })
@@ -211,10 +211,10 @@ g = mostly.train(config={
             {'name': 'headline', 'model_encoding_type': 'LANGUAGE_TEXT'},
         ],
         'tabular_model_configuration': {             # tabular model configuration (optional)
-            'max_training_time': 5,                  # cap runtime for demo; comment out for max accuracy
+            'max_training_time': 5,                  # cap runtime for demo; set None for max accuracy
         },
         'language_model_configuration': {             # language model configuration (optional)
-            'max_training_time': 5,                   # cap runtime for demo; comment out for max accuracy
+            'max_training_time': 5,                   # cap runtime for demo; set None for max accuracy
             'model': 'MOSTLY_AI/LSTMFromScratch-3m',  # use a light-weight LSTM model, trained from scratch (GPU recommended)
             #'model': 'microsoft/phi-1.5',            # alternatively use a pre-trained HF-hosted LLM model (GPU required)
         }
@@ -286,7 +286,7 @@ g = mostly.train(config={
         'source_connector_id': src_c.id,    # the ID of the source connector
         'location': 'bucket/path_to_data',  # the location of the source data
         'tabular_model_configuration': {    # tabular model configuration (optional)
-            'max_epochs': 20,               # cap runtime for demo; comment out for max accuracy
+            'max_epochs': 20,               # cap runtime for demo; set None for max accuracy
         },
     }],
 }, start=True, wait=True)
