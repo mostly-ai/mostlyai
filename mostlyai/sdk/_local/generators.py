@@ -81,9 +81,6 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                     )
                     for c in column_schema
                 ]
-                # reinitialize source table config to ensure that model configurations are filled correctly
-                config.tables[i] = t.validate_strict()
-
                 # summarize auto-detected encoding types
                 encoding_types_counts = {}
                 for enc_type in ModelEncodingType:
@@ -96,6 +93,10 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                 rich.print(f"Detected for Table `{t.name}` {encoding_summary} columns")
 
             write_connector_to_json(home_dir / "connectors" / connector.id, connector)
+
+    # revalidate source tables to ensure model configurations are set correctly
+    for i, t in enumerate(config.tables or []):
+        config.tables[i] = t.validate_strict()
 
     # create generator
     generator = Generator(
