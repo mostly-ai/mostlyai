@@ -21,7 +21,7 @@ import zipfile
 from io import BytesIO
 from pathlib import Path
 
-from fastapi import APIRouter, Body, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Body, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse, RedirectResponse
 
@@ -241,8 +241,20 @@ class Routes:
             df = data_table.read_data(limit=config.limit, shuffle=config.shuffle)
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=".parquet") as tmp_file:
-                df.to_parquet(tmp_file.name, index=False)  # save as Parquet
-                return FileResponse(tmp_file.name, media_type="application/octet-stream", filename="data.parquet")
+                df.to_parquet(tmp_file.name, index=False)
+
+                def cleanup():
+                    os.remove(tmp_file.name)
+
+                # ensure cleanup (file deletion) after it has been served
+                background_tasks = BackgroundTasks()
+                background_tasks.add_task(cleanup)
+                return FileResponse(
+                    tmp_file.name,
+                    media_type="application/octet-stream",
+                    filename="data.parquet",
+                    background=background_tasks,
+                )
 
         @self.router.post("/connectors/{id}/write-data")
         async def write_data(
