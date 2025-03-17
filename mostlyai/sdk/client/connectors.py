@@ -35,6 +35,7 @@ from mostlyai.sdk.domain import (
     ConnectorPatchConfig,
     ConnectorConfig,
     ConnectorWriteDataConfig,
+    IfExists,
 )
 
 
@@ -172,7 +173,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         return response
 
     def _read_data(
-        self, connector_id: str, location: str, limit: int | None = None, shuffle: bool | None = False
+        self, connector_id: str, location: str, limit: int | None = None, shuffle: bool = False
     ) -> pd.DataFrame:
         response = self.request(
             verb=POST,
@@ -184,7 +185,9 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         df = pd.read_parquet(io.BytesIO(content_bytes))
         return df
 
-    def _write_data(self, connector_id: str, data: pd.DataFrame, location: str, if_exists: str = "fail") -> None:
+    def _write_data(
+        self, connector_id: str, data: pd.DataFrame, location: str, if_exists: IfExists = IfExists.fail
+    ) -> None:
         buffer = io.BytesIO()
         data.to_parquet(buffer, index=False)
         buffer.seek(0)

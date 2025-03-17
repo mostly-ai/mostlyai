@@ -132,7 +132,7 @@ class Connector:
         """
         return self.client._schema(connector_id=self.id, location=location)
 
-    def read_data(self, location: str, limit: int | None = None, shuffle: bool | None = False) -> pd.DataFrame:
+    def read_data(self, location: str, limit: int | None = None, shuffle: bool = False) -> pd.DataFrame:
         """
         Retrieve data from the specified location within the connector.
 
@@ -146,7 +146,7 @@ class Connector:
         """
         return self.client._read_data(connector_id=self.id, location=location, limit=limit, shuffle=shuffle)
 
-    def write_data(self, data: pd.DataFrame, location: str, if_exists: IfExists = "fail") -> None:
+    def write_data(self, data: pd.DataFrame, location: str, if_exists: IfExists = IfExists.fail) -> None:
         """
         Write data to the specified location within the connector.
 
