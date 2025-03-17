@@ -18,8 +18,6 @@ from sqlalchemy import create_engine
 import pytest
 import os
 
-from mostlyai.sdk.client.exceptions import APIStatusError
-
 
 @pytest.fixture
 def sample_dataframe():
@@ -90,21 +88,32 @@ def test_read_data(tmp_path, sample_dataframe):
     c.delete()
 
 
-@pytest.mark.parametrize("connector_config, location, if_exists", [
-    ({
-        "name": "SQLite Connector",
-        "type": "SQLITE",
-        "access_type": "WRITE_DATA",
-        "config": {
-            "database": "{tmp_path}/test_data.sqlite",
-        },
-    }, "main.data", "replace"),
-    ({
-        "name": "File Upload Connector",
-        "type": "FILE_UPLOAD",
-        "access_type": "WRITE_DATA",
-    }, "{tmp_path}/test_upload_write.csv", "replace"),
-])
+@pytest.mark.parametrize(
+    "connector_config, location, if_exists",
+    [
+        (
+            {
+                "name": "SQLite Connector",
+                "type": "SQLITE",
+                "access_type": "WRITE_DATA",
+                "config": {
+                    "database": "{tmp_path}/test_data.sqlite",
+                },
+            },
+            "main.data",
+            "replace",
+        ),
+        (
+            {
+                "name": "File Upload Connector",
+                "type": "FILE_UPLOAD",
+                "access_type": "WRITE_DATA",
+            },
+            "{tmp_path}/test_upload_write.csv",
+            "replace",
+        ),
+    ],
+)
 def test_write_data(tmp_path, sample_dataframe, connector_config, location, if_exists):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
