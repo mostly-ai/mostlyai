@@ -366,10 +366,11 @@ class FileDataTable(DataTable, abc.ABC):
         return [c.name for c in self.dataset.schema if c.name != ""]
 
     def handle_if_exists(self, if_exists: str = "fail") -> str:
-        if not if_exists == "replace" and self.container.path.exists():
+        destination_exists = self.container.path.exists()
+        if destination_exists:
             if if_exists == "fail":
                 raise MostlyDataException("Destination location already exists.")
-            if if_exists == "append" and self.IS_WRITE_APPEND_ALLOWED:
+            elif if_exists == "append" and self.IS_WRITE_APPEND_ALLOWED:
                 return "a"
         return "w"
 
