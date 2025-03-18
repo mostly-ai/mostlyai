@@ -268,6 +268,8 @@ def test_make_synthetic_dataset_execution_plan_with_probe():
         parent=sync_task,
         steps=[
             Step(step_code=StepCode.generate_data_tabular, target_table_name="users"),
+            # linked table always have a tabular model
+            Step(step_code=StepCode.generate_data_tabular, target_table_name="posts"),
             Step(step_code=StepCode.generate_data_language, target_table_name="posts"),
             Step(step_code=StepCode.finalize_probing),
         ],
