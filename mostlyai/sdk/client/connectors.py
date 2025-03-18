@@ -195,7 +195,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         files = {
             "file": ("data.parquet", buffer, "application/octet-stream"),
         }
-        config_data = ConnectorWriteDataConfig(location=location, if_exists=if_exists).model_dump(
+        config_data = ConnectorWriteDataConfig(location=location, if_exists=if_exists.upper()).model_dump(
             mode="json", exclude_unset=True
         )
 
