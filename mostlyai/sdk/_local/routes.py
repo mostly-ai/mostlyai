@@ -246,7 +246,7 @@ class Routes:
 
         @self.router.post("/connectors/{id}/write-data")
         async def write_data(
-            id: str, file: UploadFile = File(...), location: str = Form(...), if_exists: IfExists = Form("fail")
+            id: str, file: UploadFile = File(...), location: str = Form(...), if_exists: IfExists = Form("FAIL")
         ) -> None:
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
