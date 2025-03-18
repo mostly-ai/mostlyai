@@ -98,11 +98,8 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                     rich.print(f"Detected for Table `{t.name}` primary key `{auto_detected_primary_key}`")
             write_connector_to_json(home_dir / "connectors" / connector.id, connector)
 
-    # revalidate source tables to ensure model configurations are set correctly
-    for i, t in enumerate(config.tables or []):
-        config.tables[i] = t.validate_strict()
-
     # create generator
+    # NOTE: model configurations will be revalidated by SourceTable
     generator = Generator(
         **{
             **config.model_dump(),
