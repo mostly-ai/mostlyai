@@ -285,7 +285,7 @@ class Schema:
 
     def resolve_auto_encoding_types(self) -> None:
         for tbl_table in self.tables.values():
-            tbl_table.promote_auto_encoding_types()
+            tbl_table.auto_detect_encoding_types_and_pk(ignore_existing_values=False)
 
     def remove_cascading_keys_relations(self):
         tables_with_cascading_keys = set()
@@ -649,7 +649,7 @@ class DataTable(abc.ABC):
 
     def auto_detect_encoding_types_and_pk(self, ignore_existing_values: bool = False) -> None:
         """
-        Advanced auto-detection of encoding types and primary key from default encoding types and initial auto encoding types.
+        Advanced auto-detection of encoding types and primary key.
         """
         if ignore_existing_values:
             # there are two scenarios where ignore_existing_values will be True:
@@ -658,12 +658,10 @@ class DataTable(abc.ABC):
             should_detect_pk = True
             self.encoding_types = {col: ModelEncodingType.auto for col in self.columns}
         else:
-            # in case the *_AUTO encoding types are explicitly given, we do not detect the primary key
+            # existing primary key should be respected and remain unchanged
             should_detect_pk = False
         initial_auto_encoding_types = self.encoding_types.copy()
-        print(f"{initial_auto_encoding_types = }")
         self._promote_auto_encoding_types_based_on_dtypes()
-        print(f"promoted {self.encoding_types = }")
 
         # sub-select only the columns which got promoted to *_CATEGORICAL
         column_candidates = [
@@ -678,6 +676,14 @@ class DataTable(abc.ABC):
         ]
         # union of primary key candidates and column candidates in original column order
         candidates = [c for c in self.columns if c in primary_key_candidates or c in column_candidates]
+        if not ignore_existing_values:
+            # existing non-auto encoding types should be respected and not considered as candidates
+            candidates = [
+                c
+                for c in candidates
+                if initial_auto_encoding_types[c]
+                in (ModelEncodingType.auto, ModelEncodingType.tabular_auto, ModelEncodingType.language_auto)
+            ]
 
         # fallback in case auto_detect_logic() times out or fails
         fallback = (

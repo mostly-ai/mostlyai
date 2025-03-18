@@ -70,22 +70,22 @@ def _data_tables_to_table_schemas(
         columns = [
             ColumnSchema(
                 name=col,
-                original_data_type=str(table.dtypes[col].wrapped),
-                default_model_encoding_type=table.encoding_types[col].value,
+                originalDataType=str(table.dtypes[col].wrapped),
+                defaultModelEncodingType=table.encoding_types[col].value,
             )
             for col in table.columns
         ]
         relations = schema.subset(relations_to=[table_name]).relations
         constraints = [
-            ConstraintSchema(foreign_key=rel.child.column, referenced_table=rel.parent.table) for rel in relations
+            ConstraintSchema(foreignKey=rel.child.column, referencedTable=rel.parent.table) for rel in relations
         ]
         # fetch table row count - but time-box to 10secs
         total_rows = run_with_timeout_unsafe(lambda: table.row_count, timeout=10)
         # instantiate TableSchema
         table_schema = TableSchema(
             name=table_name,
-            total_rows=total_rows,
-            primary_key=table.primary_key,
+            totalRows=total_rows,
+            primaryKey=table.primary_key,
             columns=columns,
             constraints=constraints,
             location=location,
