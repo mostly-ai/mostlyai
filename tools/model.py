@@ -24,11 +24,11 @@ from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_p
 from mostlyai.sdk.client.base import CustomBaseModel
 from mostlyai.sdk.domain import (
     JobProgress,
-    SyntheticDatasetFormat,
     ConnectorPatchConfig,
     GeneratorPatchConfig,
     SyntheticDatasetDelivery,
     SyntheticDatasetPatchConfig,
+    Generator,
     GeneratorConfig,
     ModelEncodingType,
     ProgressStatus,
@@ -36,7 +36,6 @@ from mostlyai.sdk.domain import (
     SyntheticDatasetReportType,
     ModelType,
     SourceColumnConfig,
-    IfExists,
 )
 
 
@@ -146,14 +145,16 @@ class Connector:
         """
         return self.client._read_data(connector_id=self.id, location=location, limit=limit, shuffle=shuffle)
 
-    def write_data(self, data: pd.DataFrame, location: str, if_exists: IfExists = IfExists.fail) -> None:
+    def write_data(
+        self, data: pd.DataFrame, location: str, if_exists: Literal["append", "replace", "fail"] = "fail"
+    ) -> None:
         """
         Write data to the specified location within the connector.
 
         Args:
             data (pd.DataFrame): The DataFrame to write.
             location (str): The target location within the connector to write data to.
-            if_exists (IfExists, optional): The behavior if the target location already exists (append, replace, fail).
+            if_exists (Literal["append", "replace", "fail"]): The behavior if the target location already exists (append, replace, fail). Default is "fail".
         """
         self.client._write_data(connector_id=self.id, data=data, location=location, if_exists=if_exists)
 
@@ -230,12 +231,12 @@ class Generator:
         file_path.write_bytes(bytes)
         return file_path
 
-    def clone(self, training_status: Literal["NEW", "CONTINUE"] = "NEW") -> "Generator":
+    def clone(self, training_status: Literal["new", "continue"] = "new") -> Generator:
         """
         Clone the generator.
 
         Args:
-            training_status (Literal["NEW", "CONTINUE"]): The training status of the cloned generator. Default is "NEW".
+            training_status (Literal["new", "continue"]): The training status of the cloned generator. Default is "new".
 
         Returns:
             Generator: The cloned generator object.
@@ -655,21 +656,21 @@ class SyntheticDataset:
     def download(
         self,
         file_path: str | Path | None = None,
-        format: SyntheticDatasetFormat = "PARQUET",
+        format: Literal["parquet", "csv", "json"] = "parquet",
     ) -> Path:
         """
         Download synthetic dataset and save to file.
 
         Args:
             file_path (str | Path | None): The file path to save the synthetic dataset.
-            format (SyntheticDatasetFormat): The format of the synthetic dataset. Default is "PARQUET".
+            format (Literal["parquet", "csv", "json"]): The format of the synthetic dataset. Default is "parquet".
 
         Returns:
             Path: The path to the saved file.
         """
         bytes, filename = self.client._download(
             synthetic_dataset_id=self.id,
-            ds_format=format,
+            ds_format=format.upper(),
             short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
         )
         file_path = Path(file_path or ".")
