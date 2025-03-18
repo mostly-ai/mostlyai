@@ -34,7 +34,6 @@ from mostlyai.sdk._local.execution.step_encode_training_data import execute_step
 from mostlyai.sdk._local.execution.step_finalize_generation import (
     execute_step_finalize_generation,
     create_generation_schema,
-    update_total_rows_and_datapoints,
 )
 from mostlyai.sdk._local.execution.step_generate_data import execute_step_generate_data
 from mostlyai.sdk._local.execution.step_generate_model_report_data import (
@@ -505,7 +504,7 @@ class Execution:
             step="finalize_generation",
         )
 
-        usage = execute_step_finalize_generation(
+        execute_step_finalize_generation(
             schema=schema,
             is_probe=False,
             job_workspace_dir=self._job_workspace_dir,
@@ -515,8 +514,6 @@ class Execution:
                 step_code=StepCode.finalize_generation,
             ),
         )
-
-        update_total_rows_and_datapoints(self._synthetic_dataset, usage)
 
     def execute_deliver_data(self):
         schema = create_generation_schema(
