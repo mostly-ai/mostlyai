@@ -15,13 +15,12 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import uuid
 import zipfile
 from io import BytesIO
 from pathlib import Path
 
-from fastapi import APIRouter, Body, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, Body, HTTPException, UploadFile, File, Form
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse, RedirectResponse
 
@@ -227,26 +226,20 @@ class Routes:
             return JSONResponse(status_code=200, content=columns)
 
         @self.router.post("/connectors/{id}/read-data")
-        async def read_data(id: str, config: ConnectorReadDataConfig = Body(...)) -> FileResponse:
+        async def read_data(id: str, config: ConnectorReadDataConfig = Body(...)) -> StreamingResponse:
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
             df = connectors.read_data_from_connector(connector, config)
 
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".parquet") as tmp_file:
-                df.to_parquet(tmp_file.name, index=False)
+            buffer = BytesIO()
+            df.to_parquet(buffer)
+            buffer.seek(0)
 
-                def cleanup():
-                    os.remove(tmp_file.name)
-
-                # ensure cleanup (file deletion) after it has been served
-                background_tasks = BackgroundTasks()
-                background_tasks.add_task(cleanup)
-                return FileResponse(
-                    tmp_file.name,
-                    media_type="application/octet-stream",
-                    filename="data.parquet",
-                    background=background_tasks,
-                )
+            return StreamingResponse(
+                buffer,
+                media_type="application/octet-stream",
+                headers={"Content-Disposition": "attachment; filename=data.parquet"},
+            )
 
         @self.router.post("/connectors/{id}/write-data")
         async def write_data(

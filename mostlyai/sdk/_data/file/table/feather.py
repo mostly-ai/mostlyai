@@ -32,7 +32,7 @@ class FeatherDataTable(FileDataTable):
     def _get_dataset_format(self):
         return ds.FeatherFileFormat()
 
-    def write_data(self, df: pd.DataFrame, if_exists: str = "fail", **kwargs):
+    def write_data(self, df: pd.DataFrame, if_exists: str = "replace", **kwargs):
         self.handle_if_exists(if_exists)  # will gracefully handle append as replace
         df.to_feather(
             self.container.path_str,

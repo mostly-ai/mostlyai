@@ -119,7 +119,7 @@ class JsonDataTable(FileDataTable):
         # Note: this currently reads all data; optimize later
         return self.read_data().dtypes.to_dict()
 
-    def write_data(self, df: pd.DataFrame, if_exists: str = "fail", **kwargs):
+    def write_data(self, df: pd.DataFrame, if_exists: str = "append", **kwargs):
         # Convert to ISO format so that pyarrow.json.read_json can auto-detect these
         for c in df:
             if is_date_dtype(df[c]):
