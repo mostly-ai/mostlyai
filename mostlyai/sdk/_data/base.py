@@ -714,7 +714,8 @@ class DataTable(abc.ABC):
                     primary_key,
                 )
             _LOG.info(
-                f"auto_detect_encoding_types_and_pk logic for table={self.name} took {time.time() - t0:.2f} seconds"
+                f"auto_detect_encoding_types_and_pk({ignore_existing_values=})"
+                f"for table={self.name} took {time.time() - t0:.2f} seconds"
             )
             return return_vals if return_vals is not None else fallback
 
@@ -722,12 +723,16 @@ class DataTable(abc.ABC):
         auto_detected_encoding_types, auto_detected_primary_key = run_with_timeout_unsafe(
             auto_detection_logic, timeout=AUTODETECT_TIMEOUT, fallback=fallback
         )
-        _LOG.info(
-            f"auto-detected {auto_detected_encoding_types=} and {auto_detected_primary_key=} for table {self.name}"
-        )
         self.encoding_types |= auto_detected_encoding_types
-        if self.primary_key is None or ignore_existing_values:
+        _LOG.info(f"auto-detected {auto_detected_encoding_types=} table {self.name}")
+        foreign_keys = [fk.column for fk in self.foreign_keys or []]
+        if (
+            auto_detected_primary_key is not None
+            and self.primary_key is None
+            and auto_detected_primary_key not in foreign_keys
+        ):
             self.primary_key = auto_detected_primary_key
+            _LOG.info(f"auto-detected {auto_detected_primary_key=} table {self.name}")
 
     # PRIVATE METHODS
 

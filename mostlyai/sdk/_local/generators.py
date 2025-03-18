@@ -88,10 +88,14 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                     f"{count}x {enc_type}" for enc_type, count in encoding_types_counts.items() if count > 0
                 )
                 rich.print(f"Detected for Table `{t.name}` {encoding_summary} columns")
-            if t.primary_key is None and any(c.name == auto_detected_primary_key for c in t.columns):
-                t.primary_key = auto_detected_primary_key
-                rich.print(f"Detected for Table `{t.name}` primary key `{auto_detected_primary_key}`")
-
+                foreign_keys = [fk.column for fk in t.foreign_keys or []]
+                if (
+                    auto_detected_primary_key is not None
+                    and t.primary_key is None
+                    and auto_detected_primary_key not in foreign_keys
+                ):
+                    t.primary_key = auto_detected_primary_key
+                    rich.print(f"Detected for Table `{t.name}` primary key `{auto_detected_primary_key}`")
             write_connector_to_json(home_dir / "connectors" / connector.id, connector)
 
     # revalidate source tables to ensure model configurations are set correctly
