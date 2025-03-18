@@ -70,7 +70,7 @@ class TheSimplestDataTable(UnbiasedDataTable):
 
     def _lazy_fetch(self, item: str) -> None:
         if item == "primary_key":
-            self.primary_key = "id" if "id" in self.columns else None
+            self.primary_key = "id" if "id" in (self.columns or []) else None
         else:
             return super()._lazy_fetch(item)
 
