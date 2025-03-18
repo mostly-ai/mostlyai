@@ -789,6 +789,9 @@ class DataTable(abc.ABC):
             _prefix_list(kwargs["columns"])
             if "order_by" in kwargs:
                 kwargs["order_by"] = key_as_list(kwargs["order_by"])
+                _prefix_list(kwargs["order_by"])
+
+        return kwargs
 
     def _promote_auto_encoding_types_based_on_dtypes(self):
         promoted_encoding_types = {}
