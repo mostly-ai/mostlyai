@@ -57,8 +57,10 @@ def read_data_table_from_path(
     _LOG.info(container_object.path)
     _LOG.info(file_list)
     _LOG.info(f"detected {len(file_list)} files: {file_list}")
-    if len(file_list) == 0:
+    if len(file_list) == 0 and not container_object.path:
         raise MostlyDataException("No data files found.")
+    elif len(file_list) == 0:  # assuming output path
+        file_list = [container_object.path]
     _, file_type = get_file_name_and_type(file_list[0])
     data_table_cls = FILE_EXT_DATA_TABLE_CLASS_MAP.get(file_type)
     if return_class:
