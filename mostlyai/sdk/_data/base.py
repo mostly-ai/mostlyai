@@ -656,7 +656,7 @@ class DataTable(abc.ABC):
             # 1. this function is used by the location schema endpoint
             # 2. the SDK user does not provide any columns in the generator config
             should_detect_pk = True
-            self.encoding_types = {col: ModelEncodingType.auto for col in self.columns}
+            self.encoding_types = {col: ModelEncodingType.auto for col in self.encoding_types}
         else:
             # existing primary key should be respected and remain unchanged
             should_detect_pk = False
@@ -681,7 +681,7 @@ class DataTable(abc.ABC):
             candidates = [
                 c
                 for c in candidates
-                if initial_auto_encoding_types[c]
+                if initial_auto_encoding_types.get(c)
                 in (ModelEncodingType.auto, ModelEncodingType.tabular_auto, ModelEncodingType.language_auto)
             ]
 
