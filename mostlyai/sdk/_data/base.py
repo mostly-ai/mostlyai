@@ -285,6 +285,8 @@ class Schema:
 
     def resolve_auto_encoding_types(self) -> None:
         for tbl_table in self.tables.values():
+            # FIXME: is it necessary to do advanced auto-detection here?
+            # tbl_table._promote_auto_encoding_types_based_on_dtypes()
             tbl_table.auto_detect_encoding_types_and_pk(ignore_existing_values=False)
 
     def remove_cascading_keys_relations(self):

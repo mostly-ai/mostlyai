@@ -320,7 +320,11 @@ def coerce_dtype_by_encoding(
         ModelEncodingType.language_categorical,
     ]:
         x = x.astype(STRING)
-    elif encoding_type is None or encoding_type == ModelEncodingType.auto:
+    elif encoding_type is None or encoding_type in [
+        ModelEncodingType.auto,
+        ModelEncodingType.tabular_auto,
+        ModelEncodingType.language_auto,
+    ]:
         # treat keys as strings
         x = x.astype(STRING)
     else:

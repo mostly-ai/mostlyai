@@ -35,7 +35,6 @@ from mostlyai.sdk.domain import (
     ModelConfiguration,
     SyntheticDatasetReportType,
     ModelType,
-    SourceColumnConfig,
 )
 
 
@@ -443,9 +442,8 @@ class SourceTableConfig:
                 not enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto
                 for enc_type in enc_types
             )
-            has_language_model = any(
-                enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto for enc_type in enc_types
-            )
+            # FIXME: how to determine if a language model is needed when there's ModelEncodingType.auto?
+            has_language_model = any(enc_type.startswith(ModelType.language) for enc_type in enc_types)
         else:
             has_tabular_model = True
             has_language_model = False
@@ -525,6 +523,16 @@ class SourceTableConfig:
         foreign_keys = [fk.column for fk in values.foreign_keys or []]
         if primary_key is not None and primary_key in foreign_keys:
             raise ValueError(f"Column '{primary_key}' is both a primary key and a foreign key.")
+        return values
+
+
+class SourceColumnConfig:
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if isinstance(values, dict):
+            if "model_encoding_type" not in values:
+                values["model_encoding_type"] = ModelEncodingType.auto
         return values
 
 

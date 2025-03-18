@@ -625,13 +625,16 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
             keys.append(values.primary_key)
         model_columns = [c for c in columns if c.name not in keys]
         if model_columns:
-            enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
+            enc_types = [
+                c.model_encoding_type or ModelEncodingType.auto for c in model_columns
+            ]
             has_tabular_model = any(
                 not enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto
                 for enc_type in enc_types
             )
+            # FIXME: how to determine if a language model is needed when there's ModelEncodingType.auto?
             has_language_model = any(
-                enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto for enc_type in enc_types
+                enc_type.startswith(ModelType.language) for enc_type in enc_types
             )
         else:
             has_tabular_model = True
@@ -1192,4 +1195,13 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
                 generator_table, is_probe=isinstance(validation.synthetic_config, SyntheticProbeConfig)
             )
         return validation
+{%- endif %}
+{%- if class_name == "SourceColumnConfig" %}
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if isinstance(values, dict):
+            if "model_encoding_type" not in values:
+                values["model_encoding_type"] = ModelEncodingType.auto
+        return values
 {%- endif %}
