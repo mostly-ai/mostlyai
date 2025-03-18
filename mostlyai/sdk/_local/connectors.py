@@ -69,15 +69,26 @@ def _data_table_from_connector_and_location(connector: Connector, location: str,
 
 def read_data_from_connector(connector: Connector, config: ConnectorReadDataConfig) -> pd.DataFrame:
     if connector.access_type not in {ConnectorAccessType.read_data, ConnectorAccessType.write_data}:
-        raise HTTPException(status_code=403, detail="Connector does not have read access")
-    data_table = _data_table_from_connector_and_location(connector=connector, location=config.location, is_output=False)
-    return data_table.read_data(limit=config.limit, shuffle=config.shuffle)
+        raise HTTPException(status_code=400, detail="Connector does not have read access")
+
+    try:
+        data_table = _data_table_from_connector_and_location(
+            connector=connector, location=config.location, is_output=False
+        )
+        return data_table.read_data(limit=config.limit, shuffle=config.shuffle)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 def write_data_to_connector(connector: Connector, config: ConnectorWriteDataConfig) -> None:
     if connector.access_type != ConnectorAccessType.write_data:
-        raise HTTPException(status_code=403, detail="Connector does not have write access")
+        raise HTTPException(status_code=400, detail="Connector does not have write access")
 
-    data_table = _data_table_from_connector_and_location(connector=connector, location=config.location, is_output=True)
-    df = pd.read_parquet(BytesIO(config.file))
-    data_table.write_data(df, if_exists=config.if_exists.value.lower())
+    try:
+        data_table = _data_table_from_connector_and_location(
+            connector=connector, location=config.location, is_output=True
+        )
+        df = pd.read_parquet(BytesIO(config.file))
+        data_table.write_data(df, if_exists=config.if_exists.value.lower())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
