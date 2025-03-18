@@ -108,7 +108,7 @@ class CsvDataTable(FileDataTable):
             return
 
     def write_data(self, df: pd.DataFrame, if_exists: str = "fail", **kwargs):
-        mode = "w" if if_exists == "replace" or not self.container.path.exists() else "a"
+        mode = self.handle_if_exists(if_exists)
         df.to_csv(
             self.container.path_str,
             mode=mode,

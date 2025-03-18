@@ -48,7 +48,8 @@ class ParquetDataTable(FileDataTable):
     def _get_columns(self):
         return self.get_columns(exclude_complex_types=True)
 
-    def write_data(self, df: pd.DataFrame, **kwargs):
+    def write_data(self, df: pd.DataFrame, if_exists: str = "fail", **kwargs):
+        self.handle_if_exists(if_exists)  # will gracefully handle append as replace
         df.to_parquet(
             self.container.path_str,
             storage_options=self.container.storage_options,

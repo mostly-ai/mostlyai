@@ -119,7 +119,7 @@ class JsonDataTable(FileDataTable):
         # Note: this currently reads all data; optimize later
         return self.read_data().dtypes.to_dict()
 
-    def write_data(self, df: pd.DataFrame, **kwargs):
+    def write_data(self, df: pd.DataFrame, if_exists: str = "fail", **kwargs):
         # Convert to ISO format so that pyarrow.json.read_json can auto-detect these
         for c in df:
             if is_date_dtype(df[c]):
@@ -133,6 +133,6 @@ class JsonDataTable(FileDataTable):
                     .dt.strftime("%Y-%m-%d %H:%M:%S")
                     .str[:-7]
                 )
-        mode = "a" if self.container.path.exists() else "w"
+        mode = self.handle_if_exists(if_exists)
         df.to_json(self.container.path_str, orient="records", lines=True, mode=mode)
         # raise MostlyException("write to cloud buckets not yet supported")
