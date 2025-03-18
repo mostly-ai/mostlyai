@@ -193,7 +193,7 @@ class TestDataTable:
         return TheSimplestDataTable(
             df=df,
             name="table",
-            columns=df.columns,
+            columns=list(df.columns),
             dtypes={
                 "dt": VirtualVarchar(),  # strings of datetime
                 "bool": VirtualBoolean(),
