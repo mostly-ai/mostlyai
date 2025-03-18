@@ -54,7 +54,17 @@ class MostlyAI(_MostlyBaseClient):
     """
     Instantiate an SDK instance, either in CLIENT or in LOCAL mode.
 
-    Example for instantiating the SDK in CLIENT mode with explicit arguments:
+    Args:
+        base_url (str | None): The base URL. If not provided, env var `MOSTLY_BASE_URL` is used if available, otherwise `https://app.mostly.ai`.
+        api_key (str | None): The API key for authenticating. If not provided, env var `MOSTLY_API_KEY` is used if available.
+        local (bool | None): Whether to run in local mode or not. If not provided, user is prompted to choose between CLIENT and LOCAL mode.
+        local_dir (str | Path | None): The directory to use for local mode. If not provided, `~/mostlyai` is used.
+        local_port (int | None): The port to use for local mode with TCP transport. If not provided, UDS transport is used.
+        timeout (float): Timeout for HTTPS requests in seconds. Default is 60 seconds.
+        ssl_verify (bool): Whether to verify SSL certificates. Default is True.
+        quiet (bool): Whether to suppress rich output. Default is False.
+
+    Example for SDK in CLIENT mode with explicit arguments:
         ```python
         from mostlyai.sdk import MostlyAI
         mostly = MostlyAI(
@@ -65,7 +75,7 @@ class MostlyAI(_MostlyBaseClient):
         # MostlyAI(base_url='https://app.mostly.ai', api_key='***')
         ```
 
-    Example for instantiating the SDK in CLIENT mode with environment variables:
+    Example for SDK in CLIENT mode with environment variables:
         ```python
         import os
         from mostlyai.sdk import MostlyAI
@@ -76,7 +86,7 @@ class MostlyAI(_MostlyBaseClient):
         # MostlyAI(base_url='https://app.mostly.ai', api_key='***')
         ```
 
-    Example for instantiating the SDK in LOCAL mode, and connect via Unix Domain Socket (UDS):
+    Example for SDK in LOCAL mode connecting via UDS:
         ```python
         from mostlyai.sdk import MostlyAI
         mostly = MostlyAI(local=True)
@@ -84,23 +94,13 @@ class MostlyAI(_MostlyBaseClient):
         # MostlyAI(local=True)
         ```
 
-    Example for instantiating the SDK in LOCAL mode, and connect via Transmission Control Protocol (TCP):
+    Example for SDK in LOCAL mode connecting via TCP:
         ```python
         from mostlyai.sdk import MostlyAI
         mostly = MostlyAI(local=True, local_port=8080)
         mostly
         # MostlyAI(local=True, local_port=8080)
         ```
-
-    Args:
-        base_url: The base URL. If not provided, a default value is used.
-        api_key: The API key for authenticating. If not provided, it would rely on environment variables.
-        local: Whether to run in local mode or not.
-        local_dir: The directory to use for local mode. If not provided, `~/mostlyai` will be used.
-        local_port: The port to use for local mode with TCP transport. If not provided, UDS transport is used by default.
-        timeout: Timeout for HTTPS requests in seconds.
-        ssl_verify: Whether to verify SSL certificates.
-        quiet: Whether to suppress rich output.
     """
 
     def __init__(
@@ -241,7 +241,12 @@ class MostlyAI(_MostlyBaseClient):
         """
         Create a connector and optionally validate the connection before saving.
 
-        See [ConnectorConfig](api_domain.md#mostlyai.sdk.domain.ConnectorConfig) for more information on the available configuration parameters.
+        Args:
+            config (ConnectorConfig | dict[str, Any]): Configuration for the connector. Can be either a ConnectorConfig object or an equivalent dictionary.
+            test_connection (bool | None): Whether to validate the connection before saving. Default is True.
+
+        Returns:
+            Connector: The created connector.
 
         Example for creating a connector to a AWS S3 storage:
             ```python
@@ -259,10 +264,6 @@ class MostlyAI(_MostlyBaseClient):
                 }
             )
             ```
-
-        Args:
-            config: Configuration for the connector. Can be either a ConnectorConfig object or an equivalent dictionary.
-            test_connection: Whether to validate the connection before saving.
 
         The structures of the `config`, `secrets` and `ssl` parameters depend on the connector `type`:
 
@@ -380,9 +381,6 @@ class MostlyAI(_MostlyBaseClient):
             secrets:
               password: string
           ```
-
-        Returns:
-            Connector: The created connector.
         """
         c = self.connectors.create(config=config, test_connection=test_connection)
         return c
@@ -399,87 +397,155 @@ class MostlyAI(_MostlyBaseClient):
         """
         Train a generator.
 
-        See [GeneratorConfig](api_domain.md#mostlyai.sdk.domain.GeneratorConfig) for more information on the available configuration parameters.
+        Args:
+            config (GeneratorConfig | dict | None): The configuration parameters of the generator to be created. Either `config` or `data` must be provided.
+            data (pd.DataFrame | str | Path | None): A single pandas DataFrame, or a path to a CSV or PARQUET file. Either `config` or `data` must be provided.
+            name (str | None): Name of the generator.
+            start (bool): Whether to start training immediately. Default is True.
+            wait (bool): Whether to wait for training to finish. Default is True.
+            progress_bar (bool): Whether to display a progress bar during training. Default is True.
 
-        Example of short-hand notation, reading data from path:
-            ```python
-            from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI()
-            g = mostly.train(
-                data='https://github.com/mostly-ai/public-demo-data/raw/dev/census/census.csv.gz',
-            )
-            ```
+        Returns:
+            Generator: The created generator.
 
-        Example of short-hand notation, passing data as pandas DataFrame:
+        Example of single table with default configurations:
             ```python
             # read original data
             import pandas as pd
-            df_original = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/titanic/titanic.csv')
+            df = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/census/census.csv.gz')
             # instantiate client
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
             # train generator
             g = mostly.train(
                 name='census',
-                data=df_original,
+                data=df,     # alternatively, pass a path to a CSV or PARQUET file
+                start=True,  # start training immediately
+                wait=True,   # wait for training to finish
             )
             ```
 
-        Example configuration using GeneratorConfig:
+        Example of single table with custom configurations:
             ```python
             # read original data
             import pandas as pd
-            df_original = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/titanic/titanic.csv')
-            # instantiate client
-            from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI()
-            # configure generator via GeneratorConfig
-            from mostlyai.sdk.domain import GeneratorConfig, SourceTableConfig
-            g = mostly.train(
-                config=GeneratorConfig(
-                    name='census',
-                    tables=[
-                        SourceTableConfig(
-                            name='data',
-                            data=df_original
-                        )
-                    ]
-                )
-            )
-            ```
-
-        Example configuration using a dictionary:
-            ```python
-            # read original data
-            import pandas as pd
-            df_original = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/titanic/titanic.csv')
+            df = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/baseball/players.csv.gz')
             # instantiate client
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
             # configure generator via dictionary
             g = mostly.train(
-                config={
-                    'name': 'census',
+                config={                                             # see `mostlyai.sdk.domain.GeneratorConfig`
+                    'name': 'Baseball Players',
                     'tables': [
-                        {
-                            'name': 'data',
-                            'data': df_original
+                        {                                            # see `mostlyai.sdk.domain.SourceTableConfig`
+                            'name': 'players',                       # name of the table (required)
+                            'data': df,                              # either provide data as a pandas DataFrame
+                            'source_connector_id': None,             # - or pass a source_connector_id
+                            'location': None,                        # - together with a table location
+                            'primary_key': 'id',                     # specify the primary key column, if one is present
+                            'tabular_model_configuration': {         # see `mostlyai.sdk.domain.ModelConfiguration`; all settings are optional!
+                                'model': 'MOSTLY_AI/Medium',         # check `mostly.models()` for available models
+                                'batch_size': None,                  # set a custom physical training batch size
+                                'max_sample_size': 10_000,           # cap sample size to 10k; set to None for max accuracy
+                                'max_epochs': 20,                    # cap training to 20 epochs; set to None for max accuracy
+                                'max_training_time': 10,             # cap runtime to 10min; set to None for max accuracy
+                                'enable_flexible_generation': True,  # allow seed, imputation, rebalancing and fairness; set to False for max accuracy
+                                'value_protection': True,            # privacy protect value ranges; set to False for allowing all seen values
+                                'differential_privacy': {            # set DP configs if explicitly requested
+                                    'max_epsilon': 5.0,                # - max epsilon value, used as stopping criterion
+                                    'noise_multiplier': 0.8,           # - DP noise multiplier
+                                    'max_grad_norm': 1.0,              # - DP max grad norm
+                                    'delta': 1e-5,                     # - DP delta value
+                                },
+                                'enable_model_report': True,         # generate a model report, including quality metrics
+                            },
+                            'columns': [                             # list columns (optional); see `mostlyai.sdk.domain.ModelEncodingType`
+                                {'name': 'id', 'model_encoding_type': 'TABULAR_CATEGORICAL'},
+                                {'name': 'bats', 'model_encoding_type': 'TABULAR_CATEGORICAL'},
+                                {'name': 'throws', 'model_encoding_type': 'TABULAR_CATEGORICAL'},
+                                {'name': 'birthDate', 'model_encoding_type': 'TABULAR_DATETIME'},
+                                {'name': 'weight', 'model_encoding_type': 'TABULAR_NUMERIC_AUTO'},
+                                {'name': 'height', 'model_encoding_type': 'TABULAR_NUMERIC_AUTO'},
+                            ],
                         }
                     ]
-                }
+                },
+                start=True,  # start training immediately
+                wait=True,   # wait for training to finish
             )
             ```
 
-        Args:
-            config: The configuration parameters of the generator to be created. Either `config` or `data` must be provided.
-            data: A single pandas DataFrame, or a path to a CSV or PARQUET file. Either `config` or `data` must be provided.
-            name: Name of the generator.
-            start: Whether to start training immediately.
-            wait: Whether to wait for training to finish.
-            progress_bar: Whether to display a progress bar during training.
+        Example of multi-table with custom configurations:
+            ```python
+            # read original data
+            import pandas as pd
+            df_purchases = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/cdnow/purchases.csv.gz')
+            df_users = df_purchases[['users_id']].drop_duplicates()
+            # instantiate client
+            from mostlyai.sdk import MostlyAI
+            mostly = MostlyAI()
+            # train generator
+            g = mostly.train(config={
+                'name': 'CDNOW',                      # name of the generator
+                'tables': [{                          # provide list of all tables
+                    'name': 'users',
+                    'data': df_users,
+                    'primary_key': 'users_id',        # define PK column
+                }, {
+                    'name': 'purchases',
+                    'data': df_purchases,
+                    'foreign_keys': [{                 # define FK columns, with one providing the context
+                        'column': 'users_id',
+                        'referenced_table': 'users',
+                        'is_context': True
+                    }],
+                    'tabular_model_configuration': {
+                        'max_sample_size': 1000,       # cap sample size to 1k users; set to None for max accuracy
+                        'max_training_time': 1,        # cap runtime to 1min; set to None for max accuracy
+                        'max_sequence_window': 10,     # optionally limit the sequence window
+                    },
+                }],
+            }, start=True, wait=True)
+            ```
 
-        Returns:
-            Generator: The created generator.
+        Example of multi-model with TABULAR and LANGUAGE models:
+            ```python
+            # read original data
+            import pandas as pd
+            df = pd.read_parquet('https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/headlines/headlines.parquet')
+
+            # instantiate SDK
+            from mostlyai.sdk import MostlyAI
+            mostly = MostlyAI()
+
+            # print out available LANGUAGE models
+            print(mostly.models()["LANGUAGE"])
+
+            # train a generator; increase max_training_time to improve quality
+            g = mostly.train(config={
+                'name': 'Headlines',
+                'tables': [{
+                    'name': 'headlines',
+                    'data': df,
+                    'columns': [                                 # configure TABULAR + LANGUAGE cols
+                        {'name': 'category', 'model_encoding_type': 'TABULAR_CATEGORICAL'},
+                        {'name': 'date', 'model_encoding_type': 'TABULAR_DATETIME'},
+                        {'name': 'headline', 'model_encoding_type': 'LANGUAGE_TEXT'},
+                    ],
+                    'tabular_model_configuration': {              # tabular model configuration (optional)
+                        'max_sample_size': 2000,                  # cap sample size to 2k; set None for max accuracy
+                        'max_training_time': 1,                   # cap runtime to 1min; set None for max accuracy
+                    },
+                    'language_model_configuration': {             # language model configuration (optional)
+                        'max_sample_size': 1000,                  # cap sample size to 1k; set None for max accuracy
+                        'max_training_time': 5,                   # cap runtime to 5min; set None for max accuracy
+                        'model': 'MOSTLY_AI/LSTMFromScratch-3m',  # use a light-weight LSTM model, trained from scratch (GPU recommended)
+                        #'model': 'microsoft/phi-1.5',            # alternatively use a pre-trained HF-hosted LLM model (GPU required)
+                    }
+                }],
+            }, start=True, wait=True)
+            ```
         """
         if data is None and config is None:
             raise ValueError("Either config or data must be provided")
@@ -514,7 +580,7 @@ class MostlyAI(_MostlyBaseClient):
 
     def generate(
         self,
-        generator: Generator | str | None = None,
+        generator: Generator | str,
         config: SyntheticDatasetConfig | dict | None = None,
         size: int | dict[str, int] | None = None,
         seed: Seed | dict[str, Seed] | None = None,
@@ -526,7 +592,18 @@ class MostlyAI(_MostlyBaseClient):
         """
         Generate synthetic data.
 
-        See [SyntheticDatasetConfig](api_domain.md#mostlyai.sdk.domain.SyntheticDatasetConfig) for more information on the available configuration parameters.
+        Args:
+            generator (Generator | str): The generator instance or its UUID.
+            config (SyntheticDatasetConfig | dict | None): Configuration for the synthetic dataset.
+            size (int | dict[str, int] | None): Sample size(s) for the subject table(s).
+            seed (Seed | dict[str, Seed] | None): Seed data for the subject table(s).
+            name (str | None): Name of the synthetic dataset.
+            start (bool): Whether to start generation immediately. Default is True.
+            wait (bool): Whether to wait for generation to finish. Default is True.
+            progress_bar (bool): Whether to display a progress bar during generation. Default is True.
+
+        Returns:
+            SyntheticDataset: The created synthetic dataset.
 
         Example configuration using short-hand notation:
             ```python
@@ -574,19 +651,6 @@ class MostlyAI(_MostlyBaseClient):
                 }
             )
             ```
-
-        Args:
-            generator: The generator instance or its UUID.
-            config: Configuration for the synthetic dataset.
-            size : Sample size(s) for the subject table(s).
-            seed: Seed data for the subject table(s).
-            name: Name of the synthetic dataset.
-            start: Whether to start generation immediately.
-            wait: Whether to wait for generation to finish.
-            progress_bar: Whether to display a progress bar during generation.
-
-        Returns:
-            SyntheticDataset: The created synthetic dataset.
         """
         config = harmonize_sd_config(
             generator,
@@ -606,7 +670,7 @@ class MostlyAI(_MostlyBaseClient):
 
     def probe(
         self,
-        generator: Generator | str | None = None,
+        generator: Generator | str,
         size: int | dict[str, int] | None = None,
         seed: Seed | dict[str, Seed] | None = None,
         config: SyntheticProbeConfig | dict | None = None,
@@ -615,7 +679,15 @@ class MostlyAI(_MostlyBaseClient):
         """
         Probe a generator.
 
-        See [SyntheticProbeConfig](api_domain.md#mostlyai.sdk.domain.SyntheticProbeConfig) for more information on the available configuration parameters.
+        Args:
+            generator (Generator | str): The generator instance or its UUID.
+            size (int | dict[str, int] | None): Sample size(s) for the subject table(s). Default is 1, if no seed is provided.
+            seed (Seed | dict[str, Seed] | None): Seed data for the subject table(s).
+            config (SyntheticProbeConfig | dict | None): Configuration for the probe.
+            return_type (Literal["auto", "dict"]): Format of the return value. "auto" for pandas DataFrame if a single table, otherwise a dictionary. Default is "auto".
+
+        Returns:
+            pd.DataFrame | dict[str, pd.DataFrame]: The created synthetic probe.
 
         Example for probing a generator for 10 synthetic samples:
             ```python
@@ -647,16 +719,6 @@ class MostlyAI(_MostlyBaseClient):
                 }),
             )
             ```
-
-        Args:
-            generator: The generator instance or its UUID.
-            size: Sample size(s) for the subject table(s).
-            seed: Seed data for the subject table(s).
-            config: Configuration for the probe.
-            return_type: Format of the return value. "auto" for pandas DataFrame if a single table, otherwise a dictionary.
-
-        Returns:
-            The created synthetic probe.
         """
         config = harmonize_sd_config(
             generator,
@@ -676,6 +738,9 @@ class MostlyAI(_MostlyBaseClient):
         """
         Retrieve information about the current user.
 
+        Returns:
+            CurrentUser: Information about the current user.
+
         Example for retrieving information about the current user:
             ```python
             from mostlyai.sdk import MostlyAI
@@ -683,15 +748,15 @@ class MostlyAI(_MostlyBaseClient):
             mostly.me()
             # {'id': '488f2f26-...', 'first_name': 'Tom', ...}
             ```
-
-        Returns:
-            Information about the current user.
         """
         return self.request(verb=GET, path=["users", "me"], response_type=CurrentUser)
 
     def about(self) -> AboutService:
         """
         Retrieve information about the platform.
+
+        Returns:
+            AboutService: Information about the platform.
 
         Example for retrieving information about the platform:
             ```python
@@ -700,15 +765,15 @@ class MostlyAI(_MostlyBaseClient):
             mostly.about()
             # {'version': 'v316', 'assistant': True}
             ```
-
-        Returns:
-            Information about the platform.
         """
         return self.request(verb=GET, path=["about"], response_type=AboutService)
 
     def models(self) -> dict[str : list[str]]:
         """
         Retrieve a list of available models of a specific type.
+
+        Returns:
+            dict[str, list[str]]: A dictionary with list of available models for each ModelType.
 
         Example for retrieving available models:
             ```python
@@ -720,15 +785,14 @@ class MostlyAI(_MostlyBaseClient):
             #    'LANGUAGE": ['MOSTLY_AI/LSTMFromScratch-3m', 'microsoft/phi-1_5', ..],
             # }
             ```
-
-        Returns:
-            A dictionary with list of available models for each ModelType.
         """
         return {model_type.value: self.request(verb=GET, path=["models", model_type.value]) for model_type in ModelType}
 
     def computes(self) -> list[dict[str, Any]]:
         """
         Retrieve a list of available compute resources, that can be used for executing tasks.
+        Returns:
+            list[dict[str, Any]]: A list of available compute resources.
 
         Example for retrieving available compute resources:
             ```python
@@ -737,8 +801,5 @@ class MostlyAI(_MostlyBaseClient):
             mostly.computes()
             # [{'id': '...', 'name': 'CPU Large',...]
             ```
-
-        Returns:
-            A list of available compute resources.
         """
         return self.request(verb=GET, path=["computes"])

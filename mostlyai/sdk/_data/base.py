@@ -534,9 +534,9 @@ class DataTable(abc.ABC):
     def read_data(
         self,
         where: dict[str, Any] | None = None,
-        limit_n_rows: int | None = None,
+        limit: int | None = None,
         columns: list[str] | None = None,
-        is_shuffle: bool | None = False,
+        shuffle: bool | None = False,
         order_by: OrderBy | None = None,
         do_coerce_dtypes: bool | None = False,
     ) -> pd.DataFrame:
@@ -544,9 +544,9 @@ class DataTable(abc.ABC):
         Read data from this data source.
 
         :param where: dict of column name and value(s) or a lambda function to filter on
-        :param limit_n_rows: limit the number of rows returned. If None, return all rows
+        :param limit: limit the number of rows returned. If None, return all rows
         :param columns: list of columns to include. If None, all columns are included
-        :param is_shuffle: whether to shuffle the returned data rows
+        :param shuffle: whether to shuffle the returned data rows
         :param order_by: optionally, one or multiple columns (asc/desc) to order by
         :param do_coerce_dtypes: bool on whether dtypes shall be converted corresponding to encoding_types
         """

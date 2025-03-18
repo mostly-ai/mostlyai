@@ -75,7 +75,7 @@ def test_read_data(sample_csv_file, sample_parquet_file):
     df = table.read_data(where={"id": [2, 3]}, columns=["float", "id"])
     assert len(df) == 2
     assert set(df.columns) == {"id", "float"}
-    df = table.read_data(limit_n_rows=3, is_shuffle=True)
+    df = table.read_data(limit=3, shuffle=True)
     assert len(df) == 3
 
 
@@ -104,13 +104,13 @@ def test_filter_data(tmp_path):
     s = tbl.read_data(columns=["str", "int"])
     assert all(s.columns == ["str", "int"])
     # check shuffle
-    s = tbl.read_data(is_shuffle=True)
+    s = tbl.read_data(shuffle=True)
     assert any(s["id"] != df["id"])
     # check shuffle + limit
-    s = tbl.read_data(is_shuffle=True, limit_n_rows=6)
+    s = tbl.read_data(shuffle=True, limit=6)
     assert sorted(s["id"]) != sorted(df["id"].head(6))
     # check shuffle + limit + where
-    s = tbl.read_data(where={"str": "a"}, is_shuffle=True, limit_n_rows=3)
+    s = tbl.read_data(where={"str": "a"}, shuffle=True, limit=3)
     assert all(s["id"].isin(df.loc[df["str"] == "a", "id"]))
     assert all(s["int"] == 1)
     # test empty data

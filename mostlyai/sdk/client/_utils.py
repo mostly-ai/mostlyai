@@ -58,7 +58,9 @@ def check_local_mode_available() -> None:
 
         return
     except ImportError:
-        raise APIError("LOCAL mode requires additional packages to be installed. Run `pip install 'mostlyai[local]'`.")
+        raise APIError(
+            "LOCAL mode requires additional packages to be installed. Run `pip install -U 'mostlyai[local]'`."
+        )
 
 
 def validate_base_url(base_url: str) -> None:

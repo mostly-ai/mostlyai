@@ -1191,9 +1191,9 @@ class SqlAlchemyTable(DBTable, abc.ABC):
     def read_data(
         self,
         where: dict[str, Any] | None = None,
-        limit_n_rows: int | None = None,
+        limit: int | None = None,
         columns: list[str] | None = None,
-        is_shuffle: bool | None = None,
+        shuffle: bool | None = None,
         order_by: OrderBy | None = None,
         do_coerce_dtypes: bool | None = False,
     ) -> pd.DataFrame:
@@ -1205,15 +1205,15 @@ class SqlAlchemyTable(DBTable, abc.ABC):
         if len(stmts) == 1 and self.ENABLE_ORDER_AND_LIMIT_ON_SQL:
             # single statement; include ordering and limiting in the SQL statement
             # and execute it
-            stmt = self._sa_order(stmts[0], is_shuffle, order_by)
-            stmt = self._sa_limit(stmt, limit_n_rows)
+            stmt = self._sa_order(stmts[0], shuffle, order_by)
+            stmt = self._sa_limit(stmt, limit)
             df = self._sa_execute([stmt])
         else:  # len(stmts) > 1 or self.ENABLE_ORDER_AND_LIMIT_ON_SQL is False
             # multiple statements; execute them, concatenate results and apply
             # ordering and limiting on the final result (in memory)
             df = self._sa_execute(stmts)
-            df = self._df_order(df, is_shuffle, order_by)
-            df = self._df_limit(df, limit_n_rows)
+            df = self._df_order(df, shuffle, order_by)
+            df = self._df_limit(df, limit)
         if do_coerce_dtypes:
             df = coerce_dtypes_by_encoding(df, self.encoding_types)
         _LOG.info(f"read DB data `{self.name}` {df.shape} in {time.time() - t0:.2f}s")

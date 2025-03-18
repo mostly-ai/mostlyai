@@ -76,33 +76,13 @@ from mostlyai.sdk import MostlyAI
 # load original data
 repo_url = "https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev"
 df_original = pd.read_csv(f"{repo_url}/census/census.csv.gz")
+df_original = df_original.sample(n=10_000)  # sub-sample to speed up demo
 
 # initialize the SDK
 mostly = MostlyAI()
 
-# train a synthetic data generator
-g = mostly.train(
-    config={
-        "name": "US Census Income",
-        "tables": [
-            {
-                "name": "census",
-                "data": df_original,
-                "tabular_model_configuration": {  # tabular model configuration (optional)
-                    "max_training_time": 1,       # - cap time to 1 min for demo; increase for max accuracy
-                    # model, max_epochs,,..       # further model configurations (optional)
-                    # 'differential_privacy': {   # differential privacy configuration (optional)
-                    #     'max_epsilon': 5.0,     # - max epsilon value, used as stopping criterion
-                    #     'delta': 1e-5,          # - delta value
-                    # }
-                },
-                # columns, keys, compute,..       # further table configurations (optional)
-            }
-        ],
-    },
-    start=True,  # start training immediately (default: True)
-    wait=True,  # wait for completion (default: True)
-)
+# train a synthetic data generator, with default configs
+g = mostly.train(name="Quick Start Demo", data=df_original)
 
 # display the quality assurance report
 g.reports(display=True)
@@ -140,7 +120,13 @@ df_samples
 
 ## Installation
 
- Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required. It is recommended to install the package within a dedicated virtual environment.
+ Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required.
+
+ It is highly recommended to install the package within a dedicated virtual environment, such as **venv**, **uv**, or **conda**. E.g.
+ ```shell
+conda create -n mostlyai python=3.12
+conda activate mostlyai
+ ```
 
 ### CLIENT mode
 
@@ -161,6 +147,8 @@ pip install -U 'mostlyai[local]'
 pip install -U 'mostlyai[local-cpu]' --extra-index-url https://download.pytorch.org/whl/cpu
 # for GPU on Linux
 pip install -U 'mostlyai[local-gpu]'
+# if torch>=2.6.0 is pre-installed (like Google Colab) run this
+pip install torch==2.5.1 torchaudio==2.5.1 torchvision==0.20.1
 ```
 
 Add any of the following extras for further data connectors support in LOCAL mode: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`. E.g.
