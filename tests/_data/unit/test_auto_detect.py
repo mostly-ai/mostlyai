@@ -142,7 +142,7 @@ def test_auto_detect_encoding_types_and_pk(data_table):
         "lat_long": ModelEncodingType.tabular_categorical,
         "str": ModelEncodingType.tabular_categorical,
     }  # ensure that only tabular_categorical columns are being auto-detected
-    encoding_types, primary_key = auto_detect_encoding_types_and_pk(data_table)
+    encoding_types, primary_key = data_table.auto_detect_encoding_types_and_pk()
     assert encoding_types == {
         "dt": ModelEncodingType.tabular_datetime,
         "lat_long": ModelEncodingType.tabular_lat_long,

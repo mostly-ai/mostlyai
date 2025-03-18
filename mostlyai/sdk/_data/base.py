@@ -20,6 +20,8 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
 from collections.abc import Generator, Iterable
+import re
+import time
 
 import networkx as nx
 import pandas as pd
@@ -33,6 +35,8 @@ from mostlyai.sdk._data.dtype import (
     V_DTYPE_LANGUAGE_ENCODING_TYPE_MAP,
     DType,
     VirtualDType,
+    VirtualVarchar,
+    VirtualInteger,
 )
 from mostlyai.sdk._data.util.common import (
     as_list,
@@ -45,7 +49,15 @@ from mostlyai.sdk._data.util.common import (
     DATA_TABLE_METADATA_FIELDS,
     Key,
     OrderBy,
+    run_with_timeout_unsafe,
+    absorb_errors,
 )
+from mostlyai.engine._common import safe_convert_datetime
+
+AUTODETECT_SAMPLE_SIZE = 10_000
+AUTODETECT_TIMEOUT = 15
+LAT_LONG_REGEX = re.compile(r"^\s*-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?\s*$")
+PK_POSSIBLE_VIRTUAL_DTYPES = (VirtualVarchar, VirtualInteger)
 
 _LOG = logging.getLogger(__name__)
 
@@ -272,25 +284,8 @@ class Schema:
             self.tables[tbl_name] = tbl_table
 
     def resolve_auto_encoding_types(self) -> None:
-        for tbl_name, tbl_table in self.tables.items():
-            for col_name, encoding_type in tbl_table.encoding_types.items():
-                match encoding_type:
-                    case ModelEncodingType.auto | ModelEncodingType.tabular_auto:
-                        promoted_enctype = V_DTYPE_TABULAR_ENCODING_TYPE_MAP[
-                            type(tbl_table.dtypes[col_name].to_virtual())
-                        ]
-                    case ModelEncodingType.language_auto:
-                        promoted_enctype = V_DTYPE_LANGUAGE_ENCODING_TYPE_MAP[
-                            type(tbl_table.dtypes[col_name].to_virtual())
-                        ]
-                    case _:
-                        promoted_enctype = encoding_type
-                if encoding_type != promoted_enctype:
-                    tbl_table.encoding_types[col_name] = promoted_enctype
-                    _LOG.info(
-                        f"promoted encoding type {encoding_type.value} to "
-                        f"{promoted_enctype.value} for {tbl_name}.{col_name}"
-                    )
+        for tbl_table in self.tables.values():
+            tbl_table.promote_auto_encoding_types()
 
     def remove_cascading_keys_relations(self):
         tables_with_cascading_keys = set()
@@ -652,6 +647,82 @@ class DataTable(abc.ABC):
             if_exists = "append" if idx > 0 else ("replace" if overwrite_tables else "fail")
             self.write_data(df=data, if_exists=if_exists)
 
+    def auto_detect_encoding_types_and_pk(self, ignore_existing_values: bool = False) -> None:
+        """
+        Advanced auto-detection of encoding types and primary key from default encoding types and initial auto encoding types.
+        """
+        if ignore_existing_values:
+            # there are two scenarios where ignore_existing_values will be True:
+            # 1. this function is used by the location schema endpoint
+            # 2. the SDK user does not provide any columns in the generator config
+            should_detect_pk = True
+            self.encoding_types = {col: ModelEncodingType.auto for col in self.columns}
+        else:
+            # in case the *_AUTO encoding types are explicitly given, we do not detect the primary key
+            should_detect_pk = False
+        initial_auto_encoding_types = self.encoding_types.copy()
+        print(f"{initial_auto_encoding_types = }")
+        self._promote_auto_encoding_types_based_on_dtypes()
+        print(f"promoted {self.encoding_types = }")
+
+        # sub-select only the columns which got promoted to *_CATEGORICAL
+        column_candidates = [
+            c
+            for c, enc in self.encoding_types.items()
+            if enc in (ModelEncodingType.tabular_categorical, ModelEncodingType.language_categorical)
+        ]
+        # sub-select primary key candidates before sampling the data
+        virtual_dtypes = VirtualDType.from_dtypes(self.dtypes)
+        primary_key_candidates = [
+            c for c, t in virtual_dtypes.items() if type(t) in PK_POSSIBLE_VIRTUAL_DTYPES and c.lower().endswith("id")
+        ]
+        # union of primary key candidates and column candidates in original column order
+        candidates = [c for c in self.columns if c in primary_key_candidates or c in column_candidates]
+
+        # fallback in case auto_detect_logic() times out or fails
+        fallback = (
+            {
+                c: ModelEncodingType.language_text
+                if initial_auto_encoding_types[c] == ModelEncodingType.language_auto
+                else ModelEncodingType.tabular_categorical
+                for c in column_candidates
+            },
+            None,
+        )
+
+        def auto_detection_logic() -> tuple[dict, str | None] | None:
+            return_vals = None
+            primary_key = None
+            t0 = time.time()
+            with absorb_errors():
+                data_sample = next(self.read_chunks(columns=candidates, fetch_chunk_size=AUTODETECT_SAMPLE_SIZE))
+                if should_detect_pk:
+                    primary_key = self._auto_detect_primary_key(data_sample[primary_key_candidates])
+                # continue auto-detecting encoding types for non-numeric columns
+                remaining_candidates = [c for c in candidates if type(virtual_dtypes[c]) is not VirtualInteger]
+                return_vals = (
+                    {
+                        c: self._auto_detect_encoding_type(data_sample[c], initial_auto_encoding_types[c])
+                        for c in remaining_candidates
+                    },
+                    primary_key,
+                )
+            _LOG.info(
+                f"auto_detect_encoding_types_and_pk logic for table={self.name} took {time.time() - t0:.2f} seconds"
+            )
+            return return_vals if return_vals is not None else fallback
+
+        # wrap the detection logic with timeout and fallback
+        auto_detected_encoding_types, auto_detected_primary_key = run_with_timeout_unsafe(
+            auto_detection_logic, timeout=AUTODETECT_TIMEOUT, fallback=fallback
+        )
+        _LOG.info(
+            f"auto-detected {auto_detected_encoding_types=} and {auto_detected_primary_key=} for table {self.name}"
+        )
+        self.encoding_types |= auto_detected_encoding_types
+        if self.primary_key is None or ignore_existing_values:
+            self.primary_key = auto_detected_primary_key
+
     # PRIVATE METHODS
 
     def _lazy_fetch(self, item: str) -> None:
@@ -712,6 +783,87 @@ class DataTable(abc.ABC):
             _prefix_list(kwargs["columns"])
             if "order_by" in kwargs:
                 kwargs["order_by"] = key_as_list(kwargs["order_by"])
-                _prefix_list(kwargs["order_by"])
 
-        return kwargs
+    def _promote_auto_encoding_types_based_on_dtypes(self):
+        promoted_encoding_types = {}
+        for col_name, encoding_type in self.encoding_types.items():
+            match encoding_type:
+                case ModelEncodingType.auto | ModelEncodingType.tabular_auto:
+                    promoted_enctype = V_DTYPE_TABULAR_ENCODING_TYPE_MAP[type(self.dtypes[col_name].to_virtual())]
+                case ModelEncodingType.language_auto:
+                    promoted_enctype = V_DTYPE_LANGUAGE_ENCODING_TYPE_MAP[type(self.dtypes[col_name].to_virtual())]
+                case _:
+                    promoted_enctype = encoding_type
+            if encoding_type != promoted_enctype:
+                self.encoding_types[col_name] = promoted_enctype
+                _LOG.info(
+                    f"promoted encoding type {encoding_type.value} to "
+                    f"{promoted_enctype.value} for {self.name}.{col_name}"
+                )
+            promoted_encoding_types[col_name] = promoted_enctype
+        self.encoding_types = promoted_encoding_types
+
+    @staticmethod
+    def _auto_detect_primary_key(sample: pd.DataFrame) -> str | None:
+        """
+        Auto-detect the primary key for a given table.
+
+        :param sample: a pandas DataFrame
+        :return: the first column that meets the primary key criteria
+        """
+        # assuming sample columns are (1) ending with "id" and (2) of PK_POSSIBLE_VIRTUAL_DTYPES dtype
+        for c in sample.columns:
+            # check (3) all values unique and non-null and (4) of max len 36 (e.g. uuid len)
+            if sample[c].is_unique and sample[c].notnull().all() and sample[c].astype(str).str.len().max() <= 36:
+                return c
+        return None
+
+    @staticmethod
+    def _auto_detect_encoding_type(
+        x: pd.Series, initial_auto_encoding_type: ModelEncodingType | None = None
+    ) -> ModelEncodingType:
+        """
+        Auto-detect the encoding type for a given column.
+
+        :param x: a pandas Series
+        :param initial_auto_encoding_type: the initial auto encoding type (AUTO, TABULAR_AUTO, LANGUAGE_AUTO)
+        :return: the encoding type
+        """
+        x = x.dropna()
+        x = x.astype(str)
+        x = x[x.str.strip() != ""]  # filter out empty and whitespace-only strings
+
+        # if all non-null values can be converted to datetime -> datetime encoding
+        if safe_convert_datetime(x).notna().all():
+            return (
+                ModelEncodingType.language_datetime
+                if initial_auto_encoding_type == ModelEncodingType.language_auto
+                else ModelEncodingType.tabular_datetime
+            )
+
+        # if all values match lat/long pattern -> lat_long (geo) encoding
+        if x.str.match(LAT_LONG_REGEX).all():
+            return (
+                ModelEncodingType.language_text
+                if initial_auto_encoding_type == ModelEncodingType.language_auto
+                else ModelEncodingType.tabular_lat_long
+            )
+
+        # if more than 5% of rows contain unique values
+        # TABULAR_AUTO -> TABULAR_CHARACTER
+        # LANGUAGE_AUTO -> LANGUAGE_TEXT
+        # AUTO -> TABULAR_CHARACTER if all values have the same length, otherwise LANGUAGE_TEXT
+        if len(x.dropna()) >= 100 and x.value_counts().eq(1).reindex(x).mean() > 0.05:
+            return (
+                ModelEncodingType.language_text
+                if initial_auto_encoding_type == ModelEncodingType.language_auto
+                or (initial_auto_encoding_type == ModelEncodingType.auto and x.str.len().nunique() > 1)
+                else ModelEncodingType.tabular_character
+            )
+
+        # fallback to categorical
+        return (
+            ModelEncodingType.language_categorical
+            if initial_auto_encoding_type == ModelEncodingType.language_auto
+            else ModelEncodingType.tabular_categorical
+        )

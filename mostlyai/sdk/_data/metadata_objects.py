@@ -162,7 +162,7 @@ class ConstraintSchema(BaseModel):
 
 class TableSchema(BaseModel):
     name: Annotated[Nullable[str], Field(description="The name of the table.")] = None
-    totalRows: Annotated[
+    total_rows: Annotated[
         Nullable[int],
         Field(
             alias="totalRows",

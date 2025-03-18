@@ -439,8 +439,13 @@ class SourceTableConfig:
         model_columns = [c for c in columns if c.name not in keys]
         if model_columns:
             enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
-            has_tabular_model = any(not enc_type.startswith(ModelType.language) for enc_type in enc_types)
-            has_language_model = any(enc_type.startswith(ModelType.language) for enc_type in enc_types)
+            has_tabular_model = any(
+                not enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto
+                for enc_type in enc_types
+            )
+            has_language_model = any(
+                enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto for enc_type in enc_types
+            )
         else:
             has_tabular_model = True
             has_language_model = False

@@ -16,7 +16,6 @@ from pathlib import Path
 
 from fastapi import HTTPException
 
-from mostlyai.sdk._data.auto_detect import auto_detect_encoding_types_and_pk
 from mostlyai.sdk._data.base import Schema
 from mostlyai.sdk._data.conversions import create_container_from_connector
 from mostlyai.sdk._data.db.base import SqlAlchemyContainer
@@ -66,29 +65,27 @@ def _data_tables_to_table_schemas(
     for table_name, location in zip(ordered_table_names, ordered_locations):
         table = schema.tables[table_name]
         # auto-detect encoding types
-        encoding_types, primary_key = auto_detect_encoding_types_and_pk(table)
-        _LOG.info(f"auto-detected {encoding_types=} and {primary_key=} for table {table_name}")
-        table.encoding_types |= encoding_types
+        table.auto_detect_encoding_types_and_pk(ignore_existing_values=True)
         # fetch table schema
         columns = [
             ColumnSchema(
                 name=col,
-                originalDataType=str(table.dtypes[col].wrapped),
-                defaultModelEncodingType=table.encoding_types[col].value,
+                original_data_type=str(table.dtypes[col].wrapped),
+                default_model_encoding_type=table.encoding_types[col].value,
             )
             for col in table.columns
         ]
         relations = schema.subset(relations_to=[table_name]).relations
         constraints = [
-            ConstraintSchema(foreignKey=rel.child.column, referencedTable=rel.parent.table) for rel in relations
+            ConstraintSchema(foreign_key=rel.child.column, referenced_table=rel.parent.table) for rel in relations
         ]
         # fetch table row count - but time-box to 10secs
         total_rows = run_with_timeout_unsafe(lambda: table.row_count, timeout=10)
         # instantiate TableSchema
         table_schema = TableSchema(
             name=table_name,
-            totalRows=total_rows,
-            primaryKey=table.primary_key or primary_key,
+            total_rows=total_rows,
+            primary_key=table.primary_key,
             columns=columns,
             constraints=constraints,
             location=location,
