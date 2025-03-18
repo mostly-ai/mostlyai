@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import functools
+import uuid
 from typing import Any
 from datetime import datetime, timedelta
 from collections.abc import Iterable
@@ -314,6 +315,54 @@ class TestDataTable:
         data_table.auto_detect_encoding_types_and_pk(ignore_existing_values=ignore_existing_values)
         assert data_table.encoding_types == expected_encoding_types
         assert data_table.primary_key == expected_primary_key
+
+    @pytest.mark.parametrize(
+        "values, expected_encoding_type",
+        [
+            (
+                [str(uuid.uuid4()) for _ in range(20000)],
+                ModelEncodingType.tabular_character,
+            ),  # all unique but same length
+            (
+                [str(uuid.uuid4()) for _ in range(20)] + ["cat1", "cat2"] * 90,
+                ModelEncodingType.language_text,
+            ),  # 20 out of 200 are unique > 0.05
+            (pd.date_range("20230101", periods=100), ModelEncodingType.tabular_datetime),  # regular dates
+            (["2023-01-01", "2023-02-01", "", None], ModelEncodingType.tabular_datetime),  # dates with missing values
+            (["21.314, -23.22315", "-1.2321, 22.33", "0, 0", None], ModelEncodingType.tabular_lat_long),
+            (
+                ["34.052235, -118.243683", "40.712776, -74.005974", "37.774929, -122.419418"] * 5_000,
+                ModelEncodingType.tabular_lat_long,
+            ),
+            (["   ", "-90.0, 180.0", "0.0, 0.0", "45.0, 90.0", "", None], ModelEncodingType.tabular_lat_long),
+            (["21.314, -23.22315", "0", None] * 2, ModelEncodingType.tabular_categorical),
+            (
+                ["34.052235, -118.243683", "40.712776. -74.005974", "37.774929, -122.419418"] * 5000,
+                ModelEncodingType.tabular_categorical,
+            ),
+            (["2023-01-01", "2023-02-01", "abc", None] * 2, ModelEncodingType.tabular_categorical),
+            (
+                ["id1", "id2"] + ["cat1", "cat2"] * 49,
+                ModelEncodingType.tabular_categorical,
+            ),  # 2 out of 100 are unique < 0.05
+        ],
+    )
+    def test__auto_detect_encoding_type(self, values, expected_encoding_type):
+        series = pd.Series(values)
+        assert DataTable._auto_detect_encoding_type(series) == expected_encoding_type
+
+    @pytest.mark.parametrize(
+        "sample,expected_pk",
+        [
+            (pd.DataFrame(), None),
+            (pd.DataFrame({"some_id": [1, 2, 3]}), "some_id"),
+            (pd.DataFrame({"some_id": [1, 2, None]}), None),  # missing values
+            (pd.DataFrame({"id": ["1" * 36, "2", "3"]}), "id"),
+            (pd.DataFrame({"id": ["1" * 37, "2", "3"]}), None),  # longer than typical UUID (36 chars)
+        ],
+    )
+    def test__auto_detect_primary_key(self, sample, expected_pk, tmp_path):
+        assert DataTable._auto_detect_primary_key(sample) == expected_pk
 
 
 class TestDataIdentifier:

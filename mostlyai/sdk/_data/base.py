@@ -829,7 +829,7 @@ class DataTable(abc.ABC):
 
     @staticmethod
     def _auto_detect_encoding_type(
-        x: pd.Series, initial_auto_encoding_type: ModelEncodingType | None = None
+        x: pd.Series, initial_auto_encoding_type: ModelEncodingType = ModelEncodingType.auto
     ) -> ModelEncodingType:
         """
         Auto-detect the encoding type for a given column.
