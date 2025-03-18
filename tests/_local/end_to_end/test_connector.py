@@ -129,10 +129,6 @@ def test_write_data(tmp_path, sample_dataframe, connector_type, location_format)
     first_half = sample_dataframe.iloc[:midpoint].copy()
     second_half = sample_dataframe.iloc[midpoint:].copy()
 
-    if connector_type == "FILE_UPLOAD":
-        file_path = location
-        first_half.to_csv(file_path, index=False)
-
     c = mostly.connect(config=connector_config)
 
     # parquet is not "appendable", unlike the other formats being tested

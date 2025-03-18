@@ -59,19 +59,18 @@ def do_test_connection(connector: Connector) -> bool:
     return True
 
 
-def _data_table_from_connector_and_location(connector: Connector, location: str, is_output: bool = False):
+def _data_table_from_connector_and_location(connector: Connector, location: str, is_output: bool):
     container = create_container_from_connector(connector)
     meta = container.set_location(location)
-    data_table = make_data_table_from_container(container)
+    data_table = make_data_table_from_container(container, is_output=is_output)
     data_table.name = meta["table_name"] if hasattr(container, "dbname") else "data"
-    data_table.is_output = is_output
     return data_table
 
 
 def read_data_from_connector(connector: Connector, config: ConnectorReadDataConfig) -> pd.DataFrame:
     if connector.access_type not in {ConnectorAccessType.read_data, ConnectorAccessType.write_data}:
         raise HTTPException(status_code=403, detail="Connector does not have read access")
-    data_table = _data_table_from_connector_and_location(connector=connector, location=config.location)
+    data_table = _data_table_from_connector_and_location(connector=connector, location=config.location, is_output=False)
     return data_table.read_data(limit=config.limit, shuffle=config.shuffle)
 
 
