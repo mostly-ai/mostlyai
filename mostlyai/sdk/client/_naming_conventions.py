@@ -22,7 +22,10 @@ def _snake_to_camel(snake_str: str) -> str:
 
 
 def _camel_to_snake(camel_str: str) -> str:
-    return re.sub(r"(?<!^)(?=[A-Z])", "_", camel_str).lower()
+    # handle acronyms by treating consecutive uppercase letters as a group
+    s1 = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", camel_str)  # e.g., "GPUTime" -> "GPU_Time"
+    s2 = re.sub(r"([a-z\d])([A-Z])", r"\1_\2", s1)  # e.g., "virtualGPU" -> "virtual_GPU"
+    return s2.lower()
 
 
 def _convert_case(input_data: dict, conv_func: Callable[[str], str]) -> dict:

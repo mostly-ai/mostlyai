@@ -81,6 +81,11 @@ def test_map_snake_to_camel_case():
         ("HTTPRequest", "http_request"),
         ("parseJSONResponse", "parse_json_response"),
         ("XMLHttpRequest", "xml_http_request"),
+        ("totalVirtualGPUTime", "total_virtual_gpu_time"),
+        ("totalVirtualCPUTime", "total_virtual_cpu_time"),
+        ("userIDToken", "user_id_token"),
+        ("AWSConfig", "aws_config"),
+        ("useHTTPSConnection", "use_https_connection"),
     ],
 )
 def test_camel_to_snake(camel_str, expected):
