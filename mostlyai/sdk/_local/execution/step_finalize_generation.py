@@ -14,7 +14,6 @@
 import logging
 import uuid
 import zipfile
-from collections import defaultdict
 from pathlib import Path
 from typing import Literal
 
@@ -31,7 +30,7 @@ from mostlyai.sdk._data.util.common import (
     NON_CONTEXT_COLUMN_INFIX,
     IS_NULL,
 )
-from mostlyai.sdk.domain import Generator, SyntheticDataset, ModelEncodingType
+from mostlyai.sdk.domain import Generator
 
 _LOG = logging.getLogger(__name__)
 
@@ -42,9 +41,7 @@ def execute_step_finalize_generation(
     is_probe: bool,
     job_workspace_dir: Path,
     update_progress: ProgressCallback | None = None,
-) -> list[dict]:
-    usage = calculate_usage(schema)
-
+) -> None:
     # short circuit for probing
     delivery_dir = job_workspace_dir / "FinalizedSyntheticData"
     if is_probe:
@@ -55,11 +52,14 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=False,
             )
-        return usage
+        return
 
     random_samples_dir = job_workspace_dir / "RandomSamples"
     zip_dir = job_workspace_dir / "ZIP"
-    export_csv = sum([t["total_datapoints"] for t in usage]) < 100_000_000  # only export CSV if datapoints < 100M
+
+    # calculate total datapoints (rows × columns) across all tables
+    total_datapoints = sum(table.row_count * len(table.columns) for table in schema.tables.values())
+    export_csv = total_datapoints < 100_000_000  # only export CSV if datapoints < 100M
 
     with ProgressCallbackWrapper(update_progress, description="Finalize generation") as progress:
         # init progress with total_count; +4 for the 4 steps below
@@ -93,44 +93,6 @@ def execute_step_finalize_generation(
             _LOG.info("zip csv synthetic data")
             zip_data(delivery_dir=delivery_dir, format="csv", out_dir=zip_dir)
             progress.update(advance=1)
-
-    return usage
-
-
-def calculate_usage(schema: Schema) -> list[dict]:
-    usage = []
-    for table_name, table in schema.tables.items():
-        n_rows = table.row_count
-        # language columns depend on the average length (of a sample)
-        language_columns = [
-            col for col in table.columns if table.encoding_types[col] == ModelEncodingType.language_text
-        ]
-        language_samples = next(table.read_chunks(columns=language_columns, fetch_chunk_size=1_000))
-        # the weight of any non-language columns is 1
-        assumed_avg_token_size = 5
-        column_weights = defaultdict(
-            lambda: 1,
-            {
-                col: language_samples[col].str.len().mean() / assumed_avg_token_size
-                if not language_samples[col].empty
-                else 1
-                for col in language_columns
-            },
-        )
-        if language_columns:
-            _LOG.info(f"{table=} has language columns with weights {dict(column_weights)} for usage calculation")
-        n_weighted_columns = sum(column_weights[col] for col in table.encoding_types)
-        total_datapoints = int(n_rows * n_weighted_columns)
-        usage.append(dict(table=table.name, total_datapoints=total_datapoints, total_rows=n_rows))
-    return usage
-
-
-def update_total_rows_and_datapoints(synthetic_dataset: SyntheticDataset, usage: list[dict]):
-    for table_usage in usage:
-        table = next(t for t in synthetic_dataset.tables if t.name == table_usage["table"])
-        table.total_rows = table_usage["total_rows"]
-        table.total_datapoints = table_usage["total_datapoints"]
-    return usage
 
 
 def format_datetime(df: pd.DataFrame) -> pd.DataFrame:
