@@ -22,13 +22,11 @@ import pandas as pd
 @pytest.mark.parametrize(
     "encoding_types",
     [
-        # {"a": "AUTO", "b": "AUTO"},  # not working yet
-        {"a": "TABULAR_AUTO", "b": "TABULAR_AUTO"},
+        {"a": "AUTO", "b": "AUTO"},
         {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"},
     ],
     ids=[
-        # "AUTO encoding types",
-        "TABULAR_AUTO encoding types",
+        "AUTO encoding types",
         "LANGUAGE-only encoding types",
     ],
 )

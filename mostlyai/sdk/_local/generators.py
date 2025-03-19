@@ -51,7 +51,7 @@ from mostlyai.sdk.domain import (
 
 def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
     # handle file uploads -> create_connectors
-    for i, t in enumerate(config.tables or []):
+    for t in config.tables:
         if t.data is not None:
             connector = Connector(
                 **{
@@ -67,16 +67,24 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
             t.data = None
             t.source_connector_id = connector.id
             t.location = str(fn.absolute())
+            write_connector_to_json(home_dir / "connectors" / connector.id, connector)
+
+        # auto detection is only needed if columns are empty or have auto encoding types
+        should_detect_schema = (t.columns is None) or any(
+            col.model_encoding_type == ModelEncodingType.auto for col in (t.columns or [])
+        )
+        if should_detect_schema:
             table_schema = connectors.location_schema(connector, t.location)
-            column_schema = table_schema.columns
+            auto_detected_columns = {c.name: c.default_model_encoding_type for c in table_schema.columns}
             auto_detected_primary_key = table_schema.primary_key
+
             if t.columns is None:
                 t.columns = [
                     SourceColumnConfig(
-                        name=c.name,
-                        model_encoding_type=c.default_model_encoding_type,
+                        name=name,
+                        model_encoding_type=enc_type,
                     )
-                    for c in column_schema
+                    for name, enc_type in auto_detected_columns.items()
                 ]
                 # summarize auto-detected encoding types
                 encoding_types_counts = {}
@@ -96,7 +104,10 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                 ):
                     t.primary_key = auto_detected_primary_key
                     rich.print(f"Detected for Table `{t.name}` primary key `{auto_detected_primary_key}`")
-            write_connector_to_json(home_dir / "connectors" / connector.id, connector)
+            else:
+                for col in t.columns:
+                    if col.model_encoding_type == ModelEncodingType.auto:
+                        col.model_encoding_type = auto_detected_columns[col.name]
 
     # create generator
     # NOTE: model configurations will be revalidated by SourceTable
