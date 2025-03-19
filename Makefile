@@ -12,8 +12,8 @@ gen-public-model: ## build pydantic models for public api
 	@echo "Updating custom Jinja2 templates"
 	python tools/extend_model.py
 	@echo "Generating Pydantic models from $(PUBLIC_API_FULL_URL)"
-	datamodel-codegen --url $(PUBLIC_API_FULL_URL) $(COMMON_OPTIONS)
-	#datamodel-codegen --input ../mostly-app-v2/public-api/public-api.yaml $(COMMON_OPTIONS)
+	#datamodel-codegen --url $(PUBLIC_API_FULL_URL) $(COMMON_OPTIONS)
+	datamodel-codegen --input ../mostly-app-v2/public-api/public-api.yaml $(COMMON_OPTIONS)
 	python tools/postproc_domain.py
 	uv run --no-sync pre-commit run --all-files
 

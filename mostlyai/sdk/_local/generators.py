@@ -14,6 +14,9 @@
 
 from pathlib import Path
 
+import rich
+
+from mostlyai.sdk._local import connectors
 from mostlyai.sdk._local.storage import (
     write_generator_to_json,
     write_connector_to_json,
@@ -29,6 +32,7 @@ from mostlyai.sdk._local.execution.plan import (
 from mostlyai.sdk.client._base_utils import convert_to_df
 from mostlyai.sdk.domain import (
     GeneratorConfig,
+    ModelEncodingType,
     ProgressStatus,
     Generator,
     SourceColumnConfig,
@@ -47,7 +51,7 @@ from mostlyai.sdk.domain import (
 
 def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
     # handle file uploads -> create_connectors
-    for t in config.tables or []:
+    for i, t in enumerate(config.tables or []):
         if t.data is not None:
             connector = Connector(
                 **{
@@ -63,16 +67,39 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
             t.data = None
             t.source_connector_id = connector.id
             t.location = str(fn.absolute())
+            table_schema = connectors.location_schema(connector, t.location)
+            column_schema = table_schema.columns
+            auto_detected_primary_key = table_schema.primary_key
             if t.columns is None:
                 t.columns = [
                     SourceColumnConfig(
-                        name=c,
+                        name=c.name,
+                        model_encoding_type=c.default_model_encoding_type,
                     )
-                    for c in list(df.columns)
+                    for c in column_schema
                 ]
+                # summarize auto-detected encoding types
+                encoding_types_counts = {}
+                for enc_type in ModelEncodingType:
+                    encoding_types_counts[enc_type.value] = 0
+                for col in t.columns:
+                    encoding_types_counts[col.model_encoding_type.value] += 1
+                encoding_summary = ", ".join(
+                    f"{count}x {enc_type}" for enc_type, count in encoding_types_counts.items() if count > 0
+                )
+                rich.print(f"Detected for Table `{t.name}` {encoding_summary} columns")
+                foreign_keys = [fk.column for fk in t.foreign_keys or []]
+                if (
+                    auto_detected_primary_key is not None
+                    and t.primary_key is None
+                    and auto_detected_primary_key not in foreign_keys
+                ):
+                    t.primary_key = auto_detected_primary_key
+                    rich.print(f"Detected for Table `{t.name}` primary key `{auto_detected_primary_key}`")
             write_connector_to_json(home_dir / "connectors" / connector.id, connector)
 
     # create generator
+    # NOTE: model configurations will be revalidated by SourceTable
     generator = Generator(
         **{
             **config.model_dump(),

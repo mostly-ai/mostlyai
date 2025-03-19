@@ -67,7 +67,6 @@ from mostlyai.sdk._local.storage import (
     create_zip_in_memory,
     write_connector_to_json,
 )
-from mostlyai.sdk._data.file.utils import read_data_table_from_path
 
 
 class Routes:
@@ -203,26 +202,11 @@ class Routes:
         async def location_schema(id: str, location: str):
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
-            container = create_container_from_connector(connector)
-            meta = container.set_location(location)
-            if hasattr(container, "dbname"):
-                table_name = meta["table_name"]
-                container.filtered_tables = [table_name]
-                container.fetch_schema()
-                table = container.schema.tables.get(table_name)
-            else:
-                table = read_data_table_from_path(container)
-            if not table:
-                return JSONResponse(status_code=400, content=f"Table at {location} not found")
-            columns = [
-                {
-                    "name": col,
-                    "originalDataType": str(table.dtypes[col].wrapped),
-                    "defaultModelEncodingType": table.encoding_types[col].value,
-                }
-                for col in table.columns
-            ]
-            return JSONResponse(status_code=200, content=columns)
+            try:
+                table_schema = connectors.location_schema(connector, location, include_children=False)
+                return table_schema.columns
+            except Exception as e:
+                return JSONResponse(status_code=400, content=str(e))
 
         ## GENERATORS
 

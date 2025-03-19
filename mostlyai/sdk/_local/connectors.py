@@ -11,15 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import logging
 from pathlib import Path
 
 from fastapi import HTTPException
 
+from mostlyai.sdk._data.base import Schema
 from mostlyai.sdk._data.conversions import create_container_from_connector
-from mostlyai.sdk._data.util.common import encrypt, get_passphrase
+from mostlyai.sdk._data.db.base import SqlAlchemyContainer
+from mostlyai.sdk._data.file.utils import read_data_table_from_path
+from mostlyai.sdk._data.metadata_objects import ConstraintSchema, TableSchema, ColumnSchema
+from mostlyai.sdk._data.util.common import encrypt, get_passphrase, run_with_timeout_unsafe
 from mostlyai.sdk._local.storage import write_connector_to_json
 from mostlyai.sdk.domain import ConnectorConfig, Connector, ConnectorPatchConfig
+
+_LOG = logging.getLogger(__name__)
 
 
 def create_connector(home_dir: Path, config: ConnectorConfig, test_connection: bool = True) -> Connector:
@@ -48,3 +54,82 @@ def do_test_connection(connector: Connector) -> bool:
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     return True
+
+
+def _data_tables_to_table_schemas(
+    schema: Schema,
+    ordered_table_names: list[str],
+    ordered_locations: list[str],
+) -> list[TableSchema]:
+    table_schemas = []
+    for table_name, location in zip(ordered_table_names, ordered_locations):
+        table = schema.tables[table_name]
+        # auto-detect encoding types
+        table.auto_detect_encoding_types_and_pk(ignore_existing_values=True)
+        # fetch table schema
+        columns = [
+            ColumnSchema(
+                name=col,
+                originalDataType=str(table.dtypes[col].wrapped),
+                defaultModelEncodingType=table.encoding_types[col].value,
+            )
+            for col in table.columns
+        ]
+        relations = schema.subset(relations_to=[table_name]).relations
+        constraints = [
+            ConstraintSchema(foreignKey=rel.child.column, referencedTable=rel.parent.table) for rel in relations
+        ]
+        # fetch table row count - but time-box to 10secs
+        total_rows = run_with_timeout_unsafe(lambda: table.row_count, timeout=10)
+        # instantiate TableSchema
+        table_schema = TableSchema(
+            name=table_name,
+            totalRows=total_rows,
+            primaryKey=table.primary_key,
+            columns=columns,
+            constraints=constraints,
+            location=location,
+        )
+        table_schemas.append(table_schema)
+
+    return table_schemas
+
+
+def _collapse_table_schemas(table_schemas: list[TableSchema]) -> TableSchema:
+    n = len(table_schemas)
+    assert n > 0
+    if n == 1:
+        return table_schemas[0]
+    else:
+        table_schema = table_schemas[0]
+        table_schema.children = table_schemas[1:]
+        return table_schema
+
+
+def location_schema(connector: Connector, location: str, include_children: bool = False) -> TableSchema:
+    container = create_container_from_connector(connector)
+    meta = container.set_location(location)
+    if isinstance(container, SqlAlchemyContainer):
+        db_schema, table_name = meta["db_schema"], meta["table_name"]
+        if include_children:
+            container.filtered_tables = container.get_children(table_name)
+        else:
+            container.filtered_tables = [table_name]
+        container.fetch_schema()
+        schema = container.schema
+        ordered_table_names = container.filtered_tables
+        ordered_locations = [".".join([db_schema, table_name]) for table_name in ordered_table_names]
+    else:
+        location = meta["location"]
+        table = read_data_table_from_path(container)
+        schema = Schema(tables={table.name: table})
+        ordered_table_names = [table.name]
+        ordered_locations = [location]
+
+    table_schemas = _data_tables_to_table_schemas(
+        schema=schema,
+        ordered_table_names=ordered_table_names,
+        ordered_locations=ordered_locations,
+    )
+    table_schema = _collapse_table_schemas(table_schemas)
+    return table_schema

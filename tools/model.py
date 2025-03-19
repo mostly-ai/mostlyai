@@ -18,7 +18,7 @@ from typing import Annotated, Any, ClassVar, Literal
 
 import pandas as pd
 import rich
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, PrivateAttr
 
 from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from mostlyai.sdk.client.base import CustomBaseModel
@@ -388,6 +388,13 @@ class GeneratorConfig:
 
 
 class SourceTableConfig:
+    _enable_model_configuration_validation: bool = PrivateAttr(False)
+
+    def validate_strict(self):
+        """Run strict validation manually."""
+        self._enable_model_configuration_validation = True
+        return self.__class__.model_validate(self)
+
     @field_validator("data", mode="before")
     @classmethod
     def convert_data_before(cls, value):
@@ -422,7 +429,9 @@ class SourceTableConfig:
     @model_validator(mode="after")
     @classmethod
     def add_model_configuration(cls, values):
-        # Check if the table has a tabular and/or a language model
+        if not values._enable_model_configuration_validation:
+            return values
+        # check if the table has a tabular and/or a language model
         columns = values.columns or []
         keys = [fk.column for fk in values.foreign_keys or []]
         if values.primary_key:
@@ -430,29 +439,38 @@ class SourceTableConfig:
         model_columns = [c for c in columns if c.name not in keys]
         if model_columns:
             enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
-            has_tabular_model = any(not enc_type.startswith(ModelType.language) for enc_type in enc_types)
+            has_tabular_model = any(
+                not enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto
+                for enc_type in enc_types
+            )
+            # FIXME: how to determine if a language model is needed when there's ModelEncodingType.auto?
             has_language_model = any(enc_type.startswith(ModelType.language) for enc_type in enc_types)
         else:
             has_tabular_model = True
             has_language_model = False
         if values.foreign_keys:
-            # Always train tabular model for linked tables to model sequences
+            # always train tabular model for linked tables to model sequences
             for fk in values.foreign_keys:
                 if fk.is_context:
                     has_tabular_model = True
-        # Remove model configurations that are not applicable for the model type
+        # remove model configurations that are not applicable for the model type
         if values.tabular_model_configuration and not has_tabular_model:
             values.tabular_model_configuration = None
         if values.language_model_configuration and not has_language_model:
             values.language_model_configuration = None
-        # Add default model configurations if none were provided
-        if has_tabular_model and not values.tabular_model_configuration:
+        # add default model configurations if none were provided
+        if has_tabular_model:
             default_model = "MOSTLY_AI/Medium"
-            values.tabular_model_configuration = ModelConfiguration(model=default_model)
-        if has_language_model and not values.language_model_configuration:
+            if not values.tabular_model_configuration:
+                values.tabular_model_configuration = ModelConfiguration()
+            if not values.tabular_model_configuration.model:
+                values.tabular_model_configuration.model = default_model
+        if has_language_model:
             default_model = "MOSTLY_AI/LSTMFromScratch-3m"
-            values.language_model_configuration = ModelConfiguration(model=default_model, max_sequence_window=None)
-        if has_language_model and values.language_model_configuration:
+            if not values.language_model_configuration:
+                values.language_model_configuration = ModelConfiguration()
+            if not values.language_model_configuration.model:
+                values.language_model_configuration.model = default_model
             # language models atm do not support max_sequence_window; thus set configuration to None
             values.language_model_configuration.max_sequence_window = None
         return values
@@ -837,6 +855,55 @@ class SourceTable:
         if isinstance(values, dict):
             if "id" not in values:
                 values["id"] = str(uuid.uuid4())
+        return values
+
+    @model_validator(mode="after")
+    @classmethod
+    def add_model_configuration(cls, values):
+        # NOTE: since this is not always validated beforehand by SourceTableConfig, we need to run it here to be safe
+
+        # check if the table has a tabular and/or a language model
+        columns = values.columns or []
+        keys = [fk.column for fk in values.foreign_keys or []]
+        if values.primary_key:
+            keys.append(values.primary_key)
+        model_columns = [c for c in columns if c.name not in keys]
+        if model_columns:
+            enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
+            has_tabular_model = any(
+                not enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto
+                for enc_type in enc_types
+            )
+            # FIXME: how to determine if a language model is needed when there's ModelEncodingType.auto?
+            has_language_model = any(enc_type.startswith(ModelType.language) for enc_type in enc_types)
+        else:
+            has_tabular_model = True
+            has_language_model = False
+        if values.foreign_keys:
+            # always train tabular model for linked tables to model sequences
+            for fk in values.foreign_keys:
+                if fk.is_context:
+                    has_tabular_model = True
+        # remove model configurations that are not applicable for the model type
+        if values.tabular_model_configuration and not has_tabular_model:
+            values.tabular_model_configuration = None
+        if values.language_model_configuration and not has_language_model:
+            values.language_model_configuration = None
+        # add default model configurations if none were provided
+        if has_tabular_model:
+            default_model = "MOSTLY_AI/Medium"
+            if not values.tabular_model_configuration:
+                values.tabular_model_configuration = ModelConfiguration()
+            if not values.tabular_model_configuration.model:
+                values.tabular_model_configuration.model = default_model
+        if has_language_model:
+            default_model = "MOSTLY_AI/LSTMFromScratch-3m"
+            if not values.language_model_configuration:
+                values.language_model_configuration = ModelConfiguration()
+            if not values.language_model_configuration.model:
+                values.language_model_configuration.model = default_model
+            # language models atm do not support max_sequence_window; thus set configuration to None
+            values.language_model_configuration.max_sequence_window = None
         return values
 
 

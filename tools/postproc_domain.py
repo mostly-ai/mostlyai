@@ -57,7 +57,7 @@ def postprocess_model_file(file_path):
             new_lines.append(
                 "from enum import Enum\n"
                 "import pandas as pd\nfrom pathlib import Path\n"
-                "from pydantic import field_validator, model_validator\n"
+                "from pydantic import field_validator, model_validator, PrivateAttr\n"
                 "import uuid\n"
                 "import rich\n"
                 "import zipfile\n"
