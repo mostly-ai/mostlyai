@@ -57,8 +57,9 @@ def execute_step_finalize_generation(
     random_samples_dir = job_workspace_dir / "RandomSamples"
     zip_dir = job_workspace_dir / "ZIP"
 
-    total_row_count = sum(table.row_count for table in schema.tables.values())
-    export_csv = total_row_count < 100_000_000  # only export CSV if rows < 100M
+    # calculate total datapoints (rows × columns) across all tables
+    total_datapoints = sum(table.row_count * len(table.columns) for table in schema.tables.values())
+    export_csv = total_datapoints < 100_000_000  # only export CSV if datapoints < 100M
 
     with ProgressCallbackWrapper(update_progress, description="Finalize generation") as progress:
         # init progress with total_count; +4 for the 4 steps below
