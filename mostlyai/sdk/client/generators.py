@@ -291,7 +291,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         response = self.request(
             verb=POST,
             path=[generator_id, "clone"],
-            json={"trainingStatus": training_status},
+            json={"trainingStatus": training_status.upper()},
             response_type=Generator,
         )
         return response
