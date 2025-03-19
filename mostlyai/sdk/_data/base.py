@@ -26,7 +26,6 @@ import time
 import networkx as nx
 import pandas as pd
 
-# from mostlyai.sdk._data.auto_detect import auto_detect_encoding_types_and_pk
 from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk.domain import ModelEncodingType
 
@@ -652,6 +651,21 @@ class DataTable(abc.ABC):
     def auto_detect_encoding_types_and_pk(self, ignore_existing_values: bool = False) -> None:
         """
         Advanced auto-detection of encoding types and primary key.
+
+        This method analyzes the data to intelligently determine the most appropriate
+        encoding types for each column and identify potential primary keys.
+
+        The detection happens in multiple phases:
+        1. Basic type-based promotion of auto encoding types
+        2. Primary key detection
+        3. Sample-based advanced detection for categorical columns
+
+        The process is wrapped with a timeout to ensure it doesn't take too long.
+
+        Args:
+            ignore_existing_values (bool): If True, existing encoding types and primary keys
+                                         will be ignored. This is useful when redetecting or
+                                         when no user-defined values are provided.
         """
         if ignore_existing_values:
             # there are two scenarios where ignore_existing_values will be True:
@@ -801,7 +815,9 @@ class DataTable(abc.ABC):
         return kwargs
 
     def _promote_auto_encoding_types_based_on_dtypes(self):
-        promoted_encoding_types = {}
+        """
+        Promotes auto encoding types to more specific types based on the column's data type.
+        """
         for col_name, encoding_type in self.encoding_types.items():
             match encoding_type:
                 case ModelEncodingType.auto | ModelEncodingType.tabular_auto:
@@ -816,8 +832,6 @@ class DataTable(abc.ABC):
                     f"promoted encoding type {encoding_type.value} to "
                     f"{promoted_enctype.value} for {self.name}.{col_name}"
                 )
-            promoted_encoding_types[col_name] = promoted_enctype
-        self.encoding_types = promoted_encoding_types
 
     @staticmethod
     def _auto_detect_primary_key(sample: pd.DataFrame) -> str | None:
