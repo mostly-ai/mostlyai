@@ -1,6 +1,6 @@
 [project]
 name = "mostlyai"
-version = "4.3.3"
+version = "4.3.4"
 description = "Synthetic Data SDK"
 authors = [{ name = "MOSTLY AI", email = "dev@mostly.ai" }]
 requires-python = ">=3.10,<3.14"
@@ -46,12 +46,15 @@ dependencies = [
 [project.optional-dependencies]
 local = [
     # local
-    "mostlyai-engine==1.1.6",
+    "mostlyai-engine==1.1.7",
     "mostlyai-qa==1.5.7",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch>=2.5.1,<2.6.0",
+    "torch==2.5.1; sys_platform == 'linux'",  # pinned to 2.5.1 for vllm 0.7.2 compatibility
+    "torchaudio==2.5.1; sys_platform == 'linux'",  # pinned to 2.5.1 for vllm 0.7.2 compatibility
+    "torchvision==0.20.1; sys_platform == 'linux'",  # pinned to 0.20.1 for vllm 0.7.2 compatibility
+    "torch>=2.5.1,<2.7.0; sys_platform != 'linux'",
     "joblib>=1.2.0",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
@@ -68,12 +71,15 @@ local = [
     "adlfs>=2023.4.0",
 ]
 local-gpu = [
-    "mostlyai-engine[gpu]==1.1.6",
+    "mostlyai-engine[gpu]==1.1.7",
     "mostlyai-qa[gpu]==1.5.7",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch>=2.5.1,<2.6.0",
+    "torch==2.5.1; sys_platform == 'linux'",  # pinned to 2.5.1 for vllm 0.7.2 compatibility
+    "torchaudio==2.5.1; sys_platform == 'linux'",  # pinned to 2.5.1 for vllm 0.7.2 compatibility
+    "torchvision==0.20.1; sys_platform == 'linux'",  # pinned to 0.20.1 for vllm 0.7.2 compatibility
+    "torch>=2.5.1,<2.7.0; sys_platform != 'linux'",
     "joblib>=1.2.0",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
@@ -90,13 +96,15 @@ local-gpu = [
     "adlfs>=2023.4.0",
 ]
 local-cpu = [
-    "mostlyai-engine[cpu]==1.1.6",
+    "mostlyai-engine[cpu]==1.1.7",
     "mostlyai-qa[cpu]==1.5.7",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch==2.5.1+cpu; sys_platform == 'linux'",
-    "torch>=2.5.1,<2.6.0; sys_platform != 'linux'",
+    "torch==2.5.1+cpu; sys_platform == 'linux'",  # pinned to 2.5.1 for vllm 0.7.2 compatibility
+    "torchaudio==2.5.1+cpu; sys_platform == 'linux'",  # pinned to 2.5.1 for vllm 0.7.2 compatibility
+    "torchvision==0.20.1+cpu; sys_platform == 'linux'",  # pinned to 0.20.1 for vllm 0.7.2 compatibility
+    "torch>=2.5.1,<2.7.0; sys_platform != 'linux'",
     "joblib>=1.2.0",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
@@ -190,7 +198,12 @@ explicit = true
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
-#  { index = "pytorch-gpu", extra = "local-gpu", marker = "sys_platform != 'linux' or platform_machine != 'x86_64'"},
+]
+torchaudio = [
+  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
+]
+torchvision = [
+  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
 ]
 
 [tool.hatch.build.targets.sdist]
