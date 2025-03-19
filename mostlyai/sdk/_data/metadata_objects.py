@@ -22,7 +22,11 @@ T = TypeVar("T")
 Nullable = T | SkipJsonSchema[None]
 
 
-class SslCertificates(BaseModel):
+class CustomBaseModel(BaseModel):
+    model_config = ConfigDict(protected_namespaces=(), populate_by_name=True)
+
+
+class SslCertificates(CustomBaseModel):
     # SSL for Postgres
     root_certificate: Nullable[str] = Field(None, alias="rootCertificate", description="Encrypted root certificate.")
     ssl_certificate: Nullable[str] = Field(None, alias="sslCertificate", description="Encrypted client certificate.")
@@ -33,7 +37,7 @@ class SslCertificates(BaseModel):
     ca_certificate: Nullable[str] = Field(None, alias="caCertificate", description="Encrypted CA certificate.")
 
 
-class AwsS3FileContainerParameters(BaseModel):
+class AwsS3FileContainerParameters(CustomBaseModel):
     access_key: Nullable[str] = Field(None, alias="accessKey")
     secret_key: Nullable[str] = Field(None, alias="secretKey")
     endpoint_url: Nullable[str] = Field(None, alias="endpointUrl")
@@ -42,7 +46,7 @@ class AwsS3FileContainerParameters(BaseModel):
     ca_certificate: Nullable[str] = Field(None, alias="caCertificate", description="Encrypted CA certificate.")
 
 
-class AzureBlobFileContainerParameters(BaseModel):
+class AzureBlobFileContainerParameters(CustomBaseModel):
     account_name: Nullable[str] = Field(None, alias="accountName")
     account_key: Nullable[str] = Field(None, alias="accountKey")
     client_id: Nullable[str] = Field(None, alias="clientId")
@@ -50,21 +54,21 @@ class AzureBlobFileContainerParameters(BaseModel):
     tenant_id: Nullable[str] = Field(None, alias="tenantId")
 
 
-class GcsContainerParameters(BaseModel):
+class GcsContainerParameters(CustomBaseModel):
     key_file: Nullable[str] = Field(None, alias="keyFile")
 
 
-class MinIOContainerParameters(BaseModel):
+class MinIOContainerParameters(CustomBaseModel):
     endpoint_url: Nullable[str] = Field(None, alias="endpointUrl")
     access_key: Nullable[str] = Field(None, alias="accessKey")
     secret_key: Nullable[str] = Field(None, alias="secretKey")
 
 
-class LocalFileContainerParameters(BaseModel):
+class LocalFileContainerParameters(CustomBaseModel):
     pass
 
 
-class SqlAlchemyContainerParameters(BaseModel):
+class SqlAlchemyContainerParameters(CustomBaseModel):
     model_config = ConfigDict(extra="allow")
 
     username: Nullable[str] = None
@@ -127,7 +131,7 @@ class DatabricksContainerParameters(SqlAlchemyContainerParameters):
     tenant_id: Nullable[str] = Field(None, alias="tenantId")
 
 
-class ConnectionResponse(BaseModel):
+class ConnectionResponse(CustomBaseModel):
     connection_succeeded: bool = Field(
         False,
         alias="connectionSucceeded",
@@ -136,17 +140,17 @@ class ConnectionResponse(BaseModel):
     message: str = Field("", description="A message describing the result of the test.")
 
 
-class LocationsResponse(BaseModel):
+class LocationsResponse(CustomBaseModel):
     locations: list[str] = Field(None, description="The list of locations")
 
 
-class ColumnSchema(BaseModel):
+class ColumnSchema(CustomBaseModel):
     name: Nullable[str] = None
     original_data_type: Annotated[Nullable[str], Field(alias="originalDataType")] = None
     default_model_encoding_type: Annotated[Nullable[str], Field(alias="defaultModelEncodingType")] = None
 
 
-class ConstraintSchema(BaseModel):
+class ConstraintSchema(CustomBaseModel):
     foreign_key: Annotated[
         Nullable[str],
         Field(
@@ -160,9 +164,9 @@ class ConstraintSchema(BaseModel):
     ] = None
 
 
-class TableSchema(BaseModel):
+class TableSchema(CustomBaseModel):
     name: Annotated[Nullable[str], Field(description="The name of the table.")] = None
-    totalRows: Annotated[
+    total_rows: Annotated[
         Nullable[int],
         Field(
             alias="totalRows",
