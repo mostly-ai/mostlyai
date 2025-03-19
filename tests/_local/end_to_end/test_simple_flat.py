@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest.mock import patch
 
+from mostlyai.sdk._data.metadata_objects import ColumnSchema, TableSchema
 from mostlyai.sdk.client.exceptions import APIStatusError
 import pytest
 from mostlyai.sdk import MostlyAI
-from mostlyai.sdk.domain import GeneratorConfig, SyntheticDatasetConfig, ProgressStatus
+from mostlyai.sdk.domain import GeneratorConfig, SyntheticDatasetConfig, ModelEncodingType, ProgressStatus
 import pandas as pd
 
 
@@ -121,17 +123,41 @@ def test_simple_flat(tmp_path, encoding_types):
         "ssl": None,
     }
     connector = mostly.connect(config=connector_cfg, test_connection=False)
-    new_g = mostly.generators.create(
-        config={
-            "name": "Test 3",
-            "tables": [
-                {
-                    "name": "test_table",
-                    "source_connector_id": connector.id,
-                }
+    with pytest.raises(APIStatusError):
+        mostly.generators.create(
+            config={
+                "name": "Test 3",
+                "tables": [
+                    {
+                        "name": "test_table",
+                        "source_connector_id": connector.id,
+                        "location": "bucket/folder/table.csv",
+                    }
+                ],
+            }
+        )
+    with patch(
+        "mostlyai.sdk._local.connectors.location_schema",
+        return_value=TableSchema(
+            columns=[
+                ColumnSchema(name="col1", default_model_encoding_type=ModelEncodingType.tabular_numeric_auto.value),
+                ColumnSchema(name="col2", default_model_encoding_type=ModelEncodingType.tabular_categorical.value),
             ],
-        }
-    )
+            primary_key="col1",
+        ),
+    ):
+        new_g = mostly.generators.create(
+            config={
+                "name": "Test 3",
+                "tables": [
+                    {
+                        "name": "test_table",
+                        "source_connector_id": connector.id,
+                        "location": "bucket/folder/table.csv",
+                    }
+                ],
+            }
+        )
     new_g_clone = new_g.clone(training_status="NEW")
     assert new_g_clone.name == "Test 3"
     assert new_g_clone.tables[0].source_connector_id == connector.id

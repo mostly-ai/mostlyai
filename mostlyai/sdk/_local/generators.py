@@ -15,6 +15,7 @@
 from pathlib import Path
 
 import rich
+from fastapi import HTTPException
 
 from mostlyai.sdk._local import connectors
 from mostlyai.sdk._local.storage import (
@@ -22,6 +23,7 @@ from mostlyai.sdk._local.storage import (
     write_connector_to_json,
     write_job_progress_to_json,
     read_generator_from_json,
+    read_connector_from_json,
 )
 from mostlyai.sdk._local.execution.plan import (
     has_tabular_model,
@@ -68,13 +70,23 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
             t.source_connector_id = connector.id
             t.location = str(fn.absolute())
             write_connector_to_json(home_dir / "connectors" / connector.id, connector)
+        else:
+            connector = read_connector_from_json(home_dir / "connectors" / t.source_connector_id)
 
-        # auto detection is only needed if columns are empty or have auto encoding types
+        # auto-detection is only needed if columns are empty or have auto encoding types
         should_detect_schema = (t.columns is None) or any(
             col.model_encoding_type == ModelEncodingType.auto for col in (t.columns or [])
         )
         if should_detect_schema:
-            table_schema = connectors.location_schema(connector, t.location)
+            try:
+                table_schema = connectors.location_schema(connector, t.location)
+            except Exception:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Cannot create generator due to failure to fetch schema of `{t.name}`."
+                    " Please check whether source_connector_id and location are correct.",
+                )
+
             auto_detected_columns = {c.name: c.default_model_encoding_type for c in table_schema.columns}
             auto_detected_primary_key = table_schema.primary_key
 
