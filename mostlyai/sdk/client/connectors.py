@@ -179,6 +179,10 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             verb=POST,
             path=[connector_id, "read-data"],
             json={"location": location, "limit": limit, "shuffle": shuffle},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/octet-stream, application/json",
+            },
             raw_response=True,
         )
         content_bytes = response.content
