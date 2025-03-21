@@ -246,11 +246,11 @@ class Routes:
 
         @self.router.post("/connectors/{id}/write-data")
         async def write_data(
-            id: str, file: UploadFile = File(...), location: str = Form(...), if_exists: IfExists = Form("FAIL")
+            id: str, file: UploadFile | None = File(None), location: str = Form(...), if_exists: IfExists = Form("FAIL")
         ) -> None:
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
-            file_content = await file.read()
+            file_content = await file.read() if file else None
             config = ConnectorWriteDataConfig(location=location, file=file_content, if_exists=if_exists)
             connectors.write_data_to_connector(connector, config)
 
