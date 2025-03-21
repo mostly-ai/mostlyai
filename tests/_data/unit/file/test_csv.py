@@ -16,6 +16,7 @@ import csv
 import os
 import random
 import tempfile
+import datetime
 
 import numpy as np
 import pandas as pd
@@ -105,6 +106,80 @@ def test_write_data(tmp_path):
     csv_data_table.write_data(df)
     df_read = csv_data_table.read_data()
     assert df_read.shape == df.shape
+
+
+@pytest.mark.parametrize(
+    "scenario, file_extension, sep",
+    [
+        ("csv_file", "csv", ","),  # Test with a single CSV file
+        ("tsv_file", "tsv", "\t"),  # Test with a single TSV file
+        ("directory", "csv", ","),  # Test with a directory containing multiple CSV files
+    ],
+)
+def test_query(tmp_path, scenario, file_extension, sep):
+    rows = 99
+    data = {
+        "num": list(range(rows)),  # Numbers 0-98
+        "str": [chr(97 + i % 3) for i in range(rows)],  # Rotating 'a', 'b', 'c'
+        "dt": [datetime.datetime(2023, 1, 1) + datetime.timedelta(days=i) for i in range(rows)],  # Sequential dates
+        "cat": [f"c{i % 3 + 1}" for i in range(rows)],  # Categories c1, c2, c3
+    }
+    df = pd.DataFrame(data)
+    category_count = rows // 3
+
+    if scenario == "directory":
+        dir_path = tmp_path / "data_dir"
+        dir_path.mkdir()
+        chunk_size = 25
+        for i in range(0, rows, chunk_size):
+            chunk = df.iloc[i : i + chunk_size]
+            chunk.to_csv(dir_path / f"part{i // chunk_size}.{file_extension}", sep=sep, index=False)
+        data_table = CsvDataTable(path=str(dir_path))
+    else:
+        file_path = tmp_path / f"data.{file_extension}"
+        df.to_csv(file_path, sep=sep, index=False)
+        data_table = CsvDataTable(path=str(file_path))
+
+    container = data_table.container
+    query_base = "SELECT * FROM data"
+
+    # basic select
+    result = container.query(query_base)
+    assert len(result) == rows
+    assert set(result.columns) == {"num", "str", "dt", "cat"}
+
+    # where
+    filter_query = f"{query_base} WHERE cat = 'c1'"
+    result = container.query(filter_query)
+    assert len(result) == category_count
+    assert all(row == "c1" for row in result["cat"])
+
+    # aggregation
+    agg_query = """
+        SELECT cat, COUNT(*) as count, AVG(num) as avg_num
+        FROM data
+        GROUP BY cat
+        ORDER BY cat
+    """
+    result = container.query(agg_query)
+    assert len(result) == 3  # 3 categories
+    assert list(result["cat"]) == ["c1", "c2", "c3"]
+    assert all(result["count"] == category_count)
+
+    # order by
+    order_query = """
+        SELECT * FROM data
+        ORDER BY num DESC
+        LIMIT 5
+    """
+    result = container.query(order_query)
+    assert len(result) == 5
+    assert list(result["num"]) == [98, 97, 96, 95, 94]
+
+    # limit
+    limit_query = "SELECT * FROM data LIMIT 10"
+    result = container.query(limit_query)
+    assert len(result) == 10
 
 
 def test_csv_format(csv_file):

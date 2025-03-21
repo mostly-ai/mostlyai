@@ -24,6 +24,7 @@ from typing import Any
 from collections.abc import Generator, Iterable
 from urllib.parse import urlparse
 
+import duckdb
 import pandas as pd
 import pyarrow
 import pyarrow as pa
@@ -492,6 +493,50 @@ class FileContainer(DataContainer):
     def set_location(self, location: str) -> dict:
         self.set_uri(location)
         return {"location": location}
+
+    def query(self, sql: str) -> pd.DataFrame:
+        try:
+            valid_files = self.list_valid_files()
+            if not valid_files:
+                raise MostlyDataException(f"No valid files found at {self.path_str}")
+            # TODO improve this
+            first_file = valid_files[0]
+            file_str = str(first_file)
+            file_name, file_type = get_file_name_and_type(file_str)
+
+            def create_view(con, file_type, path_str, is_directory):
+                pattern = f"{path_str}/*" if is_directory else path_str
+                command_templates = {
+                    FileType.parquet: "CREATE VIEW data AS SELECT * FROM parquet_scan('{pattern}')",
+                    FileType.csv: "CREATE VIEW data AS SELECT * FROM read_csv_auto('{pattern}')",
+                    FileType.tsv: "CREATE VIEW data AS SELECT * FROM read_csv_auto('{pattern}', delim='\t')",
+                    FileType.json: "CREATE VIEW data AS SELECT * FROM read_json_auto('{pattern}')",
+                    FileType.feather: "CREATE VIEW data AS SELECT * FROM arrow_scan('{pattern}')",
+                }
+                command = command_templates.get(file_type)
+                if command:
+                    con.execute(command.format(pattern=pattern))
+                else:
+                    _LOG.warning(
+                        f"File type {file_type} is not directly supported for SQL queries. Skipping {path_str}"
+                    )
+
+            # Use a context manager for the DuckDB connection
+            with duckdb.connect(database=":memory:") as con:
+                is_directory = self.path.is_dir()
+                create_view(con, file_type, self.path_str, is_directory)
+                result = con.execute(sql).fetchdf()
+
+            return result
+        except duckdb.IOException as e:
+            _LOG.error(f"IO Error executing query: {str(e)}")
+            raise
+        except duckdb.Error as e:
+            _LOG.error(f"DuckDB Error executing query: {str(e)}")
+            raise
+        except Exception as e:
+            _LOG.error(f"Unexpected error executing query: {str(e)}")
+            raise
 
 
 class LocalFileContainer(FileContainer):

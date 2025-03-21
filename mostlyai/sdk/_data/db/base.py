@@ -587,6 +587,14 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
     def does_database_exist(self) -> bool:
         pass
 
+    def query(self, sql: str) -> pd.DataFrame:
+        with self.init_sa_connection() as engine:
+            try:
+                return pd.read_sql(sql, engine)
+            except sa.exc.SQLAlchemyError as e:
+                _LOG.error(f"Error executing query: {str(e)}")
+                raise
+
     def drop_all(self):
         if self.sa_metadata:
             with self.use_sa_engine() as sa_engine:
