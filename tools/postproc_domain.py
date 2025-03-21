@@ -87,7 +87,7 @@ def postprocess_model_file(file_path):
     new_lines.extend(f"\n{cls}\n" for cls in private_classes)
 
     docstring_decorator = """
-def add_fields_to_docstring(cls):
+def _add_fields_to_docstring(cls):
     lines = [f"{cls.__doc__.strip()}\\n"] if cls.__doc__ else []
     lines += ["Attributes:"]
     for name, field in cls.model_fields.items():
@@ -108,7 +108,7 @@ def add_fields_to_docstring(cls):
 # add fields to docstring for all the subclasses of CustomBaseModel
 for _, _obj in inspect.getmembers(sys.modules[__name__]):
     if inspect.isclass(_obj) and issubclass(_obj, CustomBaseModel) and _obj is not CustomBaseModel:
-        add_fields_to_docstring(_obj)
+        _add_fields_to_docstring(_obj)
     """
     new_lines.append(docstring_decorator)
 
