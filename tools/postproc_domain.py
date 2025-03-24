@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import ast
+import re
 
 # Constant for the file path
 FILE_PATH = "mostlyai/sdk/domain.py"
@@ -112,9 +113,14 @@ for _, _obj in inspect.getmembers(sys.modules[__name__]):
     """
     new_lines.append(docstring_decorator)
 
+    # make sure secrets/ssl in Connector* classes are not included in the repr
+    content = "".join(new_lines)
+    content = re.sub(r"(secrets: )([^=]+?)( =)", r"\1Annotated[\2, Field(repr=False)]\3", content)
+    content = re.sub(r"(ssl: )([^=]+?)( =)", r"\1Annotated[\2, Field(repr=False)]\3", content)
+
     # Write the modified contents back to the file
     with open(file_path, "w") as file:
-        file.writelines(new_lines)
+        file.write(content)
 
 
 if __name__ == "__main__":
