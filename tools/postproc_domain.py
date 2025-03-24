@@ -59,7 +59,6 @@ def postprocess_model_file(file_path):
                 "from enum import Enum\n"
                 "import pandas as pd\nfrom pathlib import Path\n"
                 "from pydantic import field_validator, model_validator\n"
-                "from pydantic._internal._repr import display_as_type\n"
                 "import uuid\n"
                 "import rich\n"
                 "import zipfile\n"
@@ -95,7 +94,19 @@ def _add_fields_to_docstring(cls):
         if name in CustomBaseModel.model_fields:
             continue
         field_str = f"  {name}"
-        field_str += f" ({display_as_type(field.annotation)})" if field.annotation else ""
+        if field.annotation:
+            if isinstance(field.annotation, type):
+                annotation_str = field.annotation.__name__
+            else:
+                annotation_str = (
+                    str(field.annotation)
+                    .replace("mostlyai.sdk.domain.", "")
+                    .replace("typing.", "")
+                    .replace("datetime.", "")
+                )
+        else:
+            annotation_str = ""
+        field_str += f" ({annotation_str})" if field.annotation else ""
         desc_str = f" {field.description}" if field.description else ""
         examples = getattr(field, "examples", None)
         examples_str = f" Examples: {examples[0]}" if examples else ""
