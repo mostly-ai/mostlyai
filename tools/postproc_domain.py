@@ -107,7 +107,7 @@ def _add_fields_to_docstring(cls):
         else:
             annotation_str = ""
         field_str += f" ({annotation_str})" if field.annotation else ""
-        desc_str = f" {field.description}" if field.description else ""
+        desc_str = f" {field.description.strip()}" if field.description else ""
         examples = getattr(field, "examples", None)
         examples_str = f" Examples: {examples[0]}" if examples else ""
         if desc_str or examples_str:
