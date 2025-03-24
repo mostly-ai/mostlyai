@@ -13,10 +13,13 @@
 # limitations under the License.
 
 from __future__ import annotations
+
+import io
 from typing import Any
 from collections.abc import Iterator
 
 import rich
+import pandas as pd
 
 from mostlyai.sdk.client.base import (
     DELETE,
@@ -31,6 +34,8 @@ from mostlyai.sdk.domain import (
     ConnectorListItem,
     ConnectorPatchConfig,
     ConnectorConfig,
+    ConnectorWriteDataConfig,
+    IfExists,
 )
 
 
@@ -166,3 +171,41 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
     def _schema(self, connector_id: str, location: str) -> list[dict[str, Any]]:
         response = self.request(verb=GET, path=[connector_id, "schema"], params={"location": location})
         return response
+
+    def _read_data(
+        self, connector_id: str, location: str, limit: int | None = None, shuffle: bool = False
+    ) -> pd.DataFrame:
+        response = self.request(
+            verb=POST,
+            path=[connector_id, "read-data"],
+            json={"location": location, "limit": limit, "shuffle": shuffle},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/octet-stream, application/json",
+            },
+            raw_response=True,
+        )
+        content_bytes = response.content
+        df = pd.read_parquet(io.BytesIO(content_bytes))
+        return df
+
+    def _write_data(
+        self, connector_id: str, data: pd.DataFrame, location: str, if_exists: IfExists = IfExists.fail
+    ) -> None:
+        buffer = io.BytesIO()
+        data.to_parquet(buffer, index=False)
+        buffer.seek(0)
+
+        files = {
+            "file": ("data.parquet", buffer, "application/octet-stream"),
+        }
+        config_data = ConnectorWriteDataConfig(location=location, if_exists=if_exists.upper()).model_dump(
+            mode="json", exclude_unset=True
+        )
+
+        self.request(
+            verb="POST",
+            path=[connector_id, "write-data"],
+            files=files,
+            data=config_data,
+        )

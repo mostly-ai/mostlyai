@@ -365,6 +365,15 @@ class FileDataTable(DataTable, abc.ABC):
     def _get_columns(self) -> list[str]:
         return [c.name for c in self.dataset.schema if c.name != ""]
 
+    def handle_if_exists(self, if_exists: str = "fail") -> str:
+        destination_exists = self.container.path.exists()
+        if destination_exists:
+            if if_exists == "fail":
+                raise MostlyDataException("Destination location already exists.")
+            elif if_exists == "append" and self.IS_WRITE_APPEND_ALLOWED:
+                return "a"
+        return "w"
+
 
 class FileContainer(DataContainer):
     SCHEMES = ["http", "https"]

@@ -19,10 +19,12 @@ import uuid
 import zipfile
 from io import BytesIO
 from pathlib import Path
+import tempfile
 
-from fastapi import APIRouter, Body, HTTPException, UploadFile, File
+from fastapi import APIRouter, Body, HTTPException, UploadFile, File, Form
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse, RedirectResponse
+from starlette.background import BackgroundTask
 
 from mostlyai import sdk
 from mostlyai.sdk._data.conversions import create_container_from_connector
@@ -56,6 +58,9 @@ from mostlyai.sdk.domain import (
     GeneratorCloneTrainingStatus,
     SyntheticDatasetReportType,
     SyntheticDatasetListItem,
+    ConnectorReadDataConfig,
+    IfExists,
+    ConnectorWriteDataConfig,
 )
 from mostlyai.sdk._local.storage import (
     read_generator_from_json,
@@ -165,8 +170,6 @@ class Routes:
         @self.router.get("/connectors/{id}", response_model=Connector)
         async def get_connector(id: str) -> Connector:
             connector_dir = self.home_dir / "connectors" / id
-            if not connector_dir.exists():
-                raise HTTPException(status_code=404, detail=f"Connector `{id}` not found")
             connector = read_connector_from_json(connector_dir)
             return connector
 
@@ -207,6 +210,33 @@ class Routes:
                 return table_schema.columns
             except Exception as e:
                 return JSONResponse(status_code=400, content=str(e))
+
+        @self.router.post("/connectors/{id}/read-data")
+        async def read_data(id: str, config: ConnectorReadDataConfig = Body(...)) -> StreamingResponse:
+            connector_dir = self.home_dir / "connectors" / id
+            connector = read_connector_from_json(connector_dir)
+            df = connectors.read_data_from_connector(connector, config)
+
+            # this file can only be safely removed once the streaming response is complete
+            tmp_path = tempfile.mktemp(suffix=".parquet")
+            df.to_parquet(tmp_path)
+
+            return StreamingResponse(
+                open(tmp_path, mode="rb"),
+                media_type="application/octet-stream",
+                headers={"Content-Disposition": "attachment; filename=data.parquet"},
+                background=BackgroundTask(Path(tmp_path).unlink, missing_ok=True),
+            )
+
+        @self.router.post("/connectors/{id}/write-data")
+        async def write_data(
+            id: str, file: UploadFile = File(...), location: str = Form(...), if_exists: IfExists = Form("FAIL")
+        ) -> None:
+            connector_dir = self.home_dir / "connectors" / id
+            connector = read_connector_from_json(connector_dir)
+            file_content = await file.read()
+            config = ConnectorWriteDataConfig(location=location, file=file_content, if_exists=if_exists)
+            connectors.write_data_to_connector(connector, config)
 
         ## GENERATORS
 

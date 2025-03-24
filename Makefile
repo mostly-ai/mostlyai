@@ -31,6 +31,7 @@ COMMON_OPTIONS = \
 	--use-one-literal-as-default \
 	--enum-field-as-literal one \
 	--use-subclass-enum \
+	--set-default-enum-member \
 	--output-model-type pydantic_v2.BaseModel \
 	--base-class mostlyai.sdk.client.base.CustomBaseModel \
 	--custom-template-dir tools/custom_template

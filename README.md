@@ -147,9 +147,9 @@ pip install -U 'mostlyai[local]'
 pip install -U 'mostlyai[local-cpu]' --extra-index-url https://download.pytorch.org/whl/cpu
 # for GPU on Linux
 pip install -U 'mostlyai[local-gpu]'
-# if torch>=2.6.0 is pre-installed (like Google Colab) run this
-pip install torch==2.5.1 torchaudio==2.5.1 torchvision==0.20.1
 ```
+
+> **Note for Google Colab users**: Installing any of the local extras (`mostlyai[local]`, `mostlyai[local-cpu]`, or `mostlyai[local-gpu]`) will downgrade PyTorch from 2.6.0 to 2.5.1. You'll need to restart the runtime after installation for the changes to take effect.
 
 Add any of the following extras for further data connectors support in LOCAL mode: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`. E.g.
 
