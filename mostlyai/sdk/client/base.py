@@ -253,7 +253,9 @@ class CustomBaseModel(BaseModel):
         # Use rich.print to create a rich representation of the model
         console = Console()
         with console.capture() as capture:
-            rich.print(self.model_dump())
+            # dump the model while making sure attributes with repr=False is excluded
+            safe_model_dump = {k: v for k, v in self.__repr_args__()}
+            rich.print(safe_model_dump)
         return capture.get()
 
     def open(self) -> None:
