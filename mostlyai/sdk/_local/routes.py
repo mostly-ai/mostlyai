@@ -254,6 +254,23 @@ class Routes:
             config = ConnectorWriteDataConfig(location=location, file=file_content, if_exists=if_exists)
             connectors.write_data_to_connector(connector, config)
 
+        @self.router.post("/connectors/{id}/query")
+        async def query(id: str, sql: str = Body(..., embed=True)) -> StreamingResponse:
+            connector_dir = self.home_dir / "connectors" / id
+            connector = read_connector_from_json(connector_dir)
+            df = connectors.query_data_from_connector(connector, sql)
+
+            # this file can only be safely removed once the streaming response is complete
+            tmp_path = tempfile.mktemp(suffix=".parquet")
+            df.to_parquet(tmp_path)
+
+            return StreamingResponse(
+                open(tmp_path, mode="rb"),
+                media_type="application/octet-stream",
+                headers={"Content-Disposition": "attachment; filename=query_result.parquet"},
+                background=BackgroundTask(Path(tmp_path).unlink, missing_ok=True),
+            )
+
         ## GENERATORS
 
         @self.router.get("/generators")

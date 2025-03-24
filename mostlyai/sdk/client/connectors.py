@@ -209,3 +209,18 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             files=files,
             data=config_data,
         )
+
+    def _query(self, connector_id: str, sql: str) -> pd.DataFrame:
+        response = self.request(
+            verb=POST,
+            path=[connector_id, "query"],
+            json={"sql": sql},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/octet-stream, application/json",
+            },
+            raw_response=True,
+        )
+        content_bytes = response.content
+        df = pd.read_parquet(io.BytesIO(content_bytes))
+        return df

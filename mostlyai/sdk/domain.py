@@ -1732,6 +1732,18 @@ class Connector(CustomBaseModel):
         """
         self.client._write_data(connector_id=self.id, data=data, location=location, if_exists=if_exists)
 
+    def query(self, sql: str) -> pd.DataFrame:
+        """
+        Execute an SQL query on the connector's data source.
+
+        Args:
+            sql (str): The SQL query to execute.
+
+        Returns:
+            pd.DataFrame: The result of the query as a Pandas DataFrame.
+        """
+        return self.client._query(connector_id=self.id, sql=sql)
+
 
 class GeneratorListItem(CustomBaseModel):
     """

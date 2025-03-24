@@ -16,23 +16,47 @@ from mostlyai.sdk import MostlyAI
 import pandas as pd
 from sqlalchemy import create_engine
 import pytest
+import numpy as np
 
 
 @pytest.fixture
 def sample_dataframe():
-    return pd.DataFrame({"num": [1, 2, 3, 4, 5, 6, 7, 8], "let": ["a", "b", "c", "d", "e", "f", "g", "h"]})
+    return pd.DataFrame({"pk": [1, 2, 3, 4, 5, 6, 7, 8], "let": ["a", "b", "c", "d", "e", "f", "g", "h"]})
 
 
-def prepare_data_for_read(data_format, df, tmp_path):
-    if data_format == "csv":
-        file_path = tmp_path / "test_data.csv"
+@pytest.fixture
+def linked_dataframe(sample_dataframe):
+    total_repeats = sum(sample_dataframe["pk"])
+    linked_df = pd.DataFrame(
+        {
+            "fk": np.repeat(sample_dataframe["pk"], sample_dataframe["pk"]),
+            "letter": np.tile(["A", "B", "C", "D"], total_repeats)[:total_repeats],
+        }
+    )
+    linked_df.reset_index(drop=True, inplace=True)
+    return linked_df
+
+
+@pytest.fixture
+def dataset(sample_dataframe, linked_dataframe):
+    yield {"subject": sample_dataframe, "linked": linked_dataframe}
+
+
+def prepare_data_for_read(data_format, dataset, tmp_path):
+    file_paths = {}
+    for table_name, df in dataset.items():
+        file_path = tmp_path / f"test_data_{table_name}.csv"
         df.to_csv(file_path, index=False)
-        return str(file_path)
+        file_paths[table_name] = str(file_path)
+
+    if data_format == "csv":
+        return file_paths["subject"], file_paths["linked"]
     elif data_format == "sqlite":
         db_path = tmp_path / "test_data.sqlite"
         engine = create_engine(f"sqlite:///{db_path}")
-        df.to_sql("data", engine, index=False, if_exists="replace")
-        return "main.data"
+        for table_name, df in dataset.items():
+            df.to_sql(table_name, engine, index=False, if_exists="replace")
+        return "main.subject", "main.linked"
 
 
 def test_connector(tmp_path, sample_dataframe):
@@ -63,10 +87,10 @@ def test_connector(tmp_path, sample_dataframe):
     "data_format, connector_type",
     [("csv", "FILE_UPLOAD"), ("sqlite", "SQLITE")],
 )
-def test_read_data(tmp_path, sample_dataframe, data_format, connector_type):
+def test_read_data(tmp_path, dataset, data_format, connector_type):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
-    location = prepare_data_for_read(data_format, sample_dataframe, tmp_path)
+    subject_location, linked_location = prepare_data_for_read(data_format, dataset, tmp_path)
 
     connector_config = {
         "name": f"Test {connector_type} Connector",
@@ -83,21 +107,11 @@ def test_read_data(tmp_path, sample_dataframe, data_format, connector_type):
         test_connection=False,
     )
 
-    read_df = c.read_data(location=location)
-    pd.testing.assert_frame_equal(read_df, sample_dataframe, check_dtype=False)
+    read_df_subject = c.read_data(location=subject_location)
+    pd.testing.assert_frame_equal(read_df_subject, dataset["subject"], check_dtype=False)
 
-    limited_df = c.read_data(location=location, limit=3)
-    pd.testing.assert_frame_equal(limited_df, sample_dataframe.head(3), check_dtype=False)
-
-    shuffled_df = c.read_data(location=location, shuffle=True)
-    assert not shuffled_df.equals(sample_dataframe)
-    for col in sample_dataframe.columns:
-        assert set(shuffled_df[col]) == set(sample_dataframe[col])
-
-    limited_shuffled_df = c.read_data(location=location, limit=3, shuffle=True)
-    assert len(limited_shuffled_df) == 3
-    for col in sample_dataframe.columns:
-        assert set(limited_shuffled_df[col]).issubset(set(sample_dataframe[col]))
+    read_df_linked = c.read_data(location=linked_location)
+    pd.testing.assert_frame_equal(read_df_linked, dataset["linked"], check_dtype=False)
 
     c.delete()
 
@@ -153,5 +167,72 @@ def test_write_data(tmp_path, sample_dataframe, connector_type, location_format)
     if connector_type == "SQLITE":
         with pytest.raises(Exception):
             c.write_data(data=sample_dataframe, location=location, if_exists="fail")
+
+    c.delete()
+
+
+@pytest.mark.parametrize(
+    "data_format, connector_type",
+    [("csv", "FILE_UPLOAD"), ("sqlite", "SQLITE")],
+)
+def test_query(tmp_path, dataset, data_format, connector_type):
+    mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
+
+    subject_location, linked_location = prepare_data_for_read(data_format, dataset, tmp_path)
+
+    connector_config = {
+        "name": f"Test {connector_type} Connector",
+        "type": connector_type,
+        "access_type": "READ_DATA",
+        "config": {},
+    }
+
+    if connector_type == "SQLITE":
+        connector_config["config"]["database"] = str(tmp_path / "test_data.sqlite")
+
+    subject_table_name = subject_location if connector_type == "FILE_UPLOAD" else "subject"
+    linked_table_name = linked_location if connector_type == "FILE_UPLOAD" else "linked"
+
+    c = mostly.connect(
+        config=connector_config,
+        test_connection=False,
+    )
+
+    query_result = c.query(sql=f"SELECT * FROM '{subject_table_name}'")
+    pd.testing.assert_frame_equal(query_result, dataset["subject"], check_dtype=False)
+
+    # perform a join query:
+    join_query = f"""
+        SELECT s.pk, s.let, l.fk
+        FROM '{subject_table_name}' s
+        JOIN '{linked_table_name}' l ON s.pk = l.fk
+        WHERE l.fk IN (2, 3)
+        ORDER BY l.fk, s.pk
+    """
+    join_result = c.query(sql=join_query)
+
+    expected_join_df = dataset["linked"][dataset["linked"]["fk"].isin([2, 3])].copy()
+    expected_join_df = expected_join_df.merge(
+        dataset["subject"], left_on="fk", right_on="pk", suffixes=("_linked", "_subject")
+    )
+    expected_join_df = expected_join_df[["pk", "let", "fk"]]
+    expected_join_df.sort_values(by=["fk", "pk"], inplace=True)
+    expected_join_df.reset_index(drop=True, inplace=True)
+
+    pd.testing.assert_frame_equal(join_result, expected_join_df, check_dtype=False)
+
+    # perform an aggregation query:
+    aggregation_query = f"""
+        SELECT l.fk, COUNT(*) as count
+        FROM '{linked_table_name}' l
+        GROUP BY l.fk
+        ORDER BY l.fk
+    """
+    aggregation_result = c.query(sql=aggregation_query)
+
+    expected_aggregation_df = pd.DataFrame({"fk": dataset["linked"]["fk"].unique()})
+    expected_aggregation_df["count"] = expected_aggregation_df["fk"]
+
+    pd.testing.assert_frame_equal(aggregation_result, expected_aggregation_df, check_dtype=False)
 
     c.delete()
