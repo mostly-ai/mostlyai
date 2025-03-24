@@ -191,17 +191,15 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         return df
 
     def _write_data(
-        self, connector_id: str, data: pd.DataFrame | None, location: str, if_exists: IfExists = IfExists.fail
+        self, connector_id: str, data: pd.DataFrame, location: str, if_exists: IfExists = IfExists.fail
     ) -> None:
-        files = {}
-        if data is not None:
-            buffer = io.BytesIO()
-            data.to_parquet(buffer, index=False)
-            buffer.seek(0)
-            files = {
-                "file": ("data.parquet", buffer, "application/octet-stream"),
-            }
+        buffer = io.BytesIO()
+        data.to_parquet(buffer, index=False)
+        buffer.seek(0)
 
+        files = {
+            "file": ("data.parquet", buffer, "application/octet-stream"),
+        }
         config_data = ConnectorWriteDataConfig(location=location, if_exists=if_exists.upper()).model_dump(
             mode="json", exclude_unset=True, by_alias=True
         )
@@ -221,3 +219,18 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             path=[connector_id, "delete-data"],
             json=config_data,
         )
+
+    def _query(self, connector_id: str, sql: str) -> pd.DataFrame:
+        response = self.request(
+            verb=POST,
+            path=[connector_id, "query"],
+            json={"sql": sql},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/octet-stream, application/json",
+            },
+            raw_response=True,
+        )
+        content_bytes = response.content
+        df = pd.read_parquet(io.BytesIO(content_bytes))
+        return df

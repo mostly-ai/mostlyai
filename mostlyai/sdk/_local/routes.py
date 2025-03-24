@@ -247,14 +247,11 @@ class Routes:
 
         @self.router.post("/connectors/{id}/write-data")
         async def write_data(
-            id: str,
-            file: UploadFile | None = File(None),
-            location: str = Form(...),
-            if_exists: IfExists = Form("FAIL", alias="ifExists"),
+            id: str, file: UploadFile = File(...), location: str = Form(...), if_exists: IfExists = Form("FAIL")
         ) -> None:
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
-            file_content = await file.read() if file else None
+            file_content = await file.read()
             config = ConnectorWriteDataConfig(location=location, file=file_content, if_exists=if_exists)
             connectors.write_data_to_connector(connector, config)
 
@@ -263,6 +260,23 @@ class Routes:
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
             connectors.delete_data_from_connector(connector, config)
+
+        @self.router.post("/connectors/{id}/query")
+        async def query(id: str, sql: str = Body(..., embed=True)) -> StreamingResponse:
+            connector_dir = self.home_dir / "connectors" / id
+            connector = read_connector_from_json(connector_dir)
+            df = connectors.query_data_from_connector(connector, sql)
+
+            # this file can only be safely removed once the streaming response is complete
+            tmp_path = tempfile.mktemp(suffix=".parquet")
+            df.to_parquet(tmp_path)
+
+            return StreamingResponse(
+                open(tmp_path, mode="rb"),
+                media_type="application/octet-stream",
+                headers={"Content-Disposition": "attachment; filename=query_result.parquet"},
+                background=BackgroundTask(Path(tmp_path).unlink, missing_ok=True),
+            )
 
         ## GENERATORS
 

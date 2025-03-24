@@ -23,6 +23,7 @@ import pandas as pd
 import pyarrow.dataset as ds
 import pytest
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
+import duckdb
 
 
 def test_read_data(sample_csv_file):
@@ -134,51 +135,49 @@ def test_query(tmp_path, scenario, file_extension, sep):
         for i in range(0, rows, chunk_size):
             chunk = df.iloc[i : i + chunk_size]
             chunk.to_csv(dir_path / f"part{i // chunk_size}.{file_extension}", sep=sep, index=False)
-        data_table = CsvDataTable(path=str(dir_path))
+        table_name = f"read_csv_auto('{dir_path}/*.csv')"
     else:
         file_path = tmp_path / f"data.{file_extension}"
         df.to_csv(file_path, sep=sep, index=False)
-        data_table = CsvDataTable(path=str(file_path))
-
-    container = data_table.container
-    query_base = "SELECT * FROM data"
+        table_name = f"'{file_path}'"
 
     # basic select
-    result = container.query(query_base)
+    query_base = f"SELECT * FROM {table_name}"
+    result = duckdb.query(query_base).to_df()
     assert len(result) == rows
     assert set(result.columns) == {"num", "str", "dt", "cat"}
 
     # where
     filter_query = f"{query_base} WHERE cat = 'c1'"
-    result = container.query(filter_query)
+    result = duckdb.query(filter_query).to_df()
     assert len(result) == category_count
     assert all(row == "c1" for row in result["cat"])
 
     # aggregation
-    agg_query = """
+    agg_query = f"""
         SELECT cat, COUNT(*) as count, AVG(num) as avg_num
-        FROM data
+        FROM {table_name}
         GROUP BY cat
         ORDER BY cat
     """
-    result = container.query(agg_query)
+    result = duckdb.query(agg_query).to_df()
     assert len(result) == 3  # 3 categories
     assert list(result["cat"]) == ["c1", "c2", "c3"]
     assert all(result["count"] == category_count)
 
     # order by
-    order_query = """
-        SELECT * FROM data
+    order_query = f"""
+        SELECT * FROM {table_name}
         ORDER BY num DESC
         LIMIT 5
     """
-    result = container.query(order_query)
+    result = duckdb.query(order_query).to_df()
     assert len(result) == 5
     assert list(result["num"]) == [98, 97, 96, 95, 94]
 
     # limit
-    limit_query = "SELECT * FROM data LIMIT 10"
-    result = container.query(limit_query)
+    limit_query = f"SELECT * FROM {table_name} LIMIT 10"
+    result = duckdb.query(limit_query).to_df()
     assert len(result) == 10
 
 
