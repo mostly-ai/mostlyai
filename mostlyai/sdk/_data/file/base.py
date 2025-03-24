@@ -494,8 +494,16 @@ class FileContainer(DataContainer):
         self.set_uri(location)
         return {"location": location}
 
+    @staticmethod
+    def _validate_select_query(sql: str) -> None:
+        sql = sql.strip().lower()
+        if not sql.startswith("select"):
+            raise ValueError("Only SELECT statements are allowed.")
+        # TODO improve
+
     def query(self, sql: str) -> pd.DataFrame:
         try:
+            self._validate_select_query(sql)
             valid_files = self.list_valid_files()
             if not valid_files:
                 raise MostlyDataException(f"No valid files found at {self.path_str}")
@@ -521,7 +529,6 @@ class FileContainer(DataContainer):
                         f"File type {file_type} is not directly supported for SQL queries. Skipping {path_str}"
                     )
 
-            # Use a context manager for the DuckDB connection
             with duckdb.connect(database=":memory:") as con:
                 is_directory = self.path.is_dir()
                 create_view(con, file_type, self.path_str, is_directory)
