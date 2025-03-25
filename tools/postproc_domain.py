@@ -62,6 +62,8 @@ def postprocess_model_file(file_path):
                 "import uuid\n"
                 "import rich\n"
                 "import zipfile\n"
+                "import sys\n"
+                "import inspect\n"
                 "from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path\n"
             )
         elif "from typing" in line and not import_typing_updated:
@@ -83,6 +85,44 @@ def postprocess_model_file(file_path):
 
     # append private classes
     new_lines.extend(f"\n{cls}\n" for cls in private_classes)
+
+    docstring_decorator = """
+def _add_fields_to_docstring(cls):
+    lines = [f"{cls.__doc__.strip()}\\n"] if cls.__doc__ else []
+    lines += ["Attributes:"]
+    for name, field in cls.model_fields.items():
+        if name in CustomBaseModel.model_fields:
+            continue
+        field_str = f"  {name}"
+        if field.annotation:
+            if isinstance(field.annotation, type):
+                annotation_str = field.annotation.__name__
+            else:
+                annotation_str = (
+                    str(field.annotation)
+                    .replace("mostlyai.sdk.domain.", "")
+                    .replace("typing.", "")
+                    .replace("datetime.", "")
+                )
+        else:
+            annotation_str = ""
+        field_str += f" ({annotation_str})" if field.annotation else ""
+        desc_str = f" {field.description.strip()}" if field.description else ""
+        examples = getattr(field, "examples", None)
+        examples_str = f" Examples: {examples[0]}" if examples else ""
+        if desc_str or examples_str:
+            field_str += f":{desc_str}{examples_str}"
+        lines.append(field_str)
+    cls.__doc__ = "\\n".join(lines)
+    return cls
+
+
+# add fields to docstring for all the subclasses of CustomBaseModel
+for _, _obj in inspect.getmembers(sys.modules[__name__]):
+    if inspect.isclass(_obj) and issubclass(_obj, CustomBaseModel) and _obj is not CustomBaseModel:
+        _add_fields_to_docstring(_obj)
+    """
+    new_lines.append(docstring_decorator)
 
     # make sure secrets/ssl in Connector* classes are not included in the repr
     content = "".join(new_lines)
