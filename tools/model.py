@@ -114,6 +114,7 @@ class Connector:
 
         Args:
             prefix (str): The prefix to filter the results by. Defaults to an empty string.
+
         Returns:
             list[str]: A list of locations (schemas, databases, directories, etc.)."""
         return self.client._locations(connector_id=self.id, prefix=prefix)
