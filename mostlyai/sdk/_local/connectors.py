@@ -88,7 +88,10 @@ def write_data_to_connector(connector: Connector, config: ConnectorWriteDataConf
         data_table = _data_table_from_connector_and_location(
             connector=connector, location=config.location, is_output=True
         )
-        df = pd.read_parquet(BytesIO(config.file))
-        data_table.write_data(df, if_exists=config.if_exists.value.lower())
+        if config.file is not None:
+            df = pd.read_parquet(BytesIO(config.file))
+            data_table.write_data(df, if_exists=config.if_exists.value.lower())
+        else:
+            data_table.drop()
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

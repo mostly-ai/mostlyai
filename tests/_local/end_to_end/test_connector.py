@@ -16,6 +16,7 @@ from mostlyai.sdk import MostlyAI
 import pandas as pd
 from sqlalchemy import create_engine
 import pytest
+from pathlib import Path
 
 
 @pytest.fixture
@@ -154,5 +155,15 @@ def test_write_data(tmp_path, sample_dataframe, connector_type, location_format)
     if connector_type == "SQLITE":
         with pytest.raises(Exception):
             c.write_data(data=sample_dataframe, location=location, if_exists="fail")
+
+    # test delete functionality
+    c.write_data(data=None, location=location)
+
+    if connector_type == "SQLITE":
+        engine = create_engine(f"sqlite:///{tmp_path}/test_write.sqlite")
+        with pytest.raises(Exception):
+            pd.read_sql_table("data", con=engine)
+    else:
+        assert not Path(location).exists()
 
     c.delete()

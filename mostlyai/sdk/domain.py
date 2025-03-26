@@ -1840,7 +1840,7 @@ class Connector(CustomBaseModel):
 
     def write_data(
         self,
-        data: pd.DataFrame,
+        data: pd.DataFrame | None,
         location: str,
         if_exists: Literal["append", "replace", "fail"] = "fail",
     ) -> None:
@@ -1848,7 +1848,7 @@ class Connector(CustomBaseModel):
         Write data to the specified location within the connector.
 
         Args:
-            data (pd.DataFrame): The DataFrame to write.
+            data (pd.DataFrame | None): The DataFrame to write, or None to delete the location.
             location (str): The target location within the connector to write data to.
             if_exists (Literal["append", "replace", "fail"]): The behavior if the target location already exists (append, replace, fail). Default is "fail".
         """
