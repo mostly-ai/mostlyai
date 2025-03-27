@@ -259,10 +259,9 @@ class Routes:
             connectors.write_data_to_connector(connector, config)
 
         @self.router.post("/connectors/{id}/delete-data")
-        async def delete_data(id: str, location: str = Form(...)) -> None:
+        async def delete_data(id: str, config: ConnectorDeleteDataConfig = Body(...)) -> None:
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
-            config = ConnectorDeleteDataConfig(location=location)
             connectors.delete_data_from_connector(connector, config)
 
         ## GENERATORS

@@ -219,5 +219,5 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         self.request(
             verb="POST",
             path=[connector_id, "delete-data"],
-            data=config_data,
+            json=config_data,
         )
