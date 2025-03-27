@@ -159,6 +159,15 @@ class Connector:
         """
         self.client._write_data(connector_id=self.id, data=data, location=location, if_exists=if_exists)
 
+    def delete_data(self, location: str) -> None:
+        """
+        Delete data from the specified location within the connector.
+
+        Args:
+            location (str): The target location within the connector to delete data from.
+        """
+        self.client._delete_data(connector_id=self.id, location=location)
+
 
 class Generator:
     OPEN_URL_PARTS: ClassVar[list] = ["d", "generators"]
