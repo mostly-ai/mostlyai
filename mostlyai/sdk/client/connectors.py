@@ -203,7 +203,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             }
 
         config_data = ConnectorWriteDataConfig(location=location, if_exists=if_exists.upper()).model_dump(
-            mode="json", exclude_unset=True
+            mode="json", exclude_unset=True, by_alias=True
         )
 
         self.request(
