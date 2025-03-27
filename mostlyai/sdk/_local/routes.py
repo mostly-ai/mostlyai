@@ -61,6 +61,7 @@ from mostlyai.sdk.domain import (
     ConnectorReadDataConfig,
     IfExists,
     ConnectorWriteDataConfig,
+    ConnectorDeleteDataConfig,
 )
 from mostlyai.sdk._local.storage import (
     read_generator_from_json,
@@ -253,6 +254,13 @@ class Routes:
             file_content = await file.read() if file else None
             config = ConnectorWriteDataConfig(location=location, file=file_content, if_exists=if_exists)
             connectors.write_data_to_connector(connector, config)
+
+        @self.router.post("/connectors/{id}/delete-data")
+        async def delete_data(id: str, location: str = Form(...)) -> None:
+            connector_dir = self.home_dir / "connectors" / id
+            connector = read_connector_from_json(connector_dir)
+            config = ConnectorDeleteDataConfig(location=location)
+            connectors.delete_data_from_connector(connector, config)
 
         ## GENERATORS
 

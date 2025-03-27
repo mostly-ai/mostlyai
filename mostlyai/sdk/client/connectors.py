@@ -35,6 +35,7 @@ from mostlyai.sdk.domain import (
     ConnectorPatchConfig,
     ConnectorConfig,
     ConnectorWriteDataConfig,
+    ConnectorDeleteDataConfig,
     IfExists,
 )
 
@@ -209,5 +210,14 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             verb="POST",
             path=[connector_id, "write-data"],
             files=files,
+            data=config_data,
+        )
+
+    def _delete_data(self, connector_id: str, location: str) -> None:
+        config_data = ConnectorDeleteDataConfig(location=location).model_dump(mode="json", exclude_unset=True)
+
+        self.request(
+            verb="POST",
+            path=[connector_id, "delete-data"],
             data=config_data,
         )
