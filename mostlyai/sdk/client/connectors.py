@@ -34,8 +34,6 @@ from mostlyai.sdk.domain import (
     ConnectorListItem,
     ConnectorPatchConfig,
     ConnectorConfig,
-    ConnectorWriteDataConfig,
-    ConnectorDeleteDataConfig,
     IfExists,
 )
 
@@ -202,9 +200,10 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
                 "file": ("data.parquet", buffer, "application/octet-stream"),
             }
 
-        config_data = ConnectorWriteDataConfig(location=location, if_exists=if_exists.upper()).model_dump(
-            mode="json", exclude_unset=True, by_alias=True
-        )
+        config_data = {
+            "location": location,
+            "ifExists": if_exists.upper(),
+        }
 
         self.request(
             verb="POST",
@@ -214,7 +213,9 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         )
 
     def _delete_data(self, connector_id: str, location: str) -> None:
-        config_data = ConnectorDeleteDataConfig(location=location).model_dump(mode="json", exclude_unset=True)
+        config_data = {
+            "location": location,
+        }
 
         self.request(
             verb="POST",
