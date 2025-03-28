@@ -3243,7 +3243,7 @@ wheels = [
 
 [[package]]
 name = "mostlyai"
-version = "4.4.2"
+version = "4.4.3"
 source = { editable = "." }
 dependencies = [
     { name = "environs" },
@@ -3423,9 +3423,9 @@ requires-dist = [
     { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.1.10" },
     { name = "mostlyai-engine", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.1.10" },
     { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.1.10" },
-    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.5.10" },
-    { name = "mostlyai-qa", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.5.10" },
-    { name = "mostlyai-qa", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.5.10" },
+    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.5.11" },
+    { name = "mostlyai-qa", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.5.11" },
+    { name = "mostlyai-qa", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.5.11" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
     { name = "networkx", marker = "extra == 'local'", specifier = ">=3.0,<4" },
     { name = "networkx", marker = "extra == 'local-cpu'", specifier = ">=3.0,<4" },
@@ -3561,7 +3561,7 @@ gpu = [
 
 [[package]]
 name = "mostlyai-qa"
-version = "1.5.10"
+version = "1.5.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastcluster" },
@@ -3581,9 +3581,9 @@ dependencies = [
     { name = "torch", version = "2.6.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or extra != 'extra-8-mostlyai-local-cpu' or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
     { name = "torch", version = "2.6.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cd/56/ed0806270a598bf22ca82ba0ad5884278fb5bcbe1fb10d471838e9e75f49/mostlyai_qa-1.5.10.tar.gz", hash = "sha256:388b15857d238ce16b3d614c7c028e967d200812000a5f0446768798554ac920", size = 1958786 }
+sdist = { url = "https://files.pythonhosted.org/packages/69/c4/8189ee486b9ad2e11b2c5d36aa3dc44ea5682547a2073260cc5bd2ea902c/mostlyai_qa-1.5.11.tar.gz", hash = "sha256:283b7a3751853b114f2d0c0ad07f798fde8a0f0c0781351b8364abdf0e63e8ff", size = 1958831 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/01/d7/7f250fcc33a87fda69ed7fd9bb56aa7d818ffe90ff4a040685c96dd94dc8/mostlyai_qa-1.5.10-py3-none-any.whl", hash = "sha256:6207d4d78c6da102d3f49cfd2e639175fdc8bf016ee8a9d18a8092f539c99f0f", size = 1980911 },
+    { url = "https://files.pythonhosted.org/packages/2f/28/c1d00e4c260ad6d47115d917df142c16a1a32740fe58b8836f6d2c2879a9/mostlyai_qa-1.5.11-py3-none-any.whl", hash = "sha256:32fc9953c93b2a996a368129ef9c1d70f0a49a04ad85f6787d268331b7235b68", size = 1980958 },
 ]
 
 [package.optional-dependencies]
