@@ -18,7 +18,6 @@ from sqlalchemy import create_engine
 import pytest
 import numpy as np
 from pathlib import Path
-import numpy as np
 
 
 @pytest.fixture
