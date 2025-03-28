@@ -117,3 +117,14 @@ def query_data_from_connector(connector: Connector, sql: str) -> pd.DataFrame:
         return data_container.query(sql)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+def query_data_from_connector(connector: Connector, sql: str) -> pd.DataFrame:
+    if connector.access_type not in {ConnectorAccessType.read_data, ConnectorAccessType.write_data}:
+        raise HTTPException(status_code=400, detail="Connector does not have query access")
+
+    try:
+        data_container = create_container_from_connector(connector)
+        return data_container.query(sql)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
