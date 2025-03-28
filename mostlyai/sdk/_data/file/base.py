@@ -509,7 +509,8 @@ class FileContainer(DataContainer):
         try:
             self._validate_select_query(sql)
 
-            with duckdb.connect(database=":memory:", read_only=True) as con:
+            # TODO it's either read-only or in-memory
+            with duckdb.connect(database=":memory:") as con:
                 self._init_duckdb_credentials(con)
                 result = con.execute(sql).fetchdf()
 
