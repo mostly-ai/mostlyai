@@ -24,6 +24,7 @@ from typing import Any
 from collections.abc import Generator, Iterable
 from urllib.parse import urlparse
 
+import duckdb
 import pandas as pd
 import pyarrow
 import pyarrow as pa
@@ -492,6 +493,37 @@ class FileContainer(DataContainer):
     def set_location(self, location: str) -> dict:
         self.set_uri(location)
         return {"location": location}
+
+    @staticmethod
+    def _validate_select_query(sql: str) -> None:
+        pass
+        # TODO this might be too restrictive
+        # sql = sql.strip().lower()
+        # if not sql.startswith("select"):
+        #     raise ValueError("Only SELECT statements are allowed.")
+
+    def _init_duckdb_credentials(self, con: duckdb.DuckDBPyConnection) -> None:
+        pass
+
+    def query(self, sql: str) -> pd.DataFrame:
+        try:
+            self._validate_select_query(sql)
+
+            # TODO it's either read-only or in-memory
+            with duckdb.connect(database=":memory:") as con:
+                self._init_duckdb_credentials(con)
+                result = con.execute(sql).fetchdf()
+
+            return result
+        except duckdb.IOException as e:
+            _LOG.error(f"IO Error executing query: {str(e)}")
+            raise
+        except duckdb.Error as e:
+            _LOG.error(f"DuckDB Error executing query: {str(e)}")
+            raise
+        except Exception as e:
+            _LOG.error(f"Unexpected error executing query: {str(e)}")
+            raise
 
 
 class LocalFileContainer(FileContainer):

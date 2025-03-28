@@ -22,6 +22,7 @@ from mostlyai.sdk._data.file.container.bucket_based import BucketBasedContainer
 
 from azure.identity import ClientSecretCredential
 from azure.storage.blob import BlobServiceClient
+import duckdb
 
 
 class AzureBlobFileContainer(BucketBasedContainer):
@@ -128,3 +129,9 @@ class AzureBlobFileContainer(BucketBasedContainer):
                 raise MostlyDataException("Client secret is incorrect.")
             else:
                 raise MostlyDataException(f"Authenticity check failed: {str(e)}")
+
+    def _init_duckdb_credentials(self, con: duckdb.DuckDBPyConnection) -> None:
+        con.execute(
+            "SET azure_storage_connection_string = ?",
+            [f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key}"],
+        )
