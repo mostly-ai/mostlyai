@@ -32,6 +32,7 @@ from mostlyai.sdk.domain import (
     ConnectorAccessType,
     ConnectorReadDataConfig,
     ConnectorWriteDataConfig,
+    ConnectorDeleteDataConfig,
 )
 from mostlyai.sdk._data.file.utils import make_data_table_from_container
 
@@ -174,10 +175,20 @@ def write_data_to_connector(connector: Connector, config: ConnectorWriteDataConf
         data_table = _data_table_from_connector_and_location(
             connector=connector, location=config.location, is_output=True
         )
-        if config.file is not None:
-            df = pd.read_parquet(BytesIO(config.file))
-            data_table.write_data(df, if_exists=config.if_exists.value.lower())
-        else:
-            data_table.drop()
+        df = pd.read_parquet(BytesIO(config.file))
+        data_table.write_data(df, if_exists=config.if_exists.value.lower())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+def delete_data_from_connector(connector: Connector, config: ConnectorDeleteDataConfig) -> None:
+    if connector.access_type != ConnectorAccessType.write_data:
+        raise HTTPException(status_code=400, detail="Connector does not have write access")
+
+    try:
+        data_table = _data_table_from_connector_and_location(
+            connector=connector, location=config.location, is_output=True
+        )
+        data_table.drop()
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

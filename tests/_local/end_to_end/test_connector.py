@@ -111,7 +111,7 @@ def test_read_data(tmp_path, sample_dataframe, data_format, connector_type):
         ("FILE_UPLOAD", "{tmp_path}/test_write.parquet"),
     ],
 )
-def test_write_data(tmp_path, sample_dataframe, connector_type, location_format):
+def test_write_and_delete_data(tmp_path, sample_dataframe, connector_type, location_format):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
     connector_config = {
@@ -156,7 +156,7 @@ def test_write_data(tmp_path, sample_dataframe, connector_type, location_format)
             c.write_data(data=sample_dataframe, location=location, if_exists="fail")
 
     # test delete functionality
-    c.write_data(data=None, location=location)
+    c.delete_data(location=location)
 
     if connector_type == "SQLITE":
         engine = create_engine(f"sqlite:///{tmp_path}/test_write.sqlite")
