@@ -1969,6 +1969,7 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/24/8a/e2d52d4111d3ef48e0a8b2324e80b600f6c5339dae9827744b94325a0b6a/google_crc32c-1.7.0-cp313-cp313-macosx_12_0_x86_64.whl", hash = "sha256:6a40522958040051c755a173eb98c05ad4d64a6dd898888c3e5ccca2d1cbdcdc", size = 30149 },
     { url = "https://files.pythonhosted.org/packages/da/60/8cd1605391da56c55db67ef64660e72b89787755a271ebe04f9418320b19/google_crc32c-1.7.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f714fe5cdf5007d7064c57cf7471a99e0cbafda24ddfa829117fc3baafa424f7", size = 32972 },
     { url = "https://files.pythonhosted.org/packages/3d/65/065ffe1bb324709e7704205261b429588ed17bbde8b7940eb12b140a6082/google_crc32c-1.7.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f04e58dbe1bf0c9398e603a9be5aaa09e0ba7eb022a3293195d8749459a01069", size = 32616 },
+    { url = "https://files.pythonhosted.org/packages/16/b8/95e6a189f5764abd643e3df5ab06e291d379f26ff77ea97bbcb12ac9207b/google_crc32c-1.7.0-cp313-cp313-win_amd64.whl", hash = "sha256:e545b51ddf97f604d30114f7c23eecaf4c06cd6c023ff1ae0b80dcd99af32833", size = 33496 },
     { url = "https://files.pythonhosted.org/packages/1b/30/51b10f995be9bd09551d050117c571f9749297717fcc2e7946e242eb4830/google_crc32c-1.7.0-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:364067b063664dd8d1fec75a3fe85edf05c46f688365269beccaf42ef5dfe889", size = 33080 },
     { url = "https://files.pythonhosted.org/packages/4d/ec/a7ca773559c7ab6919ac0255d84c74571c8cecf0e8891036705f6861c04d/google_crc32c-1.7.0-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e1b0d6044799f6ac51d1cc2decb997280a83c448b3bef517a54b57a3b71921c0", size = 32708 },
     { url = "https://files.pythonhosted.org/packages/35/9e/0fca77ec4a5d4651e33662c62d44418cb1c37bd04b22f6368a0f7a7abefa/google_crc32c-1.7.0-pp310-pypy310_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1b8f48dddd1451026a517d7eb1f8c4ee2491998bfa383abb5fdebf32b0aa333e", size = 28080 },
@@ -3461,12 +3462,12 @@ requires-dist = [
     { name = "joblib", marker = "extra == 'local-cpu'", specifier = ">=1.2.0" },
     { name = "joblib", marker = "extra == 'local-gpu'", specifier = ">=1.2.0" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
-    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.1.8" },
-    { name = "mostlyai-engine", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.1.8" },
-    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.1.8" },
-    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.5.9" },
-    { name = "mostlyai-qa", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.5.9" },
-    { name = "mostlyai-qa", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.5.9" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.1.10" },
+    { name = "mostlyai-engine", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.1.10" },
+    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.1.10" },
+    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.5.10" },
+    { name = "mostlyai-qa", extras = ["cpu"], marker = "extra == 'local-cpu'", specifier = "==1.5.10" },
+    { name = "mostlyai-qa", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.5.10" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
     { name = "networkx", marker = "extra == 'local'", specifier = ">=3.0,<4" },
     { name = "networkx", marker = "extra == 'local-cpu'", specifier = ">=3.0,<4" },
@@ -3553,7 +3554,7 @@ docs = [
 
 [[package]]
 name = "mostlyai-engine"
-version = "1.1.8"
+version = "1.1.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
@@ -3579,9 +3580,9 @@ dependencies = [
     { name = "torchvision", version = "0.21.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
     { name = "transformers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f0/7c/d3f4df0e5598dec1bbfb5883569f23879a8efe0771481d921fe72d864c1e/mostlyai_engine-1.1.8.tar.gz", hash = "sha256:86d9831eb539abcebfd295e47e970e6cd3df5091b5d4a2ed157ef21e7fd5f0e3", size = 107291 }
+sdist = { url = "https://files.pythonhosted.org/packages/dd/75/18be25af5f3c5553efa8917f67b041f2294c4001a9eb1e5a053d3ef7a102/mostlyai_engine-1.1.10.tar.gz", hash = "sha256:4e5ea873166289a58da0dea1d3cf6782b23a6ce54ab30499be3495390ebb4410", size = 107312 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4d/94/4184dcd7125033bd35585401d281f05022b7a0744dece4f975e567405051/mostlyai_engine-1.1.8-py3-none-any.whl", hash = "sha256:2d47f5481a3029262bf8dd36f6752f549e11c0cf43c4c02b36aab6d85c06344f", size = 146433 },
+    { url = "https://files.pythonhosted.org/packages/c2/0e/7e9347e617fcb4e8a15a038db0288291c622b6575d6d991d39ed1f7ddb08/mostlyai_engine-1.1.10-py3-none-any.whl", hash = "sha256:6ea7c08ed92635bc20fa24ee593c621382567fb8b57cf668093c29443ff1df2b", size = 146459 },
 ]
 
 [package.optional-dependencies]
@@ -3602,7 +3603,7 @@ gpu = [
 
 [[package]]
 name = "mostlyai-qa"
-version = "1.5.9"
+version = "1.5.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastcluster" },
@@ -3622,9 +3623,9 @@ dependencies = [
     { name = "torch", version = "2.6.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or extra != 'extra-8-mostlyai-local-cpu' or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
     { name = "torch", version = "2.6.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'linux' and extra == 'extra-8-mostlyai-local-cpu') or (extra == 'extra-8-mostlyai-local-cpu' and extra == 'extra-8-mostlyai-local-gpu')" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3b/dc/ff0c208442994d8d3d745b1b36413e969b58c71195ecc10cd6434462756c/mostlyai_qa-1.5.9.tar.gz", hash = "sha256:ad08fea07535c1144e460733c9959e53830804a61f85f1c925e6c15ece9c52c4", size = 1958309 }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/56/ed0806270a598bf22ca82ba0ad5884278fb5bcbe1fb10d471838e9e75f49/mostlyai_qa-1.5.10.tar.gz", hash = "sha256:388b15857d238ce16b3d614c7c028e967d200812000a5f0446768798554ac920", size = 1958786 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/be/7c/e6ccbcb7474e162618d4864189d289cadaf6470833ffd307868b658c6f25/mostlyai_qa-1.5.9-py3-none-any.whl", hash = "sha256:def7ccdc1f5193b213ba47a2bd8f6f280349d6e27033039c0eee81c9dfbeca8f", size = 1980417 },
+    { url = "https://files.pythonhosted.org/packages/01/d7/7f250fcc33a87fda69ed7fd9bb56aa7d818ffe90ff4a040685c96dd94dc8/mostlyai_qa-1.5.10-py3-none-any.whl", hash = "sha256:6207d4d78c6da102d3f49cfd2e639175fdc8bf016ee8a9d18a8092f539c99f0f", size = 1980911 },
 ]
 
 [package.optional-dependencies]

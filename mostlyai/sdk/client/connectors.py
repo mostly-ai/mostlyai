@@ -34,8 +34,6 @@ from mostlyai.sdk.domain import (
     ConnectorListItem,
     ConnectorPatchConfig,
     ConnectorConfig,
-    ConnectorWriteDataConfig,
-    ConnectorDeleteDataConfig,
     IfExists,
 )
 
@@ -212,7 +210,9 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         )
 
     def _delete_data(self, connector_id: str, location: str) -> None:
-        config_data = ConnectorDeleteDataConfig(location=location).model_dump(mode="json", exclude_unset=True)
+        config_data = {
+            "location": location,
+        }
 
         self.request(
             verb="POST",

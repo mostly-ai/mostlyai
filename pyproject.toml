@@ -1,6 +1,6 @@
 [project]
 name = "mostlyai"
-version = "4.4.2"
+version = "4.4.3"
 description = "Synthetic Data SDK"
 authors = [{ name = "MOSTLY AI", email = "dev@mostly.ai" }]
 requires-python = ">=3.10,<3.14"
@@ -47,8 +47,8 @@ dependencies = [
 [project.optional-dependencies]
 local = [
     # local
-    "mostlyai-engine==1.1.8",
-    "mostlyai-qa==1.5.9",
+    "mostlyai-engine==1.1.10",
+    "mostlyai-qa==1.5.10",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
@@ -72,8 +72,8 @@ local = [
     "adlfs>=2023.4.0",
 ]
 local-gpu = [
-    "mostlyai-engine[gpu]==1.1.8",
-    "mostlyai-qa[gpu]==1.5.9",
+    "mostlyai-engine[gpu]==1.1.10",
+    "mostlyai-qa[gpu]==1.5.10",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
@@ -97,8 +97,8 @@ local-gpu = [
     "adlfs>=2023.4.0",
 ]
 local-cpu = [
-    "mostlyai-engine[cpu]==1.1.8",
-    "mostlyai-qa[cpu]==1.5.9",
+    "mostlyai-engine[cpu]==1.1.10",
+    "mostlyai-qa[cpu]==1.5.10",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
