@@ -16,10 +16,13 @@ import logging
 import os
 import tempfile
 from typing import Any
+from urllib.parse import urlparse
 
 import boto3 as boto3
+import re
 import s3fs
 from cloudpathlib.s3 import S3Client, S3Path
+import duckdb
 
 from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.file.container.bucket_based import BucketBasedContainer
@@ -147,3 +150,23 @@ class AwsS3FileContainer(BucketBasedContainer):
                 raise MostlyDataException("Cannot reach the endpoint URL.")
             else:
                 raise MostlyDataException(f"Error has occurred: {str(e)}")
+
+    def _init_duckdb_credentials(self, con: duckdb.DuckDBPyConnection) -> None:
+        # Set up S3 credentials using CREATE SECRET
+        # NOTE: region must match the one in endpoint url!
+        # FIXME improve this code
+        match = re.search(r"s3[.-](.+?)\.amazonaws\.com", self.endpoint_url)
+        region = match.group(1) if match else None
+        create_secret_sql = f"""
+        CREATE SECRET (
+            TYPE s3,
+            KEY_ID '{self.access_key}',
+            SECRET '{self.secret_key}',
+            REGION '{region}',
+            ENDPOINT '{urlparse(self.endpoint_url).netloc}'
+        );
+        """
+        con.execute(create_secret_sql)
+
+        # TODO ensure handle custom endpoint (e.g., MinIO)
+        # TODO Set SSL verification if configured

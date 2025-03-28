@@ -496,16 +496,21 @@ class FileContainer(DataContainer):
 
     @staticmethod
     def _validate_select_query(sql: str) -> None:
-        sql = sql.strip().lower()
-        if not sql.startswith("select"):
-            raise ValueError("Only SELECT statements are allowed.")
+        pass
+        # TODO this might be too restrictive
+        # sql = sql.strip().lower()
+        # if not sql.startswith("select"):
+        #     raise ValueError("Only SELECT statements are allowed.")
+
+    def _init_duckdb_credentials(self, con: duckdb.DuckDBPyConnection) -> None:
+        pass
 
     def query(self, sql: str) -> pd.DataFrame:
         try:
             self._validate_select_query(sql)
 
-            with duckdb.connect(database=":memory:") as con:
-                # Directly execute the SQL query with DuckDB
+            with duckdb.connect(database=":memory:", read_only=True) as con:
+                self._init_duckdb_credentials(con)
                 result = con.execute(sql).fetchdf()
 
             return result
