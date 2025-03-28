@@ -447,14 +447,14 @@ class MostlyAI(_MostlyBaseClient):
                             'tabular_model_configuration': {         # see `mostlyai.sdk.domain.ModelConfiguration`; all settings are optional!
                                 'model': 'MOSTLY_AI/Medium',         # check `mostly.models()` for available models
                                 'batch_size': None,                  # set a custom physical training batch size
-                                'max_sample_size': 10_000,           # cap sample size to 10k; set to None for max accuracy
-                                'max_epochs': 20,                    # cap training to 20 epochs; set to None for max accuracy
-                                'max_training_time': 10,             # cap runtime to 10min; set to None for max accuracy
+                                'max_sample_size': 100_000,          # cap sample size to 100k; set to None for max accuracy
+                                'max_epochs': 50,                    # cap training to 50 epochs; set to None for max accuracy
+                                'max_training_time': 60,             # cap runtime to 60min; set to None for max accuracy
                                 'enable_flexible_generation': True,  # allow seed, imputation, rebalancing and fairness; set to False for max accuracy
                                 'value_protection': True,            # privacy protect value ranges; set to False for allowing all seen values
                                 'differential_privacy': {            # set DP configs if explicitly requested
-                                    'max_epsilon': 5.0,                # - max epsilon value, used as stopping criterion
-                                    'noise_multiplier': 0.8,           # - DP noise multiplier
+                                    'max_epsilon': 10.0,               # - max epsilon value, used as stopping criterion
+                                    'noise_multiplier': 1.5,           # - DP noise multiplier
                                     'max_grad_norm': 1.0,              # - DP max grad norm
                                     'delta': 1e-5,                     # - DP delta value
                                 },
@@ -501,8 +501,8 @@ class MostlyAI(_MostlyBaseClient):
                         'is_context': True
                     }],
                     'tabular_model_configuration': {
-                        'max_sample_size': 1000,       # cap sample size to 1k users; set to None for max accuracy
-                        'max_training_time': 1,        # cap runtime to 1min; set to None for max accuracy
+                        'max_sample_size': 10_000,     # cap sample size to 10k users; set to None for max accuracy
+                        'max_training_time': 60,       # cap runtime to 60min; set to None for max accuracy
                         'max_sequence_window': 10,     # optionally limit the sequence window
                     },
                 }],
@@ -522,7 +522,7 @@ class MostlyAI(_MostlyBaseClient):
             # print out available LANGUAGE models
             print(mostly.models()["LANGUAGE"])
 
-            # train a generator; increase max_training_time to improve quality
+            # train a generator
             g = mostly.train(config={
                 'name': 'Headlines',
                 'tables': [{
@@ -534,12 +534,12 @@ class MostlyAI(_MostlyBaseClient):
                         {'name': 'headline', 'model_encoding_type': 'LANGUAGE_TEXT'},
                     ],
                     'tabular_model_configuration': {              # tabular model configuration (optional)
-                        'max_sample_size': 2000,                  # cap sample size to 2k; set None for max accuracy
-                        'max_training_time': 1,                   # cap runtime to 1min; set None for max accuracy
+                        'max_sample_size': 20_000,                # cap sample size to 20k; set None for max accuracy
+                        'max_training_time': 30,                  # cap runtime to 30min; set None for max accuracy
                     },
                     'language_model_configuration': {             # language model configuration (optional)
-                        'max_sample_size': 1000,                  # cap sample size to 1k; set None for max accuracy
-                        'max_training_time': 5,                   # cap runtime to 5min; set None for max accuracy
+                        'max_sample_size': 1_000,                 # cap sample size to 1k; set None for max accuracy
+                        'max_training_time': 60,                  # cap runtime to 60min; set None for max accuracy
                         'model': 'MOSTLY_AI/LSTMFromScratch-3m',  # use a light-weight LSTM model, trained from scratch (GPU recommended)
                         #'model': 'microsoft/phi-1.5',            # alternatively use a pre-trained HF-hosted LLM model (GPU required)
                     }
@@ -612,26 +612,6 @@ class MostlyAI(_MostlyBaseClient):
             sd = mostly.generate(generator=g, size=1000)
             ```
 
-        Example configuration using SyntheticDatasetConfig:
-            ```python
-            from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI()
-            sd = mostly.generate(
-                config=SyntheticDatasetConfig(
-                    generator=g,
-                    tables=[
-                        SyntheticTableConfig(
-                            name="data",
-                            configuration=SyntheticTableConfiguration(
-                                sample_size=1000,
-                                sampling_temperature=0.9,
-                            )
-                        )
-                    ]
-                )
-            )
-            ```
-
         Example configuration using a dictionary:
             ```python
             from mostlyai.sdk import MostlyAI
@@ -642,9 +622,23 @@ class MostlyAI(_MostlyBaseClient):
                     'tables': [
                         {
                             'name': 'data',
-                            'configuration': {
-                                'sample_size': 1000,
-                                'sampling_temperature': 0.9,
+                            'configuration': {  # all parameters are optional!
+                                'sample_size': None,  # set to None to generate as many samples as original; otherwise, set to an integer; only applicable for subject tables
+                                # 'sample_seed_data': seed_df,  # provide a DataFrame to conditionally generate samples; only applicable for subject tables
+                                'sampling_temperature': 1.0,
+                                'sampling_top_p': 1.0,
+                                'rebalancing': {
+                                    'column': 'age',
+                                    'probabilities': {'male': 0.5, 'female': 0.5},
+                                },
+                                'imputation': {
+                                    'columns': ['age'],
+                                },
+                                'fairness': {
+                                    'target_column': 'income',
+                                    'sensitive_columns': ['gender'],
+                                },
+                                'enable_data_report': True,  # disable for faster generation
                             }
                         }
                     ]
