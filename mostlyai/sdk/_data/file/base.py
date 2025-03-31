@@ -505,6 +505,17 @@ class FileContainer(DataContainer):
     def _init_duckdb_credentials(self, con: duckdb.DuckDBPyConnection) -> None:
         pass
 
+    @staticmethod
+    def _create_duckdb_secret(con: duckdb.DuckDBPyConnection, secret_params: dict[str, Any]) -> None:
+        def sql_escape(val: str) -> str:
+            return str(val).replace("'", "''")  # escape single quotes for SQL strings
+
+        # all values must be wrapped in single quotes and escaped
+        parts = [f"{key} '{sql_escape(value)}'" for key, value in secret_params.items()]
+        create_secret_sql = f"CREATE SECRET (\n    {',\n    '.join(parts)}\n);"
+
+        con.execute(create_secret_sql)
+
     def query(self, sql: str) -> pd.DataFrame:
         try:
             self._validate_select_query(sql)

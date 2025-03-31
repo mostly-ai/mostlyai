@@ -17,9 +17,9 @@ import os
 import tempfile
 from typing import Any
 from urllib.parse import urlparse
+import re
 
 import boto3 as boto3
-import re
 import s3fs
 from cloudpathlib.s3 import S3Client, S3Path
 import duckdb
@@ -58,7 +58,12 @@ class AwsS3FileContainer(BucketBasedContainer):
         if do_decrypt_secret:
             self.decrypt_secret()
         self.ca_cert_content = self.decrypt(self.ca_certificate) if self.ssl_enabled and self.ca_certificate else None
-
+        self.region_name = None
+        # extract region from endpoint URL if it's an AWS endpoint
+        if self.endpoint_url and ".amazonaws.com" in self.endpoint_url:
+            match = re.search(r"s3[.-](.+?)\.amazonaws\.com", self.endpoint_url)
+            if match:
+                self.region_name = match.group(1)
         if not (self.secret_key and self.access_key):
             raise MostlyDataException("Provide the S3 credentials.")
         boto_session = boto3.Session(
@@ -81,11 +86,8 @@ class AwsS3FileContainer(BucketBasedContainer):
             else:
                 self.ssl_verify = None
             client_kwargs = {"verify": self.ssl_verify}
-            if self.endpoint_url and ".amazonaws.com" in self.endpoint_url:
-                # aws s3 needs region_name to be set when using custom endpoint
-                parts = self.endpoint_url.split(".")
-                if len(parts) > 1:
-                    client_kwargs["region_name"] = parts[1]
+            if self.region_name:
+                client_kwargs["region_name"] = self.region_name
             self.fs = s3fs.S3FileSystem(
                 endpoint_url=self.endpoint_url,
                 secret=self.secret_key,
@@ -152,21 +154,20 @@ class AwsS3FileContainer(BucketBasedContainer):
                 raise MostlyDataException(f"Error has occurred: {str(e)}")
 
     def _init_duckdb_credentials(self, con: duckdb.DuckDBPyConnection) -> None:
-        # Set up S3 credentials using CREATE SECRET
-        # NOTE: region must match the one in endpoint url!
-        # FIXME improve this code
-        match = re.search(r"s3[.-](.+?)\.amazonaws\.com", self.endpoint_url)
-        region = match.group(1) if match else None
-        create_secret_sql = f"""
-        CREATE SECRET (
-            TYPE s3,
-            KEY_ID '{self.access_key}',
-            SECRET '{self.secret_key}',
-            REGION '{region}',
-            ENDPOINT '{urlparse(self.endpoint_url).netloc}'
-        );
-        """
-        con.execute(create_secret_sql)
+        # extract only the hostname (and optional port) from the endpoint URL
+        endpoint = urlparse(self.endpoint_url).netloc if self.endpoint_url else None
+        secret_params = {
+            "TYPE": "s3",
+            "KEY_ID": self.access_key,
+            "SECRET": self.secret_key,
+            "USE_SSL": bool(self.ssl_enabled),
+        }
 
-        # TODO ensure handle custom endpoint (e.g., MinIO)
-        # TODO Set SSL verification if configured
+        if self.region_name:
+            secret_params["REGION"] = self.region_name
+        if endpoint:
+            secret_params["ENDPOINT"] = endpoint
+        if self.ssl_enabled and self.ssl_verify:
+            secret_params["CA_CERT"] = self.ssl_verify
+
+        self._create_duckdb_secret(con, secret_params)
