@@ -33,9 +33,12 @@ def execute_step_generate_data(
     schema: Schema,
     workspace_dir: Path,
     update_progress: Callable,
+    _use_xgrammar: bool = False,
 ):
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
     import mostlyai.engine as engine
+
+    print(f"Using XGrammar: {_use_xgrammar}")
 
     tgt_g_table = next(t for t in generator.tables if t.name == target_table_name)
     tgt_sd_table = next(t for t in synthetic_dataset.tables if t.name == target_table_name)
@@ -103,4 +106,5 @@ def execute_step_generate_data(
         fairness=fairness,
         workspace_dir=workspace_dir,
         update_progress=update_progress,
+        _use_xgrammar=_use_xgrammar,
     )

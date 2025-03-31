@@ -27,10 +27,13 @@ def execute_step_generate_model_report_data(
     workspace_dir: Path,
     model_type: ModelType,
     update_progress: Callable,
+    _use_xgrammar: bool = False,
 ):
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
     from mostlyai import engine
     from mostlyai.engine._workspace import Workspace
+
+    print(f"Using XGrammar: {_use_xgrammar}")
 
     # determine max sample size for generated report samples
     workspace = Workspace(workspace_dir)
@@ -59,6 +62,7 @@ def execute_step_generate_model_report_data(
         sample_size=max_sample_size,
         workspace_dir=workspace_dir,
         update_progress=update_progress,
+        _use_xgrammar=_use_xgrammar,
     )
 
 
