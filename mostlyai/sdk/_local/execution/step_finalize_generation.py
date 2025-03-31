@@ -41,7 +41,11 @@ def execute_step_finalize_generation(
     is_probe: bool,
     job_workspace_dir: Path,
     update_progress: ProgressCallback | None = None,
-) -> None:
+) -> list[dict]:
+    # get synthetic table usage
+    usages = []
+    for table_name, table in schema.tables.items():
+        usages.append(dict(table=table_name, total_rows=table.row_count))
     # short circuit for probing
     delivery_dir = job_workspace_dir / "FinalizedSyntheticData"
     if is_probe:
@@ -52,7 +56,7 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=False,
             )
-        return
+        return usages
 
     random_samples_dir = job_workspace_dir / "RandomSamples"
     zip_dir = job_workspace_dir / "ZIP"
@@ -93,6 +97,8 @@ def execute_step_finalize_generation(
             _LOG.info("zip csv synthetic data")
             zip_data(delivery_dir=delivery_dir, format="csv", out_dir=zip_dir)
             progress.update(advance=1)
+
+        return usages
 
 
 def format_datetime(df: pd.DataFrame) -> pd.DataFrame:
