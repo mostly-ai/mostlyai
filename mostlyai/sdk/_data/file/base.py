@@ -504,7 +504,8 @@ class FileContainer(DataContainer):
 
         # all values must be wrapped in single quotes and escaped
         parts = [f"{key} '{sql_escape(value)}'" for key, value in secret_params.items()]
-        create_secret_sql = f"CREATE SECRET (\n    {',\n    '.join(parts)}\n);"
+        joined_parts = ",\n    ".join(parts)
+        create_secret_sql = f"CREATE SECRET (\n    {joined_parts}\n);"
 
         con.execute(create_secret_sql)
 
