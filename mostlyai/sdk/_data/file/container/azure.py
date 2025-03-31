@@ -131,7 +131,21 @@ class AzureBlobFileContainer(BucketBasedContainer):
                 raise MostlyDataException(f"Authenticity check failed: {str(e)}")
 
     def _init_duckdb_credentials(self, con: duckdb.DuckDBPyConnection) -> None:
-        con.execute(
-            "SET azure_storage_connection_string = ?",
-            [f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key}"],
-        )
+        if self.account_key:
+            # use connection string authentication
+            secret_params = {
+                "TYPE": "azure",
+                "CONNECTION_STRING": f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key}",
+            }
+        else:
+            # use service principal authentication
+            secret_params = {
+                "TYPE": "azure",
+                "PROVIDER": "service_principal",
+                "ACCOUNT_NAME": self.account_name,
+                "CLIENT_ID": self.client_id,
+                "CLIENT_SECRET": self.client_secret,
+                "TENANT_ID": self.tenant_id,
+            }
+
+        self._create_duckdb_secret(con, secret_params)
