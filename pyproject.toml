@@ -42,6 +42,7 @@ dependencies = [
     "pycryptodomex>=3.10.0,<4",
     "ipywidgets>=8.1.0",
     "duckdb>=1.2.1",
+    "sqlparse>=0.5.3",
 ]
 
 [project.optional-dependencies]

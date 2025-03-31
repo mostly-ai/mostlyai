@@ -588,6 +588,7 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
         pass
 
     def query(self, sql: str) -> pd.DataFrame:
+        self._assert_read_only_sql(sql)
         with self.init_sa_connection() as engine:
             try:
                 return pd.read_sql(sql, engine)

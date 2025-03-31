@@ -494,14 +494,6 @@ class FileContainer(DataContainer):
         self.set_uri(location)
         return {"location": location}
 
-    @staticmethod
-    def _validate_select_query(sql: str) -> None:
-        pass
-        # TODO this might be too restrictive
-        # sql = sql.strip().lower()
-        # if not sql.startswith("select"):
-        #     raise ValueError("Only SELECT statements are allowed.")
-
     def _init_duckdb_credentials(self, con: duckdb.DuckDBPyConnection) -> None:
         pass
 
@@ -517,10 +509,8 @@ class FileContainer(DataContainer):
         con.execute(create_secret_sql)
 
     def query(self, sql: str) -> pd.DataFrame:
+        self._assert_read_only_sql(sql)
         try:
-            self._validate_select_query(sql)
-
-            # TODO it's either read-only or in-memory
             with duckdb.connect(database=":memory:") as con:
                 self._init_duckdb_credentials(con)
                 result = con.execute(sql).fetchdf()
@@ -531,9 +521,6 @@ class FileContainer(DataContainer):
             raise
         except duckdb.Error as e:
             _LOG.error(f"DuckDB Error executing query: {str(e)}")
-            raise
-        except Exception as e:
-            _LOG.error(f"Unexpected error executing query: {str(e)}")
             raise
 
 
