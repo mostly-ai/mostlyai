@@ -30,7 +30,7 @@ from mostlyai.sdk._data.util.common import (
     NON_CONTEXT_COLUMN_INFIX,
     IS_NULL,
 )
-from mostlyai.sdk.domain import Generator
+from mostlyai.sdk.domain import Generator, SyntheticDataset
 
 _LOG = logging.getLogger(__name__)
 
@@ -99,6 +99,12 @@ def execute_step_finalize_generation(
             progress.update(advance=1)
 
         return usages
+
+
+def update_total_rows(synthetic_dataset: SyntheticDataset, usage: list[dict]) -> None:
+    for table_usage in usage:
+        table = next(t for t in synthetic_dataset.tables if t.name == table_usage["table"])
+        table.total_rows = table_usage["total_rows"]
 
 
 def format_datetime(df: pd.DataFrame) -> pd.DataFrame:
