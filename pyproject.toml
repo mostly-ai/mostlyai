@@ -46,7 +46,7 @@ dependencies = [
 [project.optional-dependencies]
 local = [
     # local
-    "mostlyai-engine",
+    "mostlyai-engine==1.1.10",
     "mostlyai-qa==1.5.10",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
@@ -71,7 +71,7 @@ local = [
     "adlfs>=2023.4.0",
 ]
 local-gpu = [
-    "mostlyai-engine[gpu]",
+    "mostlyai-engine[gpu]==1.1.10",
     "mostlyai-qa[gpu]==1.5.10",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
@@ -96,7 +96,7 @@ local-gpu = [
     "adlfs>=2023.4.0",
 ]
 local-cpu = [
-    "mostlyai-engine[cpu]",
+    "mostlyai-engine[cpu]==1.1.10",
     "mostlyai-qa[cpu]==1.5.10",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
@@ -205,7 +205,7 @@ torchaudio = [
 torchvision = [
   { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
 ]
-mostlyai-engine = { workspace = true }
+mostlyai-engine = { path = "./mostlyai-engine/mostlyai_engine-1.1.10-py3-none-any.whl" }
 
 [tool.hatch.build.targets.sdist]
 include = ["mostlyai/sdk"]
@@ -236,6 +236,3 @@ line-length = 120
 
 [tool.ruff.lint.per-file-ignores]
 "*.ipynb" = ["E402"]
-
-[tool.uv.workspace]
-members = ["mostlyai-engine"]
