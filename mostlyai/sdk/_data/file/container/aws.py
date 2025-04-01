@@ -154,20 +154,29 @@ class AwsS3FileContainer(BucketBasedContainer):
                 raise MostlyDataException(f"Error has occurred: {str(e)}")
 
     def _init_duckdb(self, con: duckdb.DuckDBPyConnection) -> None:
+        # fallback to con.register_filesystem (instead of DuckDB's httpfs + aws) if:
+        # 1. no endpoint is set (defaults to AWS, but region is not specified)
+        # 2. it's an amazon endpoint but no region is set
+        # 3. CA certificate is being used
+        if (
+            not self.endpoint_url
+            or (self.endpoint_url and ".amazonaws.com" in self.endpoint_url and not self.region_name)
+            or (self.ssl_enabled and self.ssl_verify)
+        ):
+            con.register_filesystem(self.fs)
+            return
+
         # extract only the hostname (and optional port) from the endpoint URL
-        endpoint = urlparse(self.endpoint_url).netloc if self.endpoint_url else None
+        endpoint = urlparse(self.endpoint_url).netloc
         secret_params = {
             "TYPE": "s3",
             "KEY_ID": self.access_key,
             "SECRET": self.secret_key,
+            "ENDPOINT": endpoint,
             "USE_SSL": bool(self.ssl_enabled),
         }
 
         if self.region_name:
             secret_params["REGION"] = self.region_name
-        if endpoint:
-            secret_params["ENDPOINT"] = endpoint
-        if self.ssl_enabled and self.ssl_verify:
-            secret_params["CA_CERT"] = self.ssl_verify
 
         self._create_duckdb_secret(con, secret_params)
