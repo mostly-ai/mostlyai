@@ -170,7 +170,11 @@ class Connector:
 
     def query(self, sql: str) -> pd.DataFrame:
         """
-        Execute an SQL query on the connector's data source.
+        Execute a read-only SQL query against the connector's data source.
+
+        Queries can include statements like SELECT, SHOW, or DESCRIBE, but must not modify data or state.
+        For file-based connectors (e.g., local files or cloud storage buckets like AWS S3, GCP, Azure Blob),
+        queries are executed using DuckDB.
 
         Args:
             sql (str): The SQL query to execute.
