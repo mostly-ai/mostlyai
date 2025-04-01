@@ -235,8 +235,9 @@ class Routes:
             df = connectors.read_data_from_connector(connector, config)
 
             # this file can only be safely removed once the streaming response is complete
-            tmp_path = tempfile.mktemp(suffix=".parquet")
-            df.to_parquet(tmp_path)
+            with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as tmp_file:
+                tmp_path = tmp_file.name
+                df.to_parquet(tmp_path)
 
             return StreamingResponse(
                 open(tmp_path, mode="rb"),
@@ -271,8 +272,9 @@ class Routes:
             df = connectors.query_data_from_connector(connector, sql)
 
             # this file can only be safely removed once the streaming response is complete
-            tmp_path = tempfile.mktemp(suffix=".parquet")
-            df.to_parquet(tmp_path)
+            with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as tmp_file:
+                tmp_path = tmp_file.name
+                df.to_parquet(tmp_path)
 
             return StreamingResponse(
                 open(tmp_path, mode="rb"),
