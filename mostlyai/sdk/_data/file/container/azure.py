@@ -130,7 +130,7 @@ class AzureBlobFileContainer(BucketBasedContainer):
             else:
                 raise MostlyDataException(f"Authenticity check failed: {str(e)}")
 
-    def _init_duckdb_credentials(self, con: duckdb.DuckDBPyConnection) -> None:
+    def _init_duckdb(self, con: duckdb.DuckDBPyConnection) -> None:
         if self.account_key:
             # use connection string authentication
             secret_params = {

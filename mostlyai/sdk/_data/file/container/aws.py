@@ -153,7 +153,7 @@ class AwsS3FileContainer(BucketBasedContainer):
             else:
                 raise MostlyDataException(f"Error has occurred: {str(e)}")
 
-    def _init_duckdb_credentials(self, con: duckdb.DuckDBPyConnection) -> None:
+    def _init_duckdb(self, con: duckdb.DuckDBPyConnection) -> None:
         # extract only the hostname (and optional port) from the endpoint URL
         endpoint = urlparse(self.endpoint_url).netloc if self.endpoint_url else None
         secret_params = {

@@ -494,7 +494,7 @@ class FileContainer(DataContainer):
         self.set_uri(location)
         return {"location": location}
 
-    def _init_duckdb_credentials(self, con: duckdb.DuckDBPyConnection) -> None:
+    def _init_duckdb(self, con: duckdb.DuckDBPyConnection) -> None:
         pass
 
     @staticmethod
@@ -513,7 +513,7 @@ class FileContainer(DataContainer):
         self._assert_read_only_sql(sql)
         try:
             with duckdb.connect(database=":memory:") as con:
-                self._init_duckdb_credentials(con)
+                self._init_duckdb(con)
                 result = con.execute(sql).fetchdf()
 
             return result
