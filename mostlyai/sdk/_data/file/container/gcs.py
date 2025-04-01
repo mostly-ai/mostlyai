@@ -75,8 +75,6 @@ class GcsContainer(BucketBasedContainer):
         return gcsfs.GCSFileSystem(project=self.key_file["project_id"], token=self.key_file) is not None
 
     def _init_duckdb_credentials(self, con: duckdb.DuckDBPyConnection) -> None:
-        # TODO these must have been created
-        key_id = ""
-        secret = ""
-        secret_params = {"TYPE": "gcs", "KEY_ID": key_id, "SECRET": secret}
-        self._create_duckdb_secret(con, secret_params)
+        # register the GCS filesystem with DuckDB using service account credentials
+        # this is an alternative to HMAC keys, which we don't use
+        con.register_filesystem(self.fs)
