@@ -18,6 +18,7 @@ from typing import Any
 import gcsfs
 from cloudpathlib.gs import GSClient, GSPath
 from google.cloud import storage
+import duckdb
 
 from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.file.container.bucket_based import BucketBasedContainer
@@ -72,3 +73,8 @@ class GcsContainer(BucketBasedContainer):
 
     def _check_authenticity(self) -> bool:
         return gcsfs.GCSFileSystem(project=self.key_file["project_id"], token=self.key_file) is not None
+
+    def _init_duckdb(self, con: duckdb.DuckDBPyConnection) -> None:
+        # register the GCS filesystem with DuckDB using service account credentials
+        # this is an alternative to HMAC keys, which we don't use
+        con.register_filesystem(self.fs)
