@@ -59,7 +59,7 @@ from mostlyai.sdk._data.dtype import (
     WrappedDType,
     coerce_dtypes_by_encoding,
 )
-from mostlyai.sdk._data.util.common import prepare_ssl_path, ColumnSort, OrderBy
+from mostlyai.sdk._data.util.common import prepare_ssl_path, ColumnSort, OrderBy, assert_read_only_sql
 from mostlyai.sdk._data.util.kerberos import is_kerberos_ticket_alive
 from sqlalchemy import Table
 
@@ -588,7 +588,7 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
         pass
 
     def query(self, sql: str) -> pd.DataFrame:
-        self._assert_read_only_sql(sql)
+        assert_read_only_sql(sql)
         with self.init_sa_connection() as engine:
             try:
                 return pd.read_sql(sql, engine)

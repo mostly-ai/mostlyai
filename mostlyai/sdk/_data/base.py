@@ -23,8 +23,6 @@ from collections.abc import Generator, Iterable
 
 import networkx as nx
 import pandas as pd
-import sqlparse
-from sqlparse.tokens import DML
 
 from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk.domain import ModelEncodingType
@@ -443,21 +441,6 @@ class DataContainer(abc.ABC):
         :return: True if accessible, False otherwise
         """
         pass
-
-    @staticmethod
-    def _assert_read_only_sql(sql: str) -> None:
-        read_only_dml = {"select", "with", "show", "describe", "explain"}
-        statements = sqlparse.parse(sql)
-        if not statements:
-            raise ValueError("Empty SQL statement.")
-
-        for statement in statements:
-            # recursively walk all tokens
-            for token in statement.flatten():
-                if token.ttype is DML:
-                    dml = token.value.lower()
-                    if dml not in read_only_dml:
-                        raise MostlyDataException(f"Disallowed DML operation: {dml.upper()} in {sql=}")
 
     @abc.abstractmethod
     def query(self, sql: str) -> pd.DataFrame:

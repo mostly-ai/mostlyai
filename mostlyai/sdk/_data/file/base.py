@@ -39,7 +39,7 @@ from mostlyai.sdk._data.base import (
     DataTable,
     order_df_by,
 )
-from mostlyai.sdk._data.util.common import SCHEME_SEP, DATA_TABLE_METADATA_FIELDS, OrderBy
+from mostlyai.sdk._data.util.common import SCHEME_SEP, DATA_TABLE_METADATA_FIELDS, OrderBy, assert_read_only_sql
 from mostlyai.sdk._data.dtype import (
     PandasDType,
     coerce_dtypes_by_encoding,
@@ -510,7 +510,7 @@ class FileContainer(DataContainer):
         con.execute(create_secret_sql)
 
     def query(self, sql: str) -> pd.DataFrame:
-        self._assert_read_only_sql(sql)
+        assert_read_only_sql(sql)
         try:
             with duckdb.connect(database=":memory:") as con:
                 self._init_duckdb(con)
