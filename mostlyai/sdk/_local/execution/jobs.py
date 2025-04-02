@@ -149,7 +149,9 @@ def _mark_failed(resource: Generator | SyntheticDataset, resource_dir: Path):
 
 def _copy_model(generator_dir: Path, model_label: str, workspace_dir: Path):
     model_path = generator_dir / "ModelStore" / model_label
-    shutil.copytree(model_path, workspace_dir / "ModelStore")
+    if not model_path.exists():
+        model_path = generator_dir / "ModelStore" / model_label.replace("-", ":")
+    shutil.copytree(model_path, workspace_dir / "ModelStore" / model_label)
 
 
 def _copy_statistics(generator_dir: Path, model_label: str, workspace_dir: Path) -> bool:
