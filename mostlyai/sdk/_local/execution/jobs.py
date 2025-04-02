@@ -315,7 +315,7 @@ class Execution:
         # gather arguments that are common across steps
         generator = self._generator
         model_type = ModelType.tabular if task.type == TaskType.train_tabular else ModelType.language
-        model_label = f"{task.target_table_name}:{model_type.value.lower()}"
+        model_label = f"{task.target_table_name}-{model_type.value.lower()}"
         tgt_table = next(t for t in generator.tables if t.name == task.target_table_name)
         generator_dir = self._home_dir / "generators" / generator.id
         workspace_dir = self._job_workspace_dir / model_label
@@ -420,7 +420,7 @@ class Execution:
                 else ModelType.language
             )
 
-            model_label = f"{step.target_table_name}:{model_type.value.lower()}"
+            model_label = f"{step.target_table_name}-{model_type.value.lower()}"
             workspace_dir = self._job_workspace_dir / model_label
             workspace_dir.mkdir(exist_ok=True)
 
@@ -478,11 +478,11 @@ class Execution:
             elif step.step_code in {StepCode.finalize_generation, StepCode.finalize_probing}:
                 # for every LANGUAGE model generation, merge context and generated data
                 for table in visited_tables:
-                    language_path = self._job_workspace_dir / f"{table}:{ModelType.language.value.lower()}"
+                    language_path = self._job_workspace_dir / f"{table}-{ModelType.language.value.lower()}"
                     if language_path.exists():
                         _merge_tabular_language_data(workspace_dir=language_path)
 
-                        tabular_workspace = self._job_workspace_dir / f"{table}:{ModelType.tabular.value.lower()}"
+                        tabular_workspace = self._job_workspace_dir / f"{table}-{ModelType.tabular.value.lower()}"
                         tabular_workspace.mkdir(parents=True, exist_ok=True)
                         shutil.rmtree(tabular_workspace / "SyntheticData", ignore_errors=True)
                         shutil.move(language_path / "SyntheticData", tabular_workspace / "SyntheticData")

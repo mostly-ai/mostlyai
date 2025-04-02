@@ -115,7 +115,7 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                         task_type=TaskType.train_tabular
                         if model_type == ModelType.tabular
                         else TaskType.train_language,
-                        model_label=f"{table.name}:{model_type.value.lower()}",
+                        model_label=f"{table.name}-{model_type.value.lower()}",
                         step_code=step,
                         progress=ProgressValue(value=0, max=1),
                         status=ProgressStatus.new,

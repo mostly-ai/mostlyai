@@ -132,7 +132,7 @@ def create_synthetic_dataset(
                 progress_steps.append(
                     ProgressStep(
                         task_type=TaskType.generate,
-                        model_label=f"{table.name}:{model_type.value.lower()}",
+                        model_label=f"{table.name}-{model_type.value.lower()}",
                         step_code=step,
                         progress=ProgressValue(value=0, max=1),
                         status=ProgressStatus.new,
