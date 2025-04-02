@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import re
 import uuid
 import zipfile
 from pathlib import Path
@@ -366,8 +367,11 @@ def export_data_to_excel(delivery_dir: Path, output_dir: Path):
             df = table["data"]
             # create a valid sheet name
             sheet_name = table_name[:28]  # consider max sheet name length
+            # remove invalid sheet name characters []:*?/\
+            sheet_name = re.sub(r"[\[\]:*?\\/]", "", sheet_name)
+            # make sheet name unique, with case ignored
             while sheet_name.lower() in sheet_names_lower:
-                sheet_name += "_"  # make sheet name unique, with case ignored
+                sheet_name += "_"
             sheet_names_lower.append(sheet_name.lower())
             # add the worksheet
             worksheet = workbook.add_worksheet(sheet_name)
