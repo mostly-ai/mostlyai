@@ -546,12 +546,11 @@ class Execution:
             step="finalize_generation",
         )
         # step: FINALIZE_GENERATION
-        usages = execute_step_finalize_generation(
+        _ = execute_step_finalize_generation(
             schema=schema,
             is_probe=True,
             job_workspace_dir=self._job_workspace_dir,
         )
-        update_total_rows(self._synthetic_dataset, usages)
 
 
 ### JOB EXECUTION FUNCTIONS ###
