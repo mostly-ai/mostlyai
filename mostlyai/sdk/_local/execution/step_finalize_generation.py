@@ -41,11 +41,11 @@ def execute_step_finalize_generation(
     is_probe: bool,
     job_workspace_dir: Path,
     update_progress: ProgressCallback | None = None,
-) -> list[dict]:
+) -> dict[str, int]:
     # get synthetic table usage
-    usages = []
+    usages = dict()
     for table_name, table in schema.tables.items():
-        usages.append(dict(table=table_name, total_rows=table.row_count))
+        usages.update({table_name: table.row_count})
     # short circuit for probing
     delivery_dir = job_workspace_dir / "FinalizedSyntheticData"
     if is_probe:
@@ -101,10 +101,10 @@ def execute_step_finalize_generation(
         return usages
 
 
-def update_total_rows(synthetic_dataset: SyntheticDataset, usage: list[dict]) -> None:
-    for table_usage in usage:
-        table = next(t for t in synthetic_dataset.tables if t.name == table_usage["table"])
-        table.total_rows = table_usage["total_rows"]
+def update_total_rows(synthetic_dataset: SyntheticDataset, usages: dict[str, int]) -> None:
+    for table_name, total_rows in usages.items():
+        table = next(t for t in synthetic_dataset.tables if t.name == table_name)
+        table.total_rows = total_rows
 
 
 def format_datetime(df: pd.DataFrame) -> pd.DataFrame:
