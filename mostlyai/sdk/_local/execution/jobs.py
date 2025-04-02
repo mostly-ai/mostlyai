@@ -281,7 +281,7 @@ class Execution:
                 if t.configuration.sample_seed_connector_id is not None
             ]
         connectors_dir = self._home_dir / "connectors"
-        for connector_path in connectors_dir.iterdir():
+        for connector_path in connectors_dir.iterdir() if connectors_dir.exists() else []:
             if not (connector_path.name in connector_ids and connector_path.is_dir()):
                 continue
 
