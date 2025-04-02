@@ -13,11 +13,11 @@
 # limitations under the License.
 import logging
 from collections.abc import Callable
-from pathlib import Path
 
 import pandas as pd
 
 from mostlyai.sdk.domain import ModelType
+from pathlib import Path
 
 _LOG = logging.getLogger(__name__)
 
@@ -29,9 +29,8 @@ def execute_step_generate_model_report_data(
     update_progress: Callable,
 ):
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
-    from mostlyai.engine._workspace import Workspace
-
     from mostlyai import engine
+    from mostlyai.engine._workspace import Workspace
 
     # determine max sample size for generated report samples
     workspace = Workspace(workspace_dir)
@@ -65,7 +64,7 @@ def execute_step_generate_model_report_data(
 
 def qa_sample_size_heuristic(tgt_stats: dict, model_type: ModelType) -> int:
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
-    from mostlyai.engine._common import get_cardinalities, get_sequence_length_stats
+    from mostlyai.engine._common import get_sequence_length_stats, get_cardinalities
 
     if model_type == ModelType.language:
         return 1_000
@@ -81,23 +80,13 @@ def qa_sample_size_heuristic(tgt_stats: dict, model_type: ModelType) -> int:
 
 
 def _pull_context_for_report_generation(
-    *,
-    ctx_data_path: Path,
-    output_path: Path,
-    max_sample_size: int,
-    ctx_primary_key: str,
+    *, ctx_data_path: Path, output_path: Path, max_sample_size: int, ctx_primary_key: str
 ):
     ctx_trn_files = sorted(ctx_data_path.glob("part.*-trn.parquet"))
     ctx_val_files = sorted(ctx_data_path.glob("part.*-val.parquet"))
     # fetch keys alone first
-    ctx_trn_keys = pd.concat(
-        [pd.read_parquet(f, columns=[ctx_primary_key]) for f in ctx_trn_files],
-        ignore_index=True,
-    )
-    ctx_val_keys = pd.concat(
-        [pd.read_parquet(f, columns=[ctx_primary_key]) for f in ctx_val_files],
-        ignore_index=True,
-    )
+    ctx_trn_keys = pd.concat([pd.read_parquet(f, columns=[ctx_primary_key]) for f in ctx_trn_files], ignore_index=True)
+    ctx_val_keys = pd.concat([pd.read_parquet(f, columns=[ctx_primary_key]) for f in ctx_val_files], ignore_index=True)
     ctx_trn_keys = ctx_trn_keys.sample(frac=1).reset_index(drop=True)
     ctx_val_keys = ctx_val_keys.sample(frac=1).reset_index(drop=True)
     # attempt to balance the training and validation sets
