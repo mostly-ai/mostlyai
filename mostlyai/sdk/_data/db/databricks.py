@@ -252,7 +252,7 @@ class DatabricksContainer(SqlAlchemyContainer):
                 result = connection.execute(query)
                 return [row[1] for row in result]  # Views are in the second column of the result
         except Exception:
-            _LOG.debug("Error while fetching views list")
+            _LOG.debug(f"Error while fetching views list for {self.dbname}.{self.dbschema}")
             return []
 
     def get_object_list(self):
