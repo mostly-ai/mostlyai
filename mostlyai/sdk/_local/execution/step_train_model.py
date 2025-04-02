@@ -61,6 +61,7 @@ def execute_step_train_model(
         max_training_time=model_config.max_training_time,
         max_epochs=model_config.max_epochs,
         batch_size=model_config.batch_size,
+        gradient_accumulation_steps=model_config.gradient_accumulation_steps,
         max_sequence_window=max_sequence_window,
         enable_flexible_generation=model_config.enable_flexible_generation,
         differential_privacy=differential_privacy,

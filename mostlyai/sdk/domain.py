@@ -2075,35 +2075,36 @@ class ModelConfiguration(CustomBaseModel):
         alias="maxSampleSize",
         description="The maximum number of samples to consider for training.\nIf not provided, then all available samples will be taken.\n",
         ge=1,
-        le=1000000000,
     )
     batch_size: int | None = Field(
         None,
         alias="batchSize",
-        description="The batch size used for training the model.\nIf not provided, batchSize will be chosen automatically.\n",
+        description="The physical batch size used for training the model.\nIf not provided, batchSize will be chosen automatically.\n",
         ge=1,
-        le=1000000,
+    )
+    gradient_accumulation_steps: int | None = Field(
+        None,
+        alias="gradientAccumulationSteps",
+        description="Steps to accumulate gradients before optimizer update.\nIf not provided, gradientAccumulationSteps will be chosen automatically.\n",
+        ge=1,
     )
     max_training_time: float | None = Field(
         14400,
         alias="maxTrainingTime",
         description="The maximum number of minutes to train the model.",
         ge=0.0,
-        le=1000000.0,
     )
     max_epochs: float | None = Field(
         100,
         alias="maxEpochs",
         description="The maximum number of epochs to train the model.",
         ge=0.0,
-        le=1000000.0,
     )
     max_sequence_window: int | None = Field(
         100,
         alias="maxSequenceWindow",
         description="The maximum sequence window to consider for training.\nOnly applicable for TABULAR models.\n",
         ge=1,
-        le=100000,
     )
     enable_flexible_generation: bool | None = Field(
         True,
