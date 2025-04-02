@@ -281,17 +281,18 @@ class Execution:
                 if t.configuration.sample_seed_connector_id is not None
             ]
         connectors_dir = self._home_dir / "connectors"
-        for connector_path in connectors_dir.iterdir():
-            if not (connector_path.name in connector_ids and connector_path.is_dir()):
-                continue
+        if connectors_dir.exists():
+            for connector_path in connectors_dir.iterdir():
+                if not (connector_path.name in connector_ids and connector_path.is_dir()):
+                    continue
 
-            try:
-                connector = read_connector_from_json(connector_path)
-                if connector.type == ConnectorType.file_upload:
-                    shutil.rmtree(connector_path)
-            except Exception as e:
-                _LOG.info(f"Failed to clear connector {connector_path}: {e}")
-                pass
+                try:
+                    connector = read_connector_from_json(connector_path)
+                    if connector.type == ConnectorType.file_upload:
+                        shutil.rmtree(connector_path)
+                except Exception as e:
+                    _LOG.info(f"Failed to clear connector {connector_path}: {e}")
+                    pass
 
     def run(self):
         # execute job
