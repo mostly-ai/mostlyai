@@ -49,7 +49,7 @@ class LocalServer:
         if not os.access(self.home_dir, os.R_OK) or not os.access(self.home_dir, os.W_OK):
             raise PermissionError(f"Cannot read/write to {self.home_dir}")
         if port is None and os.name == "nt":
-            port = 5000  # default port on Windows
+            port = 5000  # use TCP by default on Windows
         self.port = port
         # binding to all interfaces (0.0.0.0) is required for docker use case
         self.host = "0.0.0.0" if port is not None else None
