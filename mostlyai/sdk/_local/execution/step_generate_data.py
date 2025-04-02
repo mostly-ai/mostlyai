@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import uuid
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 
 import pandas as pd
 
 from mostlyai.sdk import _data as data
 from mostlyai.sdk._data.base import Schema
 from mostlyai.sdk._data.util.common import TABLE_COLUMN_INFIX, TEMPORARY_PRIMARY_KEY
-from mostlyai.sdk.domain import Generator, SyntheticDataset, ModelType
+from mostlyai.sdk.domain import Generator, ModelType, SyntheticDataset
 
 
 def execute_step_generate_data(
@@ -33,12 +33,9 @@ def execute_step_generate_data(
     schema: Schema,
     workspace_dir: Path,
     update_progress: Callable,
-    _use_xgrammar: bool = False,
 ):
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
     import mostlyai.engine as engine
-
-    print(f"Using XGrammar: {_use_xgrammar}")
 
     tgt_g_table = next(t for t in generator.tables if t.name == target_table_name)
     tgt_sd_table = next(t for t in synthetic_dataset.tables if t.name == target_table_name)
@@ -106,5 +103,4 @@ def execute_step_generate_data(
         fairness=fairness,
         workspace_dir=workspace_dir,
         update_progress=update_progress,
-        _use_xgrammar=_use_xgrammar,
     )
