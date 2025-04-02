@@ -513,6 +513,7 @@ class FileContainer(DataContainer):
         assert_read_only_sql(sql)
         try:
             with duckdb.connect(database=":memory:") as con:
+                con.query("SET disabled_filesystems = 'LocalFileSystem';")
                 self._init_duckdb(con)
                 result = con.execute(sql).fetchdf()
 
