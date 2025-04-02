@@ -184,7 +184,10 @@ def test_write_and_delete_data(tmp_path, sample_dataframe, connector_type, locat
 
 @pytest.mark.parametrize(
     "data_format, connector_type",
-    [("csv", "FILE_UPLOAD"), ("sqlite", "SQLITE")],
+    [
+        # ("csv", "FILE_UPLOAD"),  # local file-system access is disabled
+        ("sqlite", "SQLITE")
+    ],
 )
 def test_query(tmp_path, dataset, data_format, connector_type):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
