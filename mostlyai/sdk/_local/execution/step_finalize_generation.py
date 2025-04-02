@@ -413,7 +413,7 @@ def create_generation_schema(
     for table in generator.tables:
         # create LocalFileContainer
         container = LocalFileContainer()
-        model_label = f"{table.name}_tabular"
+        model_label = f"{table.name}-tabular"
         location = str(job_workspace_dir / model_label / "SyntheticData")
         container.set_location(location)
         if step == "pull_context_data":

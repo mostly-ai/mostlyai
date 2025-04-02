@@ -430,7 +430,10 @@ class Routes:
             file_content = await file.read()
             try:
                 with zipfile.ZipFile(BytesIO(file_content)) as zip_ref:
-                    zip_ref.extractall(generator_dir)
+                    for zip_info in zip_ref.filelist:
+                        # replace : with - to handle INFIX of older generators
+                        zip_info.filename = zip_info.filename.replace(":", "-")
+                        zip_ref.extract(zip_info, generator_dir)
             except zipfile.BadZipFile:
                 raise HTTPException(status_code=400, detail="Invalid ZIP file")
 
