@@ -2143,7 +2143,7 @@ class ProgressStep(CustomBaseModel):
         None,
         alias="modelLabel",
         description="The unique label for the model, consisting of table name and a suffix for the model type.\nThis will be empty for steps that are not related to a model.\n",
-        examples=[["census:tabular", "census:language"]],
+        examples=[["census-tabular", "census-language"]],
     )
     compute_name: str | None = Field(
         None,
