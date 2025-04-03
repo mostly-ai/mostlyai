@@ -121,7 +121,7 @@ class DatabricksContainer(SqlAlchemyContainer):
             # so that we don't wait too long when the cluster is still starting and temporarily unavailable
             "_retry_delay_max": 10.0,
             "_retry_stop_after_attempts_count": 3,
-            "use_inline_params": True,
+            "use_inline_params": "silent",
         }
 
     @classmethod
