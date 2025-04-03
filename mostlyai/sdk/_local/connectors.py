@@ -28,6 +28,7 @@ from mostlyai.sdk.domain import (
     ConnectorReadDataConfig,
     ConnectorWriteDataConfig,
     ConnectorDeleteDataConfig,
+    ConnectorType,
 )
 from mostlyai.sdk._data.file.utils import make_data_table_from_container
 
@@ -61,6 +62,8 @@ def do_test_connection(connector: Connector) -> bool:
 
 
 def _data_table_from_connector_and_location(connector: Connector, location: str, is_output: bool):
+    if connector.type == ConnectorType.file_upload:
+        raise HTTPException(status_code=400, detail="Connector type FILE_UPLOAD is disallowed for this operation")
     container = create_container_from_connector(connector)
     meta = container.set_location(location)
     data_table = make_data_table_from_container(container, is_output=is_output)

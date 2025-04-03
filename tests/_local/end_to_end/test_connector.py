@@ -17,7 +17,6 @@ import pandas as pd
 from sqlalchemy import create_engine
 import pytest
 import numpy as np
-from pathlib import Path
 
 
 @pytest.fixture
@@ -43,21 +42,32 @@ def dataset(sample_dataframe, linked_dataframe):
     yield {"subject": sample_dataframe, "linked": linked_dataframe}
 
 
-def prepare_data_for_read(data_format, dataset, tmp_path):
-    file_paths = {}
-    for table_name, df in dataset.items():
-        file_path = tmp_path / f"test_data_{table_name}.csv"
-        df.to_csv(file_path, index=False)
-        file_paths[table_name] = str(file_path)
+@pytest.fixture
+def sqlite_read_connector_config(tmp_path):
+    return {
+        "name": "Test SQLITE READ Connector",
+        "type": "SQLITE",
+        "access_type": "READ_DATA",
+        "config": {"database": str(tmp_path / "test_data.sqlite")},
+    }
 
-    if data_format == "csv":
-        return file_paths["subject"], file_paths["linked"]
-    elif data_format == "sqlite":
-        db_path = tmp_path / "test_data.sqlite"
-        engine = create_engine(f"sqlite:///{db_path}")
-        for table_name, df in dataset.items():
-            df.to_sql(table_name, engine, index=False, if_exists="replace")
-        return "main.subject", "main.linked"
+
+@pytest.fixture
+def sqlite_write_connector_config(tmp_path):
+    return {
+        "name": "Test SQLITE WRITE Connector",
+        "type": "SQLITE",
+        "access_type": "WRITE_DATA",
+        "config": {"database": str(tmp_path / "test_write.sqlite")},
+    }
+
+
+def prepare_data_for_read(dataset, tmp_path):
+    db_path = tmp_path / "test_data.sqlite"
+    engine = create_engine(f"sqlite:///{db_path}")
+    for table_name, df in dataset.items():
+        df.to_sql(table_name, engine, index=False, if_exists="replace")
+    return "main.subject", "main.linked"
 
 
 def test_connector(tmp_path, sample_dataframe):
@@ -84,27 +94,13 @@ def test_connector(tmp_path, sample_dataframe):
     c.delete()
 
 
-@pytest.mark.parametrize(
-    "data_format, connector_type",
-    [("csv", "FILE_UPLOAD"), ("sqlite", "SQLITE")],
-)
-def test_read_data(tmp_path, dataset, data_format, connector_type):
+def test_read_data(tmp_path, dataset, sqlite_read_connector_config):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
-    subject_location, linked_location = prepare_data_for_read(data_format, dataset, tmp_path)
-
-    connector_config = {
-        "name": f"Test {connector_type} Connector",
-        "type": connector_type,
-        "access_type": "READ_DATA",
-        "config": {},
-    }
-
-    if connector_type == "SQLITE":
-        connector_config["config"]["database"] = str(tmp_path / "test_data.sqlite")
+    subject_location, linked_location = prepare_data_for_read(dataset, tmp_path)
 
     c = mostly.connect(
-        config=connector_config,
+        config=sqlite_read_connector_config,
         test_connection=False,
     )
 
@@ -117,109 +113,60 @@ def test_read_data(tmp_path, dataset, data_format, connector_type):
     c.delete()
 
 
-@pytest.mark.parametrize(
-    "connector_type, location_format",
-    [
-        ("SQLITE", "main.data"),
-        ("FILE_UPLOAD", "{tmp_path}/test_write.csv"),
-        ("FILE_UPLOAD", "{tmp_path}/test_write.parquet"),
-    ],
-)
-def test_write_and_delete_data(tmp_path, sample_dataframe, connector_type, location_format):
+def test_write_and_delete_data(tmp_path, sample_dataframe, sqlite_write_connector_config):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
-    connector_config = {
-        "name": f"Test {connector_type} Connector",
-        "type": connector_type,
-        "access_type": "WRITE_DATA",
-        "config": {},
-    }
-
-    if connector_type == "SQLITE":
-        connector_config["config"]["database"] = str(tmp_path / "test_write.sqlite")
-
-    location = location_format.format(tmp_path=tmp_path) if "{tmp_path}" in location_format else location_format
+    location = "main.data"
 
     midpoint = len(sample_dataframe) // 2
     first_half = sample_dataframe.iloc[:midpoint].copy()
     second_half = sample_dataframe.iloc[midpoint:].copy()
 
-    c = mostly.connect(config=connector_config)
+    c = mostly.connect(config=sqlite_write_connector_config)
 
-    # parquet is not "appendable", unlike the other formats being tested
-    if "parquet" in location:
-        c.write_data(data=sample_dataframe, location=location)
-    else:
-        c.write_data(data=first_half, location=location, if_exists="fail")
-        c.write_data(data=first_half, location=location, if_exists="replace")
-        c.write_data(data=second_half, location=location, if_exists="append")
+    c.write_data(data=first_half, location=location, if_exists="fail")
+    c.write_data(data=first_half, location=location, if_exists="replace")
+    c.write_data(data=second_half, location=location, if_exists="append")
 
-    if connector_type == "SQLITE":
-        engine = create_engine(f"sqlite:///{tmp_path}/test_write.sqlite")
-        read_df = pd.read_sql_table("data", con=engine)
-    else:
-        read_df = pd.read_csv(location) if "csv" in location else pd.read_parquet(location)
+    engine = create_engine(f"sqlite:///{tmp_path}/test_write.sqlite")
+    read_df = pd.read_sql_table("data", con=engine)
 
     assert len(read_df) == len(first_half) + len(second_half)
 
     for col in sample_dataframe.columns:
         assert set(first_half[col]).union(set(second_half[col])) == set(read_df[col])
 
-    if connector_type == "SQLITE":
-        with pytest.raises(Exception):
-            c.write_data(data=sample_dataframe, location=location, if_exists="fail")
+    with pytest.raises(Exception):
+        c.write_data(data=sample_dataframe, location=location, if_exists="fail")
 
     # test delete functionality
     c.delete_data(location=location)
 
-    if connector_type == "SQLITE":
-        engine = create_engine(f"sqlite:///{tmp_path}/test_write.sqlite")
-        with pytest.raises(Exception):
-            pd.read_sql_table("data", con=engine)
-    else:
-        assert not Path(location).exists()
+    engine = create_engine(f"sqlite:///{tmp_path}/test_write.sqlite")
+    with pytest.raises(Exception):
+        pd.read_sql_table("data", con=engine)
 
     c.delete()
 
 
-@pytest.mark.parametrize(
-    "data_format, connector_type",
-    [
-        # ("csv", "FILE_UPLOAD"),  # local file-system access is disabled
-        ("sqlite", "SQLITE")
-    ],
-)
-def test_query(tmp_path, dataset, data_format, connector_type):
+def test_query(tmp_path, dataset, sqlite_read_connector_config):
     mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
 
-    subject_location, linked_location = prepare_data_for_read(data_format, dataset, tmp_path)
-
-    connector_config = {
-        "name": f"Test {connector_type} Connector",
-        "type": connector_type,
-        "access_type": "READ_DATA",
-        "config": {},
-    }
-
-    if connector_type == "SQLITE":
-        connector_config["config"]["database"] = str(tmp_path / "test_data.sqlite")
-
-    subject_table_name = subject_location if connector_type == "FILE_UPLOAD" else "subject"
-    linked_table_name = linked_location if connector_type == "FILE_UPLOAD" else "linked"
+    prepare_data_for_read(dataset, tmp_path)
 
     c = mostly.connect(
-        config=connector_config,
+        config=sqlite_read_connector_config,
         test_connection=False,
     )
 
-    query_result = c.query(sql=f"SELECT * FROM '{subject_table_name}'")
+    query_result = c.query(sql="SELECT * FROM 'subject'")
     pd.testing.assert_frame_equal(query_result, dataset["subject"], check_dtype=False)
 
     # perform a join query:
-    join_query = f"""
+    join_query = """
         SELECT s.pk, s.let, l.fk
-        FROM '{subject_table_name}' s
-        JOIN '{linked_table_name}' l ON s.pk = l.fk
+        FROM 'subject' s
+        JOIN 'linked' l ON s.pk = l.fk
         WHERE l.fk IN (2, 3)
         ORDER BY l.fk, s.pk
     """
@@ -236,9 +183,9 @@ def test_query(tmp_path, dataset, data_format, connector_type):
     pd.testing.assert_frame_equal(join_result, expected_join_df, check_dtype=False)
 
     # perform an aggregation query:
-    aggregation_query = f"""
+    aggregation_query = """
         SELECT l.fk, COUNT(*) as count
-        FROM '{linked_table_name}' l
+        FROM 'linked' l
         GROUP BY l.fk
         ORDER BY l.fk
     """
