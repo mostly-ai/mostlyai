@@ -24,6 +24,7 @@ from typing import Any
 from collections.abc import Generator, Iterable
 from urllib.parse import urlparse
 
+import duckdb
 import pandas as pd
 import pyarrow
 import pyarrow as pa
@@ -38,7 +39,7 @@ from mostlyai.sdk._data.base import (
     DataTable,
     order_df_by,
 )
-from mostlyai.sdk._data.util.common import SCHEME_SEP, DATA_TABLE_METADATA_FIELDS, OrderBy
+from mostlyai.sdk._data.util.common import SCHEME_SEP, DATA_TABLE_METADATA_FIELDS, OrderBy, assert_read_only_sql
 from mostlyai.sdk._data.dtype import (
     PandasDType,
     coerce_dtypes_by_encoding,
@@ -492,6 +493,41 @@ class FileContainer(DataContainer):
     def set_location(self, location: str) -> dict:
         self.set_uri(location)
         return {"location": location}
+
+    def _init_duckdb(self, con: duckdb.DuckDBPyConnection) -> None:
+        pass
+
+    @staticmethod
+    def _create_duckdb_secret(con: duckdb.DuckDBPyConnection, secret_params: dict[str, Any]) -> None:
+        def sql_escape(val: str) -> str:
+            return str(val).replace("'", "''")  # escape single quotes for SQL strings
+
+        # all values must be wrapped in single quotes and escaped
+        parts = [f"{key} '{sql_escape(value)}'" for key, value in secret_params.items()]
+        joined_parts = ",\n    ".join(parts)
+        create_secret_sql = f"CREATE SECRET (\n    {joined_parts}\n);"
+
+        con.execute(create_secret_sql)
+
+    def query(self, sql: str) -> pd.DataFrame:
+        assert_read_only_sql(sql)
+        try:
+            with duckdb.connect(database=":memory:") as con:
+                con.execute("""
+                    SET disabled_filesystems = 'LocalFileSystem';
+                    SET allow_community_extensions = false;
+                    SET lock_configuration = true;
+                """)
+                self._init_duckdb(con)
+                result = con.execute(sql).fetchdf()
+
+            return result
+        except duckdb.IOException as e:
+            _LOG.error(f"IO Error executing query: {str(e)}")
+            raise
+        except duckdb.Error as e:
+            _LOG.error(f"DuckDB Error executing query: {str(e)}")
+            raise
 
 
 class LocalFileContainer(FileContainer):

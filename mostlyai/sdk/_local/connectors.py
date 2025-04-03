@@ -28,6 +28,7 @@ from mostlyai.sdk.domain import (
     ConnectorReadDataConfig,
     ConnectorWriteDataConfig,
     ConnectorDeleteDataConfig,
+    ConnectorType,
 )
 from mostlyai.sdk._data.file.utils import make_data_table_from_container
 
@@ -61,6 +62,8 @@ def do_test_connection(connector: Connector) -> bool:
 
 
 def _data_table_from_connector_and_location(connector: Connector, location: str, is_output: bool):
+    if connector.type == ConnectorType.file_upload:
+        raise HTTPException(status_code=400, detail="Connector type FILE_UPLOAD is disallowed for this operation")
     container = create_container_from_connector(connector)
     meta = container.set_location(location)
     data_table = make_data_table_from_container(container, is_output=is_output)
@@ -104,5 +107,16 @@ def delete_data_from_connector(connector: Connector, config: ConnectorDeleteData
             connector=connector, location=config.location, is_output=True
         )
         data_table.drop()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+def query_data_from_connector(connector: Connector, sql: str) -> pd.DataFrame:
+    if connector.access_type not in {ConnectorAccessType.read_data, ConnectorAccessType.write_data}:
+        raise HTTPException(status_code=400, detail="Connector does not have query access")
+
+    try:
+        data_container = create_container_from_connector(connector)
+        return data_container.query(sql)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

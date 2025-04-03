@@ -235,8 +235,9 @@ class Routes:
             df = connectors.read_data_from_connector(connector, config)
 
             # this file can only be safely removed once the streaming response is complete
-            tmp_path = tempfile.mktemp(suffix=".parquet")
-            df.to_parquet(tmp_path)
+            with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as tmp_file:
+                tmp_path = tmp_file.name
+                df.to_parquet(tmp_path)
 
             return StreamingResponse(
                 open(tmp_path, mode="rb"),
@@ -263,6 +264,24 @@ class Routes:
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
             connectors.delete_data_from_connector(connector, config)
+
+        @self.router.post("/connectors/{id}/query")
+        async def query(id: str, sql: str = Body(..., embed=True)) -> StreamingResponse:
+            connector_dir = self.home_dir / "connectors" / id
+            connector = read_connector_from_json(connector_dir)
+            df = connectors.query_data_from_connector(connector, sql)
+
+            # this file can only be safely removed once the streaming response is complete
+            with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as tmp_file:
+                tmp_path = tmp_file.name
+                df.to_parquet(tmp_path)
+
+            return StreamingResponse(
+                open(tmp_path, mode="rb"),
+                media_type="application/octet-stream",
+                headers={"Content-Disposition": "attachment; filename=query_result.parquet"},
+                background=BackgroundTask(Path(tmp_path).unlink, missing_ok=True),
+            )
 
         ## GENERATORS
 

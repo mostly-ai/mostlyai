@@ -27,6 +27,8 @@ import pandas as pd
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
 import concurrent.futures
+import sqlparse
+from sqlparse.tokens import DML
 
 from mostlyai.sdk._data.exceptions import MostlyDataException
 
@@ -175,6 +177,99 @@ def strip_column_prefix(
         table_name = next((infer_table_name(column) for column in prefixed_data), None)
     prefixed_data = [column.removeprefix(table_name + TABLE_COLUMN_INFIX) for column in prefixed_data]
     return prefixed_data[0] if is_str else prefixed_data
+
+
+def assert_read_only_sql(sql: str) -> None:
+    # define allowed read-only operations
+    read_only_dml = {"select", "with", "show", "describe", "explain"}
+
+    # define disallowed operations that should be blocked
+    disallowed_operations = {
+        # data manipulation language (DML)
+        "insert",
+        "update",
+        "delete",
+        "merge",
+        "replace",
+        # data definition language (DDL)
+        "create",
+        "alter",
+        "drop",
+        "truncate",
+        "rename",
+        # data control language (DCL)
+        "grant",
+        "revoke",
+        "deny",
+        # transaction control language (TCL)
+        "commit",
+        "rollback",
+        "savepoint",
+        # other dangerous operations
+        "set",
+        "use",
+        "exec",
+        "execute",
+        "call",
+        "declare",
+        "begin",
+        "end",
+        "backup",
+        "restore",
+        "load",
+        "import",
+        "export",
+        "copy",
+        "analyze",
+        "vacuum",
+        "optimize",
+        "repair",
+        "check",
+        "checkpoint",
+    }
+
+    # handle empty statements
+    if not sql or sql.strip() in {"", ";", "--", "/*", "*/"}:
+        raise MostlyDataException("Empty SQL statement.")
+
+    statements = sqlparse.parse(sql)
+    if not statements:
+        raise MostlyDataException("Empty SQL statement.")
+
+    for statement in statements:
+        # check if statement contains only comments or whitespace
+        tokens = [t for t in statement.tokens if not t.is_whitespace]
+        if not tokens or all(
+            t.ttype in (sqlparse.tokens.Comment.Single, sqlparse.tokens.Comment.Multiline) for t in tokens
+        ):
+            raise MostlyDataException("Empty SQL statement.")
+
+        # get the first token to check for disallowed operations
+        first_token = statement.token_first()
+        if first_token and first_token.value.lower() in disallowed_operations:
+            raise MostlyDataException(f"Disallowed operation: {first_token.value.upper()}")
+
+        # check for DML operations
+        for token in statement.flatten():
+            if token.ttype is DML:
+                dml = token.value.lower()
+                if dml not in read_only_dml:
+                    raise MostlyDataException(f"Disallowed operation: {dml.upper()}")
+
+        # check for disallowed keywords in proper SQL context
+        tokens = [t for t in statement.flatten() if t.ttype is not None]
+        in_case = False  # track if we're inside a CASE expression
+        for i, token in enumerate(tokens):
+            if token.value.lower() == "case":
+                in_case = True
+            elif token.value.lower() == "end" and in_case:
+                in_case = False
+                continue  # skip END if it's part of a CASE expression
+            elif token.value.lower() in disallowed_operations:
+                # check if it's a standalone keyword or part of a larger token
+                if i > 0 and tokens[i - 1].value.lower() in {"from", "into", "to", "on", "where", "and", "or", "not"}:
+                    continue  # skip if it's part of a larger expression
+                raise MostlyDataException(f"Disallowed operation: {token.value.upper()}")
 
 
 MAX_SCP_SIBLINGS_LIMIT = 50

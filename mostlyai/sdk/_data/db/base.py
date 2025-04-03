@@ -59,7 +59,7 @@ from mostlyai.sdk._data.dtype import (
     WrappedDType,
     coerce_dtypes_by_encoding,
 )
-from mostlyai.sdk._data.util.common import prepare_ssl_path, ColumnSort, OrderBy
+from mostlyai.sdk._data.util.common import prepare_ssl_path, ColumnSort, OrderBy, assert_read_only_sql
 from mostlyai.sdk._data.util.kerberos import is_kerberos_ticket_alive
 from sqlalchemy import Table
 
@@ -586,6 +586,15 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
     @abc.abstractmethod
     def does_database_exist(self) -> bool:
         pass
+
+    def query(self, sql: str) -> pd.DataFrame:
+        assert_read_only_sql(sql)
+        with self.init_sa_connection() as engine:
+            try:
+                return pd.read_sql(sql, engine)
+            except sa.exc.SQLAlchemyError as e:
+                _LOG.error(f"Error executing query: {str(e)}")
+                raise
 
     def drop_all(self):
         if self.sa_metadata:

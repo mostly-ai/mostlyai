@@ -34,6 +34,7 @@ from mostlyai.sdk._local.execution.step_encode_training_data import execute_step
 from mostlyai.sdk._local.execution.step_finalize_generation import (
     execute_step_finalize_generation,
     create_generation_schema,
+    update_total_rows,
 )
 from mostlyai.sdk._local.execution.step_generate_data import execute_step_generate_data
 from mostlyai.sdk._local.execution.step_generate_model_report_data import (
@@ -280,17 +281,18 @@ class Execution:
                 if t.configuration.sample_seed_connector_id is not None
             ]
         connectors_dir = self._home_dir / "connectors"
-        for connector_path in connectors_dir.iterdir():
-            if not (connector_path.name in connector_ids and connector_path.is_dir()):
-                continue
+        if connectors_dir.exists():
+            for connector_path in connectors_dir.iterdir():
+                if not (connector_path.name in connector_ids and connector_path.is_dir()):
+                    continue
 
-            try:
-                connector = read_connector_from_json(connector_path)
-                if connector.type == ConnectorType.file_upload:
-                    shutil.rmtree(connector_path)
-            except Exception as e:
-                _LOG.info(f"Failed to clear connector {connector_path}: {e}")
-                pass
+                try:
+                    connector = read_connector_from_json(connector_path)
+                    if connector.type == ConnectorType.file_upload:
+                        shutil.rmtree(connector_path)
+                except Exception as e:
+                    _LOG.info(f"Failed to clear connector {connector_path}: {e}")
+                    pass
 
     def run(self):
         # execute job
@@ -504,7 +506,7 @@ class Execution:
             step="finalize_generation",
         )
 
-        execute_step_finalize_generation(
+        usages = execute_step_finalize_generation(
             schema=schema,
             is_probe=False,
             job_workspace_dir=self._job_workspace_dir,
@@ -514,6 +516,7 @@ class Execution:
                 step_code=StepCode.finalize_generation,
             ),
         )
+        update_total_rows(self._synthetic_dataset, usages)
 
     def execute_deliver_data(self):
         schema = create_generation_schema(
@@ -544,7 +547,7 @@ class Execution:
             step="finalize_generation",
         )
         # step: FINALIZE_GENERATION
-        execute_step_finalize_generation(
+        _ = execute_step_finalize_generation(
             schema=schema,
             is_probe=True,
             job_workspace_dir=self._job_workspace_dir,
