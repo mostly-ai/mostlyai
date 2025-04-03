@@ -121,7 +121,7 @@ class DatabricksContainer(SqlAlchemyContainer):
             # so that we don't wait too long when the cluster is still starting and temporarily unavailable
             "_retry_delay_max": 10.0,
             "_retry_stop_after_attempts_count": 3,
-            "use_inline_params": True,
+            "use_inline_params": "silent",
         }
 
     @classmethod
@@ -182,7 +182,7 @@ class DatabricksContainer(SqlAlchemyContainer):
 
     def _valid_table_name(self, table_name: str) -> bool:
         """Validate table name."""
-        return table_name in self.get_table_list()
+        return table_name in self.get_object_list()
 
     def _fetch_foreign_keys(self, table_name: str) -> list[dict]:
         """
@@ -241,22 +241,6 @@ class DatabricksContainer(SqlAlchemyContainer):
         except SQLAlchemyError:
             _LOG.debug(f"Error while executing {query=}")
             return None
-
-    def get_view_list(self) -> list[str]:
-        """
-        Fetch list of views from Databricks using a direct SQL query
-        """
-        try:
-            with self.init_sa_connection() as connection:
-                query = sa.text(f"SHOW VIEWS IN {self.dbname}.{self.dbschema}")
-                result = connection.execute(query)
-                return [row[1] for row in result]  # Views are in the second column of the result
-        except Exception:
-            _LOG.debug(f"Error while fetching views list for {self.dbname}.{self.dbschema}")
-            return []
-
-    def get_object_list(self):
-        return self.get_table_list() + self.get_view_list()
 
     def get_primary_key(self, table_name: str):
         return self._fetch_primary_key(table_name)

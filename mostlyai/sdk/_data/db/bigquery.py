@@ -73,12 +73,14 @@ class BigQueryContainer(SqlAlchemyContainer):
         return BigQueryTable
 
     def get_view_list(self) -> list[str]:
-        return []
+        if not self.does_database_exist():
+            return []
+        return [table.table_id for table in self.client.list_tables(self.dbname) if table.table_type == "VIEW"]
 
     def get_table_list(self) -> list[str]:
         if not self.does_database_exist():
             return []
-        return [table.table_id for table in self.client.list_tables(self.dbname) if table]
+        return [table.table_id for table in self.client.list_tables(self.dbname) if table.table_type == "TABLE"]
 
     def does_database_exist(self) -> bool:
         datasets = list(self.client.list_datasets())
@@ -103,7 +105,7 @@ class BigQueryContainer(SqlAlchemyContainer):
 
     def _valid_table_name(self, table_name: str) -> bool:
         """Validate table name."""
-        return table_name in self.get_table_list()
+        return table_name in self.get_object_list()
 
     def _fetch_foreign_keys(self, table_name):
         """
@@ -171,9 +173,6 @@ class BigQueryContainer(SqlAlchemyContainer):
         except Exception:
             _LOG.debug(f"Error while executing {query=}")
             return None
-
-    def get_object_list(self):
-        return self.get_table_list()
 
     def get_primary_key(self, table_name: str):
         return self._fetch_primary_key(table_name)
