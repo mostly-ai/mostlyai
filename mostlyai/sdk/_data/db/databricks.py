@@ -182,7 +182,7 @@ class DatabricksContainer(SqlAlchemyContainer):
 
     def _valid_table_name(self, table_name: str) -> bool:
         """Validate table name."""
-        return table_name in self.get_table_list()
+        return table_name in self.get_object_list()
 
     def _fetch_foreign_keys(self, table_name: str) -> list[dict]:
         """
