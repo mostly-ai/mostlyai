@@ -49,7 +49,7 @@ dependencies = [
 local = [
     # local
     "mostlyai-engine==1.1.11",
-    "mostlyai-qa==1.5.12",
+    "mostlyai-qa==1.5.13",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
@@ -74,7 +74,7 @@ local = [
 ]
 local-gpu = [
     "mostlyai-engine[gpu]==1.1.11",
-    "mostlyai-qa[gpu]==1.5.12",
+    "mostlyai-qa[gpu]==1.5.13",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
@@ -99,7 +99,7 @@ local-gpu = [
 ]
 local-cpu = [
     "mostlyai-engine[cpu]==1.1.11",
-    "mostlyai-qa[cpu]==1.5.12",
+    "mostlyai-qa[cpu]==1.5.13",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
