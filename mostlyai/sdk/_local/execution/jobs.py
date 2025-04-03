@@ -151,8 +151,8 @@ def _mark_failed(resource: Generator | SyntheticDataset, resource_dir: Path):
 def _copy_model(generator_dir: Path, model_label: str, workspace_dir: Path):
     model_path = generator_dir / "ModelStore" / model_label
     if not model_path.exists():
-        # replace - with : to handle INFIX of older generators
-        model_path = generator_dir / "ModelStore" / model_label.replace("-", ":")
+        # replace last - with : to handle INFIX of older generators
+        model_path = generator_dir / "ModelStore" / ":".join(model_label.rsplit("-", 1))
     shutil.copytree(model_path, workspace_dir / "ModelStore")
 
 

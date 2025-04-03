@@ -431,8 +431,8 @@ class Routes:
             try:
                 with zipfile.ZipFile(BytesIO(file_content)) as zip_ref:
                     for zip_info in zip_ref.filelist:
-                        # replace : with - to handle INFIX of older generators
-                        zip_info.filename = zip_info.filename.replace(":", "-")
+                        # replace last : with - to handle INFIX of older generators
+                        zip_info.filename = "-".join(zip_info.filename.rsplit(":", 1))
                         zip_ref.extract(zip_info, generator_dir)
             except zipfile.BadZipFile:
                 raise HTTPException(status_code=400, detail="Invalid ZIP file")
