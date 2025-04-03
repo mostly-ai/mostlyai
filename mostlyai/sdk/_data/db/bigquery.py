@@ -172,9 +172,6 @@ class BigQueryContainer(SqlAlchemyContainer):
             _LOG.debug(f"Error while executing {query=}")
             return None
 
-    def get_object_list(self):
-        return self.get_table_list()
-
     def get_primary_key(self, table_name: str):
         return self._fetch_primary_key(table_name)
 
