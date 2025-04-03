@@ -30,7 +30,7 @@ The SDK allows you to programmatically create, browse and manage 3 key resources
 | Live probe the generator on demand            | `df = mostly.probe(g, config)`    | [mostly.probe](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.probe)       |
 | Connect to any data source within your org    | `c = mostly.connect(config)`      | [mostly.connect](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.connect)   |
 
-<https://github.com/user-attachments/assets/d1613636-06e4-4147-bef7-25bb4699e8fc>
+https://github.com/user-attachments/assets/9e233213-a259-455c-b8ed-d1f1548b492f
 
 ## Key Features
 
