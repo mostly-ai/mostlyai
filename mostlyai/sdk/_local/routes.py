@@ -436,7 +436,6 @@ class Routes:
                         zip_info.filename = convert_model_label_path(zip_info.filename)
                         zip_ref.extract(zip_info, generator_dir)
 
-                    zip_ref.extractall(generator_dir)
             except zipfile.BadZipFile:
                 raise HTTPException(status_code=400, detail="Invalid ZIP file")
 
