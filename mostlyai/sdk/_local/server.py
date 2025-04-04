@@ -35,7 +35,7 @@ class LocalServer:
 
     Args:
         home_dir: The directory where the SDK stores its data. Defaults to `~/mostlyai`.
-        port: The port to bind the server to. If `None`, a Unix Domain Socket (UDS) will be used. Defaults to `None`.
+        port: The port to bind the server to. If `None`, a Unix Domain Socket (UDS) will be used. Defaults to `None` on Unix and `8080` on Windows.
     """
 
     def __init__(
@@ -48,6 +48,8 @@ class LocalServer:
         # check read/write access to `home_dir`
         if not os.access(self.home_dir, os.R_OK) or not os.access(self.home_dir, os.W_OK):
             raise PermissionError(f"Cannot read/write to {self.home_dir}")
+        if port is None and os.name == "nt":
+            port = 8080  # use TCP by default on Windows
         self.port = port
         # binding to all interfaces (0.0.0.0) is required for docker use case
         self.host = "0.0.0.0" if port is not None else None
