@@ -20,7 +20,15 @@ from io import BytesIO
 
 from pydantic import BaseModel
 from filelock import FileLock
-from mostlyai.sdk.domain import Generator, JobProgress, Connector, SyntheticDataset, SourceTable, ModelType
+from mostlyai.sdk.domain import (
+    Generator,
+    JobProgress,
+    Connector,
+    SyntheticDataset,
+    SourceTable,
+    ModelType,
+    SyntheticTable,
+)
 
 
 def model_label_infix() -> str:
@@ -45,13 +53,13 @@ def convert_model_label(file_path: str) -> str:
     return file_path
 
 
-def get_model_label(table: SourceTable, model_type: str | ModelType) -> str:
+def get_model_label(table: SourceTable | SyntheticTable, model_type: str | ModelType) -> str:
     """
     The model label is the name of the table with the model type. It is used to identify the model uniquely within the model store and the job progress.
 
     As it is also used in the file system paths, it needs to be a valid file name.
     """
-    assert isinstance(table, SourceTable)
+    assert isinstance(table, SourceTable | SyntheticTable)
     assert isinstance(model_type, ModelType)
     return f"{table.name}{model_label_infix()}{model_type.name}"
 
