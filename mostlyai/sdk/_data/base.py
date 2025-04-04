@@ -454,6 +454,16 @@ class DataContainer(abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def query(self, sql: str) -> pd.DataFrame:
+        """
+        Execute a SQL query against this data source.
+
+        :param sql: SQL query to execute
+        :return: DataFrame containing the query results
+        """
+        pass
+
     # DEFAULT METHODS (noop, unless applicable)
     def drop_all(self):
         """

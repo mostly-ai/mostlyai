@@ -30,7 +30,7 @@ from mostlyai.sdk._data.util.common import (
     NON_CONTEXT_COLUMN_INFIX,
     IS_NULL,
 )
-from mostlyai.sdk.domain import Generator
+from mostlyai.sdk.domain import Generator, SyntheticDataset
 
 _LOG = logging.getLogger(__name__)
 
@@ -41,7 +41,11 @@ def execute_step_finalize_generation(
     is_probe: bool,
     job_workspace_dir: Path,
     update_progress: ProgressCallback | None = None,
-) -> None:
+) -> dict[str, int]:
+    # get synthetic table usage
+    usages = dict()
+    for table_name, table in schema.tables.items():
+        usages.update({table_name: table.row_count})
     # short circuit for probing
     delivery_dir = job_workspace_dir / "FinalizedSyntheticData"
     if is_probe:
@@ -52,7 +56,7 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=False,
             )
-        return
+        return usages
 
     random_samples_dir = job_workspace_dir / "RandomSamples"
     zip_dir = job_workspace_dir / "ZIP"
@@ -93,6 +97,14 @@ def execute_step_finalize_generation(
             _LOG.info("zip csv synthetic data")
             zip_data(delivery_dir=delivery_dir, format="csv", out_dir=zip_dir)
             progress.update(advance=1)
+
+        return usages
+
+
+def update_total_rows(synthetic_dataset: SyntheticDataset, usages: dict[str, int]) -> None:
+    for table_name, total_rows in usages.items():
+        table = next(t for t in synthetic_dataset.tables if t.name == table_name)
+        table.total_rows = total_rows
 
 
 def format_datetime(df: pd.DataFrame) -> pd.DataFrame:
