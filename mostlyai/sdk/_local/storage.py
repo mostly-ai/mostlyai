@@ -31,28 +31,6 @@ from mostlyai.sdk.domain import (
 )
 
 
-def model_label_infix() -> str:
-    """
-    The official model label infix is ":" but it is not valid for Windows paths.
-    So we use "=" as the infix for Windows. The platform needs to be able to handle both infixes.
-    """
-    return "="  # if os.name == "nt" else ":"
-
-
-def convert_model_label(file_path: str) -> str:
-    """
-    Convert the model label to a OS-compatible valid file name.
-    """
-    if os.name == "nt":
-        before, after = ":", "="
-    else:
-        before, after = "=", ":"
-    if before in file_path:
-        for model_type in ModelType:
-            file_path = file_path.replace(f"{before}{model_type.name}$", f"{after}{model_type.name}")
-    return file_path
-
-
 def get_model_label(
     table: str | SourceTable | SyntheticTable, model_type: str | ModelType, path_safe: bool = False
 ) -> str:
@@ -65,6 +43,20 @@ def get_model_label(
     path_infix = "=" if path_safe and os.name == "nt" else ":"
     model_type = model_type.name if isinstance(model_type, ModelType) else ModelType(str(model_type).upper()).name
     return f"{table_name}{path_infix}{model_type}"
+
+
+def convert_model_label_path(file_path: str) -> str:
+    """
+    Convert the model label to a OS-compatible valid file name.
+    """
+    if os.name == "nt":
+        before, after = ":", "="
+    else:
+        before, after = "=", ":"
+    if before in file_path:
+        for model_type in ModelType:
+            file_path = file_path.replace(f"{before}{model_type.name}$", f"{after}{model_type.name}")
+    return file_path
 
 
 def read_generator_from_json(generator_dir: Path) -> Generator:
