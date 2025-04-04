@@ -26,9 +26,9 @@ from mostlyai.sdk.domain import Generator, JobProgress, Connector, SyntheticData
 def model_label_infix() -> str:
     """
     The official model label infix is ":" but it is not valid for Windows paths.
-    So we use "~" as the infix for Windows. The platform needs to be able to handle both infixes.
+    So we use "=" as the infix for Windows. The platform needs to be able to handle both infixes.
     """
-    return "~" if os.name == "nt" else ":"
+    return "=" if os.name == "nt" else ":"
 
 
 def convert_model_label(file_path: str) -> str:
@@ -36,9 +36,9 @@ def convert_model_label(file_path: str) -> str:
     Convert the model label to a OS-compatible valid file name.
     """
     if os.name == "nt":
-        before, after = ":", "~"
+        before, after = ":", "="
     else:
-        before, after = "~", ":"
+        before, after = "=", ":"
     if before in file_path:
         for model_type in ModelType:
             file_path = file_path.replace(f"{before}{model_type.name}$", f"{after}{model_type.name}")
