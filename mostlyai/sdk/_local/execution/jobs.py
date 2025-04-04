@@ -417,13 +417,12 @@ class Execution:
         table_lookup = {table.name: table for table in synthetic_dataset.tables}
 
         for step in task.steps:
-            table = table_lookup[step.target_table_name]
             model_type = (
                 ModelType.tabular
                 if step.step_code in {StepCode.generate_data_tabular, StepCode.create_data_report_tabular}
                 else ModelType.language
             )
-            model_label = get_model_label(table, model_type)
+            model_label = get_model_label(step.target_table_name, model_type)
             workspace_dir = self._job_workspace_dir / model_label
             workspace_dir.mkdir(exist_ok=True)
 
@@ -437,6 +436,7 @@ class Execution:
 
                 visited_tables.add(step.target_table_name)
 
+                table = table_lookup[step.target_table_name]
                 sample_seed = (
                     _fetch_sample_seed(
                         home_dir=self._home_dir, connector_id=table.configuration.sample_seed_connector_id

@@ -53,15 +53,16 @@ def convert_model_label(file_path: str) -> str:
     return file_path
 
 
-def get_model_label(table: SourceTable | SyntheticTable, model_type: str | ModelType) -> str:
+def get_model_label(table: str | SourceTable | SyntheticTable, model_type: str | ModelType) -> str:
     """
     The model label is the name of the table with the model type. It is used to identify the model uniquely within the model store and the job progress.
 
     As it is also used in the file system paths, it needs to be a valid file name.
     """
-    assert isinstance(table, SourceTable | SyntheticTable)
-    assert isinstance(model_type, ModelType)
-    return f"{table.name}{model_label_infix()}{model_type.name}"
+    table_name = table.name if isinstance(table, SourceTable | SyntheticTable) else str(table)
+    path_infix = model_label_infix()
+    model_type = model_type.name if isinstance(model_type, ModelType) else ModelType(str(model_type).upper()).name
+    return f"{table_name}{path_infix}{model_type}"
 
 
 def read_generator_from_json(generator_dir: Path) -> Generator:
