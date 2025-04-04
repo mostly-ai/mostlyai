@@ -39,7 +39,7 @@ def get_model_label(
 
     For usage in file storage, we need to ensure it's path safe. Therefore, we adapt the default infix from ":" to "=" on Windows environments.
     """
-    table_name = table.name if isinstance(table, SourceTable | SyntheticTable) else str(table)
+    table_name = table.name if isinstance(table, (SourceTable, SyntheticTable)) else str(table)
     path_infix = "=" if path_safe and os.name == "nt" else ":"
     model_type = model_type.name if isinstance(model_type, ModelType) else ModelType(str(model_type).upper()).name
     return f"{table_name}{path_infix}{model_type}"
