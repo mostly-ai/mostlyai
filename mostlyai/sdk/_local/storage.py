@@ -53,14 +53,16 @@ def convert_model_label(file_path: str) -> str:
     return file_path
 
 
-def get_model_label(table: str | SourceTable | SyntheticTable, model_type: str | ModelType) -> str:
+def get_model_label(
+    table: str | SourceTable | SyntheticTable, model_type: str | ModelType, path_safe: bool = False
+) -> str:
     """
-    The model label is the name of the table with the model type. It is used to identify the model uniquely within the model store and the job progress.
+    The model label is the name of the table with the model type. It is used to identify the model uniquely within the file storage as well as in the job progress.
 
-    As it is also used in the file system paths, it needs to be a valid file name.
+    For usage in file storage, we need to ensure it's path safe. Therefore, we adapt the default infix from ":" to "=" on Windows environments.
     """
     table_name = table.name if isinstance(table, SourceTable | SyntheticTable) else str(table)
-    path_infix = model_label_infix()
+    path_infix = "=" if path_safe and os.name == "nt" else ":"
     model_type = model_type.name if isinstance(model_type, ModelType) else ModelType(str(model_type).upper()).name
     return f"{table_name}{path_infix}{model_type}"
 

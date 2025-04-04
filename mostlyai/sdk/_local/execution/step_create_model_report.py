@@ -180,7 +180,9 @@ def create_report(
             hol_ctx_data=hol_ctx_data,
             ctx_primary_key=ctx_primary_key,
             tgt_context_key=tgt_context_key,
-            report_path=workspace_dir / "ModelQAReports" / f"{get_model_label(tgt_table, model_type)}.html",
+            report_path=workspace_dir
+            / "ModelQAReports"
+            / f"{get_model_label(tgt_table, model_type, path_safe=True)}.html",
             report_title="Model Report",
             report_subtitle=f" for {target_table_name[:30]} [{model_type.name}]",
             report_credits=report_credits,
@@ -200,7 +202,9 @@ def create_report(
             statistics_path=workspace_dir / "ModelQAStatistics",
             ctx_primary_key=ctx_primary_key,
             tgt_context_key=tgt_context_key,
-            report_path=workspace_dir / "DataQAReports" / f"{get_model_label(tgt_table, model_type)}.html",
+            report_path=workspace_dir
+            / "DataQAReports"
+            / f"{get_model_label(tgt_table, model_type, path_safe=True)}.html",
             report_title="Data Report",
             report_subtitle=f" for {target_table_name[:30]} [{model_type.name}]",
             report_credits=report_credits,

@@ -319,7 +319,7 @@ class Execution:
         generator = self._generator
         tgt_table = next(t for t in generator.tables if t.name == task.target_table_name)
         model_type = ModelType.tabular if task.type == TaskType.train_tabular else ModelType.language
-        model_label = get_model_label(tgt_table, model_type)
+        model_label = get_model_label(tgt_table, model_type, path_safe=True)
         generator_dir = self._home_dir / "generators" / generator.id
         workspace_dir = self._job_workspace_dir / model_label
         workspace_dir.mkdir(parents=True, exist_ok=True)
@@ -422,7 +422,7 @@ class Execution:
                 if step.step_code in {StepCode.generate_data_tabular, StepCode.create_data_report_tabular}
                 else ModelType.language
             )
-            model_label = get_model_label(step.target_table_name, model_type)
+            model_label = get_model_label(step.target_table_name, model_type, path_safe=True)
             workspace_dir = self._job_workspace_dir / model_label
             workspace_dir.mkdir(exist_ok=True)
 
@@ -481,13 +481,13 @@ class Execution:
                 # for every LANGUAGE model generation, merge context and generated data
                 for table_name in visited_tables:
                     language_path = self._job_workspace_dir / get_model_label(
-                        table_lookup[table_name], ModelType.language
+                        table_lookup[table_name], ModelType.language, path_safe=True
                     )
                     if language_path.exists():
                         _merge_tabular_language_data(workspace_dir=language_path)
 
                         tabular_workspace = self._job_workspace_dir / get_model_label(
-                            table_lookup[table_name], ModelType.tabular
+                            table_lookup[table_name], ModelType.tabular, path_safe=True
                         )
                         tabular_workspace.mkdir(parents=True, exist_ok=True)
                         shutil.rmtree(tabular_workspace / "SyntheticData", ignore_errors=True)
