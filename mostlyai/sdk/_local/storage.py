@@ -55,7 +55,7 @@ def convert_model_label_path(file_path: str) -> str:
         before, after = "=", ":"
     if before in file_path:
         for model_type in ModelType:
-            file_path = file_path.replace(f"{before}{model_type.name}$", f"{after}{model_type.name}")
+            file_path = file_path.replace(f"{before}{model_type.name}", f"{after}{model_type.name}")
     return file_path
 
 
