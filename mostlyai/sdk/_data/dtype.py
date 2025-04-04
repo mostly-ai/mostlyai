@@ -320,7 +320,11 @@ def coerce_dtype_by_encoding(
         ModelEncodingType.language_categorical,
     ]:
         x = x.astype(STRING)
-    elif encoding_type is None or encoding_type == ModelEncodingType.auto:
+    elif encoding_type is None or encoding_type in [
+        ModelEncodingType.auto,
+        ModelEncodingType.tabular_auto,
+        ModelEncodingType.language_auto,
+    ]:
         # treat keys as strings
         x = x.astype(STRING)
     else:
@@ -342,7 +346,7 @@ def coerce_dtypes_by_encoding(
     )
 
 
-V_DTYPE_ENCODING_TYPE_MAP = defaultdict(
+V_DTYPE_TABULAR_ENCODING_TYPE_MAP = defaultdict(
     lambda: ModelEncodingType.tabular_categorical,
     {
         VirtualVarchar: ModelEncodingType.tabular_categorical,
@@ -352,6 +356,18 @@ V_DTYPE_ENCODING_TYPE_MAP = defaultdict(
         VirtualDate: ModelEncodingType.tabular_datetime,
         VirtualDatetime: ModelEncodingType.tabular_datetime,
         VirtualTimestamp: ModelEncodingType.tabular_datetime,
+    },
+)
+V_DTYPE_LANGUAGE_ENCODING_TYPE_MAP = defaultdict(
+    lambda: ModelEncodingType.language_categorical,
+    {
+        VirtualVarchar: ModelEncodingType.language_categorical,
+        VirtualBoolean: ModelEncodingType.language_categorical,
+        VirtualInteger: ModelEncodingType.language_numeric,
+        VirtualFloat: ModelEncodingType.language_numeric,
+        VirtualDate: ModelEncodingType.language_datetime,
+        VirtualDatetime: ModelEncodingType.language_datetime,
+        VirtualTimestamp: ModelEncodingType.language_datetime,
     },
 )
 

@@ -551,9 +551,10 @@ class MostlyAI(_MostlyBaseClient):
             raise ValueError("Either config or data must be provided")
         if data is not None and config is not None:
             raise ValueError("Either config or data must be provided, but not both")
-        if config is not None and isinstance(config, (pd.DataFrame, str, Path)) is None:
+        if config is not None and isinstance(config, (pd.DataFrame, str, Path)):
             # map config to data, in case user incorrectly provided data as first argument
             data = config
+            config = None
         if isinstance(data, (str, Path)):
             name, df = read_table_from_path(data)
             config = GeneratorConfig(
@@ -567,6 +568,7 @@ class MostlyAI(_MostlyBaseClient):
             config = GeneratorConfig(
                 tables=[SourceTableConfig(data=convert_to_base64(df), name="data")],
             )
+
         if isinstance(config, dict):
             config = GeneratorConfig(**config)
         if name is not None:
