@@ -30,7 +30,8 @@ from mostlyai.sdk._data.util.common import (
     NON_CONTEXT_COLUMN_INFIX,
     IS_NULL,
 )
-from mostlyai.sdk.domain import Generator, SyntheticDataset
+from mostlyai.sdk._local.storage import get_model_label
+from mostlyai.sdk.domain import Generator, ModelType, SyntheticDataset
 
 _LOG = logging.getLogger(__name__)
 
@@ -425,7 +426,7 @@ def create_generation_schema(
     for table in generator.tables:
         # create LocalFileContainer
         container = LocalFileContainer()
-        model_label = f"{table.name}:tabular"
+        model_label = get_model_label(table, ModelType.tabular)
         location = str(job_workspace_dir / model_label / "SyntheticData")
         container.set_location(location)
         if step == "pull_context_data":

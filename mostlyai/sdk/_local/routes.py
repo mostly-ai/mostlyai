@@ -376,7 +376,7 @@ class Routes:
             generator = read_generator_from_json(generator_dir)
             table = next((t for t in generator.tables if t.id == table_id), None)
             reports_dir = self.home_dir / "generators" / id / "ModelQAReports"
-            fn = reports_dir / f"{get_model_label(table, ModelType(modelType.upper()))}.html"
+            fn = reports_dir / f"{get_model_label(table, modelType)}.html"
             return HTMLResponse(content=fn.read_text())
 
         @self.router.get("/generators/{id}/training", response_model=JobProgress)
@@ -520,7 +520,7 @@ class Routes:
                 reports_dir = self.home_dir / "synthetic-datasets" / id / "ModelQAReports"
             else:
                 reports_dir = self.home_dir / "synthetic-datasets" / id / "DataQAReports"
-            fn = reports_dir / f"{get_model_label(table, ModelType(modelType.upper()))}.html"
+            fn = reports_dir / f"{get_model_label(table, modelType)}.html"
             return HTMLResponse(content=fn.read_text())
 
         @self.router.get("/synthetic-datasets/{id}/generation", response_model=JobProgress)

@@ -36,7 +36,7 @@ def model_label_infix() -> str:
     The official model label infix is ":" but it is not valid for Windows paths.
     So we use "=" as the infix for Windows. The platform needs to be able to handle both infixes.
     """
-    return "=" if os.name == "nt" else ":"
+    return "="  # if os.name == "nt" else ":"
 
 
 def convert_model_label(file_path: str) -> str:
