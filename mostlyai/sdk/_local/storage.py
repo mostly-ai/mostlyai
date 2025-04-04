@@ -15,11 +15,45 @@
 import json
 from pathlib import Path
 import zipfile
+import os
 from io import BytesIO
 
 from pydantic import BaseModel
 from filelock import FileLock
-from mostlyai.sdk.domain import Generator, JobProgress, Connector, SyntheticDataset
+from mostlyai.sdk.domain import Generator, JobProgress, Connector, SyntheticDataset, SourceTable, ModelType
+
+
+def model_label_infix() -> str:
+    """
+    The official model label infix is ":" but it is not valid for Windows paths.
+    So we use "~" as the infix for Windows. The platform needs to be able to handle both infixes.
+    """
+    return "~" if os.name == "nt" else ":"
+
+
+def convert_model_label(file_path: str) -> str:
+    """
+    Convert the model label to a OS-compatible valid file name.
+    """
+    if os.name == "nt":
+        before, after = ":", "~"
+    else:
+        before, after = "~", ":"
+    if before in file_path:
+        for model_type in ModelType:
+            file_path = file_path.replace(f"{before}{model_type.name}$", f"{after}{model_type.name}")
+    return file_path
+
+
+def get_model_label(table: SourceTable, model_type: str | ModelType) -> str:
+    """
+    The model label is the name of the table with the model type. It is used to identify the model uniquely within the model store and the job progress.
+
+    As it is also used in the file system paths, it needs to be a valid file name.
+    """
+    assert isinstance(table, SourceTable)
+    assert isinstance(model_type, ModelType)
+    return f"{table.name}{model_label_infix()}{model_type.name}"
 
 
 def read_generator_from_json(generator_dir: Path) -> Generator:

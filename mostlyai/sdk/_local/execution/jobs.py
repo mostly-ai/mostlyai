@@ -45,6 +45,7 @@ from mostlyai.sdk._local.execution.step_pull_training_data import (
 )
 from mostlyai.sdk._local.execution.step_train_model import execute_step_train_model
 from mostlyai.sdk._local.storage import (
+    get_model_label,
     read_generator_from_json,
     write_generator_to_json,
     read_connector_from_json,
@@ -316,9 +317,9 @@ class Execution:
     def execute_task_train(self, task: Task):
         # gather arguments that are common across steps
         generator = self._generator
-        model_type = ModelType.tabular if task.type == TaskType.train_tabular else ModelType.language
-        model_label = f"{task.target_table_name}:{model_type.value.lower()}"
         tgt_table = next(t for t in generator.tables if t.name == task.target_table_name)
+        model_type = ModelType.tabular if task.type == TaskType.train_tabular else ModelType.language
+        model_label = get_model_label(tgt_table, model_type)
         generator_dir = self._home_dir / "generators" / generator.id
         workspace_dir = self._job_workspace_dir / model_label
         workspace_dir.mkdir(parents=True, exist_ok=True)
@@ -416,13 +417,13 @@ class Execution:
         table_lookup = {table.name: table for table in synthetic_dataset.tables}
 
         for step in task.steps:
+            table = table_lookup[step.target_table_name]
             model_type = (
                 ModelType.tabular
                 if step.step_code in {StepCode.generate_data_tabular, StepCode.create_data_report_tabular}
                 else ModelType.language
             )
-
-            model_label = f"{step.target_table_name}:{model_type.value.lower()}"
+            model_label = get_model_label(table, model_type)
             workspace_dir = self._job_workspace_dir / model_label
             workspace_dir.mkdir(exist_ok=True)
 
@@ -436,7 +437,6 @@ class Execution:
 
                 visited_tables.add(step.target_table_name)
 
-                table = table_lookup[step.target_table_name]
                 sample_seed = (
                     _fetch_sample_seed(
                         home_dir=self._home_dir, connector_id=table.configuration.sample_seed_connector_id
@@ -479,12 +479,16 @@ class Execution:
 
             elif step.step_code in {StepCode.finalize_generation, StepCode.finalize_probing}:
                 # for every LANGUAGE model generation, merge context and generated data
-                for table in visited_tables:
-                    language_path = self._job_workspace_dir / f"{table}:{ModelType.language.value.lower()}"
+                for table_name in visited_tables:
+                    language_path = self._job_workspace_dir / get_model_label(
+                        table_lookup[table_name], ModelType.language
+                    )
                     if language_path.exists():
                         _merge_tabular_language_data(workspace_dir=language_path)
 
-                        tabular_workspace = self._job_workspace_dir / f"{table}:{ModelType.tabular.value.lower()}"
+                        tabular_workspace = self._job_workspace_dir / get_model_label(
+                            table_lookup[table_name], ModelType.tabular
+                        )
                         tabular_workspace.mkdir(parents=True, exist_ok=True)
                         shutil.rmtree(tabular_workspace / "SyntheticData", ignore_errors=True)
                         shutil.move(language_path / "SyntheticData", tabular_workspace / "SyntheticData")

@@ -27,6 +27,7 @@ import pyarrow.parquet as papqt
 from mostlyai.engine._workspace import Workspace
 from mostlyai.sdk._data.util.common import strip_column_prefix, TABLE_COLUMN_INFIX, TEMPORARY_PRIMARY_KEY
 from mostlyai.sdk._local.execution.step_generate_model_report_data import qa_sample_size_heuristic
+from mostlyai.sdk._local.storage import get_model_label
 from mostlyai.sdk.domain import ModelType, Generator, StepCode, ModelMetrics
 
 from mostlyai import qa
@@ -179,9 +180,9 @@ def create_report(
             hol_ctx_data=hol_ctx_data,
             ctx_primary_key=ctx_primary_key,
             tgt_context_key=tgt_context_key,
-            report_path=workspace_dir / "ModelQAReports" / f"{target_table_name}:{model_type.name}.html",
+            report_path=workspace_dir / "ModelQAReports" / f"{get_model_label(tgt_table, model_type)}.html",
             report_title="Model Report",
-            report_subtitle=f" for {target_table_name[:30]}:{model_type.name}",
+            report_subtitle=f" for {target_table_name[:30]} [{model_type.name}]",
             report_credits=report_credits,
             max_sample_size_accuracy=100_000,
             max_sample_size_embeddings=1_000,
@@ -199,9 +200,9 @@ def create_report(
             statistics_path=workspace_dir / "ModelQAStatistics",
             ctx_primary_key=ctx_primary_key,
             tgt_context_key=tgt_context_key,
-            report_path=workspace_dir / "DataQAReports" / f"{target_table_name}:{model_type.name}.html",
+            report_path=workspace_dir / "DataQAReports" / f"{get_model_label(tgt_table, model_type)}.html",
             report_title="Data Report",
-            report_subtitle=f" for {target_table_name[:30]}:{model_type.name}",
+            report_subtitle=f" for {target_table_name[:30]} [{model_type.name}]",
             report_credits=report_credits,
             max_sample_size_accuracy=100_000,
             max_sample_size_embeddings=1_000,

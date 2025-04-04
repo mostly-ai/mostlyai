@@ -64,6 +64,8 @@ from mostlyai.sdk.domain import (
     ConnectorDeleteDataConfig,
 )
 from mostlyai.sdk._local.storage import (
+    convert_model_label,
+    get_model_label,
     read_generator_from_json,
     write_generator_to_json,
     read_job_progress_from_json,
@@ -374,7 +376,7 @@ class Routes:
             generator = read_generator_from_json(generator_dir)
             table = next((t for t in generator.tables if t.id == table_id), None)
             reports_dir = self.home_dir / "generators" / id / "ModelQAReports"
-            fn = reports_dir / f"{table.name}:{modelType.lower()}.html"
+            fn = reports_dir / f"{get_model_label(table, ModelType(modelType.upper()))}.html"
             return HTMLResponse(content=fn.read_text())
 
         @self.router.get("/generators/{id}/training", response_model=JobProgress)
@@ -430,6 +432,10 @@ class Routes:
             file_content = await file.read()
             try:
                 with zipfile.ZipFile(BytesIO(file_content)) as zip_ref:
+                    for zip_info in zip_ref.filelist:
+                        zip_info.filename = convert_model_label(zip_info.filename)
+                        zip_ref.extract(zip_info, generator_dir)
+
                     zip_ref.extractall(generator_dir)
             except zipfile.BadZipFile:
                 raise HTTPException(status_code=400, detail="Invalid ZIP file")
@@ -514,7 +520,7 @@ class Routes:
                 reports_dir = self.home_dir / "synthetic-datasets" / id / "ModelQAReports"
             else:
                 reports_dir = self.home_dir / "synthetic-datasets" / id / "DataQAReports"
-            fn = reports_dir / f"{table.name}:{modelType.lower()}.html"
+            fn = reports_dir / f"{get_model_label(table, ModelType(modelType.upper()))}.html"
             return HTMLResponse(content=fn.read_text())
 
         @self.router.get("/synthetic-datasets/{id}/generation", response_model=JobProgress)
