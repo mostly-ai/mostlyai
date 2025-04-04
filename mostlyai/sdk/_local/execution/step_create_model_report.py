@@ -184,7 +184,7 @@ def create_report(
             / "ModelQAReports"
             / f"{get_model_label(tgt_table, model_type, path_safe=True)}.html",
             report_title="Model Report",
-            report_subtitle=f" for {target_table_name[:30]} [{model_type.name}]",
+            report_subtitle=f" for {target_table_name[:30]}:{model_type.name}",
             report_credits=report_credits,
             max_sample_size_accuracy=100_000,
             max_sample_size_embeddings=1_000,
@@ -206,7 +206,7 @@ def create_report(
             / "DataQAReports"
             / f"{get_model_label(tgt_table, model_type, path_safe=True)}.html",
             report_title="Data Report",
-            report_subtitle=f" for {target_table_name[:30]} [{model_type.name}]",
+            report_subtitle=f" for {target_table_name[:30]}:{model_type.name}",
             report_credits=report_credits,
             max_sample_size_accuracy=100_000,
             max_sample_size_embeddings=1_000,
