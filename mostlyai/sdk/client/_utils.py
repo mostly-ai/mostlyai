@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Union, Any
 from collections.abc import Callable
 from urllib.parse import urlparse
+from threading import Thread, Event
 
 import pandas as pd
 import rich
@@ -86,6 +87,77 @@ def validate_api_key(api_key: str) -> None:
         raise APIError("Invalid API key format.")
 
 
+class _DynamicRefreshThread(Thread):
+    """A thread that calls live.refresh() at dynamic intervals, increasing the delay between refreshes over time.
+    The refresh interval stays at initial_interval for the first 30 seconds,
+    then gradually increases to max_interval over the next 30 seconds.
+    """
+
+    def __init__(self, live: "Live", initial_interval: float = 2.0, max_interval: float = 30.0) -> None:
+        self.live = live
+        self.done = Event()
+        self.initial_interval = initial_interval
+        self.max_interval = max_interval
+        self.current_interval = initial_interval
+        self.start_time = None
+        super().__init__(daemon=True)
+
+    def stop(self) -> None:
+        """Stop the refresh thread gracefully."""
+        self.done.set()
+
+    def _calculate_interval(self, elapsed_time: float) -> float:
+        """Calculate the next refresh interval based on elapsed time.
+
+        The interval stays at initial_interval for the first 30 seconds,
+        then gradually increases to max_interval using a smooth exponential function.
+        """
+        if elapsed_time <= 30.0:
+            return self.initial_interval
+
+        # use a smooth exponential function to increase the interval after 30 seconds
+        growth_factor = min(1.0, (elapsed_time - 30.0) / 30.0)
+        interval = self.initial_interval * (1 + growth_factor * (self.max_interval / self.initial_interval - 1))
+        return min(interval, self.max_interval)
+
+    def run(self) -> None:
+        """Main thread loop that refreshes the Live display at dynamic intervals."""
+        self.start_time = time.time()
+
+        while not self.done.is_set():
+            # calculate next interval based on elapsed time
+            elapsed_time = time.time() - self.start_time
+            self.current_interval = self._calculate_interval(elapsed_time)
+
+            # Wait for the calculated interval or until stopped
+            if self.done.wait(self.current_interval):
+                break
+
+            # Refresh the display if not stopped
+            with self.live._lock:
+                if not self.done.is_set():
+                    self.live.refresh()
+
+
+class _LiveWithDynamicRefresh(Live):
+    def __init__(*args, **kwargs):
+        # disable auto refresh
+        kwargs["auto_refresh"] = False
+        kwargs["refresh_per_second"] = False
+        super().__init__(*args, **kwargs)
+
+    def start(self, refresh: bool = False) -> None:
+        super().start(refresh)
+        self._refresh_thread = _DynamicRefreshThread(self)
+        self._refresh_thread.start()
+
+    def stop(self) -> None:
+        if self._refresh_thread is not None:
+            self._refresh_thread.stop()
+            self._refresh_thread = None
+        return super().stop()
+
+
 def job_wait(
     get_progress: Callable,
     interval: float,
@@ -132,7 +204,7 @@ def job_wait(
             }
         layout = Table.grid(expand=True)
         layout.add_row(progress)
-        live = Live(layout, refresh_per_second=1 / interval)
+        live = _LiveWithDynamicRefresh(layout)
         step_id_to_layout_idx = {}
 
     def _rich_table_delete_row(table: Table, idx: int = -1) -> Table:
