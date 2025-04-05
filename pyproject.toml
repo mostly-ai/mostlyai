@@ -1,6 +1,6 @@
 [project]
 name = "mostlyai"
-version = "4.4.7"
+version = "4.4.9"
 description = "Synthetic Data SDK"
 authors = [{ name = "MOSTLY AI", email = "dev@mostly.ai" }]
 requires-python = ">=3.10,<3.14"
@@ -48,8 +48,8 @@ dependencies = [
 [project.optional-dependencies]
 local = [
     # local
-    "mostlyai-engine==1.1.11",
-    "mostlyai-qa==1.5.12",
+    "mostlyai-engine==1.1.12",
+    "mostlyai-qa==1.5.14",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
@@ -57,7 +57,7 @@ local = [
     "torchaudio==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.0 compatibility
     "torchvision==0.21.0; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.0 compatibility
     "torch>=2.6.0,<2.7.0; sys_platform != 'linux'",
-    "joblib>=1.2.0",
+    "joblib>=1.4.2",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
     "networkx>=3.0,<4",
@@ -73,8 +73,8 @@ local = [
     "adlfs>=2023.4.0",
 ]
 local-gpu = [
-    "mostlyai-engine[gpu]==1.1.11",
-    "mostlyai-qa[gpu]==1.5.12",
+    "mostlyai-engine[gpu]==1.1.12",
+    "mostlyai-qa[gpu]==1.5.14",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
@@ -82,7 +82,7 @@ local-gpu = [
     "torchaudio==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.0 compatibility
     "torchvision==0.21.0; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.0 compatibility
     "torch>=2.6.0,<2.7.0; sys_platform != 'linux'",
-    "joblib>=1.2.0",
+    "joblib>=1.4.2",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
     "networkx>=3.0,<4",
@@ -98,16 +98,16 @@ local-gpu = [
     "adlfs>=2023.4.0",
 ]
 local-cpu = [
-    "mostlyai-engine[cpu]==1.1.11",
-    "mostlyai-qa[cpu]==1.5.12",
+    "mostlyai-engine[cpu]==1.1.12",
+    "mostlyai-qa[cpu]==1.5.14",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch==2.6.0+cpu; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.0 compatibility
-    "torchaudio==2.6.0+cpu; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.0 compatibility
-    "torchvision==0.21.0+cpu; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.0 compatibility
+    "torch==2.6.0+cpu; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.2 compatibility
+    "torchaudio==2.6.0+cpu; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.2 compatibility
+    "torchvision==0.21.0+cpu; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.2 compatibility
     "torch>=2.6.0,<2.7.0; sys_platform != 'linux'",
-    "joblib>=1.2.0",
+    "joblib>=1.4.2",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
     "networkx>=3.0,<4",
@@ -207,7 +207,7 @@ torchaudio = [
 torchvision = [
   { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
 ]
-mostlyai-engine = { path = "./mostlyai-engine/mostlyai_engine-1.1.11-py3-none-any.whl" }
+mostlyai-engine = { path = "./mostlyai-engine/mostlyai_engine-1.1.12-py3-none-any.whl" }
 
 [tool.hatch.build.targets.sdist]
 include = ["mostlyai/sdk"]
