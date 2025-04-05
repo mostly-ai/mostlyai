@@ -89,15 +89,24 @@ def validate_api_key(api_key: str) -> None:
 
 class _DynamicRefreshThread(Thread):
     """A thread that calls live.refresh() at dynamic intervals, increasing the delay between refreshes over time.
-    The refresh interval stays at initial_interval for the first 30 seconds,
-    then gradually increases to max_interval over the next 30 seconds.
+    The refresh interval stays at initial_interval for the first fixed_time seconds,
+    then gradually increases to max_interval over the next increasing_time seconds.
     """
 
-    def __init__(self, live: "Live", initial_interval: float = 2.0, max_interval: float = 30.0) -> None:
+    def __init__(
+        self,
+        live: "Live",
+        initial_interval: float = 2.0,
+        max_interval: float = 30.0,
+        fixed_time: float = 30.0,
+        increasing_time: float = 60.0,
+    ) -> None:
         self.live = live
         self.done = Event()
         self.initial_interval = initial_interval
         self.max_interval = max_interval
+        self.fixed_time = fixed_time
+        self.increasing_time = increasing_time
         self.current_interval = initial_interval
         self.start_time = None
         super().__init__(daemon=True)
@@ -109,14 +118,14 @@ class _DynamicRefreshThread(Thread):
     def _calculate_interval(self, elapsed_time: float) -> float:
         """Calculate the next refresh interval based on elapsed time.
 
-        The interval stays at initial_interval for the first 30 seconds,
-        then gradually increases to max_interval using a smooth exponential function.
+        The interval stays at initial_interval for the first fixed_time seconds,
+        then gradually increases to max_interval using a smooth exponential function over increasing_time seconds.
         """
-        if elapsed_time <= 30.0:
+        if elapsed_time <= self.fixed_time:
             return self.initial_interval
 
-        # use a smooth exponential function to increase the interval after 30 seconds
-        growth_factor = min(1.0, (elapsed_time - 30.0) / 30.0)
+        # use a smooth exponential function to increase the interval after fixed_time
+        growth_factor = min(1.0, (elapsed_time - self.fixed_time) / self.increasing_time)
         interval = self.initial_interval * (1 + growth_factor * (self.max_interval / self.initial_interval - 1))
         return min(interval, self.max_interval)
 
