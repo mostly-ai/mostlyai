@@ -118,7 +118,7 @@ mostly.probe(g, size=100)
 
 ## Performance
 
-The SDK is being developed with a focus on efficiency, accuracy, and flexibility. Your results will largely depend on the training data itself (size, structure, and content), on the available compute (CPU vs GPU), as well as on the chosen training configurations (model, epochs, samples, etc.). We recommend a crawl/walk/run approach — starting with smaller samples for fewer epochs and gradually scaling up.
+The SDK is being developed with a focus on efficiency, accuracy, and flexibility, with best-in-class performance across all three. Results will ultimately depend on the training data itself (size, structure, and content), on the available compute (CPU vs GPU), as well as on the chosen training configurations (model, epochs, samples, etc.). Thus, a crawl / walk / run approach is recommended — starting with a subset of samples training for a limited amount of time, to then gradually scale up, to yield optimal results for use case at hand.
 
 ### Tabular Models
 
