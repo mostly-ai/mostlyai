@@ -150,7 +150,7 @@ class _DynamicRefreshThread(Thread):
 
 class _LiveWithDynamicRefresh(Live):
     def __init__(self, *args, **kwargs):
-        # disable auto refresh
+        # disable auto refresh implemented in the parent class
         kwargs["auto_refresh"] = False
         kwargs["refresh_per_second"] = False
         super().__init__(*args, **kwargs)
