@@ -38,7 +38,7 @@ https://github.com/user-attachments/assets/9e233213-a259-455c-b8ed-d1f1548b492f
   - Mixed-type data (categorical, numerical, geospatial, text, etc.)
   - Single-table, multi-table, and time-series
 - **Multiple Model Types**
-  - TabularARGN for SOTA tabular performance
+  - State-of-the-art performance via TabularARGN
   - Fine-tune HuggingFace-based language models
   - Efficient LSTM for text synthesis from scratch
 - **Advanced Training Options**
@@ -64,59 +64,75 @@ https://github.com/user-attachments/assets/9e233213-a259-455c-b8ed-d1f1548b492f
 Install the SDK via pip:
 
 ```shell
-pip install mostlyai
+pip install -U mostlyai  # or 'mostlyai[local]' for LOCAL mode
 ```
 
-Train your first generator:
+Generate synthetic samples using a pre-trained generator:
 
 ```python
-import pandas as pd
-from mostlyai.sdk import MostlyAI
-
-# load original data
-repo_url = "https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev"
-df_original = pd.read_csv(f"{repo_url}/census/census.csv.gz")
-df_original = df_original.sample(n=10_000)  # sub-sample to speed up demo
-
 # initialize the SDK
+from mostlyai.sdk import MostlyAI
 mostly = MostlyAI()
 
-# train a synthetic data generator, with default configs
-g = mostly.train(name="Quick Start Demo", data=df_original)
+# import a trained generator
+g = mostly.generators.import_from_file(
+  "https://github.com/mostly-ai/public-demo-data/raw/dev/census/census-generator.zip"
+)
+
+# probe for 1000 representative synthetic samples
+mostly.probe(g, size=1000)
+```
+
+Generate synthetic sampels based on fixed column values:
+
+```python
+# create 10k records of 24y male respondents
+mostly.probe(g, seed=[{"age": 24, "sex": "Male"}] * 10_000)
+```
+
+And now train your very own synthetic data generator:
+
+```python
+# load original data
+import pandas as pd
+original_df = pd.read_csv(
+  "https://github.com/mostly-ai/public-demo-data/raw/dev/titanic/titanic.csv"
+)
+
+# train a single-table generator, with default configs
+g = mostly.train(
+  name="Quick Start Demo - Titanic",
+  data=original_df,
+)
 
 # display the quality assurance report
 g.reports(display=True)
+
+# generate a representative synthetic dataset, with default configs
+sd = mostly.generate(g)
+synthetic_df = sd.data()
+
+# probe for some samples
+mostly.probe(g, size=100)
 ```
 
-Once the generator has been trained, generate synthetic data samples. Either via probing:
+## Performance
 
-```python
-# probe for some representative synthetic samples
-df_samples = mostly.probe(g, size=100)
-df_samples
-```
+The SDK is being developed with a focus on efficiency, accuracy, and flexibility, with best-in-class performance across all three. Results will ultimately depend on the training data itself (size, structure, and content), on the available compute (CPU vs GPU), as well as on the chosen training configurations (model, epochs, samples, etc.). Thus, a crawl / walk / run approach is recommended — starting with a subset of samples training for a limited amount of time, to then gradually scale up, to yield optimal results for use case at hand.
 
-or by creating a synthetic dataset entity for larger data volumes:
+### Tabular Models
 
-```python
-# generate a large representative synthetic dataset
-sd = mostly.generate(g, size=100_000)
-df_synthetic = sd.data()
-df_synthetic
-```
+Tabular models within the SDK are built on TabularARGN ([arXiv:2501.12012](https://arxiv.org/abs/2501.12012)), which achieves best-in-class synthetic data quality while being 1–2 orders of magnitude more efficient than comparable models. This efficiency enables the training and generation of millions of synthetic records within minutes, even on CPU environments.
 
-or by conditionally probing / generating synthetic data:
+![TabularARGN Benchmark](docs/TabularARGN-benchmark.png)
 
-```python
-# create 100 seed records of 24y old Mexicans
-df_seed = pd.DataFrame({
-    'age': [24] * 100,
-    'native_country': ['Mexico'] * 100,
-})
-# conditionally probe, based on provided seed
-df_samples = mostly.probe(g, seed=df_seed)
-df_samples
-```
+### Language Models
+
+The default language model is a basic, non-pre-trained LSTM (`LSTMFromScratch-3m`), particularly effective for textual data with limited scope (short lengths, narrow variety) and sufficient training samples.
+
+Alternatively, any pre-trained SLM available via the Hugging Face Hub can be selected to be then fine-tuned on the provided training data. These models start out already with a general world knowledge, and then adapt to the training data for generating high-fidelity synthetic samples even in sparse data domains. The final performance will once again largely depend on the chosen model configurations.
+
+In either case, a modern GPU is highly recommended when working with language models.
 
 ## Installation
 
