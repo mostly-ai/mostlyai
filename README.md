@@ -64,7 +64,7 @@ https://github.com/user-attachments/assets/9e233213-a259-455c-b8ed-d1f1548b492f
 Install the SDK via pip:
 
 ```shell
-pip install mostlyai
+pip install -U mostlyai  # or 'mostlyai[local]' for LOCAL mode
 ```
 
 Generate synthetic samples using a pre-trained generator:
@@ -116,6 +116,24 @@ synthetic_df = sd.data()
 mostly.probe(g, size=100)
 ```
 
+## Performance
+
+The SDK is being developed with a focus on efficiency, accuracy, and flexibility. Your results will largely depend on the training data itself (size, structure, and content), on the available compute (CPU vs GPU), as well as on the chosen training configurations (model, epochs, samples, etc.). We recommend a crawl/walk/run approach — starting with smaller samples for fewer epochs and gradually scaling up.
+
+### Tabular Models
+
+Tabular models within the SDK are built on TabularARGN ([arXiv:2501.12012](https://arxiv.org/abs/2501.12012)), which achieves best-in-class synthetic data quality while being 1–2 orders of magnitude more efficient than comparable models. This efficiency enables the training and generation of millions of synthetic records within minutes, even on CPU environments.
+
+![TabularARGN Benchmark](docs/TabularARGN-benchmark.png)
+
+### Language Models
+
+The default language model is a basic, non-pre-trained LSTM (`LSTMFromScratch-3m`), particularly effective for textual data with limited scope (short lengths, narrow variety) and sufficient training samples.
+
+Alternatively, any pre-trained SLM available via the Hugging Face Hub can be selected to be then fine-tuned on the provided training data. These models start out already with a general world knowledge, and then adapt to the training data for generating high-fidelity synthetic samples even in sparse data domains. The final performance will once again largely depend on the chosen model configurations.
+
+In either case, a modern GPU is highly recommended when working with language models.
+
 ## Installation
 
  Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required.
@@ -154,24 +172,6 @@ Add any of the following extras for further data connectors support in LOCAL mod
 ```shell
 pip install -U 'mostlyai[local, databricks, snowflake]'
 ```
-
-## Performance
-
-The SDK is being developed with a focus on efficiency, accuracy, and flexibility. Your results will largely depend on the training data itself (size, structure, and content), on the available compute (CPU vs GPU), as well as on the chosen training configurations (model, epochs, samples, etc.). We recommend a crawl/walk/run approach — starting with smaller samples for fewer epochs and gradually scaling up.
-
-### Tabular
-
-Tabular models within the SDK are built on TabularARGN ([arXiv:2501.12012](https://arxiv.org/abs/2501.12012)), which achieves best-in-class synthetic data quality while being 1–2 orders of magnitude more efficient than comparable models. This efficiency enables the training and generation of millions of synthetic records within minutes, even on CPU environments.
-
-![TabularARGN Benchmark](docs/TabularARGN-benchmark.png)
-
-### Language
-
-The default language model is a basic, non-pre-trained LSTM (`LSTMFromScratch-3m`), particularly effective for textual data with limited scope (short lengths, narrow variety) and sufficient training samples.
-
-Alternatively, any pre-trained SLM available via the Hugging Face Hub can be selected to be then fine-tuned on the provided training data. These models start out already with a general world knowledge, and then adapt to the training data for generating high-fidelity synthetic samples even in sparse data domains. The final performance will once again largely depend on the chosen model configurations.
-
-In either case, a modern GPU is highly recommended when working with language models.
 
 ## Citation
 
