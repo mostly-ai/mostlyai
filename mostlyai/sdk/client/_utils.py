@@ -97,7 +97,7 @@ class _DynamicRefreshThread(Thread):
         self,
         live: "Live",
         initial_interval: float = 2.0,
-        max_interval: float = 30.0,
+        max_interval: float = 60.0,
         fixed_time: float = 30.0,
         increasing_time: float = 60.0,
     ) -> None:
@@ -117,9 +117,8 @@ class _DynamicRefreshThread(Thread):
     def _calculate_interval(self, elapsed_time: float) -> float:
         if elapsed_time <= self.fixed_time:
             return self.initial_interval
-        # use a smooth exponential function to increase the interval after fixed_time
         growth_factor = min(1.0, (elapsed_time - self.fixed_time) / self.increasing_time)
-        interval = self.initial_interval * (1 + growth_factor * (self.max_interval / self.initial_interval - 1))
+        interval = self.initial_interval + growth_factor * (self.max_interval - self.initial_interval)
         return min(interval, self.max_interval)
 
     def run(self) -> None:
