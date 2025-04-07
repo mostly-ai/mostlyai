@@ -112,18 +112,11 @@ class _DynamicRefreshThread(Thread):
         super().__init__(daemon=True)
 
     def stop(self) -> None:
-        """Stop the refresh thread gracefully."""
         self.done.set()
 
     def _calculate_interval(self, elapsed_time: float) -> float:
-        """Calculate the next refresh interval based on elapsed time.
-
-        The interval stays at initial_interval for the first fixed_time seconds,
-        then gradually increases to max_interval using a smooth exponential function over increasing_time seconds.
-        """
         if elapsed_time <= self.fixed_time:
             return self.initial_interval
-
         # use a smooth exponential function to increase the interval after fixed_time
         growth_factor = min(1.0, (elapsed_time - self.fixed_time) / self.increasing_time)
         interval = self.initial_interval * (1 + growth_factor * (self.max_interval / self.initial_interval - 1))
@@ -136,11 +129,9 @@ class _DynamicRefreshThread(Thread):
             # calculate next interval based on elapsed time
             elapsed_time = time.time() - self.start_time
             self.current_interval = self._calculate_interval(elapsed_time)
-
             # wait for the calculated interval or until stopped
             if self.done.wait(self.current_interval):
                 break
-
             # refresh the display if not stopped
             with self.live._lock:
                 if not self.done.is_set():
