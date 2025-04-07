@@ -94,15 +94,24 @@ def _move_training_artefacts(generator_dir: Path, job_workspace_dir: Path):
 
 
 def _move_generation_artefacts(synthetic_dataset_dir: Path, job_workspace_dir: Path):
-    for dir in ["Logs", "RandomSamples", "ZIP", "DataQAReports"]:
-        (synthetic_dataset_dir / dir).mkdir(exist_ok=True)
     for path in job_workspace_dir.absolute().rglob("*"):
+        target = None
         if path.is_dir() and path.name == "RandomSamples":
-            path.rename(synthetic_dataset_dir / "RandomSamples")
-        if path.is_dir() and path.name == "ZIP":
-            path.rename(synthetic_dataset_dir / "ZIP")
-        if path.is_file() and path.parent.name == "DataQAReports":
-            path.rename(synthetic_dataset_dir / "DataQAReports" / path.name)
+            target = synthetic_dataset_dir / "RandomSamples"
+        elif path.is_dir() and path.name == "ZIP":
+            target = synthetic_dataset_dir / "ZIP"
+        elif path.is_file() and path.parent.name == "DataQAReports":
+            target = synthetic_dataset_dir / "DataQAReports" / path.name
+            
+        if target:
+            # Cross-platform safe move
+            if target.exists():
+                if target.is_dir():
+                    shutil.rmtree(target)
+                else:
+                    target.unlink()
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(path), str(target))
 
 
 def _mark_in_progress(resource: Generator | SyntheticDataset, resource_dir: Path):
@@ -319,15 +328,16 @@ class Execution:
         generator = self._generator
         tgt_table = next(t for t in generator.tables if t.name == task.target_table_name)
         model_type = ModelType.tabular if task.type == TaskType.train_tabular else ModelType.language
-        model_label = get_model_label(tgt_table, model_type, path_safe=True)
+        model_label = get_model_label(tgt_table, model_type, path_safe=False)
+        model_label_path = get_model_label(tgt_table, model_type, path_safe=True)
         generator_dir = self._home_dir / "generators" / generator.id
-        workspace_dir = self._job_workspace_dir / model_label
+        workspace_dir = self._job_workspace_dir / model_label_path
         workspace_dir.mkdir(parents=True, exist_ok=True)
         update_progress_fn = partial(LocalProgressCallback, resource_path=generator_dir, model_label=model_label)
 
         # if training shall be continued, then let's first copy the ModelStore
         if generator.training_status == ProgressStatus.continue_:
-            _copy_model(generator_dir=generator_dir, model_label=model_label, workspace_dir=workspace_dir)
+            _copy_model(generator_dir=generator_dir, model_label=model_label_path, workspace_dir=workspace_dir)
 
         # step: PULL_TRAINING_DATA
         connectors = [
@@ -422,8 +432,9 @@ class Execution:
                 if step.step_code in {StepCode.generate_data_tabular, StepCode.create_data_report_tabular}
                 else ModelType.language
             )
-            model_label = get_model_label(step.target_table_name, model_type, path_safe=True)
-            workspace_dir = self._job_workspace_dir / model_label
+            model_label = get_model_label(step.target_table_name, model_type, path_safe=False)
+            model_label_path = get_model_label(step.target_table_name, model_type, path_safe=True)
+            workspace_dir = self._job_workspace_dir / model_label_path
             workspace_dir.mkdir(exist_ok=True)
 
             update_progress = partial(
@@ -432,7 +443,7 @@ class Execution:
 
             if step.step_code in {StepCode.generate_data_tabular, StepCode.generate_data_language}:
                 # step: GENERATE_DATA
-                _copy_model(generator_dir=generator_dir, model_label=model_label, workspace_dir=workspace_dir)
+                _copy_model(generator_dir=generator_dir, model_label=model_label_path, workspace_dir=workspace_dir)
 
                 visited_tables.add(step.target_table_name)
 
@@ -464,7 +475,7 @@ class Execution:
 
             elif step.step_code in {StepCode.create_data_report_tabular, StepCode.create_data_report_language}:
                 model_report_available = _copy_statistics(
-                    generator_dir=generator_dir, model_label=model_label, workspace_dir=workspace_dir
+                    generator_dir=generator_dir, model_label=model_label_path, workspace_dir=workspace_dir
                 )
                 if not model_report_available:
                     continue
@@ -578,9 +589,12 @@ def execute_training_job(generator_id: str, home_dir: Path):
         _move_training_artefacts(generator_dir=generator_dir, job_workspace_dir=execution._job_workspace_dir)
         # flag as DONE
         _mark_done(resource=generator, resource_dir=generator_dir)
-    except Exception:
+    except Exception as e:
         _mark_failed(resource=generator, resource_dir=generator_dir)
         _LOG.error(traceback.format_exc())
+        _LOG.error(f"Failed to execute training job: {e}")
+        _LOG.error(f"Exception type: {type(e)}")
+        _LOG.error(f"Exception message: {e}")
         raise
     finally:
         execution.clear_job_workspace()
