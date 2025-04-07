@@ -102,7 +102,7 @@ def _move_generation_artefacts(synthetic_dataset_dir: Path, job_workspace_dir: P
             target = synthetic_dataset_dir / "ZIP"
         elif path.is_file() and path.parent.name == "DataQAReports":
             target = synthetic_dataset_dir / "DataQAReports" / path.name
-            
+
         if target:
             # Cross-platform safe move
             if target.exists():
