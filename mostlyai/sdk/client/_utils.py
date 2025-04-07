@@ -130,7 +130,6 @@ class _DynamicRefreshThread(Thread):
         return min(interval, self.max_interval)
 
     def run(self) -> None:
-        """Main thread loop that refreshes the Live display at dynamic intervals."""
         self.start_time = time.time()
 
         while not self.done.is_set():
@@ -138,11 +137,11 @@ class _DynamicRefreshThread(Thread):
             elapsed_time = time.time() - self.start_time
             self.current_interval = self._calculate_interval(elapsed_time)
 
-            # Wait for the calculated interval or until stopped
+            # wait for the calculated interval or until stopped
             if self.done.wait(self.current_interval):
                 break
 
-            # Refresh the display if not stopped
+            # refresh the display if not stopped
             with self.live._lock:
                 if not self.done.is_set():
                     self.live.refresh()
