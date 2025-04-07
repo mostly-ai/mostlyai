@@ -87,7 +87,7 @@ def test_simple_flat(tmp_path, encoding_types):
             "tables": [
                 {
                     "name": "data",
-                    "data": "https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/census/census.csv.gz",
+                    "data": "https://github.com/mostly-ai/public-demo-data/raw/dev/census/census10k.parquet",
                 }
             ]
         },
