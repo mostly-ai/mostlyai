@@ -22,6 +22,7 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 import rich
 from fastapi import FastAPI
+from fastapi_mcp import add_mcp_server
 import uvicorn
 
 from mostlyai.sdk._local.routes import Routes
@@ -68,6 +69,14 @@ class LocalServer:
         )
         routes = Routes(self.home_dir)
         self._app.include_router(routes.router)
+        self._mcp_server = add_mcp_server(
+            self._app,
+            mount_path="/mcp",
+            name="MOSTLY AI SCP",
+            base_url=self.base_url,
+            describe_all_responses=True,
+            describe_full_response_schema=True,
+        )
         self.register_exception_handlers()
         self._server = None
         self._thread = None

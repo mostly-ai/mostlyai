@@ -43,6 +43,7 @@ dependencies = [
     "ipywidgets>=8.1.0",
     "duckdb>=1.2.1",
     "sqlparse>=0.5.3",
+    "fastapi-mcp",
 ]
 
 [project.optional-dependencies]
@@ -207,6 +208,7 @@ torchaudio = [
 torchvision = [
   { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
 ]
+fastapi_mcp = { git = "https://github.com/shuangwu5/fastapi_mcp.git", branch = "fix-http-tool" }
 
 [tool.hatch.build.targets.sdist]
 include = ["mostlyai/sdk"]
