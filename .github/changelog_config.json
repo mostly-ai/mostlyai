@@ -13,10 +13,10 @@
     },
     {
       "title": "## 📦 Uncategorized",
-      "labels": []
+      "labels": ["chore", "build", "docs", "refactor", "style"]
     }
   ],
-  "ignore_labels": ["chore", "build", "docs", "refactor", "style", "bump", "ci"],
+  "ignore_labels": ["bump", "ci"],
   "label_extractor": [
     {
       "pattern": "^([\\w-]+)(?:\\(([^)]+)\\))?: (.+)$",
