@@ -377,7 +377,7 @@ class Routes:
             table = next((t for t in generator.tables if t.id == table_id), None)
             reports_dir = self.home_dir / "generators" / id / "ModelQAReports"
             fn = reports_dir / f"{get_model_label(table, modelType, path_safe=True)}.html"
-            return HTMLResponse(content=fn.read_text(encoding='utf-8'))
+            return HTMLResponse(content=fn.read_text(encoding="utf-8"))
 
         @self.router.get("/generators/{id}/training", response_model=JobProgress)
         async def get_training_progress(id: str) -> JobProgress:
@@ -520,7 +520,7 @@ class Routes:
             else:
                 reports_dir = self.home_dir / "synthetic-datasets" / id / "DataQAReports"
             fn = reports_dir / f"{get_model_label(table, modelType, path_safe=True)}.html"
-            return HTMLResponse(content=fn.read_text(encoding='utf-8'))
+            return HTMLResponse(content=fn.read_text(encoding="utf-8"))
 
         @self.router.get("/synthetic-datasets/{id}/generation", response_model=JobProgress)
         async def get_generation_progress(id: str) -> JobProgress:
