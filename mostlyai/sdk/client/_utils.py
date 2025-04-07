@@ -124,7 +124,6 @@ class _DynamicRefreshThread(Thread):
 
     def run(self) -> None:
         self.start_time = time.time()
-
         while not self.done.is_set():
             # calculate next interval based on elapsed time
             elapsed_time = time.time() - self.start_time
