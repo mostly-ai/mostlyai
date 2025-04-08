@@ -341,10 +341,7 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
                     short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
                 )
 
-        if display:
-            if not rich.console._is_jupyter():
-                raise ValueError("Displaying reports is only supported in Jupyter notebooks.")
-
+        if display and rich.console._is_jupyter():
             from IPython.display import HTML, display  # noqa
             import html  # noqa
 
@@ -364,6 +361,8 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
             with zipfile.ZipFile(file_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 for filename, content in reports.items():
                     zip_file.writestr(filename, content)
+            if display:
+                rich.print(f"Reports saved to {file_path}")
             return file_path
 
     class Training:
@@ -578,10 +577,7 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
                         short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
                     )
 
-        if display:
-            if not rich.console._is_jupyter():
-                raise ValueError("Displaying reports is only supported in Jupyter notebooks.")
-
+        if display and rich.console._is_jupyter():
             from IPython.display import HTML, display  # noqa
             import html  # noqa
 
@@ -601,6 +597,8 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
             with zipfile.ZipFile(file_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 for filename, content in reports.items():
                     zip_file.writestr(filename, content)
+            if display:
+                rich.print(f"Reports saved to {file_path}")
             return file_path
 
     class Generation:

@@ -412,7 +412,7 @@ class MostlyAI(_MostlyBaseClient):
             ```python
             # read original data
             import pandas as pd
-            df = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/census/census.csv.gz')
+            df = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/census/census10k.parquet')
             # instantiate client
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
@@ -480,7 +480,7 @@ class MostlyAI(_MostlyBaseClient):
             ```python
             # read original data
             import pandas as pd
-            df_purchases = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/cdnow/purchases.csv.gz')
+            df_purchases = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/cdnow/purchases.csv.gz')
             df_users = df_purchases[['users_id']].drop_duplicates()
             # instantiate client
             from mostlyai.sdk import MostlyAI
@@ -513,7 +513,7 @@ class MostlyAI(_MostlyBaseClient):
             ```python
             # read original data
             import pandas as pd
-            df = pd.read_parquet('https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/headlines/headlines.parquet')
+            df = pd.read_parquet('https://github.com/mostly-ai/public-demo-data/raw/dev/headlines/headlines.parquet')
 
             # instantiate SDK
             from mostlyai.sdk import MostlyAI
