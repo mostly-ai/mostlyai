@@ -48,15 +48,16 @@ dependencies = [
 [project.optional-dependencies]
 local = [
     # local
-    "mostlyai-engine==1.2.4",
-    "mostlyai-qa==1.5.17",
+    "mostlyai-engine @ git+https://github.com/mostly-ai/mostlyai-engine.git@uv-test",
+    "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@uv-test",
+    # "mostlyai-engine==1.2.4",
+    # "mostlyai-qa==1.5.17",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.2 compatibility
-    "torchaudio==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.2 compatibility
-    "torchvision==0.21.0; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.2 compatibility
-    "torch>=2.6.0,<2.7.0; sys_platform != 'linux'",
+    "torch>=2.6.0,<2.6.1",
+    "torchaudio>=2.6.0,<2.6.1",
+    "torchvision>=0.21.0,<0.21.1",
     "joblib>=1.4.2",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
@@ -73,15 +74,16 @@ local = [
     "adlfs>=2023.4.0",
 ]
 local-gpu = [
-    "mostlyai-engine[gpu]==1.2.4",
-    "mostlyai-qa[gpu]==1.5.17",
+    "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@uv-test",
+    "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@uv-test",
+    #"mostlyai-engine[gpu]==1.2.4",
+    #"mostlyai-qa==1.5.17",
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.x compatibility
-    "torchaudio==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.x compatibility
-    "torchvision==0.21.0; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.x compatibility
-    "torch>=2.6.0,<2.7.0; sys_platform != 'linux'",
+    "torch>=2.6.0,<2.6.1",
+    "torchaudio>=2.6.0,<2.6.1",
+    "torchvision>=0.21.0,<0.21.1",
     "joblib>=1.4.2",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
@@ -97,31 +99,31 @@ local-gpu = [
     "azure-storage-blob>=12.16.0",
     "adlfs>=2023.4.0",
 ]
-local-cpu = [
-    "mostlyai-engine[cpu]==1.2.4",
-    "mostlyai-qa[cpu]==1.5.17",
-    "fastapi>=0.115.6,<0.116",
-    "uvicorn>=0.34.0,<0.35",
-    "python-multipart>=0.0.20",
-    "torch==2.6.0+cpu; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.2 compatibility
-    "torchaudio==2.6.0+cpu; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.2 compatibility
-    "torchvision==0.21.0+cpu; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.2 compatibility
-    "torch>=2.6.0,<2.7.0; sys_platform != 'linux'",
-    "joblib>=1.4.2",
-    "sqlalchemy>=2.0.0",
-    "sshtunnel>=0.4.0,<0.5",
-    "networkx>=3.0,<4",
-    "xlsxwriter>=3.1.9,<4",
-    "openpyxl>=3.1.5",
-    "filelock>=3.16.1",
-    # cloud-based connectors
-    "s3fs>=2023.1.0",
-    "gcsfs>=2023.1.0",
-    "cloudpathlib[gs, s3, azure]>=0.17.0",
-    "smart-open[gcs, s3, azure]>=6.3.0",
-    "azure-storage-blob>=12.16.0",
-    "adlfs>=2023.4.0",
-]
+# local-cpu = [
+#     "mostlyai-engine==1.2.4",
+#     "mostlyai-qa==1.5.17",
+#     "fastapi>=0.115.6,<0.116",
+#     "uvicorn>=0.34.0,<0.35",
+#     "python-multipart>=0.0.20",
+#     "torch==2.6.0+cpu; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.2 compatibility
+#     "torchaudio==2.6.0+cpu; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.2 compatibility
+#     "torchvision==0.21.0+cpu; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.2 compatibility
+#     "torch>=2.6.0,<2.7.0; sys_platform != 'linux'",
+#     "joblib>=1.4.2",
+#     "sqlalchemy>=2.0.0",
+#     "sshtunnel>=0.4.0,<0.5",
+#     "networkx>=3.0,<4",
+#     "xlsxwriter>=3.1.9,<4",
+#     "openpyxl>=3.1.5",
+#     "filelock>=3.16.1",
+#     # cloud-based connectors
+#     "s3fs>=2023.1.0",
+#     "gcsfs>=2023.1.0",
+#     "cloudpathlib[gs, s3, azure]>=0.17.0",
+#     "smart-open[gcs, s3, azure]>=6.3.0",
+#     "azure-storage-blob>=12.16.0",
+#     "adlfs>=2023.4.0",
+# ]
 # connectors
 databricks = [
     "databricks-sql-connector>=3.2.0,<4",
@@ -180,33 +182,33 @@ documentation = "https://mostly-ai.github.io/mostlyai/"
 
 [tool.uv]
 default-groups = ["dev", "docs"]
-conflicts = [
-  [
-    { extra = "local-cpu" },
-    { extra = "local-gpu" },
-  ],
-]
+# conflicts = [
+#   [
+#     { extra = "local-cpu" },
+#     { extra = "local-gpu" },
+#   ],
+# ]
 
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
+# [[tool.uv.index]]
+# name = "pytorch-cpu"
+# url = "https://download.pytorch.org/whl/cpu"
+# explicit = true
 
 #[[tool.uv.index]]
 #name = "pytorch-gpu"
 #url = "https://pypi.org/simple"
 #explicit = true
 
-[tool.uv.sources]
-torch = [
-  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
-]
-torchaudio = [
-  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
-]
-torchvision = [
-  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
-]
+# [tool.uv.sources]
+# torch = [
+#   { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
+# ]
+# torchaudio = [
+#   { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
+# ]
+# torchvision = [
+#   { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
+# ]
 
 [tool.hatch.build.targets.sdist]
 include = ["mostlyai/sdk"]
