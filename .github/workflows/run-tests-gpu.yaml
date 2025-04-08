@@ -22,7 +22,7 @@ jobs:
               ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
               echo "Etc/UTC" > /etc/timezone
               apt-get update -qq
-              apt-get install -y --no-install-recommends git tzdata
+              apt-get install -y --no-install-recommends git tzdata build-essential
 
           - name: Setup | Checkout
             uses: actions/checkout@v4
