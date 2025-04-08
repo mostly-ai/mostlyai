@@ -78,9 +78,9 @@ local-gpu = [
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.2 compatibility
-    "torchaudio==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.2 compatibility
-    "torchvision==0.21.0; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.2 compatibility
+    "torch==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.x compatibility
+    "torchaudio==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.x compatibility
+    "torchvision==0.21.0; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.x compatibility
     "torch>=2.6.0,<2.7.0; sys_platform != 'linux'",
     "joblib>=1.4.2",
     "sqlalchemy>=2.0.0",
