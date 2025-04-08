@@ -104,7 +104,6 @@ def _move_generation_artefacts(synthetic_dataset_dir: Path, job_workspace_dir: P
             target = synthetic_dataset_dir / "DataQAReports" / path.name
 
         if target:
-            # Cross-platform safe move
             if target.exists():
                 if target.is_dir():
                     shutil.rmtree(target)
@@ -592,7 +591,6 @@ def execute_training_job(generator_id: str, home_dir: Path):
     except Exception as e:
         _mark_failed(resource=generator, resource_dir=generator_dir)
         _LOG.error(traceback.format_exc())
-        _LOG.error(f"Failed to execute training job: {e}")
         _LOG.error(f"Exception type: {type(e)}")
         _LOG.error(f"Exception message: {e}")
         raise
