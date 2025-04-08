@@ -15,6 +15,7 @@ import shutil
 from pathlib import Path
 
 from mostlyai.sdk._local.storage import (
+    get_model_label,
     write_synthetic_dataset_to_json,
     write_job_progress_to_json,
     read_generator_from_json,
@@ -132,7 +133,7 @@ def create_synthetic_dataset(
                 progress_steps.append(
                     ProgressStep(
                         task_type=TaskType.generate,
-                        model_label=f"{table.name}:{model_type.value.lower()}",
+                        model_label=get_model_label(table, model_type),
                         step_code=step,
                         progress=ProgressValue(value=0, max=1),
                         status=ProgressStatus.new,
