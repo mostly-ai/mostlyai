@@ -160,7 +160,7 @@ source .venv/bin/activate
 
 <details>
 
-  <summary>Setup of <code>uv</code> on Windows Setup</summary>
+  <summary>Setup of <code>uv</code> on Windows</summary>
 
 ```shell
 # Install uv if you don't have it yet
