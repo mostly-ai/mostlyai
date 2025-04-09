@@ -724,18 +724,20 @@ class MostlyAI(_MostlyBaseClient):
             config=config,
             config_type=SyntheticProbeConfig,
         )
+
         try:
             dfs = self.synthetic_probes.create(config)
-            if return_type == "auto" and len(dfs) == 1:
-                return list(dfs.values())[0]
-            else:
-                return dfs
         except APIError as e:
             # translate timeout error into a more informative message for probe requests
             if "timed out" in str(e).lower():
                 raise APIError("Probing timed out. Please try `generate()` instead.")
             else:
                 raise e
+
+        if return_type == "auto" and len(dfs) == 1:
+            return list(dfs.values())[0]
+        else:
+            return dfs
 
     def me(self) -> CurrentUser:
         """
