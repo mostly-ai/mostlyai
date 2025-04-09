@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 from pathlib import Path
 from typing import Any, Literal
@@ -21,6 +22,7 @@ from rich.prompt import Prompt
 
 from mostlyai import sdk
 from mostlyai.sdk.client.base import GET, _MostlyBaseClient, DEFAULT_BASE_URL
+from mostlyai.sdk.client.exceptions import APIError
 from mostlyai.sdk.client.connectors import _MostlyConnectorsClient
 from mostlyai.sdk.client.generators import _MostlyGeneratorsClient
 from mostlyai.sdk.domain import (
@@ -722,11 +724,18 @@ class MostlyAI(_MostlyBaseClient):
             config=config,
             config_type=SyntheticProbeConfig,
         )
-        dfs = self.synthetic_probes.create(config)
-        if return_type == "auto" and len(dfs) == 1:
-            return list(dfs.values())[0]
-        else:
-            return dfs
+        try:
+            dfs = self.synthetic_probes.create(config)
+            if return_type == "auto" and len(dfs) == 1:
+                return list(dfs.values())[0]
+            else:
+                return dfs
+        except APIError as e:
+            # translate timeout error into a more informative message for probe requests
+            if "timed out" in str(e).lower():
+                raise APIError("Probing timed out. Please try `generate()` instead.")
+            else:
+                raise e
 
     def me(self) -> CurrentUser:
         """
