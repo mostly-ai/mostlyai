@@ -207,6 +207,7 @@ torchaudio = [
 torchvision = [
   { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
 ]
+mostlyai-engine = { path = "mostlyai-engine/mostlyai_engine-1.2.4-py3-none-any.whl" }
 
 [tool.hatch.build.targets.sdist]
 include = ["mostlyai/sdk"]
