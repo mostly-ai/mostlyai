@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import functools
+import uuid
 from typing import Any
+from datetime import datetime, timedelta
 from collections.abc import Iterable
 from unittest.mock import patch
 
@@ -32,7 +34,7 @@ from mostlyai.sdk._data.base import (
     NonContextRelation,
 )
 from mostlyai.sdk._data.util.common import OrderBy
-from mostlyai.sdk._data.dtype import VirtualDatetime, VirtualInteger, VirtualVarchar
+from mostlyai.sdk._data.dtype import VirtualBoolean, VirtualDatetime, VirtualFloat, VirtualInteger, VirtualVarchar
 
 
 class UnbiasedDataContainer(DataContainer): ...
@@ -68,7 +70,7 @@ class TheSimplestDataTable(UnbiasedDataTable):
 
     def _lazy_fetch(self, item: str) -> None:
         if item == "primary_key":
-            self.primary_key = "id"
+            self.primary_key = "id" if "id" in (self.columns or []) else None
         else:
             return super()._lazy_fetch(item)
 
@@ -162,6 +164,49 @@ class TestDataTable:
             },
         )
 
+    @pytest.fixture
+    def data_table(self):
+        num_rows = 20_000
+
+        base_date = datetime(2020, 1, 1)
+        dt_column = [(base_date + timedelta(days=i)).isoformat() for i in range(num_rows)]
+        bool_column = [True] * num_rows
+        int_column = list(range(num_rows))
+        float_column = [i * 0.1 for i in range(num_rows)]
+        lat_long_column = ["48.20849, 16.37208"] * num_rows
+        str_column = [f"string_{i}" for i in range(num_rows)]
+        fixed_length_str_column = [f"string_{i:05d}" for i in range(num_rows)]
+
+        df = pd.DataFrame(
+            {
+                "dt": dt_column,
+                "bool": bool_column,
+                "int": int_column,
+                "float": float_column,
+                "lat_long": lat_long_column,
+                "str": str_column,
+                "variable_length_id": str_column,
+                "fixed_length_id": fixed_length_str_column,
+                "numeric_id": int_column,
+            }
+        )
+        return TheSimplestDataTable(
+            df=df,
+            name="table",
+            columns=list(df.columns),
+            dtypes={
+                "dt": VirtualVarchar(),  # strings of datetime
+                "bool": VirtualBoolean(),
+                "int": VirtualInteger(),
+                "float": VirtualFloat(),
+                "lat_long": VirtualVarchar(),
+                "str": VirtualVarchar(),
+                "variable_length_id": VirtualVarchar(),
+                "fixed_length_id": VirtualVarchar(),
+                "numeric_id": VirtualInteger(),
+            },
+        )
+
     def test_get_encoding_types(self, another_table):
         assert another_table.encoding_types["cat"] == ModelEncodingType.tabular_categorical
         assert another_table.encoding_types["dig"] == ModelEncodingType.tabular_numeric_auto
@@ -191,6 +236,133 @@ class TestDataTable:
 
     def test_count_rows(self, dummy_table, dummy_df):
         assert dummy_table.row_count == dummy_df.shape[0]
+
+    @pytest.mark.parametrize(
+        "initial_auto_encoding_type, expected_encoding_types, expected_primary_key",
+        [
+            (
+                None,
+                {
+                    "dt": ModelEncodingType.tabular_datetime,
+                    "bool": ModelEncodingType.tabular_categorical,
+                    "int": ModelEncodingType.tabular_numeric_auto,
+                    "float": ModelEncodingType.tabular_numeric_auto,
+                    "lat_long": ModelEncodingType.tabular_lat_long,
+                    "str": ModelEncodingType.language_text,
+                    "variable_length_id": ModelEncodingType.language_text,
+                    "fixed_length_id": ModelEncodingType.tabular_character,
+                    "numeric_id": ModelEncodingType.tabular_numeric_auto,
+                },
+                "variable_length_id",
+            ),
+            (
+                ModelEncodingType.auto,
+                {
+                    "dt": ModelEncodingType.tabular_datetime,
+                    "bool": ModelEncodingType.tabular_categorical,
+                    "int": ModelEncodingType.tabular_numeric_auto,
+                    "float": ModelEncodingType.tabular_numeric_auto,
+                    "lat_long": ModelEncodingType.tabular_lat_long,
+                    "str": ModelEncodingType.language_text,
+                    "variable_length_id": ModelEncodingType.language_text,
+                    "fixed_length_id": ModelEncodingType.tabular_character,
+                    "numeric_id": ModelEncodingType.tabular_numeric_auto,
+                },
+                None,
+            ),
+            (
+                ModelEncodingType.tabular_auto,
+                {
+                    "dt": ModelEncodingType.tabular_datetime,
+                    "bool": ModelEncodingType.tabular_categorical,
+                    "int": ModelEncodingType.tabular_numeric_auto,
+                    "float": ModelEncodingType.tabular_numeric_auto,
+                    "lat_long": ModelEncodingType.tabular_lat_long,
+                    "str": ModelEncodingType.tabular_character,
+                    "variable_length_id": ModelEncodingType.tabular_character,
+                    "fixed_length_id": ModelEncodingType.tabular_character,
+                    "numeric_id": ModelEncodingType.tabular_numeric_auto,
+                },
+                None,
+            ),
+            (
+                ModelEncodingType.language_auto,
+                {
+                    "dt": ModelEncodingType.language_datetime,
+                    "bool": ModelEncodingType.language_categorical,
+                    "int": ModelEncodingType.language_numeric,
+                    "float": ModelEncodingType.language_numeric,
+                    "lat_long": ModelEncodingType.language_text,
+                    "str": ModelEncodingType.language_text,
+                    "variable_length_id": ModelEncodingType.language_text,
+                    "fixed_length_id": ModelEncodingType.language_text,
+                    "numeric_id": ModelEncodingType.language_numeric,
+                },
+                None,
+            ),
+        ],
+    )
+    def test_auto_detect_encoding_types_and_pk(
+        self, data_table, initial_auto_encoding_type, expected_encoding_types, expected_primary_key
+    ):
+        if initial_auto_encoding_type is None:
+            ignore_existing_values = True
+        else:
+            initial_auto_encoding_types = {c: initial_auto_encoding_type for c in data_table.columns}
+            data_table.encoding_types = initial_auto_encoding_types
+            ignore_existing_values = False
+
+        data_table.auto_detect_encoding_types_and_pk(ignore_existing_values=ignore_existing_values)
+        assert data_table.encoding_types == expected_encoding_types
+        assert data_table.primary_key == expected_primary_key
+
+    @pytest.mark.parametrize(
+        "values, expected_encoding_type",
+        [
+            (
+                [str(uuid.uuid4()) for _ in range(20000)],
+                ModelEncodingType.tabular_character,
+            ),  # all unique but same length
+            (
+                [str(uuid.uuid4()) for _ in range(20)] + ["cat1", "cat2"] * 90,
+                ModelEncodingType.language_text,
+            ),  # 20 out of 200 are unique > 0.05
+            (pd.date_range("20230101", periods=100), ModelEncodingType.tabular_datetime),  # regular dates
+            (["2023-01-01", "2023-02-01", "", None], ModelEncodingType.tabular_datetime),  # dates with missing values
+            (["21.314, -23.22315", "-1.2321, 22.33", "0, 0", None], ModelEncodingType.tabular_lat_long),
+            (
+                ["34.052235, -118.243683", "40.712776, -74.005974", "37.774929, -122.419418"] * 5_000,
+                ModelEncodingType.tabular_lat_long,
+            ),
+            (["   ", "-90.0, 180.0", "0.0, 0.0", "45.0, 90.0", "", None], ModelEncodingType.tabular_lat_long),
+            (["21.314, -23.22315", "0", None] * 2, ModelEncodingType.tabular_categorical),
+            (
+                ["34.052235, -118.243683", "40.712776. -74.005974", "37.774929, -122.419418"] * 5000,
+                ModelEncodingType.tabular_categorical,
+            ),
+            (["2023-01-01", "2023-02-01", "abc", None] * 2, ModelEncodingType.tabular_categorical),
+            (
+                ["id1", "id2"] + ["cat1", "cat2"] * 49,
+                ModelEncodingType.tabular_categorical,
+            ),  # 2 out of 100 are unique < 0.05
+        ],
+    )
+    def test__auto_detect_encoding_type(self, values, expected_encoding_type):
+        series = pd.Series(values)
+        assert DataTable._auto_detect_encoding_type(series) == expected_encoding_type
+
+    @pytest.mark.parametrize(
+        "sample,expected_pk",
+        [
+            (pd.DataFrame(), None),
+            (pd.DataFrame({"some_id": [1, 2, 3]}), "some_id"),
+            (pd.DataFrame({"some_id": [1, 2, None]}), None),  # missing values
+            (pd.DataFrame({"id": ["1" * 36, "2", "3"]}), "id"),
+            (pd.DataFrame({"id": ["1" * 37, "2", "3"]}), None),  # longer than typical UUID (36 chars)
+        ],
+    )
+    def test__auto_detect_primary_key(self, sample, expected_pk, tmp_path):
+        assert DataTable._auto_detect_primary_key(sample) == expected_pk
 
 
 class TestDataIdentifier:
