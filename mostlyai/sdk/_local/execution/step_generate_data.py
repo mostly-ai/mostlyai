@@ -93,7 +93,7 @@ def execute_step_generate_data(
         ctx_data=ctx_data,
         seed_data=sample_seed,
         sample_size=sample_size,
-        batch_size=None,
+        batch_size=192 * 2,
         sampling_temperature=config.sampling_temperature,
         sampling_top_p=config.sampling_top_p,
         device=None,
