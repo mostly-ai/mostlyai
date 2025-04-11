@@ -72,6 +72,31 @@ local = [
     "azure-storage-blob>=12.16.0",
     "adlfs>=2023.4.0",
 ]
+# NOTE: keep this identical to `local` and deprecate it completely in the next minor version release
+local-cpu = [
+    "mostlyai-engine==1.2.4",  # for release
+    "mostlyai-qa==1.5.17",  # for release
+    "fastapi>=0.115.6,<0.116",
+    "uvicorn>=0.34.0,<0.35",
+    "python-multipart>=0.0.20",
+    "torch>=2.6.0,<2.6.1",
+    "torchaudio>=2.6.0,<2.6.1",
+    "torchvision>=0.21.0,<0.21.1",
+    "joblib>=1.4.2",
+    "sqlalchemy>=2.0.0",
+    "sshtunnel>=0.4.0,<0.5",
+    "networkx>=3.0,<4",
+    "xlsxwriter>=3.1.9,<4",
+    "openpyxl>=3.1.5",
+    "filelock>=3.16.1",
+    # cloud-based connectors
+    "s3fs>=2023.1.0",
+    "gcsfs>=2023.1.0",
+    "cloudpathlib[gs, s3, azure]>=0.17.0",
+    "smart-open[gcs, s3, azure]>=6.3.0",
+    "azure-storage-blob>=12.16.0",
+    "adlfs>=2023.4.0",
+]
 local-gpu = [
     "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@uv-test",  # for development
     "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@uv-test",  # for development
