@@ -41,8 +41,6 @@ jobs:
               uv sync --frozen --only-group dev
               uv pip install ".[local-gpu]"
 
-            run: uv sync --frozen --extra local-gpu
-
           - name: Setup | Check for available GPU-s
             run: nvidia-smi
 
