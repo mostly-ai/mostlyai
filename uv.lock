@@ -3414,7 +3414,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.2.4"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=uv-test#9c1e0054c252e5ab702c155c0a0b849b28603ac9" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=uv-test#8f6ef62deb8dd740c2628dc8d12883095031a196" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
@@ -3446,7 +3446,7 @@ gpu = [
 [[package]]
 name = "mostlyai-qa"
 version = "1.5.17"
-source = { git = "https://github.com/mostly-ai/mostlyai-qa.git?rev=uv-test#7f9373565a9b391c18dd9c446cdfb65e07de84d5" }
+source = { git = "https://github.com/mostly-ai/mostlyai-qa.git?rev=uv-test#eb1393fa187988e9e4fbe175ef536baeadc6cee7" }
 dependencies = [
     { name = "accelerate" },
     { name = "huggingface-hub", extra = ["hf-xet"] },
