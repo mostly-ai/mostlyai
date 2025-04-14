@@ -61,7 +61,7 @@ https://github.com/user-attachments/assets/9e233213-a259-455c-b8ed-d1f1548b492f
 
 ## Quick Start <a href="https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb" target="_blank"><img src="https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab" alt="Run on Colab"></a>
 
-Install the SDK via pip:
+Install the SDK via `pip` (see [Installation](#installation) for further details):
 
 ```shell
 pip install -U mostlyai  # or 'mostlyai[local]' for LOCAL mode
@@ -124,7 +124,7 @@ The SDK is being developed with a focus on efficiency, accuracy, and flexibility
 
 Tabular models within the SDK are built on TabularARGN ([arXiv:2501.12012](https://arxiv.org/abs/2501.12012)), which achieves best-in-class synthetic data quality while being 1–2 orders of magnitude more efficient than comparable models. This efficiency enables the training and generation of millions of synthetic records within minutes, even on CPU environments.
 
-![TabularARGN Benchmark](docs/TabularARGN-benchmark.png)
+![TabularARGN Benchmark](https://raw.githubusercontent.com/mostly-ai/mostlyai/refs/heads/main/docs/TabularARGN-benchmark.png)
 
 ### Language Models
 
@@ -136,20 +136,63 @@ In either case, a modern GPU is highly recommended when working with language mo
 
 ## Installation
 
- Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required.
+Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required.
 
- It is highly recommended to install the package within a dedicated virtual environment, such as **venv**, **uv**, or **conda**. E.g.
- ```shell
-conda create -n mostlyai python=3.12
-conda activate mostlyai
- ```
+It is highly recommended to install the package within a dedicated virtual environment using `uv`.
+
+<details>
+
+  <summary>Setup of <code>uv</code> on Unix / macOS</summary>
+
+```shell
+# Install uv if you don't have it yet
+curl -Ls https://astral.sh/uv/install.sh | bash
+
+# Create and activate a Python 3.12 environment with uv
+mkdir ~/synthetic-data-sdk; cd ~/synthetic-data-sdk
+uv venv -p 3.12
+
+# Activate virtual environment
+source .venv/bin/activate
+```
+
+</details>
+
+<details>
+
+  <summary>Setup of <code>uv</code> on Windows</summary>
+
+```shell
+# Install uv if you don't have it yet
+irm https://astral.sh/uv/install.ps1 | iex
+
+# Create and activate a Python 3.12 environment with uv
+mkdir ~/synthetic-data-sdk; cd ~/synthetic-data-sdk
+uv venv -p 3.12
+
+# Activate virtual environment
+.venv\Scripts\activate
+```
+
+</details>
+
+<details>
+
+  <summary>Run Jupyter Lab session via <code>uv</code></summary>
+
+```shell
+# Optionally launch jupyter session after SDK installation
+uv run --with jupyter jupyter lab
+```
+
+</details>
 
 ### CLIENT mode
 
 This is a light-weight installation for using the SDK in CLIENT mode only. It communicates to a MOSTLY AI platform to perform requested tasks. See e.g. [app.mostly.ai](https://app.mostly.ai/) for a free-to-use hosted version.
 
 ```shell
-pip install -U mostlyai
+uv pip install -U mostlyai
 ```
 
 ### CLIENT + LOCAL mode
@@ -158,11 +201,11 @@ This is a full installation for using the SDK in both CLIENT and LOCAL mode. It 
 
 ```shell
 # for CPU on macOS
-pip install -U 'mostlyai[local]'
+uv pip install -U 'mostlyai[local]'
 # for CPU on Linux
-pip install -U 'mostlyai[local-cpu]' --extra-index-url https://download.pytorch.org/whl/cpu
+uv pip install -U 'mostlyai[local-cpu]' --extra-index-url https://download.pytorch.org/whl/cpu
 # for GPU on Linux
-pip install -U 'mostlyai[local-gpu]'
+uv pip install -U 'mostlyai[local-gpu]'
 ```
 
 > **Note for Google Colab users**: Installing any of the local extras (`mostlyai[local]`, `mostlyai[local-cpu]`, or `mostlyai[local-gpu]`) will downgrade Numpy from 2.0 to Numpy 1.26, due to Opacus dependency. You'll need to restart the runtime after installation for the changes to take effect.
@@ -170,7 +213,7 @@ pip install -U 'mostlyai[local-gpu]'
 Add any of the following extras for further data connectors support in LOCAL mode: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`. E.g.
 
 ```shell
-pip install -U 'mostlyai[local, databricks, snowflake]'
+uv pip install -U 'mostlyai[local, databricks, snowflake]'
 ```
 
 ## Citation
