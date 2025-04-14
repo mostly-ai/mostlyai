@@ -200,13 +200,27 @@ uv pip install -U mostlyai
 This is a full installation for using the SDK in both CLIENT and LOCAL mode. It includes all dependencies, incl. PyTorch, for training and generating synthetic data locally.
 
 ```shell
-# for CPU on macOS
 uv pip install -U 'mostlyai[local]'
-# for CPU on Linux
-uv pip install -U 'mostlyai[local-cpu]' --extra-index-url https://download.pytorch.org/whl/cpu
-# for GPU on Linux
+```
+
+or alternatively for a GPU setup on Linux (needed for LLM finetuning and inference):
+
+```shell
 uv pip install -U 'mostlyai[local-gpu]'
 ```
+
+On Linux, one can explicitly install the CPU-only variant of torch together with `mostlyai[local]`:
+
+```shell
+# uv pip install
+uv pip install --index-strategy unsafe-first-match -U torch==2.6.0+cpu torchvision==0.21.0+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
+```
+
+```shell
+# standard pip install
+pip install -U torch==2.6.0+cpu torchvision==0.21.0+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
+```
+
 
 > **Note for Google Colab users**: Installing any of the local extras (`mostlyai[local]`, `mostlyai[local-cpu]`, or `mostlyai[local-gpu]`) will downgrade Numpy from 2.0 to Numpy 1.26, due to Opacus dependency. You'll need to restart the runtime after installation for the changes to take effect.
 

@@ -12,6 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
+from importlib.metadata import distribution
+
+try:
+    extras = distribution("mostlyai").metadata.get_all("Provides-Extra") or []
+    if "local-cpu" in extras:
+        warnings.warn(
+            "`local-cpu` extra is deprecated. Please install `mostlyai[local]` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+except Exception:
+    pass
+
 from mostlyai.sdk.client.api import MostlyAI
 
 __all__ = ["MostlyAI"]
