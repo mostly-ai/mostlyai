@@ -478,16 +478,28 @@ class TestPullSequential(DisableMaskKeys):
 
     def test_pull_unsupported_encoding_types_from_context(self, tmp_path, two_table_data):
         ctx_df, tgt_df = two_table_data
+        ctx_df["tabular_int"] = ctx_df["int"]
+        ctx_df["cat"] = ctx_df["str"]
+        ctx_df["dt"] = pd.date_range(start="2025/1/1", periods=len(ctx_df)).to_list()
+        ctx_df["itt"] = ctx_df["dt"]
         schema = self.create_two_table_schema(tmp_path, ctx_df, tgt_df)
         # pull data
-        schema.tables["ctx"].encoding_types |= {"int": ModelEncodingType.language_text}
+        schema.tables["ctx"].encoding_types |= {
+            "tabular_int": ModelEncodingType.tabular_numeric_auto,
+            # these columns should not be pulled as context
+            "itt": ModelEncodingType.tabular_datetime_relative,
+            "int": ModelEncodingType.language_numeric,
+            "str": ModelEncodingType.language_text,
+            "cat": ModelEncodingType.language_categorical,
+            "dt": ModelEncodingType.language_datetime,
+        }
         pull(tgt="tgt", schema=schema, workspace_dir=tmp_path)
         # check pulled data
         ctx_data = pd.read_parquet(tmp_path / "OriginalData" / "ctx-data")
-        assert "ctx::int" not in ctx_data
+        assert list(ctx_data.columns) == ["ctx::id", "ctx::tabular_int"]
         # check pulled meta data
         ctx_enctypes = read_json(tmp_path / "OriginalData" / "ctx-meta" / "encoding-types.json")
-        assert "ctx::int" not in ctx_enctypes
+        assert list(ctx_enctypes.keys()) == ["ctx::tabular_int"]
 
     @pytest.mark.parametrize("max_sample_size", [0, 3, 5, 1000])
     def test_pull_max_sample_size(self, tmp_path, two_table_data, max_sample_size):
