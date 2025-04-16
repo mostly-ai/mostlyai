@@ -80,14 +80,16 @@ g = mostly.generators.import_from_file(
 )
 
 # probe for 1000 representative synthetic samples
-mostly.probe(g, size=1000)
+df = mostly.probe(g, size=1000)
+df
 ```
 
 Generate synthetic sampels based on fixed column values:
 
 ```python
 # create 10k records of 24y male respondents
-mostly.probe(g, seed=[{"age": 24, "sex": "Male"}] * 10_000)
+df = mostly.probe(g, seed=[{"age": 24, "sex": "Male"}] * 10_000)
+df
 ```
 
 And now train your very own synthetic data generator:
@@ -110,10 +112,11 @@ g.reports(display=True)
 
 # generate a representative synthetic dataset, with default configs
 sd = mostly.generate(g)
-synthetic_df = sd.data()
+df = sd.data()
 
-# probe for some samples
-mostly.probe(g, size=100)
+# or simply probe for some samples
+df = mostly.probe(g, size=100)
+df
 ```
 
 ## Performance
