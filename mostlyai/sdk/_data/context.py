@@ -231,6 +231,9 @@ def drop_unsupported_encoding_types_from_context(
     unsupported_encoding_types = [
         ModelEncodingType.tabular_datetime_relative,
         ModelEncodingType.language_text,
+        ModelEncodingType.language_categorical,
+        ModelEncodingType.language_numeric,
+        ModelEncodingType.language_datetime,
     ]
     # do not drop context primary key of parent context table
     ctx_pk = sub_schema.tables[context_tables[-1]].primary_key
