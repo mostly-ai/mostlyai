@@ -244,7 +244,7 @@ If your application depends on a Hugging Face language model, you’ll also need
 
   <summary>Download HuggingFace LANGUAGE models</summary>
 
-On a machine with internet access, run the following Python script, to download the HuggingFace model to your local HuggingFace cache.
+<p>On a machine with internet access, run the following Python script, to download the HuggingFace model to your local HuggingFace cache.</p>
 
 ```python
 #! uv pip install huggingface-hub
@@ -257,7 +257,7 @@ path = snapshot_download(
 print(f"COPY `{Path(path).parent.parent}`")
 ```
 
-Next, transfer the printed directory to the air-gapped environment's cache directory, usually located at `~/.cache/huggingface/hub/`.
+Next, transfer the printed directory to the air-gapped environment's cache directory located at `~/.cache/huggingface/hub/` (unless environment variable `HF_HOME` has been set to a different place).
 
 </details>
 
