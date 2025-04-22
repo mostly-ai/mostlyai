@@ -227,11 +227,40 @@ pip install -U torch==2.6.0+cpu torchvision==0.21.0+cpu 'mostlyai[local]' --extr
 
 > **Note for Google Colab users**: Installing any of the local extras (`mostlyai[local]`, or `mostlyai[local-gpu]`) will downgrade Numpy from 2.0 to Numpy 1.26, due to Opacus dependency. You'll need to restart the runtime after installation for the changes to take effect.
 
+### Data Connectors
+
 Add any of the following extras for further data connectors support in LOCAL mode: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`. E.g.
 
 ```shell
 uv pip install -U 'mostlyai[local, databricks, snowflake]'
 ```
+### Air-gapped Environments
+
+For air-gapped environments (without internet access), you must install the package using the provided wheel files, including any optional dependencies you require.
+
+If your application depends on a Hugging Face language model, you’ll also need to manually download and transfer the model files.
+
+<details>
+
+  <summary>Download HuggingFace LANGUAGE models</summary>
+
+<p>On a machine with internet access, run the following Python script, to download the HuggingFace model to your local HuggingFace cache.</p>
+
+```python
+#! uv pip install huggingface-hub
+from pathlib import Path
+from huggingface_hub import snapshot_download
+path = snapshot_download(
+    repo_id="Qwen/Qwen2.5-Coder-0.5B",  # change accordingly
+    token=None,  # insert your HF TOKEN for gated models
+)
+print(f"COPY `{Path(path).parent.parent}`")
+```
+
+Next, transfer the printed directory to the air-gapped environment's cache directory located at `~/.cache/huggingface/hub/` (respectively to `HF_HOME`, if that environment variable has been set).
+
+</details>
+
 
 ## Citation
 
