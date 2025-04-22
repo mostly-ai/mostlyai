@@ -133,12 +133,12 @@ class Routes:
         @self.router.get("/models/{model_type}")
         async def list_models(model_type: str) -> JSONResponse:
             if model_type == ModelType.tabular:
-                return JSONResponse(content=["MOSTLY_AI/Small", "MOSTLY_AI/Medium", "MOSTLY_AI/Large"])
+                models = ["MOSTLY_AI/Small", "MOSTLY_AI/Medium", "MOSTLY_AI/Large"]
             elif model_type == ModelType.language:
-                return JSONResponse(
-                    content=["MOSTLY_AI/LSTMFromScratch-3m", "microsoft/phi-1_5", "(HuggingFace-hosted models)"]
-                )
-            return JSONResponse(content=[])
+                models = ["MOSTLY_AI/LSTMFromScratch-3m", "microsoft/phi-1_5", "(HuggingFace-hosted models)"]
+            else:
+                models = []
+            return JSONResponse(content=models)
 
         ## CONNECTORS
 
