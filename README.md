@@ -257,7 +257,7 @@ path = snapshot_download(
 print(f"COPY `{Path(path).parent.parent}`")
 ```
 
-Next, transfer the printed directory to the air-gapped environment's cache directory located at `~/.cache/huggingface/hub/` (unless environment variable `HF_HOME` has been set to a different place).
+Next, transfer the printed directory to the air-gapped environment's cache directory located at `~/.cache/huggingface/hub/` (respectively to `HF_HOME`, if that environment variable has been set).
 
 </details>
 
