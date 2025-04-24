@@ -197,16 +197,20 @@ uv run --with jupyter jupyter lab
 The Docker image provides an isolated environment for running the SDK in LOCAL mode, with all connector dependencies pre-installed. Ensure [Docker](https://docs.docker.com/get-started/get-docker/) is installed on your system.
 
 **1. Build the image**
-  - If your machine already has tools for executing [Makefile](https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L47-L73), you can do `make docker-build`
-  - Otherwise, please run `DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t mostlyai/mostlyai`
+  - If your machine already has tools for executing [Makefile](https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L47-L73), you can do `make docker-build`.
+  - Otherwise, please run `DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t mostlyai/mostlyai`.
 
 **2. Start the container** (which will launch a local server at port 8080 inside the container)
   - If the Makefile works for you, you can do `make docker-run`. Or `make docker-run HOST_PORT=8888` to forward to a host port of your choice (8888 in this example). One could also mount the local_dir with `make docker-run HOST_LOCAL_DIR=/path/to/host/folder` so that generators and synthetic datasets will be directly accessible from the host.
-  - Otherwise, please do `docker run --platform=linux/amd64 -p 8080:8080 mostlyai/mostlyai`
-  - Optionally, you could use `-v` flag to mount a [volume](https://docs.docker.com/engine/storage/volumes/#syntax) for passing files between the host and the container
+  - Otherwise, please do `docker run --platform=linux/amd64 -p 8080:8080 mostlyai/mostlyai`.
+  - Optionally, you could use `-v` flag to mount a [volume](https://docs.docker.com/engine/storage/volumes/#syntax) for passing files between the host and the container.
 
 **3. Connect to the container server from the host machine using SDK's `CLIENT` mode**
-  - `mostly = MostlyAI(base_url="http://localhost:8080")`
+  ```python
+  from mostlyai.sdk import MostlyAI
+
+  mostly = MostlyAI(base_url="http://localhost:8080")
+  ```
 
 </details>
 
