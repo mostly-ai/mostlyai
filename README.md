@@ -293,7 +293,7 @@ As an alternative, you can also build a Docker image, which provides you with an
 
   You can now connect to the SDK running within the container by initializing the SDK in `CLIENT` mode on the host machine.
 
-    ```python
+  ```python
   from mostlyai.sdk import MostlyAI
 
   mostly = MostlyAI(base_url="http://localhost:8080")
