@@ -190,6 +190,26 @@ uv run --with jupyter jupyter lab
 
 </details>
 
+<details>
+
+  <summary>Using Docker</summary>
+
+The Docker image provides an isolated environment for running the SDK in LOCAL mode, with all connector dependencies pre-installed. Ensure [Docker](https://docs.docker.com/get-started/get-docker/) is installed on your system.
+
+**1. Build the image**
+  - If your machine already has tools for executing [Makefile](https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L47-L73), you can do `make docker-build`
+  - Otherwise, please run `DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t mostlyai/mostlyai`
+
+**2. Start the container** (which will launch a local server at port 8080 inside the container)
+  - If the Makefile works for you, you can do `make docker-run`. Or `make docker-run HOST_PORT=8888` to forward to a host port of your choice (8888 in this example).
+  - Otherwise, please do `docker run --platform=linux/amd64 -p 8080:8080 mostlyai/mostlyai`
+  - Optionally, you could use `-v` flag to mount a [volume](https://docs.docker.com/engine/storage/volumes/#syntax) for passing files between the host and the container
+
+**3. Connect to the container server from the host machine using SDK's `CLIENT` mode**
+  - `mostly = MostlyAI(base_url="http://localhost:8080")`
+
+</details>
+
 ### CLIENT mode
 
 This is a light-weight installation for using the SDK in CLIENT mode only. It communicates to a MOSTLY AI platform to perform requested tasks. See e.g. [app.mostly.ai](https://app.mostly.ai/) for a free-to-use hosted version.
