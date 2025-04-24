@@ -32,3 +32,30 @@ jobs:
       )
     uses: ./.github/workflows/run-tests-gpu.yaml
     secrets: inherit
+  windows-installation:
+    if: |
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/tags/') ||
+      contains(github.event.head_commit.message, '[win]')
+    uses: ./.github/workflows/non-linux-installation.yaml
+    with:
+        runner_type: 'windows-latest'
+    secrets: inherit
+  macos-arm64-installation:
+    if: |
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/tags/') ||
+      contains(github.event.head_commit.message, '[mac]')
+    uses: ./.github/workflows/non-linux-installation.yaml
+    with:
+        runner_type: 'macos-latest'
+    secrets: inherit
+  macos-intel-installation:
+    if: |
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/tags/') ||
+      contains(github.event.head_commit.message, '[mac]')
+    uses: ./.github/workflows/non-linux-installation.yaml
+    with:
+        runner_type: 'macos-13'
+    secrets: inherit
