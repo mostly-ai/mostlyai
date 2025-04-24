@@ -97,7 +97,7 @@ class _DynamicRefreshThread(Thread):
         self,
         live: "Live",
         initial_interval: float = 2.0,
-        max_interval: float = 60.0,
+        max_interval: float = 30.0,
         fixed_time: float = 30.0,
         increasing_time: float = 60.0,
     ) -> None:
