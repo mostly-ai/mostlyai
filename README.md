@@ -141,7 +141,7 @@ In either case, a modern GPU is highly recommended when working with language mo
 
 Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required.
 
-It is highly recommended to install the package within a dedicated virtual environment using [`uv`](https://docs.astral.sh/uv/):
+It is highly recommended to install the package within a dedicated virtual environment using `uv` (see [here](https://docs.astral.sh/uv/)):
 
 <details>
 
