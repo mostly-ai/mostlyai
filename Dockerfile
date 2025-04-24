@@ -5,6 +5,10 @@ WORKDIR /opt/app-root/src/mostlyai/
 
 FROM base AS deps
 
+USER root
+
+RUN groupadd -r nonroot && useradd -r -g nonroot -m nonroot
+
 RUN apt-get update -y \
   && apt-get install -y libaio1 curl gnupg unzip \
   # * PostgreSQL Connector Dependencies
@@ -58,6 +62,8 @@ COPY README.md ./
 RUN uv pip install -e ".[local,databricks,googlebigquery,hive,mssql,mysql,oracle,postgres,snowflake]"
 
 COPY ./tools/docker_entrypoint.py /opt/app-root/src/entrypoint.py
+
+USER nonroot
 
 EXPOSE 8080
 ENTRYPOINT [ "python", "/opt/app-root/src/entrypoint.py" ]
