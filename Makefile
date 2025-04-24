@@ -63,12 +63,12 @@ docker-run: ## Start the docker container
                 exit 1; \
             fi; \
             REAL_PATH=$$(realpath $(HOST_LOCAL_DIR)); \
-            MOUNT_ARGS="--mount type=bind,source=$$REAL_PATH,target=/home/nonroot/mostlyai"; \
             echo "Mounting local_dir for MostlyAI SDK: $$REAL_PATH (host) <-> /home/nonroot/mostlyai (container)"; \
             docker run --platform=linux/amd64 --rm -it -p $(HOST_PORT):8080 \
+              -v $$REAL_PATH:/home/nonroot/mostlyai \
               -v ~/.cache/huggingface:/home/nonroot/.cache/huggingface \
               -v /opt/app-root/src/mostlyai/.venv \
-              $$MOUNT_ARGS mostlyai/mostlyai ; \
+              mostlyai/mostlyai ; \
         fi;
 
 # Default files to update
