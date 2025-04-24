@@ -47,7 +47,6 @@ from mostlyai.sdk.client._utils import (
     harmonize_sd_config,
     Seed,
     check_local_mode_available,
-    validate_api_key,
     validate_base_url,
 )
 
@@ -176,8 +175,7 @@ class MostlyAI(_MostlyBaseClient):
                 base_url = os.getenv("MOSTLY_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
             validate_base_url(base_url)
             if api_key is None:
-                api_key = os.getenv("MOSTLY_API_KEY")
-            validate_api_key(api_key)
+                api_key = os.getenv("MOSTLY_API_KEY", "")
             home_dir = None
             uds = None
         else:
@@ -221,7 +219,7 @@ class MostlyAI(_MostlyBaseClient):
                 msg += f" as [bold]{email}[/bold]" if email else ""
                 rich.print(msg)
             except Exception as e:
-                rich.print(f"Failed to connect to {self.base_url}: {e}.")
+                rich.print(f"Failed to connect to {self.base_url} : {e}.")
         else:
             raise ValueError("Invalid SDK mode")
 

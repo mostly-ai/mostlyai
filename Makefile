@@ -42,7 +42,7 @@ clean: ## Remove .gitignore files
 
 # Variables for docker-run
 HOST_PORT ?= 8080
-HOST_PATH ?=
+HOST_LOCAL_DIR ?=
 
 .PHONY: docker-build
 docker-build: ## Build the docker image
@@ -53,23 +53,22 @@ docker-run: ## Start the docker container
 	@echo "Mapping port: $(HOST_PORT) (host) <-> 8080 (container)"
 	@# here we have to make sure .venv folder is set as an anonymous volume, so that it will not be overwritten by a bind mount
 	@# ref: https://docs.astral.sh/uv/guides/integration/docker/#mounting-the-project-with-docker-run
-	@if [ -z "$(HOST_PATH)" ]; then \
+	@if [ -z "$(HOST_LOCAL_DIR)" ]; then \
             docker run --platform=linux/amd64 -it -p $(HOST_PORT):8080 \
-            -v ~/.cache/huggingface:/opt/app-root/src/.cache/huggingface \
+            -v ~/.cache/huggingface:/home/nonroot/.cache/huggingface \
             mostlyai/mostlyai ; \
         else \
-            if [ ! -d $(HOST_PATH) ]; then \
-                echo "Failed to mount volume: $(HOST_PATH) does not exist"; \
+            if [ ! -d $(HOST_LOCAL_DIR) ]; then \
+                echo "Failed to mount local_dir: $(HOST_LOCAL_DIR) does not exist"; \
                 exit 1; \
             fi; \
-            REAL_PATH=$$(realpath $(HOST_PATH)); \
-            BASE_NAME=$$(basename $$REAL_PATH); \
-            MOUNT_ARGS="--mount type=bind,source=$$REAL_PATH,target=/opt/app-root/src/$$BASE_NAME"; \
-            echo "Mounting volume: $$REAL_PATH (host) <-> /opt/app-root/src/$$BASE_NAME (container)"; \
+            REAL_PATH=$$(realpath $(HOST_LOCAL_DIR)); \
+            echo "Mounting local_dir for MostlyAI SDK: $$REAL_PATH (host) <-> /home/nonroot/mostlyai (container)"; \
             docker run --platform=linux/amd64 --rm -it -p $(HOST_PORT):8080 \
-              -v ~/.cache/huggingface:/opt/app-root/src/.cache/huggingface \
+              -v $$REAL_PATH:/home/nonroot/mostlyai \
+              -v ~/.cache/huggingface:/home/nonroot/.cache/huggingface \
               -v /opt/app-root/src/mostlyai/.venv \
-              $$MOUNT_ARGS mostlyai/mostlyai ; \
+              mostlyai/mostlyai ; \
         fi;
 
 # Default files to update
