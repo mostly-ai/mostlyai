@@ -39,7 +39,7 @@ https://github.com/user-attachments/assets/9e233213-a259-455c-b8ed-d1f1548b492f
   - Single-table, multi-table, and time-series
 - **Multiple Model Types**
   - State-of-the-art performance via TabularARGN
-  - Fine-tune HuggingFace-based language models
+  - Fine-tune Hugging Face hosted language models
   - Efficient LSTM for text synthesis from scratch
 - **Advanced Training Options**
   - GPU/CPU support
@@ -234,32 +234,6 @@ Add any of the following extras for further data connectors support in LOCAL mod
 ```shell
 uv pip install -U 'mostlyai[local, databricks, snowflake]'
 ```
-### Air-gapped Environments
-
-For air-gapped environments (without internet access), you must install the package using the provided wheel files, including any optional dependencies you require.
-
-If your application depends on a Hugging Face language model, you’ll also need to manually download and transfer the model files.
-
-<details>
-
-  <summary>Download HuggingFace LANGUAGE models</summary>
-
-<p>On a machine with internet access, run the following Python script, to download the HuggingFace model to your local HuggingFace cache.</p>
-
-```python
-#! uv pip install huggingface-hub
-from pathlib import Path
-from huggingface_hub import snapshot_download
-path = snapshot_download(
-    repo_id="Qwen/Qwen2.5-Coder-0.5B",  # change accordingly
-    token=None,  # insert your HF TOKEN for gated models
-)
-print(f"COPY `{Path(path).parent.parent}`")
-```
-
-Next, transfer the printed directory to the air-gapped environment's cache directory located at `~/.cache/huggingface/hub/` (respectively to `HF_HOME`, if that environment variable has been set).
-
-</details>
 
 ### Using Docker
 
@@ -298,6 +272,33 @@ As an alternative, you can also build a Docker image, which provides you with an
 
   mostly = MostlyAI(base_url="http://localhost:8080")
   ```
+
+</details>
+
+### Air-gapped Environments
+
+For air-gapped environments (without internet access), you must install the package using the provided wheel files, including any optional dependencies you require.
+
+If your application depends on a Hugging Face language model, you’ll also need to manually download and transfer the model files.
+
+<details>
+
+  <summary>Download models from Hugging Face Hub</summary>
+
+<p>On a machine with internet access, run the following Python script, to download the Hugging Face model to your local Hugging Face cache.</p>
+
+```python
+#! uv pip install huggingface-hub
+from pathlib import Path
+from huggingface_hub import snapshot_download
+path = snapshot_download(
+    repo_id="Qwen/Qwen2.5-Coder-0.5B",  # change accordingly
+    token=None,  # insert your HF TOKEN for gated models
+)
+print(f"COPY `{Path(path).parent.parent}`")
+```
+
+Next, transfer the printed directory to the air-gapped environment's cache directory located at `~/.cache/huggingface/hub/` (respectively to `HF_HOME`, if that environment variable has been set).
 
 </details>
 
