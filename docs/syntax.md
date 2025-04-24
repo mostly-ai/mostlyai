@@ -37,6 +37,7 @@ g = mostly.train(config: dict | GeneratorConfig, start: bool, wait: bool)
 g = mostly.generators.create(config: dict | GeneratorConfig)
 g.training.start()
 g.training.wait()
+g.training.progress()  # includes loss messages
 g.training.logs()
 
 # download a ZIP of quality assurance reports
@@ -83,6 +84,7 @@ sd = mostly.generate(g, config: dict | SyntheticDatasetConfig, start: bool, wait
 sd = mostly.synthetic_datasets.create(config: dict | SyntheticDatasetConfig)
 sd.generation.start()
 sd.generation.wait()
+sd.generation.progress()
 sd.generation.logs()
 
 # download a ZIP of quality assurance reports
