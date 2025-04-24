@@ -39,7 +39,7 @@ https://github.com/user-attachments/assets/9e233213-a259-455c-b8ed-d1f1548b492f
   - Single-table, multi-table, and time-series
 - **Multiple Model Types**
   - State-of-the-art performance via TabularARGN
-  - Fine-tune HuggingFace-based language models
+  - Fine-tune Hugging Face hosted language models
   - Efficient LSTM for text synthesis from scratch
 - **Advanced Training Options**
   - GPU/CPU support
@@ -141,7 +141,7 @@ In either case, a modern GPU is highly recommended when working with language mo
 
 Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required.
 
-It is highly recommended to install the package within a dedicated virtual environment using `uv`.
+It is highly recommended to install the package within a dedicated virtual environment using `uv` (see [here](https://docs.astral.sh/uv/)):
 
 <details>
 
@@ -190,29 +190,6 @@ uv run --with jupyter jupyter lab
 
 </details>
 
-<details>
-
-  <summary>Using Docker</summary>
-
-The Docker image provides an isolated environment for running the SDK in LOCAL mode, with all connector dependencies pre-installed. Ensure [Docker](https://docs.docker.com/get-started/get-docker/) is installed on your system.
-
-**1. Build the image**
-  - If the system is capable of executing [Makefile](https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L47-L73), please do `make docker-build`.
-  - Otherwise, use `DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t mostlyai/mostlyai` instead.
-
-**2. Start the container** (which will launch a local server at port 8080 inside the container)
-  - If the system is capable of executing Makefile, please do `make docker-run`. Or `make docker-run HOST_PORT=8888` to forward to a host port of your choice (8888 in this example). One could also mount the local_dir with `make docker-run HOST_LOCAL_DIR=/path/to/host/folder` so that generators and synthetic datasets will be directly accessible from the host.
-  - Otherwise, use `docker run --platform=linux/amd64 -p 8080:8080 mostlyai/mostlyai` instead. Optionally, one could use `-v` flag to mount a [volume](https://docs.docker.com/engine/storage/volumes/#syntax) for passing files between the host and the container.
-
-**3. Connect to the container server from the host machine using SDK's `CLIENT` mode**
-  ```python
-  from mostlyai.sdk import MostlyAI
-
-  mostly = MostlyAI(base_url="http://localhost:8080")
-  ```
-
-</details>
-
 ### CLIENT mode
 
 This is a light-weight installation for using the SDK in CLIENT mode only. It communicates to a MOSTLY AI platform to perform requested tasks. See e.g. [app.mostly.ai](https://app.mostly.ai/) for a free-to-use hosted version.
@@ -257,6 +234,47 @@ Add any of the following extras for further data connectors support in LOCAL mod
 ```shell
 uv pip install -U 'mostlyai[local, databricks, snowflake]'
 ```
+
+### Using Docker
+
+As an alternative, you can also build a Docker image, which provides you with an isolated environment for running the SDK in LOCAL mode, with all connector dependencies pre-installed. This approach ensures a consistent runtime environment across all systems. Before proceeding, make sure [Docker](https://docs.docker.com/get-started/get-docker/) is installed on your system.
+
+<details>
+
+  <summary>Build the image</summary>
+
+  If your environment is capable of executing Makefile (see [here](https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L47-L73)), then execute `make docker-build`.
+
+  Otherwise, use `DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t mostlyai/mostlyai` instead.
+
+</details>
+
+<details>
+
+  <summary>Start the container</summary>
+
+  This will launch the SDK in LOCAL mode on port 8080 inside the container.
+
+  If your environment is capable of executing Makefile, then execute `make docker-run`. Or `make docker-run HOST_PORT=8080` to forward to a host port of your choice. One could also mount the `local_dir` via `make docker-run HOST_LOCAL_DIR=/path/to/host/folder` to make the generators and synthetic datasets directly accessible from the host.
+
+  Otherwise, use `docker run --platform=linux/amd64 -p 8080:8080 mostlyai/mostlyai` instead. Optionally, you can use the `-v` flag to mount a [volume](https://docs.docker.com/engine/storage/volumes/#syntax) for passing files between the host and the container.
+
+</details>
+
+<details>
+
+  <summary>Connect to the container</summary>
+
+  You can now connect to the SDK running within the container by initializing the SDK in `CLIENT` mode on the host machine.
+
+  ```python
+  from mostlyai.sdk import MostlyAI
+
+  mostly = MostlyAI(base_url="http://localhost:8080")
+  ```
+
+</details>
+
 ### Air-gapped Environments
 
 For air-gapped environments (without internet access), you must install the package using the provided wheel files, including any optional dependencies you require.
@@ -265,9 +283,9 @@ If your application depends on a Hugging Face language model, you’ll also need
 
 <details>
 
-  <summary>Download HuggingFace LANGUAGE models</summary>
+  <summary>Download models from Hugging Face Hub</summary>
 
-<p>On a machine with internet access, run the following Python script, to download the HuggingFace model to your local HuggingFace cache.</p>
+<p>On a machine with internet access, run the following Python script, to download the Hugging Face model to your local Hugging Face cache.</p>
 
 ```python
 #! uv pip install huggingface-hub
