@@ -141,7 +141,7 @@ In either case, a modern GPU is highly recommended when working with language mo
 
 Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required.
 
-It is highly recommended to install the package within a dedicated virtual environment using `uv`.
+It is highly recommended to install the package within a dedicated virtual environment using [`uv`](https://docs.astral.sh/uv/):
 
 <details>
 
@@ -187,29 +187,6 @@ uv venv -p 3.12
 # Optionally launch jupyter session after SDK installation
 uv run --with jupyter jupyter lab
 ```
-
-</details>
-
-<details>
-
-  <summary>Using Docker</summary>
-
-The Docker image provides an isolated environment for running the SDK in LOCAL mode, with all connector dependencies pre-installed. Ensure [Docker](https://docs.docker.com/get-started/get-docker/) is installed on your system.
-
-**1. Build the image**
-  - If the system is capable of executing [Makefile](https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L47-L73), please do `make docker-build`.
-  - Otherwise, use `DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t mostlyai/mostlyai` instead.
-
-**2. Start the container** (which will launch a local server at port 8080 inside the container)
-  - If the system is capable of executing Makefile, please do `make docker-run`. Or `make docker-run HOST_PORT=8888` to forward to a host port of your choice (8888 in this example). One could also mount the local_dir with `make docker-run HOST_LOCAL_DIR=/path/to/host/folder` so that generators and synthetic datasets will be directly accessible from the host.
-  - Otherwise, use `docker run --platform=linux/amd64 -p 8080:8080 mostlyai/mostlyai` instead. Optionally, one could use `-v` flag to mount a [volume](https://docs.docker.com/engine/storage/volumes/#syntax) for passing files between the host and the container.
-
-**3. Connect to the container server from the host machine using SDK's `CLIENT` mode**
-  ```python
-  from mostlyai.sdk import MostlyAI
-
-  mostly = MostlyAI(base_url="http://localhost:8080")
-  ```
 
 </details>
 
@@ -281,6 +258,46 @@ print(f"COPY `{Path(path).parent.parent}`")
 ```
 
 Next, transfer the printed directory to the air-gapped environment's cache directory located at `~/.cache/huggingface/hub/` (respectively to `HF_HOME`, if that environment variable has been set).
+
+</details>
+
+### Using Docker
+
+As an alternative, you can also build a Docker image, which provides you with an isolated environment for running the SDK in LOCAL mode, with all connector dependencies pre-installed. Ensure [Docker](https://docs.docker.com/get-started/get-docker/) is installed on your system.
+
+<details>
+
+  <summary>Build the image</summary>
+
+  If the system is capable of executing [Makefile](https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L47-L73), please do `make docker-build`.
+
+  Otherwise, use `DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t mostlyai/mostlyai` instead.
+
+</details>
+
+<details>
+
+  <summary>Start the container</summary>
+
+  This will launch the SDK in LOCAL mode on port 8080 inside the container.
+
+  If the system is capable of executing Makefile, please do `make docker-run`. Or `make docker-run HOST_PORT=8080` to forward to a host port of your choice (8080 in this example). One could also mount the local_dir with `make docker-run HOST_LOCAL_DIR=/path/to/host/folder` so that generators and synthetic datasets will be directly accessible from the host.
+
+  Otherwise, use `docker run --platform=linux/amd64 -p 8080:8080 mostlyai/mostlyai` instead. Optionally, you can use the `-v` flag to mount a [volume](https://docs.docker.com/engine/storage/volumes/#syntax) for passing files between the host and the container.
+
+</details>
+
+<details>
+
+  <summary>Connect to the container</summary>
+
+  You can now connect to the SDK running within the container by initializing the SDK in `CLIENT` mode on the host machine.
+
+    ```python
+  from mostlyai.sdk import MostlyAI
+
+  mostly = MostlyAI(base_url="http://localhost:8080")
+  ```
 
 </details>
 
