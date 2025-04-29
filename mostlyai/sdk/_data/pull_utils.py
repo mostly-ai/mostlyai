@@ -651,7 +651,7 @@ def export_chunk(
     chunk: pd.DataFrame,
     hash_column: pd.Series,
     n_partitions: int,
-    trn_val_split: float,
+    trn_val_split: float | None,
     data_dir: Path,
     do_ctx_only: bool,
 ):
@@ -681,7 +681,7 @@ def export_chunk(
     # split into partitions; plus split each partition into trn/val based on trn_val_split
     # for that we create 10x more partitions, map modulo based on trn_val_split
     # don't split into partitions when pulling context only
-    assert 0.1 <= trn_val_split <= 0.9
+    trn_val_split = trn_val_split or 0.9
     val_count = round((1 - trn_val_split) * 10)  # number of partitions for validation (out of 10)
     hashes = _hash_partitioner(hash_column, 10 * n_partitions)
     if np.all(hashes % 10 < val_count):
@@ -734,7 +734,7 @@ def split_context(
     schema: Schema,
     ctx_data_dir: Path,
     n_partitions: int,
-    trn_val_split: float,
+    trn_val_split: float | None,
     model_type: ModelType,
     do_ctx_only: bool,
     progress: ProgressCallbackWrapper,
@@ -844,7 +844,7 @@ def split_target(
     schema: Schema,
     tgt_data_dir: Path,
     n_partitions: int,
-    trn_val_split: float,
+    trn_val_split: float | None,
     model_type: ModelType,
     do_ctx_only: bool,
     progress: ProgressCallbackWrapper,
@@ -947,7 +947,7 @@ def pull_split(
     *,
     tgt: str,
     schema: Schema,
-    trn_val_split: float,
+    trn_val_split: float | None,
     model_type: ModelType,
     do_ctx_only: bool,
     workspace_dir: Path,

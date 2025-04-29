@@ -57,7 +57,6 @@ def pull_context(
     pull_split(
         tgt=tgt,
         schema=schema,
-        trn_val_split=0.9,  # will be anyways ignored when pulling context only
         model_type=model_type,
         do_ctx_only=True,
         workspace_dir=workspace_dir,
