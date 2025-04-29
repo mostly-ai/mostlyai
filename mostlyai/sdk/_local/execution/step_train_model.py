@@ -64,7 +64,6 @@ def execute_step_train_model(
         gradient_accumulation_steps=model_config.gradient_accumulation_steps,
         enable_flexible_generation=model_config.enable_flexible_generation,
         max_sequence_window=max_sequence_window,
-        value_protection=model_config.value_protection,
         differential_privacy=differential_privacy,
         model_state_strategy=ModelStateStrategy.resume if restarts > 0 else ModelStateStrategy.reuse,
         workspace_dir=workspace_dir,
