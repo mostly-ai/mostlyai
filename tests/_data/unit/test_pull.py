@@ -142,7 +142,7 @@ class TestPartitioning:
 
 class TestPullSingle(DisableMaskKeys):
     def create_single_table_schema(self, path, tgt_df, tgt_pk=None):
-        tgt_path = Path(path) / "tgt.parquet"
+        tgt_path = Path(path) / "tgt.csv"
         tgt_df.to_csv(tgt_path, index=False)
         tables = {
             "tgt": CsvDataTable(path=tgt_path, primary_key=tgt_pk, name="tgt"),
@@ -277,6 +277,20 @@ class TestPullSingle(DisableMaskKeys):
         tgt_data = pd.read_parquet(tmp_path / "OriginalData" / "tgt-data")
         expected_sample_size = min(max(1, max_sample_size), len(tgt_df))
         assert len(tgt_data) == expected_sample_size
+
+    @pytest.mark.parametrize("trn_val_split", [0.1, 0.5, 0.9])
+    @pytest.mark.parametrize("tgt_pk", [None, "id"])
+    def test_pull_trn_val_split(self, tmp_path, trn_val_split, tgt_pk):
+        n = 10_000
+        tgt_df = pd.DataFrame({"id": list(range(n))})
+        schema = self.create_single_table_schema(tmp_path, tgt_df, tgt_pk=tgt_pk)
+        # pull data
+        pull(tgt="tgt", schema=schema, workspace_dir=tmp_path, trn_val_split=trn_val_split)
+        # check pulled data
+        trn_tgt_data = pd.read_parquet(list((tmp_path / "OriginalData" / "tgt-data").glob("*trn*")))
+        val_tgt_data = pd.read_parquet(list((tmp_path / "OriginalData" / "tgt-data").glob("*val*")))
+        assert len(trn_tgt_data) == pytest.approx(int(n * trn_val_split), rel=0.2)
+        assert len(val_tgt_data) == pytest.approx(int(n * (1 - trn_val_split)), rel=0.2)
 
     @pytest.mark.parametrize("tgt_pk", [None, "id"])
     def test_pull_is_shuffled(self, tmp_path, single_table_data, tgt_pk):
