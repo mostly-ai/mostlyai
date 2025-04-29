@@ -148,8 +148,6 @@ class Routes:
             limit=50,
             searchTerm: str | None = None,
             access_type: str | None = None,
-            created_from: str | None = None,
-            created_to: str | None = None,
         ) -> JSONResponse:
             connector_dirs = [p for p in (self.home_dir / "connectors").glob("*") if p.is_dir()]
             connector_list_items = []
@@ -159,10 +157,6 @@ class Routes:
                 if searchTerm and searchTerm.lower() not in connector_string:
                     continue
                 if access_type and access_type != connector.access_type:
-                    continue
-                if created_from and created_from > connector.created_at:
-                    continue
-                if created_to and created_to < connector.created_at:
                     continue
                 connector_list_items.append(ConnectorListItem.model_construct(**connector.model_dump()))
 
@@ -304,8 +298,6 @@ class Routes:
             limit: int = 50,
             searchTerm: str | None = None,
             status: str | None = None,
-            created_from: str | None = None,
-            created_to: str | None = None,
         ) -> JSONResponse:
             generator_dirs = [p for p in (self.home_dir / "generators").glob("*") if p.is_dir()]
             generator_list_items = []
@@ -315,10 +307,6 @@ class Routes:
                 if searchTerm and searchTerm.lower() not in generator_string:
                     continue
                 if status and status != generator.training_status:
-                    continue
-                if created_from and created_from > generator.created_at:
-                    continue
-                if created_to and created_to < generator.created_at:
                     continue
                 # use model_construct to skip validation and warnings of extra fields
                 generator_list_items.append(GeneratorListItem.model_construct(**generator.model_dump()))
@@ -478,8 +466,6 @@ class Routes:
             limit: int = 50,
             searchTerm: str | None = None,
             status: str | None = None,
-            created_from: str | None = None,
-            created_to: str | None = None,
         ) -> JSONResponse:
             synthetic_dataset_dirs = [p for p in (self.home_dir / "synthetic-datasets").glob("*") if p.is_dir()]
             synthetic_dataset_list_items = []
@@ -491,10 +477,6 @@ class Routes:
                 if searchTerm and searchTerm.lower() not in synthetic_dataset_string:
                     continue
                 if status and status != synthetic_dataset.generation_status:
-                    continue
-                if created_from and created_from > synthetic_dataset.created_at:
-                    continue
-                if created_to and created_to < synthetic_dataset.created_at:
                     continue
                 # use model_construct to skip validation and warnings of extra fields
                 synthetic_dataset_list_items.append(
