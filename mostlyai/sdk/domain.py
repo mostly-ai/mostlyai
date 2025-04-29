@@ -2188,7 +2188,7 @@ class ModelConfiguration(CustomBaseModel):
     trn_val_split: float | None = Field(
         0.9,
         alias="trnValSplit",
-        description="The split ratio for training and validation sets.\n",
+        description="The fraction of data to use for training, with the remaining data used for validation.\nThe value can range from 0.1 to 0.9, but must be specified as a multiple of 0.1.",
         ge=0.1,
         le=0.9,
     )
