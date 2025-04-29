@@ -144,16 +144,27 @@ class Routes:
 
         @self.router.get("/connectors")
         async def list_connectors(
-            offset=0, limit=50, searchTerm: str | None = None, access_type: str | None = None
+            offset=0,
+            limit=50,
+            searchTerm: str | None = None,
+            access_type: str | None = None,
+            created_from: str | None = None,
+            created_to: str | None = None,
         ) -> JSONResponse:
             connector_dirs = [p for p in (self.home_dir / "connectors").glob("*") if p.is_dir()]
             connector_list_items = []
             for connector_dir in connector_dirs:
                 connector = read_connector_from_json(connector_dir)
-                if not searchTerm or searchTerm.lower() in (connector.name or "").lower():
-                    if not access_type or access_type == connector.access_type:
-                        # use model_construct to skip validation and warnings of extra fields
-                        connector_list_items.append(ConnectorListItem.model_construct(**connector.model_dump()))
+                connector_string = " ".join([connector.name or "", connector.description or ""]).lower()
+                if searchTerm and searchTerm.lower() not in connector_string:
+                    continue
+                if access_type and access_type != connector.access_type:
+                    continue
+                if created_from and created_from > connector.created_at:
+                    continue
+                if created_to and created_to < connector.created_at:
+                    continue
+                connector_list_items.append(ConnectorListItem.model_construct(**connector.model_dump()))
 
             # use jsonable_encoder to handle non-serializable objects like datetime
             return JSONResponse(
@@ -289,24 +300,32 @@ class Routes:
 
         @self.router.get("/generators")
         async def list_generators(
-            offset: int = 0, limit: int = 50, searchTerm: str | None = None, status: str | None = None
+            offset: int = 0,
+            limit: int = 50,
+            searchTerm: str | None = None,
+            status: str | None = None,
+            created_from: str | None = None,
+            created_to: str | None = None,
         ) -> JSONResponse:
             generator_dirs = [p for p in (self.home_dir / "generators").glob("*") if p.is_dir()]
             generator_list_items = []
             for generator_dir in generator_dirs:
                 generator = read_generator_from_json(generator_dir)
-                if (
-                    not searchTerm
-                    or searchTerm.lower() in (generator.name or "").lower()
-                    or searchTerm.lower() in (generator.description or "").lower()
-                ):
-                    if not status or status == generator.training_status:
-                        # use model_construct to skip validation and warnings of extra fields
-                        generator_list_items.append(GeneratorListItem.model_construct(**generator.model_dump()))
-            # use jsonable_encoder to handle non-serializable objects like datetime
+                generator_string = " ".join([generator.name or "", generator.description or ""]).lower()
+                if searchTerm and searchTerm.lower() not in generator_string:
+                    continue
+                if status and status != generator.training_status:
+                    continue
+                if created_from and created_from > generator.created_at:
+                    continue
+                if created_to and created_to < generator.created_at:
+                    continue
+                # use model_construct to skip validation and warnings of extra fields
+                generator_list_items.append(GeneratorListItem.model_construct(**generator.model_dump()))
+
             return JSONResponse(
                 status_code=200,
-                content=jsonable_encoder(
+                content=jsonable_encoder(  # use jsonable_encoder to handle non-serializable objects like datetime
                     {
                         "totalCount": len(generator_list_items),
                         "results": generator_list_items[int(offset) : int(offset) + int(limit)],
@@ -455,26 +474,36 @@ class Routes:
 
         @self.router.get("/synthetic-datasets")
         async def list_synthetic_datasets(
-            offset: int = 0, limit: int = 50, searchTerm: str | None = None, status: str | None = None
+            offset: int = 0,
+            limit: int = 50,
+            searchTerm: str | None = None,
+            status: str | None = None,
+            created_from: str | None = None,
+            created_to: str | None = None,
         ) -> JSONResponse:
             synthetic_dataset_dirs = [p for p in (self.home_dir / "synthetic-datasets").glob("*") if p.is_dir()]
             synthetic_dataset_list_items = []
             for synthetic_dataset_dir in synthetic_dataset_dirs:
                 synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
-                if (
-                    not searchTerm
-                    or searchTerm.lower() in (synthetic_dataset.name or "").lower()
-                    or searchTerm.lower() in (synthetic_dataset.description or "").lower()
-                ):
-                    if not status or status == synthetic_dataset.generation_status:
-                        # use model_construct to skip validation and warnings of extra fields
-                        synthetic_dataset_list_items.append(
-                            SyntheticDatasetListItem.model_construct(**synthetic_dataset.model_dump())
-                        )
-            # use jsonable_encoder to handle non-serializable objects like datetime
+                synthetic_dataset_string = " ".join(
+                    [synthetic_dataset.name or "", synthetic_dataset.description or ""]
+                ).lower()
+                if searchTerm and searchTerm.lower() not in synthetic_dataset_string:
+                    continue
+                if status and status != synthetic_dataset.generation_status:
+                    continue
+                if created_from and created_from > synthetic_dataset.created_at:
+                    continue
+                if created_to and created_to < synthetic_dataset.created_at:
+                    continue
+                # use model_construct to skip validation and warnings of extra fields
+                synthetic_dataset_list_items.append(
+                    SyntheticDatasetListItem.model_construct(**synthetic_dataset.model_dump())
+                )
+
             return JSONResponse(
                 status_code=200,
-                content=jsonable_encoder(
+                content=jsonable_encoder(  # use jsonable_encoder to handle non-serializable objects like datetime
                     {
                         "totalCount": len(synthetic_dataset_list_items),
                         "results": synthetic_dataset_list_items[int(offset) : int(offset) + int(limit)],

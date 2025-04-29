@@ -47,9 +47,13 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         self,
         offset: int = 0,
         limit: int | None = None,
-        access_type: str | None = None,
         search_term: str | None = None,
+        access_type: str | None = None,
         owner_id: str | list[str] | None = None,
+        visibility: str | list[str] | None = None,
+        created_from: str | None = None,
+        created_to: str | None = None,
+        sort_by: str | list[str] | None = None,
     ) -> Iterator[ConnectorListItem]:
         """
         List connectors.
@@ -67,9 +71,13 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         Args:
             offset: Offset for entities in the response.
             limit: Limit for the number of entities in the response.
-            access_type: Filter by access type (e.g., "SOURCE" or "DESTINATION").
-            search_term: Filter by string in the connector name.
+            search_term: Filter by search term in the name and description.
+            access_type: Filter by access type (e.g., READ_PROTECTED, READ_DATA or WRITE_DATA).
             owner_id: Filter by owner ID.
+            visibility: Filter by visibility (e.g., PUBLIC, PRIVATE or UNLISTED).
+            created_from: Filter by creation date, not older than this date. Format: YYYY-MM-DD.
+            created_to: Filter by creation_date, not younger than this date. Format: YYYY-MM-DD.
+            sort_by: Sort by field. Either RECENCY or NO_OF_GENERATORS.
 
         Returns:
             Iterator[ConnectorListItem]: An iterator over connector list items.
@@ -79,9 +87,13 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             ConnectorListItem,
             offset=offset,
             limit=limit,
-            access_type=access_type,
             search_term=search_term,
+            access_type=access_type,
             owner_id=owner_id,
+            visibility=visibility,
+            created_from=created_from,
+            created_to=created_to,
+            sort_by=sort_by,
         ) as paginator:
             yield from paginator
 

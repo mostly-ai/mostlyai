@@ -55,6 +55,10 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         status: str | list[str] | None = None,
         search_term: str | None = None,
         owner_id: str | list[str] | None = None,
+        visibility: str | list[str] | None = None,
+        created_from: str | None = None,
+        created_to: str | None = None,
+        sort_by: str | list[str] | None = None,
     ) -> Iterator[SyntheticDatasetListItem]:
         """
         List synthetic datasets.
@@ -67,6 +71,10 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             status: Filter by generation status.
             search_term: Filter by name or description.
             owner_id: Filter by owner ID.
+            visibility: Filter by visibility (e.g., PUBLIC, PRIVATE or UNLISTED).
+            created_from: Filter by creation date, not older than this date. Format: YYYY-MM-DD.
+            created_to: Filter by creation_date, not younger than this date. Format: YYYY-MM-DD.
+            sort_by: Sort by field. Either RECENCY, NO_OF_LIKES or NO_OF_DOWNLOADS.
 
         Returns:
             An iterator over synthetic datasets.
@@ -96,6 +104,10 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             status=status,
             search_term=search_term,
             owner_id=owner_id,
+            visibility=visibility,
+            created_from=created_from,
+            created_to=created_to,
+            sort_by=sort_by,
         ) as paginator:
             yield from paginator
 
