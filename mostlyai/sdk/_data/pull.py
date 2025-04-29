@@ -38,6 +38,7 @@ def pull(
     schema: Schema,
     model_type: str | ModelType = ModelType.tabular,
     max_sample_size: int | None = None,
+    trn_val_split: float | None = 0.9,
     workspace_dir: str | Path = "engine-ws",
     update_progress: ProgressCallback | None = None,
 ):
@@ -92,9 +93,10 @@ def pull(
         pull_split(
             tgt=tgt,
             schema=schema,
-            workspace_dir=workspace_dir,
-            do_ctx_only=False,
+            trn_val_split=trn_val_split,
             model_type=model_type,
+            do_ctx_only=False,
+            workspace_dir=workspace_dir,
             progress=progress,
         )
 

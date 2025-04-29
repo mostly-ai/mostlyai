@@ -2185,6 +2185,13 @@ class ModelConfiguration(CustomBaseModel):
         alias="enableModelReport",
         description="If false, then the Model report is not generated.\n",
     )
+    trn_val_split: float | None = Field(
+        0.9,
+        alias="trnValSplit",
+        description="The split ratio for training and validation sets.\n",
+        ge=0.1,
+        le=0.9,
+    )
 
 
 class ProgressStep(CustomBaseModel):
