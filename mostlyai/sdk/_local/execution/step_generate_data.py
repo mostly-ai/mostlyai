@@ -20,6 +20,7 @@ import pandas as pd
 from mostlyai.sdk import _data as data
 from mostlyai.sdk._data.base import Schema
 from mostlyai.sdk._data.util.common import TABLE_COLUMN_INFIX, TEMPORARY_PRIMARY_KEY
+from mostlyai.sdk._local.execution.migration import migrate_workspace
 from mostlyai.sdk.domain import Generator, SyntheticDataset, ModelType
 
 
@@ -36,6 +37,9 @@ def execute_step_generate_data(
 ):
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
     import mostlyai.engine as engine
+
+    # ensure backward compatibility
+    migrate_workspace(workspace_dir)
 
     tgt_g_table = next(t for t in generator.tables if t.name == target_table_name)
     tgt_sd_table = next(t for t in synthetic_dataset.tables if t.name == target_table_name)
