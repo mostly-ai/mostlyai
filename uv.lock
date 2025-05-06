@@ -3454,7 +3454,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.3.3"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=dp-stats-temp#b0be2ae9e1d79dc43c9f564656ca6c5336181867" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=dp-stats-temp#41ab2b71d7575fc0bcd0a4d596b45a19631547f3" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
