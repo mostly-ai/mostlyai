@@ -57,9 +57,10 @@ def pull_context(
     pull_split(
         tgt=tgt,
         schema=schema,
-        workspace_dir=workspace_dir,
-        do_ctx_only=True,
+        trn_val_split=None,
         model_type=model_type,
+        do_ctx_only=True,
+        workspace_dir=workspace_dir,
         progress=ProgressCallbackWrapper(update_progress=update_progress),
     )
 

@@ -651,6 +651,7 @@ def export_chunk(
     chunk: pd.DataFrame,
     hash_column: pd.Series,
     n_partitions: int,
+    trn_val_split: float | None,
     data_dir: Path,
     do_ctx_only: bool,
 ):
@@ -677,14 +678,18 @@ def export_chunk(
             _store_partition_chunk(partition_idx=f"000000-{split}", partition_chunk=chunk)
         return
 
-    # split into partitions; plus split each partition into trn/val of 90/10
-    # for that we create 10x more partitions, map modulo 0 to `val`, all others to `trn` and then trim last digit
+    # split into partitions; plus split each partition into trn/val based on trn_val_split
+    # for that we create 10x more partitions, map modulo based on trn_val_split
     # don't split into partitions when pulling context only
+    trn_val_split = trn_val_split or 0.9
+    val_count = round((1 - trn_val_split) * 10)  # number of partitions for validation (out of 10)
     hashes = _hash_partitioner(hash_column, 10 * n_partitions)
-    if np.all(hashes % 10 == 0):
-        hashes += 1  # ensure that we have at least one training partition
+    if np.all(hashes % 10 < val_count):
+        hashes += val_count  # ensure that we have at least one training partition
+
     chunk["__PARTITION_GROUP"] = hashes // 10
-    chunk["__PARTITION_SPLIT"] = np.where(hashes % 10 == 0, "val", "trn") if not do_ctx_only else "ctx"
+    chunk["__PARTITION_SPLIT"] = np.where(hashes % 10 < val_count, "val", "trn") if not do_ctx_only else "ctx"
+
     for partition_group in chunk["__PARTITION_GROUP"].unique():
         partition_chunk = chunk[chunk["__PARTITION_GROUP"] == partition_group]
         for partition_split in partition_chunk["__PARTITION_SPLIT"].unique():
@@ -729,13 +734,14 @@ def split_context(
     schema: Schema,
     ctx_data_dir: Path,
     n_partitions: int,
+    trn_val_split: float | None,
     model_type: ModelType,
     do_ctx_only: bool,
     progress: ProgressCallbackWrapper,
 ):
     ctx = schema.get_parent(tgt)
     context_tables = schema.get_context_tables(tgt)
-    ctx_tgt_nodes, ctx_tgt_path = get_table_chain_to_tgt(
+    _, ctx_tgt_path = get_table_chain_to_tgt(
         schema=schema,
         tables=context_tables,
         tgt=tgt,
@@ -819,6 +825,7 @@ def split_context(
                 chunk=chunk,
                 hash_column=chunk[key.ref_name()],
                 n_partitions=n_partitions,
+                trn_val_split=trn_val_split,
                 data_dir=ctx_data_dir,
                 do_ctx_only=do_ctx_only,
             )
@@ -837,6 +844,7 @@ def split_target(
     schema: Schema,
     tgt_data_dir: Path,
     n_partitions: int,
+    trn_val_split: float | None,
     model_type: ModelType,
     do_ctx_only: bool,
     progress: ProgressCallbackWrapper,
@@ -893,6 +901,7 @@ def split_target(
                 chunk=chunk,
                 hash_column=_hash_column(chunk),
                 n_partitions=n_partitions,
+                trn_val_split=trn_val_split,
                 data_dir=tgt_data_dir,
                 do_ctx_only=do_ctx_only,
             )
@@ -938,9 +947,10 @@ def pull_split(
     *,
     tgt: str,
     schema: Schema,
-    workspace_dir: Path,
-    do_ctx_only: bool,
+    trn_val_split: float | None,
     model_type: ModelType,
+    do_ctx_only: bool,
+    workspace_dir: Path,
     progress: ProgressCallbackWrapper,
 ) -> None:
     """Split fetched data among partitions.
@@ -987,6 +997,7 @@ def pull_split(
         schema=schema,
         ctx_data_dir=ctx_data_dir,
         n_partitions=n_partitions,
+        trn_val_split=trn_val_split,
         model_type=model_type,
         do_ctx_only=do_ctx_only,
         progress=progress,
@@ -998,6 +1009,7 @@ def pull_split(
         schema=schema,
         tgt_data_dir=tgt_data_dir,
         n_partitions=n_partitions,
+        trn_val_split=trn_val_split,
         model_type=model_type,
         do_ctx_only=do_ctx_only,
         progress=progress,
