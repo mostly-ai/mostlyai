@@ -2177,20 +2177,21 @@ wheels = [
 
 [[package]]
 name = "huggingface-hub"
-version = "0.30.2"
+version = "0.31.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
     { name = "fsspec" },
+    { name = "hf-xet", marker = "platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'" },
     { name = "packaging" },
     { name = "pyyaml" },
     { name = "requests" },
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/df/22/8eb91736b1dcb83d879bd49050a09df29a57cc5cd9f38e48a4b1c45ee890/huggingface_hub-0.30.2.tar.gz", hash = "sha256:9a7897c5b6fd9dad3168a794a8998d6378210f5b9688d0dfc180b1a228dc2466", size = 400868 }
+sdist = { url = "https://files.pythonhosted.org/packages/de/36/52004e407d8de191c1611b757fa1d797e693cd851724ac215fe8f7acfec4/huggingface_hub-0.31.0.tar.gz", hash = "sha256:a7d5969d492d9a6cd22b899a64281eeb1cb1c023493e3e3d67b1fe17f185ca55", size = 403106 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/93/27/1fb384a841e9661faad1c31cbfa62864f59632e876df5d795234da51c395/huggingface_hub-0.30.2-py3-none-any.whl", hash = "sha256:68ff05969927058cfa41df4f2155d4bb48f5f54f719dd0390103eefa9b191e28", size = 481433 },
+    { url = "https://files.pythonhosted.org/packages/65/4e/25bcf2497e88ad886d28a60b97ecd64f376d38c77958e873ea0d996c1866/huggingface_hub-0.31.0-py3-none-any.whl", hash = "sha256:cfe5600bfa845229a834fc5dc1475163ee7ae2b5e7f379e1ff890ccd8c7533e8", size = 484265 },
 ]
 
 [package.optional-dependencies]
@@ -3454,7 +3455,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.3.3"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=dp-stats#f838a5cf96f3d8352ce56c84ea60589c6384ad1b" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=dp-stats#e871511c2dc4c068b1556eb95306b96c57a71191" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
