@@ -16,6 +16,8 @@
 from pathlib import Path
 from collections.abc import Callable
 
+from mostlyai.sdk._local.execution.migration import migrate_workspace
+
 
 def execute_step_encode_training_data(
     *,
@@ -24,6 +26,9 @@ def execute_step_encode_training_data(
 ):
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
     from mostlyai import engine
+
+    # ensure backward compatibility
+    migrate_workspace(workspace_dir)
 
     # call ENCODE
     engine.encode(

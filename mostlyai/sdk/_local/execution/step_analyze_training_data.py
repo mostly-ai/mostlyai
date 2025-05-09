@@ -17,6 +17,8 @@ from collections import ChainMap, defaultdict
 from pathlib import Path
 from collections.abc import Callable
 
+from mostlyai.engine.domain import DifferentialPrivacyConfig
+
 from mostlyai.sdk.domain import Generator, ModelType, SourceColumnValueRange, ModelEncodingType
 
 
@@ -39,10 +41,17 @@ def execute_step_analyze_training_data(
     else:
         model_config = tgt_table.tabular_model_configuration
 
+    # convert from SDK domain to ENGINE domain
+    if model_config.differential_privacy:
+        differential_privacy = DifferentialPrivacyConfig(**model_config.differential_privacy.model_dump())
+    else:
+        differential_privacy = None
+
     # call ANALYZE
     engine.analyze(
         workspace_dir=workspace_dir,
         value_protection=model_config.value_protection,
+        differential_privacy=differential_privacy,
         update_progress=update_progress,
     )
 

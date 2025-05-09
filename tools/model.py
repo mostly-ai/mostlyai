@@ -32,7 +32,6 @@ from mostlyai.sdk.domain import (
     GeneratorConfig,
     ModelEncodingType,
     ProgressStatus,
-    ModelConfiguration,
     SyntheticDatasetReportType,
     ModelType,
     SourceColumnConfig,
@@ -616,6 +615,19 @@ class SourceColumn:
                 values["model_encoding_type"] = ModelEncodingType.auto
             if "included" not in values:
                 values["included"] = True
+        return values
+
+
+class ModelConfiguration:
+    @model_validator(mode="after")
+    @classmethod
+    def validate_differential_privacy_config(cls, values):
+        if values.differential_privacy:
+            if not values.value_protection:
+                values.differential_privacy.value_protection_epsilon = None
+            else:
+                if values.differential_privacy.value_protection_epsilon is None:
+                    values.differential_privacy.value_protection_epsilon = 1.0
         return values
 
 
