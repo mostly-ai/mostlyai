@@ -37,6 +37,24 @@ def run_generation(synthetic_dataset_id: str, home_dir: Path):
         execute_generation_job(synthetic_dataset_id, home_dir)
 
 
+@cli.command()
+def run_report():
+    print("run_report")
+    import numpy as np
+
+    print(np.__version__)
+    data = np.load("data.npy")
+    query = np.load("query.npy")
+    import faiss
+
+    index = faiss.IndexFlatIP(data.shape[1])  # inner product for cosine similarity with normalized vectors
+    index.add(data)
+    print("index.add")
+    similarities, _ = index.search(query, 2)
+    print("similarities")
+    print(similarities)
+
+
 def run_cli():
     cli(standalone_mode=False)
 
