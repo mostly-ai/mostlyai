@@ -3378,8 +3378,8 @@ requires-dist = [
     { name = "joblib", marker = "extra == 'local'", specifier = ">=1.4.2" },
     { name = "joblib", marker = "extra == 'local-gpu'", specifier = ">=1.4.2" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
-    { name = "mostlyai-engine", marker = "extra == 'local'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=dp-stats" },
-    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=dp-stats" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.4.0" },
+    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.4.0" },
     { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.7.0" },
     { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.7.0" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
@@ -3453,8 +3453,8 @@ docs = [
 
 [[package]]
 name = "mostlyai-engine"
-version = "1.3.3"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=dp-stats#83cdf37b47ec64f43b3a6dffa3791cb3217ad216" }
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
@@ -3474,6 +3474,10 @@ dependencies = [
     { name = "torchvision" },
     { name = "transformers" },
     { name = "xgrammar" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f6/62/fab547343d81278407880338623f0f70922e9ef9cdf3e085877f598e7f3c/mostlyai_engine-1.4.0.tar.gz", hash = "sha256:e2c8034aedceb34664a690f3b5cfb61cda6eec792d71e72be99e7d51831909f6", size = 112998 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/99/3f/9b836fd9d50504d69034fa99ff804f998325e460158169d84ca8dd092b45/mostlyai_engine-1.4.0-py3-none-any.whl", hash = "sha256:07bf7f27d758383baa25bc5a0f25323f221977606c4de57b5d5f8736c652f80f", size = 152295 },
 ]
 
 [package.optional-dependencies]
@@ -6627,11 +6631,11 @@ dependencies = [
 
 [[package]]
 name = "trove-classifiers"
-version = "2025.5.8.15"
+version = "2025.5.9.12"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6f/1d/ba00fcbd5d52b2369a5a1dec07d5d7b646be4ef8234fa7f9dd763c5bca57/trove_classifiers-2025.5.8.15.tar.gz", hash = "sha256:b2308b26b1d156aa590896acd8f155a7a4e088a7f093b1a9cc6c3f1277d8f2ad", size = 16870 }
+sdist = { url = "https://files.pythonhosted.org/packages/38/04/1cd43f72c241fedcf0d9a18d0783953ee301eac9e5d9db1df0f0f089d9af/trove_classifiers-2025.5.9.12.tar.gz", hash = "sha256:7ca7c8a7a76e2cd314468c677c69d12cc2357711fcab4a60f87994c1589e5cb5", size = 16940 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/32/5c/63fed2197c44e1447e7d7ab60dcb3e8878cf8e45652d1cf6274961c0aa98/trove_classifiers-2025.5.8.15-py3-none-any.whl", hash = "sha256:03695f29273b3c6ded10a79c5433fa560287c90b3a8d4a8b52ecd2a5d31f771f", size = 14059 },
+    { url = "https://files.pythonhosted.org/packages/92/ef/c6deb083748be3bcad6f471b6ae983950c161890bf5ae1b2af80cc56c530/trove_classifiers-2025.5.9.12-py3-none-any.whl", hash = "sha256:e381c05537adac78881c8fa345fd0e9970159f4e4a04fcc42cfd3129cca640ce", size = 14119 },
 ]
 
 [[package]]
