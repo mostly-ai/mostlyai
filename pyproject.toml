@@ -1,6 +1,6 @@
 [project]
 name = "mostlyai"
-version = "4.5.7"
+version = "4.6.0"
 description = "Synthetic Data SDK"
 authors = [{ name = "MOSTLY AI", email = "dev@mostly.ai" }]
 requires-python = ">=3.10,<3.14"
