@@ -209,7 +209,6 @@ def create_report(
             report_subtitle=f" for {target_table_name[:30]}:{model_type.name}",
             report_credits=report_credits,
             max_sample_size_accuracy=100_000,
-            max_sample_size_embeddings=10_000,
             update_progress=update_progress,
         )
         metrics = None
