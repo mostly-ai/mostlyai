@@ -3415,8 +3415,8 @@ requires-dist = [
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
     { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.4.0" },
     { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.4.0" },
-    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.9.0" },
-    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.9.0" },
+    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.9.1" },
+    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.9.1" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
     { name = "networkx", marker = "extra == 'local'", specifier = ">=3.0,<4" },
     { name = "networkx", marker = "extra == 'local-gpu'", specifier = ">=3.0,<4" },
@@ -3524,7 +3524,7 @@ gpu = [
 
 [[package]]
 name = "mostlyai-qa"
-version = "1.9.0"
+version = "1.9.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
@@ -3544,9 +3544,9 @@ dependencies = [
     { name = "transformers" },
     { name = "xxhash" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8c/56/4f30c7b0b5f64c029e8fe7cce82f3208a1ecb3d43168a740bf2a002a2449/mostlyai_qa-1.9.0.tar.gz", hash = "sha256:ccb43d91d248c1c565067ab0698ba66ff0288bbef3753044d54fe1b8c189ca2f", size = 31731437 }
+sdist = { url = "https://files.pythonhosted.org/packages/07/6b/fb64ddb7e5988952383a18a3fdcf42f74f8285260121ae589d613ce9b5e1/mostlyai_qa-1.9.1.tar.gz", hash = "sha256:f708b6bc0bed60f753065b9ca704821f76c63afd9c460293148dc9f6b2801385", size = 31731401 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5a/e0/a706778c37967a5539cab123fdcc6bafbefee9780b5e4ec1ef410c63afca/mostlyai_qa-1.9.0-py3-none-any.whl", hash = "sha256:1d4b324b853af254da83589b6901fc2f5185d1355bde7113fc971587646cc8c5", size = 31759216 },
+    { url = "https://files.pythonhosted.org/packages/0c/8e/1e6727b2230778c4ae23a8190e10d221a61c0e0b71940c9bd95d889002b8/mostlyai_qa-1.9.1-py3-none-any.whl", hash = "sha256:c8efc3eabb0fbbaf465f31ba2e0964cd72f4596eb08a0b4c89f35db597ef88e1", size = 31759192 },
 ]
 
 [[package]]
