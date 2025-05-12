@@ -681,7 +681,7 @@ def export_chunk(
     # split into partitions; plus split each partition into trn/val based on trn_val_split
     # for that we create 10x more partitions, map modulo based on trn_val_split
     # don't split into partitions when pulling context only
-    trn_val_split = trn_val_split or 0.9
+    trn_val_split = trn_val_split or 0.8
     val_count = round((1 - trn_val_split) * 10)  # number of partitions for validation (out of 10)
     hashes = _hash_partitioner(hash_column, 10 * n_partitions)
     if np.all(hashes % 10 < val_count):

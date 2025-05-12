@@ -38,7 +38,7 @@ def pull(
     schema: Schema,
     model_type: str | ModelType = ModelType.tabular,
     max_sample_size: int | None = None,
-    trn_val_split: float | None = 0.9,
+    trn_val_split: float | None = 0.8,
     workspace_dir: str | Path = "engine-ws",
     update_progress: ProgressCallback | None = None,
 ):
