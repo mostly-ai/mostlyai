@@ -1870,7 +1870,7 @@ wheels = [
 
 [[package]]
 name = "google-cloud-bigquery"
-version = "3.31.0"
+version = "3.32.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core", extra = ["grpc"] },
@@ -1881,9 +1881,9 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/73/91/4c7274f4d5faf13ac000b06353deaf3579575bf0e4bbad07fa68b9f09ba9/google_cloud_bigquery-3.31.0.tar.gz", hash = "sha256:b89dc716dbe4abdb7a4f873f7050100287bc98514e0614c5d54cd6a8e9fb0991", size = 479961 }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/cf/174ea37f0410f0702c3582c09bae45d6f43c6eabe2858ab5fb2a4319e15f/google_cloud_bigquery-3.32.0.tar.gz", hash = "sha256:f1c53d73a6d255c8cd0ca7a0c077d95224217427a4b7dcf9913ea0298a2961e8", size = 487055 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e8/bc/4cb8c61fc6dd817a4a390b745ec7b305f4578f547a16d09d54c8a790624b/google_cloud_bigquery-3.31.0-py3-none-any.whl", hash = "sha256:97f4a3219854ff01d6a3a57312feecb0b6e13062226b823f867e2d3619c4787b", size = 250099 },
+    { url = "https://files.pythonhosted.org/packages/5e/c3/f3f6179f54e4b4ac2c6abaa8186054fd1d7d881676bb3caef9688e5fac3d/google_cloud_bigquery-3.32.0-py3-none-any.whl", hash = "sha256:ff38d21d70c4563d2473db288d2a9fe44f071d928bbad6d029ac9ba0b8a36b7a", size = 253121 },
 ]
 
 [[package]]
@@ -3268,7 +3268,7 @@ wheels = [
 
 [[package]]
 name = "mostlyai"
-version = "4.5.7"
+version = "4.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
@@ -3415,8 +3415,8 @@ requires-dist = [
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
     { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.4.0" },
     { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.4.0" },
-    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.9.1" },
-    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.9.1" },
+    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.9.2" },
+    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.9.2" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
     { name = "networkx", marker = "extra == 'local'", specifier = ">=3.0,<4" },
     { name = "networkx", marker = "extra == 'local-gpu'", specifier = ">=3.0,<4" },
@@ -3524,7 +3524,7 @@ gpu = [
 
 [[package]]
 name = "mostlyai-qa"
-version = "1.9.1"
+version = "1.9.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
@@ -3544,9 +3544,9 @@ dependencies = [
     { name = "transformers" },
     { name = "xxhash" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/07/6b/fb64ddb7e5988952383a18a3fdcf42f74f8285260121ae589d613ce9b5e1/mostlyai_qa-1.9.1.tar.gz", hash = "sha256:f708b6bc0bed60f753065b9ca704821f76c63afd9c460293148dc9f6b2801385", size = 31731401 }
+sdist = { url = "https://files.pythonhosted.org/packages/cc/73/55490619ebcdbf7aac046384dc2687d10572d9b9cabb634db83e52636edf/mostlyai_qa-1.9.2.tar.gz", hash = "sha256:2fd8fcadb339e5ea9e32b6676d52b6cbd06f0abb03b9796233bc9c0199dddbcb", size = 31731819 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0c/8e/1e6727b2230778c4ae23a8190e10d221a61c0e0b71940c9bd95d889002b8/mostlyai_qa-1.9.1-py3-none-any.whl", hash = "sha256:c8efc3eabb0fbbaf465f31ba2e0964cd72f4596eb08a0b4c89f35db597ef88e1", size = 31759192 },
+    { url = "https://files.pythonhosted.org/packages/2d/ed/555d2eb2078d65838632b6c3ade924b8fe8f5c2398abc1a6eb06ea8fda24/mostlyai_qa-1.9.2-py3-none-any.whl", hash = "sha256:6585dc28d16e71fc55a40d0649fb5e5e8eabeba17d5a5c72276e2b319baf1c58", size = 31759607 },
 ]
 
 [[package]]
@@ -3832,11 +3832,11 @@ wheels = [
 
 [[package]]
 name = "narwhals"
-version = "1.38.2"
+version = "1.39.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/dd/fa/f4c2b2524b6b1e7475af933849ecaad280822eab5631151ccb1993d600ce/narwhals-1.38.2.tar.gz", hash = "sha256:7c5fbc9f2b8e1d5d95f49dcef9c2d94bf17810de68c87ff195dc7d22f7b3eeb5", size = 277368 }
+sdist = { url = "https://files.pythonhosted.org/packages/80/eb/50bd207820ac84b86dee216e2caf3fdf456e59bc854543f8d0ab8637cd66/narwhals-1.39.0.tar.gz", hash = "sha256:6f114def701fc6a23b0523ad53700ae545ad3f5ece041c64dc3ad59e699da43f", size = 471928 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/45/59251121eb801f033ffdd56d8893a0f20ec661bdc362f8d52a4e4d547f91/narwhals-1.38.2-py3-none-any.whl", hash = "sha256:a33a182e32f18d794a04e7828a5c401fb26ce9083f609993e7e5064aace641c7", size = 338437 },
+    { url = "https://files.pythonhosted.org/packages/22/58/a12a534269aa5ba9abdf73a9e0deb600297b71cbf7291bca212944663143/narwhals-1.39.0-py3-none-any.whl", hash = "sha256:50b6778f4b4249eb86c88dd17c3907dd004a16ec25b02d5effaf226a2bcfb940", size = 339242 },
 ]
 
 [[package]]
@@ -4125,7 +4125,7 @@ wheels = [
 
 [[package]]
 name = "openai"
-version = "1.78.0"
+version = "1.78.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -4137,9 +4137,9 @@ dependencies = [
     { name = "tqdm", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d1/7c/7c48bac9be52680e41e99ae7649d5da3a0184cd94081e028897f9005aa03/openai-1.78.0.tar.gz", hash = "sha256:254aef4980688468e96cbddb1f348ed01d274d02c64c6c69b0334bf001fb62b3", size = 442652 }
+sdist = { url = "https://files.pythonhosted.org/packages/a4/3f/4e5e7b0548a15eabc4a755c93cd5f9564887e3d2fd45b6ff531352e5859d/openai-1.78.1.tar.gz", hash = "sha256:8b26b364531b100df1b961d03560042e5f5be11301d7d49a6cd1a2b9af824dca", size = 442985 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/41/d64a6c56d0ec886b834caff7a07fc4d43e1987895594b144757e7a6b90d7/openai-1.78.0-py3-none-any.whl", hash = "sha256:1ade6a48cd323ad8a7715e7e1669bb97a17e1a5b8a916644261aaef4bf284778", size = 680407 },
+    { url = "https://files.pythonhosted.org/packages/3c/4c/3889bc332a6c743751eb78a4bada5761e50a8a847ff0e46c1bd23ce12362/openai-1.78.1-py3-none-any.whl", hash = "sha256:7368bf147ca499804cc408fe68cdb6866a060f38dec961bbc97b04f9d917907e", size = 680917 },
 ]
 
 [[package]]
@@ -6228,7 +6228,7 @@ wheels = [
 
 [[package]]
 name = "sqlalchemy-bigquery"
-version = "1.14.0"
+version = "1.14.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core" },
@@ -6237,9 +6237,9 @@ dependencies = [
     { name = "packaging" },
     { name = "sqlalchemy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4c/27/05fb89f202b4ae8c1caef7b39414061bae62782f7f85734cf37c4abe4ce1/sqlalchemy_bigquery-1.14.0.tar.gz", hash = "sha256:bc8ec4a64b0df3ecf018c3fa60c6341f00c7df5a122f827a689dbbb55429c8af", size = 118050 }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/15/22b056d1de4f829bda69b420ede162265ef047917bf6dcdfd4cfb809a3aa/sqlalchemy_bigquery-1.14.1.tar.gz", hash = "sha256:71025dad59394e3571371009419dcc9c54b2886d16c0172548317844ea1f17b8", size = 119453 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/aa/2d/51d81fbb1c5dff01bdd88d58370a265454b1178b7cf1aea42f1779fe08d7/sqlalchemy_bigquery-1.14.0-py3-none-any.whl", hash = "sha256:679cfbd66fb2362bd7db3364fbf72c9456b309546605b2e6b255a1693e590b84", size = 40402 },
+    { url = "https://files.pythonhosted.org/packages/eb/e5/90345238204cf61dd169b8c25e18198b4fb1d7f95877ad9420c9c22d6416/sqlalchemy_bigquery-1.14.1-py3-none-any.whl", hash = "sha256:7a2906a0b799e6be2c191354794c198645d1dfb958f71a4a411c366902b2b57d", size = 40404 },
 ]
 
 [[package]]
