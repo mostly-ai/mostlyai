@@ -35,27 +35,37 @@ class AwsS3FileContainer(BucketBasedContainer):
     DEFAULT_SCHEME = "s3"
     DELIMITER_SCHEMA = "s3"
     SECRET_ATTR_NAME = "secret_key"
+    ROLE_SESSION_NAME = "mostly-ai-session"
 
     def __init__(
         self,
         *args,
-        access_key,
-        secret_key,
-        endpoint_url=None,
-        do_decrypt_secret=True,
-        ssl_enabled=None,
-        ca_certificate=None,
+        access_key: str | None = None,
+        secret_key: str | None = None,
+        role_arn: str | None = None,
+        external_id: str | None = None,
+        endpoint_url: str | None = None,
+        do_decrypt_secret: bool | None = True,
+        ssl_enabled: bool | None = None,
+        ca_certificate: str | None = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.endpoint_url = endpoint_url or None
         self.access_key = access_key
         self.secret_key = secret_key
+        self.role_arn = role_arn
+        self.external_id = external_id
         # SSL
         self.ssl_enabled = ssl_enabled
         self.ca_certificate = ca_certificate
         if do_decrypt_secret:
-            self.decrypt_secret()
+            if self.role_arn and self.external_id:
+                self.decrypt_secret(secret_attr_name="external_id")
+                self._assume_role()
+            else:
+                self.session_token = None
+                self.decrypt_secret()  # decrypt with the default SECRET_ATTR_NAME
         self.ca_cert_content = self.decrypt(self.ca_certificate) if self.ssl_enabled and self.ca_certificate else None
         self.region_name = None
         # extract region from endpoint URL if it's an AWS endpoint
@@ -63,17 +73,19 @@ class AwsS3FileContainer(BucketBasedContainer):
             match = re.search(r"s3[.-](.+?)\.amazonaws\.com", self.endpoint_url)
             if match:
                 self.region_name = match.group(1)
-        if not (self.secret_key and self.access_key):
+        if not (self.secret_key and self.access_key) and not self.role_arn:
             raise MostlyDataException("Provide the S3 credentials.")
         boto_session = boto3.Session(
             aws_access_key_id=self.access_key,
             aws_secret_access_key=self.secret_key,
+            aws_session_token=self.session_token,
         )
         self._client = S3Client(
             boto3_session=boto_session,
             endpoint_url=self.endpoint_url,
             aws_access_key_id=self.access_key,
             aws_secret_access_key=self.secret_key,
+            aws_session_token=self.session_token,
         )
 
         with tempfile.NamedTemporaryFile(delete=False) as ca_cert_file:
@@ -91,6 +103,7 @@ class AwsS3FileContainer(BucketBasedContainer):
                 endpoint_url=self.endpoint_url,
                 secret=self.secret_key,
                 key=self.access_key,
+                token=self.session_token,
                 client_kwargs=client_kwargs,
                 cache_regions=True,
             )
@@ -137,6 +150,7 @@ class AwsS3FileContainer(BucketBasedContainer):
                     "sts",
                     aws_access_key_id=self.access_key,
                     aws_secret_access_key=self.secret_key,
+                    aws_session_token=self.session_token,
                     endpoint_url=self.endpoint_url,
                     verify=self.ssl_verify,
                 )
@@ -152,6 +166,24 @@ class AwsS3FileContainer(BucketBasedContainer):
                 raise MostlyDataException("Cannot reach the endpoint URL.")
             else:
                 raise MostlyDataException(f"Error has occurred: {str(e)}")
+
+    def _assume_role(self) -> None:
+        if self.role_arn:
+            sts_client = boto3.client(
+                "sts",
+                endpoint_url=self.endpoint_url,
+                verify=self.ssl_verify,
+            )
+            assume_role_kwargs = {
+                "RoleArn": self.role_arn,
+                "RoleSessionName": self.ROLE_SESSION_NAME,
+            }
+            if self.external_id:
+                assume_role_kwargs["ExternalId"] = self.external_id
+            credentials = sts_client.assume_role(**assume_role_kwargs)["Credentials"]
+            self.access_key = credentials["AccessKeyId"]
+            self.secret_key = credentials["SecretAccessKey"]
+            self.session_token = credentials["SessionToken"]
 
     def _init_duckdb(self, con: duckdb.DuckDBPyConnection) -> None:
         # fallback to con.register_filesystem (instead of DuckDB's httpfs + aws) if:
