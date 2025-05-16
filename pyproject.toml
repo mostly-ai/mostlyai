@@ -50,7 +50,7 @@ local = [
     # "mostlyai-engine @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
     "mostlyai-engine==1.4.0",  # for release
-    "mostlyai-qa==1.9.3",  # for release
+    "mostlyai-qa==1.9.5",  # for release
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
@@ -76,7 +76,7 @@ local-gpu = [
     # "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
     "mostlyai-engine[gpu]==1.4.0",  # for release
-    "mostlyai-qa==1.9.3",  # for release
+    "mostlyai-qa==1.9.5",  # for release
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
