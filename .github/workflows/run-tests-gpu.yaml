@@ -22,7 +22,7 @@ jobs:
               ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
               echo "Etc/UTC" > /etc/timezone
               apt-get update -qq
-              apt-get install -y --no-install-recommends git tzdata
+              apt-get install -y --no-install-recommends git tzdata build-essential
 
           - name: Setup | Checkout
             uses: actions/checkout@v4
@@ -37,7 +37,9 @@ jobs:
                 python-version: '3.10'
 
           - name: Setup | Dependencies
-            run: uv sync --frozen --extra local-gpu
+            run: |
+              uv sync --frozen --only-group dev
+              uv pip install ".[local-gpu]"
 
           - name: Setup | Check for available GPU-s
             run: nvidia-smi

@@ -142,7 +142,7 @@ class TestPartitioning:
 
 class TestPullSingle(DisableMaskKeys):
     def create_single_table_schema(self, path, tgt_df, tgt_pk=None):
-        tgt_path = Path(path) / "tgt.parquet"
+        tgt_path = Path(path) / "tgt.csv"
         tgt_df.to_csv(tgt_path, index=False)
         tables = {
             "tgt": CsvDataTable(path=tgt_path, primary_key=tgt_pk, name="tgt"),
@@ -277,6 +277,20 @@ class TestPullSingle(DisableMaskKeys):
         tgt_data = pd.read_parquet(tmp_path / "OriginalData" / "tgt-data")
         expected_sample_size = min(max(1, max_sample_size), len(tgt_df))
         assert len(tgt_data) == expected_sample_size
+
+    @pytest.mark.parametrize("trn_val_split", [0.1, 0.5, 0.9])
+    @pytest.mark.parametrize("tgt_pk", [None, "id"])
+    def test_pull_trn_val_split(self, tmp_path, trn_val_split, tgt_pk):
+        n = 10_000
+        tgt_df = pd.DataFrame({"id": list(range(n))})
+        schema = self.create_single_table_schema(tmp_path, tgt_df, tgt_pk=tgt_pk)
+        # pull data
+        pull(tgt="tgt", schema=schema, workspace_dir=tmp_path, trn_val_split=trn_val_split)
+        # check pulled data
+        trn_tgt_data = pd.read_parquet(list((tmp_path / "OriginalData" / "tgt-data").glob("*trn*")))
+        val_tgt_data = pd.read_parquet(list((tmp_path / "OriginalData" / "tgt-data").glob("*val*")))
+        assert len(trn_tgt_data) == pytest.approx(int(n * trn_val_split), rel=0.2)
+        assert len(val_tgt_data) == pytest.approx(int(n * (1 - trn_val_split)), rel=0.2)
 
     @pytest.mark.parametrize("tgt_pk", [None, "id"])
     def test_pull_is_shuffled(self, tmp_path, single_table_data, tgt_pk):
@@ -478,16 +492,28 @@ class TestPullSequential(DisableMaskKeys):
 
     def test_pull_unsupported_encoding_types_from_context(self, tmp_path, two_table_data):
         ctx_df, tgt_df = two_table_data
+        ctx_df["tabular_int"] = ctx_df["int"]
+        ctx_df["cat"] = ctx_df["str"]
+        ctx_df["dt"] = pd.date_range(start="2025/1/1", periods=len(ctx_df)).to_list()
+        ctx_df["itt"] = ctx_df["dt"]
         schema = self.create_two_table_schema(tmp_path, ctx_df, tgt_df)
         # pull data
-        schema.tables["ctx"].encoding_types |= {"int": ModelEncodingType.language_text}
+        schema.tables["ctx"].encoding_types |= {
+            "tabular_int": ModelEncodingType.tabular_numeric_auto,
+            # these columns should not be pulled as context
+            "itt": ModelEncodingType.tabular_datetime_relative,
+            "int": ModelEncodingType.language_numeric,
+            "str": ModelEncodingType.language_text,
+            "cat": ModelEncodingType.language_categorical,
+            "dt": ModelEncodingType.language_datetime,
+        }
         pull(tgt="tgt", schema=schema, workspace_dir=tmp_path)
         # check pulled data
         ctx_data = pd.read_parquet(tmp_path / "OriginalData" / "ctx-data")
-        assert "ctx::int" not in ctx_data
+        assert list(ctx_data.columns) == ["ctx::id", "ctx::tabular_int"]
         # check pulled meta data
         ctx_enctypes = read_json(tmp_path / "OriginalData" / "ctx-meta" / "encoding-types.json")
-        assert "ctx::int" not in ctx_enctypes
+        assert list(ctx_enctypes.keys()) == ["ctx::tabular_int"]
 
     @pytest.mark.parametrize("max_sample_size", [0, 3, 5, 1000])
     def test_pull_max_sample_size(self, tmp_path, two_table_data, max_sample_size):

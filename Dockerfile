@@ -5,6 +5,10 @@ WORKDIR /opt/app-root/src/mostlyai/
 
 FROM base AS deps
 
+USER root
+
+RUN groupadd -r nonroot && useradd -r -g nonroot -m nonroot
+
 RUN apt-get update -y \
   && apt-get install -y libaio1 curl gnupg unzip \
   # * PostgreSQL Connector Dependencies
@@ -46,21 +50,20 @@ FROM deps AS build
 ENV UV_SYSTEM_PYTHON=1
 ENV UV_FROZEN=true
 ENV UV_NO_CACHE=true
-ENV COMMON_UV_ARGS="--no-dev --all-extras --no-extra local --no-extra local-gpu"
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 COPY ./uv.lock ./pyproject.toml ./
-RUN uv sync ${COMMON_UV_ARGS} \
-  --no-install-project --no-install-package torch
-
-RUN uv sync ${COMMON_UV_ARGS} --no-install-project
+RUN uv venv && \
+  uv pip install --index-strategy unsafe-first-match torch==2.6.0+cpu torchvision==0.21.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
 
 COPY mostlyai ./mostlyai
 COPY README.md ./
-RUN uv sync ${COMMON_UV_ARGS}
+RUN uv pip install -e ".[local,databricks,googlebigquery,hive,mssql,mysql,oracle,postgres,snowflake]"
 
 COPY ./tools/docker_entrypoint.py /opt/app-root/src/entrypoint.py
 
+USER nonroot
+
 EXPOSE 8080
-ENTRYPOINT [ "uv", "run", "--no-sync", "/opt/app-root/src/entrypoint.py" ]
+ENTRYPOINT [ "python", "/opt/app-root/src/entrypoint.py" ]

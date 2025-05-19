@@ -64,6 +64,8 @@ from mostlyai.sdk.domain import (
     ConnectorDeleteDataConfig,
 )
 from mostlyai.sdk._local.storage import (
+    convert_model_label_path,
+    get_model_label,
     read_generator_from_json,
     write_generator_to_json,
     read_job_progress_from_json,
@@ -131,27 +133,32 @@ class Routes:
         @self.router.get("/models/{model_type}")
         async def list_models(model_type: str) -> JSONResponse:
             if model_type == ModelType.tabular:
-                return JSONResponse(content=["MOSTLY_AI/Small", "MOSTLY_AI/Medium", "MOSTLY_AI/Large"])
+                models = ["MOSTLY_AI/Small", "MOSTLY_AI/Medium", "MOSTLY_AI/Large"]
             elif model_type == ModelType.language:
-                return JSONResponse(
-                    content=["MOSTLY_AI/LSTMFromScratch-3m", "microsoft/phi-1_5", "(HuggingFace-hosted models)"]
-                )
-            return JSONResponse(content=[])
+                models = ["MOSTLY_AI/LSTMFromScratch-3m", "microsoft/phi-1_5", "(HuggingFace-hosted models)"]
+            else:
+                models = []
+            return JSONResponse(content=models)
 
         ## CONNECTORS
 
         @self.router.get("/connectors")
         async def list_connectors(
-            offset=0, limit=50, searchTerm: str | None = None, access_type: str | None = None
+            offset=0,
+            limit=50,
+            searchTerm: str | None = None,
+            access_type: str | None = None,
         ) -> JSONResponse:
             connector_dirs = [p for p in (self.home_dir / "connectors").glob("*") if p.is_dir()]
             connector_list_items = []
             for connector_dir in connector_dirs:
                 connector = read_connector_from_json(connector_dir)
-                if not searchTerm or searchTerm.lower() in (connector.name or "").lower():
-                    if not access_type or access_type == connector.access_type:
-                        # use model_construct to skip validation and warnings of extra fields
-                        connector_list_items.append(ConnectorListItem.model_construct(**connector.model_dump()))
+                connector_string = " ".join([connector.name or "", connector.description or ""]).lower()
+                if searchTerm and searchTerm.lower() not in connector_string:
+                    continue
+                if access_type and access_type != connector.access_type:
+                    continue
+                connector_list_items.append(ConnectorListItem.model_construct(**connector.model_dump()))
 
             # use jsonable_encoder to handle non-serializable objects like datetime
             return JSONResponse(
@@ -287,24 +294,26 @@ class Routes:
 
         @self.router.get("/generators")
         async def list_generators(
-            offset: int = 0, limit: int = 50, searchTerm: str | None = None, status: str | None = None
+            offset: int = 0,
+            limit: int = 50,
+            searchTerm: str | None = None,
+            status: str | None = None,
         ) -> JSONResponse:
             generator_dirs = [p for p in (self.home_dir / "generators").glob("*") if p.is_dir()]
             generator_list_items = []
             for generator_dir in generator_dirs:
                 generator = read_generator_from_json(generator_dir)
-                if (
-                    not searchTerm
-                    or searchTerm.lower() in (generator.name or "").lower()
-                    or searchTerm.lower() in (generator.description or "").lower()
-                ):
-                    if not status or status == generator.training_status:
-                        # use model_construct to skip validation and warnings of extra fields
-                        generator_list_items.append(GeneratorListItem.model_construct(**generator.model_dump()))
-            # use jsonable_encoder to handle non-serializable objects like datetime
+                generator_string = " ".join([generator.name or "", generator.description or ""]).lower()
+                if searchTerm and searchTerm.lower() not in generator_string:
+                    continue
+                if status and status != generator.training_status:
+                    continue
+                # use model_construct to skip validation and warnings of extra fields
+                generator_list_items.append(GeneratorListItem.model_construct(**generator.model_dump()))
+
             return JSONResponse(
                 status_code=200,
-                content=jsonable_encoder(
+                content=jsonable_encoder(  # use jsonable_encoder to handle non-serializable objects like datetime
                     {
                         "totalCount": len(generator_list_items),
                         "results": generator_list_items[int(offset) : int(offset) + int(limit)],
@@ -374,8 +383,8 @@ class Routes:
             generator = read_generator_from_json(generator_dir)
             table = next((t for t in generator.tables if t.id == table_id), None)
             reports_dir = self.home_dir / "generators" / id / "ModelQAReports"
-            fn = reports_dir / f"{table.name}:{modelType.lower()}.html"
-            return HTMLResponse(content=fn.read_text())
+            fn = reports_dir / f"{get_model_label(table, modelType, path_safe=True)}.html"
+            return HTMLResponse(content=fn.read_text(encoding="utf-8"))
 
         @self.router.get("/generators/{id}/training", response_model=JobProgress)
         async def get_training_progress(id: str) -> JobProgress:
@@ -430,7 +439,10 @@ class Routes:
             file_content = await file.read()
             try:
                 with zipfile.ZipFile(BytesIO(file_content)) as zip_ref:
-                    zip_ref.extractall(generator_dir)
+                    for zip_info in zip_ref.filelist:
+                        zip_info.filename = convert_model_label_path(zip_info.filename)
+                        zip_ref.extract(zip_info, generator_dir)
+
             except zipfile.BadZipFile:
                 raise HTTPException(status_code=400, detail="Invalid ZIP file")
 
@@ -450,26 +462,30 @@ class Routes:
 
         @self.router.get("/synthetic-datasets")
         async def list_synthetic_datasets(
-            offset: int = 0, limit: int = 50, searchTerm: str | None = None, status: str | None = None
+            offset: int = 0,
+            limit: int = 50,
+            searchTerm: str | None = None,
+            status: str | None = None,
         ) -> JSONResponse:
             synthetic_dataset_dirs = [p for p in (self.home_dir / "synthetic-datasets").glob("*") if p.is_dir()]
             synthetic_dataset_list_items = []
             for synthetic_dataset_dir in synthetic_dataset_dirs:
                 synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
-                if (
-                    not searchTerm
-                    or searchTerm.lower() in (synthetic_dataset.name or "").lower()
-                    or searchTerm.lower() in (synthetic_dataset.description or "").lower()
-                ):
-                    if not status or status == synthetic_dataset.generation_status:
-                        # use model_construct to skip validation and warnings of extra fields
-                        synthetic_dataset_list_items.append(
-                            SyntheticDatasetListItem.model_construct(**synthetic_dataset.model_dump())
-                        )
-            # use jsonable_encoder to handle non-serializable objects like datetime
+                synthetic_dataset_string = " ".join(
+                    [synthetic_dataset.name or "", synthetic_dataset.description or ""]
+                ).lower()
+                if searchTerm and searchTerm.lower() not in synthetic_dataset_string:
+                    continue
+                if status and status != synthetic_dataset.generation_status:
+                    continue
+                # use model_construct to skip validation and warnings of extra fields
+                synthetic_dataset_list_items.append(
+                    SyntheticDatasetListItem.model_construct(**synthetic_dataset.model_dump())
+                )
+
             return JSONResponse(
                 status_code=200,
-                content=jsonable_encoder(
+                content=jsonable_encoder(  # use jsonable_encoder to handle non-serializable objects like datetime
                     {
                         "totalCount": len(synthetic_dataset_list_items),
                         "results": synthetic_dataset_list_items[int(offset) : int(offset) + int(limit)],
@@ -514,8 +530,8 @@ class Routes:
                 reports_dir = self.home_dir / "synthetic-datasets" / id / "ModelQAReports"
             else:
                 reports_dir = self.home_dir / "synthetic-datasets" / id / "DataQAReports"
-            fn = reports_dir / f"{table.name}:{modelType.lower()}.html"
-            return HTMLResponse(content=fn.read_text())
+            fn = reports_dir / f"{get_model_label(table, modelType, path_safe=True)}.html"
+            return HTMLResponse(content=fn.read_text(encoding="utf-8"))
 
         @self.router.get("/synthetic-datasets/{id}/generation", response_model=JobProgress)
         async def get_generation_progress(id: str) -> JobProgress:

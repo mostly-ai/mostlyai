@@ -68,7 +68,7 @@ class _MostlyBaseClient:
         ssl_verify: bool = True,
     ):
         self.base_url = (base_url or os.getenv("MOSTLY_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
-        self.api_key = api_key or os.getenv("MOSTLY_API_KEY")
+        self.api_key = api_key or os.getenv("MOSTLY_API_KEY", "")
         self.local = self.api_key == "local"
         self.transport = httpx.HTTPTransport(uds=uds) if uds else None
         self.timeout = timeout
@@ -151,6 +151,9 @@ class _MostlyBaseClient:
                 error_msg = exc.response.content
             # Handle HTTP errors (not in 2XX range)
             raise APIStatusError(f"HTTP {exc.response.status_code}: {error_msg}") from None
+        except httpx.ReadTimeout as exc:
+            # Handle timeout errors
+            raise APIError(f"Timed out while requesting {exc.request.url!r}.") from None
         except httpx.RequestError as exc:
             # Handle request errors (e.g., network issues)
             raise APIError(f"An error occurred while requesting {exc.request.url!r}.") from None

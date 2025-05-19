@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 from pathlib import Path
 from typing import Any, Literal
@@ -21,6 +22,7 @@ from rich.prompt import Prompt
 
 from mostlyai import sdk
 from mostlyai.sdk.client.base import GET, _MostlyBaseClient, DEFAULT_BASE_URL
+from mostlyai.sdk.client.exceptions import APIError
 from mostlyai.sdk.client.connectors import _MostlyConnectorsClient
 from mostlyai.sdk.client.generators import _MostlyGeneratorsClient
 from mostlyai.sdk.domain import (
@@ -45,7 +47,6 @@ from mostlyai.sdk.client._utils import (
     harmonize_sd_config,
     Seed,
     check_local_mode_available,
-    validate_api_key,
     validate_base_url,
 )
 
@@ -174,8 +175,7 @@ class MostlyAI(_MostlyBaseClient):
                 base_url = os.getenv("MOSTLY_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
             validate_base_url(base_url)
             if api_key is None:
-                api_key = os.getenv("MOSTLY_API_KEY")
-            validate_api_key(api_key)
+                api_key = os.getenv("MOSTLY_API_KEY", "")
             home_dir = None
             uds = None
         else:
@@ -219,7 +219,7 @@ class MostlyAI(_MostlyBaseClient):
                 msg += f" as [bold]{email}[/bold]" if email else ""
                 rich.print(msg)
             except Exception as e:
-                rich.print(f"Failed to connect to {self.base_url}: {e}.")
+                rich.print(f"Failed to connect to {self.base_url} : {e}.")
         else:
             raise ValueError("Invalid SDK mode")
 
@@ -722,7 +722,16 @@ class MostlyAI(_MostlyBaseClient):
             config=config,
             config_type=SyntheticProbeConfig,
         )
-        dfs = self.synthetic_probes.create(config)
+
+        try:
+            dfs = self.synthetic_probes.create(config)
+        except APIError as e:
+            # translate timeout error into a more informative message for probe requests
+            if "timed out" in str(e).lower():
+                raise APIError("Probing timed out. Please try `generate()` instead.")
+            else:
+                raise e
+
         if return_type == "auto" and len(dfs) == 1:
             return list(dfs.values())[0]
         else:

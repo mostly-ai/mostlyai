@@ -15,6 +15,7 @@
 from pathlib import Path
 
 from mostlyai.sdk._local.storage import (
+    get_model_label,
     write_generator_to_json,
     write_connector_to_json,
     write_job_progress_to_json,
@@ -115,7 +116,7 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                         task_type=TaskType.train_tabular
                         if model_type == ModelType.tabular
                         else TaskType.train_language,
-                        model_label=f"{table.name}:{model_type.value.lower()}",
+                        model_label=get_model_label(table, model_type),
                         step_code=step,
                         progress=ProgressValue(value=0, max=1),
                         status=ProgressStatus.new,

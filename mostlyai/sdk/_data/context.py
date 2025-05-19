@@ -17,7 +17,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-from mostlyai.sdk.domain import ModelEncodingType
+from mostlyai.sdk.domain import ModelEncodingType, ModelType
 from mostlyai.sdk._data.base import Schema, DataIdentifier, ContextRelation
 
 _LOG = logging.getLogger(__name__)
@@ -228,9 +228,8 @@ def drop_unsupported_encoding_types_from_context(
     """
     context_tables = schema.get_context_tables(tgt)
     sub_schema = schema.subset(tables=context_tables)
-    unsupported_encoding_types = [
-        ModelEncodingType.tabular_datetime_relative,
-        ModelEncodingType.language_text,
+    unsupported_encoding_types = [ModelEncodingType.tabular_datetime_relative] + [
+        t for t in ModelEncodingType if t.value.startswith(ModelType.language.value)
     ]
     # do not drop context primary key of parent context table
     ctx_pk = sub_schema.tables[context_tables[-1]].primary_key

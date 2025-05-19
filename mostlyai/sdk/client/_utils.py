@@ -76,17 +76,6 @@ def validate_base_url(base_url: str) -> None:
         raise APIError("Invalid base URL.")
 
 
-def validate_api_key(api_key: str) -> None:
-    """
-    Check if the provided API key is valid. Raise an exception if it is not.
-    """
-    api_key = str(api_key)
-    if not api_key:
-        raise APIError("Missing API key.")
-    elif len(api_key) != 71:
-        raise APIError("Invalid API key format.")
-
-
 class _DynamicRefreshThread(Thread):
     """A thread that calls live.refresh() at dynamic intervals, increasing the delay between refreshes over time.
     The refresh interval stays at initial_interval for the first fixed_time seconds,
@@ -97,7 +86,7 @@ class _DynamicRefreshThread(Thread):
         self,
         live: "Live",
         initial_interval: float = 2.0,
-        max_interval: float = 60.0,
+        max_interval: float = 30.0,
         fixed_time: float = 30.0,
         increasing_time: float = 60.0,
     ) -> None:

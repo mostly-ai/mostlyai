@@ -39,7 +39,7 @@ https://github.com/user-attachments/assets/9e233213-a259-455c-b8ed-d1f1548b492f
   - Single-table, multi-table, and time-series
 - **Multiple Model Types**
   - State-of-the-art performance via TabularARGN
-  - Fine-tune HuggingFace-based language models
+  - Fine-tune Hugging Face hosted language models
   - Efficient LSTM for text synthesis from scratch
 - **Advanced Training Options**
   - GPU/CPU support
@@ -61,7 +61,7 @@ https://github.com/user-attachments/assets/9e233213-a259-455c-b8ed-d1f1548b492f
 
 ## Quick Start <a href="https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb" target="_blank"><img src="https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab" alt="Run on Colab"></a>
 
-Install the SDK via pip:
+Install the SDK via `pip` (see [Installation](#installation) for further details):
 
 ```shell
 pip install -U mostlyai  # or 'mostlyai[local]' for LOCAL mode
@@ -80,14 +80,16 @@ g = mostly.generators.import_from_file(
 )
 
 # probe for 1000 representative synthetic samples
-mostly.probe(g, size=1000)
+df = mostly.probe(g, size=1000)
+df
 ```
 
 Generate synthetic sampels based on fixed column values:
 
 ```python
 # create 10k records of 24y male respondents
-mostly.probe(g, seed=[{"age": 24, "sex": "Male"}] * 10_000)
+df = mostly.probe(g, seed=[{"age": 24, "sex": "Male"}] * 10_000)
+df
 ```
 
 And now train your very own synthetic data generator:
@@ -110,10 +112,11 @@ g.reports(display=True)
 
 # generate a representative synthetic dataset, with default configs
 sd = mostly.generate(g)
-synthetic_df = sd.data()
+df = sd.data()
 
-# probe for some samples
-mostly.probe(g, size=100)
+# or simply probe for some samples
+df = mostly.probe(g, size=100)
+df
 ```
 
 ## Performance
@@ -124,7 +127,7 @@ The SDK is being developed with a focus on efficiency, accuracy, and flexibility
 
 Tabular models within the SDK are built on TabularARGN ([arXiv:2501.12012](https://arxiv.org/abs/2501.12012)), which achieves best-in-class synthetic data quality while being 1–2 orders of magnitude more efficient than comparable models. This efficiency enables the training and generation of millions of synthetic records within minutes, even on CPU environments.
 
-![TabularARGN Benchmark](docs/TabularARGN-benchmark.png)
+![TabularARGN Benchmark](https://raw.githubusercontent.com/mostly-ai/mostlyai/refs/heads/main/docs/TabularARGN-benchmark.png)
 
 ### Language Models
 
@@ -136,20 +139,63 @@ In either case, a modern GPU is highly recommended when working with language mo
 
 ## Installation
 
- Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required.
+Use `pip` (or better `uv pip`) to install the official `mostlyai` package via PyPI. Python 3.10 or higher is required.
 
- It is highly recommended to install the package within a dedicated virtual environment, such as **venv**, **uv**, or **conda**. E.g.
- ```shell
-conda create -n mostlyai python=3.12
-conda activate mostlyai
- ```
+It is highly recommended to install the package within a dedicated virtual environment using `uv` (see [here](https://docs.astral.sh/uv/)):
+
+<details>
+
+  <summary>Setup of <code>uv</code> on Unix / macOS</summary>
+
+```shell
+# Install uv if you don't have it yet
+curl -Ls https://astral.sh/uv/install.sh | bash
+
+# Create and activate a Python 3.12 environment with uv
+mkdir ~/synthetic-data-sdk; cd ~/synthetic-data-sdk
+uv venv -p 3.12
+
+# Activate virtual environment
+source .venv/bin/activate
+```
+
+</details>
+
+<details>
+
+  <summary>Setup of <code>uv</code> on Windows</summary>
+
+```shell
+# Install uv if you don't have it yet
+irm https://astral.sh/uv/install.ps1 | iex
+
+# Create and activate a Python 3.12 environment with uv
+mkdir ~/synthetic-data-sdk; cd ~/synthetic-data-sdk
+uv venv -p 3.12
+
+# Activate virtual environment
+.venv\Scripts\activate
+```
+
+</details>
+
+<details>
+
+  <summary>Run Jupyter Lab session via <code>uv</code></summary>
+
+```shell
+# Optionally launch jupyter session after SDK installation
+uv run --with jupyter jupyter lab
+```
+
+</details>
 
 ### CLIENT mode
 
 This is a light-weight installation for using the SDK in CLIENT mode only. It communicates to a MOSTLY AI platform to perform requested tasks. See e.g. [app.mostly.ai](https://app.mostly.ai/) for a free-to-use hosted version.
 
 ```shell
-pip install -U mostlyai
+uv pip install -U mostlyai
 ```
 
 ### CLIENT + LOCAL mode
@@ -157,21 +203,105 @@ pip install -U mostlyai
 This is a full installation for using the SDK in both CLIENT and LOCAL mode. It includes all dependencies, incl. PyTorch, for training and generating synthetic data locally.
 
 ```shell
-# for CPU on macOS
-pip install -U 'mostlyai[local]'
-# for CPU on Linux
-pip install -U 'mostlyai[local-cpu]' --extra-index-url https://download.pytorch.org/whl/cpu
-# for GPU on Linux
-pip install -U 'mostlyai[local-gpu]'
+uv pip install -U 'mostlyai[local]'
 ```
 
-> **Note for Google Colab users**: Installing any of the local extras (`mostlyai[local]`, `mostlyai[local-cpu]`, or `mostlyai[local-gpu]`) will downgrade PyTorch from 2.6.0 to 2.5.1. You'll need to restart the runtime after installation for the changes to take effect.
+or alternatively for a GPU setup on Linux (needed for LLM finetuning and inference):
+
+```shell
+uv pip install -U 'mostlyai[local-gpu]'
+```
+
+On Linux, one can explicitly install the CPU-only variant of torch together with `mostlyai[local]`:
+
+```shell
+# uv pip install
+uv pip install --index-strategy unsafe-first-match -U torch==2.6.0+cpu torchvision==0.21.0+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
+```
+
+```shell
+# standard pip install
+pip install -U torch==2.6.0+cpu torchvision==0.21.0+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
+```
+
+
+> **Note for Google Colab users**: Installing any of the local extras (`mostlyai[local]`, or `mostlyai[local-gpu]`) will downgrade Numpy from 2.0 to Numpy 1.26, due to Opacus dependency. You'll need to restart the runtime after installation for the changes to take effect.
+
+### Data Connectors
 
 Add any of the following extras for further data connectors support in LOCAL mode: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`. E.g.
 
 ```shell
-pip install -U 'mostlyai[local, databricks, snowflake]'
+uv pip install -U 'mostlyai[local, databricks, snowflake]'
 ```
+
+### Using Docker
+
+As an alternative, you can also build a Docker image, which provides you with an isolated environment for running the SDK in LOCAL mode, with all connector dependencies pre-installed. This approach ensures a consistent runtime environment across all systems. Before proceeding, make sure [Docker](https://docs.docker.com/get-started/get-docker/) is installed on your system.
+
+<details>
+
+  <summary>Build the image</summary>
+
+  If your environment is capable of executing Makefile (see [here](https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L47-L73)), then execute `make docker-build`.
+
+  Otherwise, use `DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t mostlyai/mostlyai` instead.
+
+</details>
+
+<details>
+
+  <summary>Start the container</summary>
+
+  This will launch the SDK in LOCAL mode on port 8080 inside the container.
+
+  If your environment is capable of executing Makefile, then execute `make docker-run`. Or `make docker-run HOST_PORT=8080` to forward to a host port of your choice. One could also mount the `local_dir` via `make docker-run HOST_LOCAL_DIR=/path/to/host/folder` to make the generators and synthetic datasets directly accessible from the host.
+
+  Otherwise, use `docker run --platform=linux/amd64 -p 8080:8080 mostlyai/mostlyai` instead. Optionally, you can use the `-v` flag to mount a [volume](https://docs.docker.com/engine/storage/volumes/#syntax) for passing files between the host and the container.
+
+</details>
+
+<details>
+
+  <summary>Connect to the container</summary>
+
+  You can now connect to the SDK running within the container by initializing the SDK in `CLIENT` mode on the host machine.
+
+  ```python
+  from mostlyai.sdk import MostlyAI
+
+  mostly = MostlyAI(base_url="http://localhost:8080")
+  ```
+
+</details>
+
+### Air-gapped Environments
+
+For air-gapped environments (without internet access), you must install the package using the provided wheel files, including any optional dependencies you require.
+
+If your application depends on a Hugging Face language model, you’ll also need to manually download and transfer the model files.
+
+<details>
+
+  <summary>Download models from Hugging Face Hub</summary>
+
+<p>On a machine with internet access, run the following Python script, to download the Hugging Face model to your local Hugging Face cache.</p>
+
+```python
+#! uv pip install huggingface-hub
+from pathlib import Path
+from huggingface_hub import snapshot_download
+path = snapshot_download(
+    repo_id="Qwen/Qwen2.5-Coder-0.5B",  # change accordingly
+    token=None,  # insert your HF TOKEN for gated models
+)
+print(f"COPY `{Path(path).parent.parent}`")
+```
+
+Next, transfer the printed directory to the air-gapped environment's cache directory located at `~/.cache/huggingface/hub/` (respectively to `HF_HOME`, if that environment variable has been set).
+
+</details>
+
 
 ## Citation
 

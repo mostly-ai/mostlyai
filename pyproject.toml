@@ -1,6 +1,6 @@
 [project]
 name = "mostlyai"
-version = "4.4.9"
+version = "4.6.3"
 description = "Synthetic Data SDK"
 authors = [{ name = "MOSTLY AI", email = "dev@mostly.ai" }]
 requires-python = ">=3.10,<3.14"
@@ -38,26 +38,26 @@ dependencies = [
     "environs>=9.5.0",
     "schema>=0.7.5",
     "xxhash>=3.2.0",
-    "greenlet>=3.1.1,<4",
-    "pycryptodomex>=3.10.0,<4",
+    "greenlet>=3.1.1",
+    "pycryptodomex>=3.10.0",
     "ipywidgets>=8.1.0",
     "duckdb>=1.2.1",
     "sqlparse>=0.5.3",
-    "fastapi-mcp",
+    "fastapi-mcp @ git+https://github.com/shuangwu5/fastapi_mcp.git@fix-http-tool",
 ]
 
 [project.optional-dependencies]
 local = [
-    # local
-    "mostlyai-engine==1.1.12",
-    "mostlyai-qa==1.5.14",
+    # "mostlyai-engine @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
+    # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
+    "mostlyai-engine==1.4.0",  # for release
+    "mostlyai-qa==1.9.5",  # for release
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.0 compatibility
-    "torchaudio==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.0 compatibility
-    "torchvision==0.21.0; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.0 compatibility
-    "torch>=2.6.0,<2.7.0; sys_platform != 'linux'",
+    "torch>=2.6.0,<2.6.1",
+    "torchaudio>=2.6.0,<2.6.1",
+    "torchvision>=0.21.0,<0.21.1",
     "joblib>=1.4.2",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
@@ -74,40 +74,16 @@ local = [
     "adlfs>=2023.4.0",
 ]
 local-gpu = [
-    "mostlyai-engine[gpu]==1.1.12",
-    "mostlyai-qa[gpu]==1.5.14",
+    # "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
+    # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
+    "mostlyai-engine[gpu]==1.4.0",  # for release
+    "mostlyai-qa==1.9.5",  # for release
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.0 compatibility
-    "torchaudio==2.6.0; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.0 compatibility
-    "torchvision==0.21.0; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.0 compatibility
-    "torch>=2.6.0,<2.7.0; sys_platform != 'linux'",
-    "joblib>=1.4.2",
-    "sqlalchemy>=2.0.0",
-    "sshtunnel>=0.4.0,<0.5",
-    "networkx>=3.0,<4",
-    "xlsxwriter>=3.1.9,<4",
-    "openpyxl>=3.1.5",
-    "filelock>=3.16.1",
-    # cloud-based connectors
-    "s3fs>=2023.1.0",
-    "gcsfs>=2023.1.0",
-    "cloudpathlib[gs, s3, azure]>=0.17.0",
-    "smart-open[gcs, s3, azure]>=6.3.0",
-    "azure-storage-blob>=12.16.0",
-    "adlfs>=2023.4.0",
-]
-local-cpu = [
-    "mostlyai-engine[cpu]==1.1.12",
-    "mostlyai-qa[cpu]==1.5.14",
-    "fastapi>=0.115.6,<0.116",
-    "uvicorn>=0.34.0,<0.35",
-    "python-multipart>=0.0.20",
-    "torch==2.6.0+cpu; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.2 compatibility
-    "torchaudio==2.6.0+cpu; sys_platform == 'linux'",  # pinned to 2.6.0 for vllm 0.8.2 compatibility
-    "torchvision==0.21.0+cpu; sys_platform == 'linux'",  # pinned to 0.21.0 for vllm 0.8.2 compatibility
-    "torch>=2.6.0,<2.7.0; sys_platform != 'linux'",
+    "torch>=2.6.0,<2.6.1",
+    "torchaudio>=2.6.0,<2.6.1",
+    "torchvision>=0.21.0,<0.21.1",
     "joblib>=1.4.2",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
@@ -153,25 +129,24 @@ snowflake = [
 
 [dependency-groups]
 dev = [
-    "pytest>=7.0.0,<8",
-    "pre-commit>=4.0.0,<5",
-    "datamodel-code-generator[http]>=0.26.3,<0.27",
-    "vcrpy>=5.1.0,<6",
-    "ruff==0.9.2",
-    "respx>=0.20.2,<0.21",
-    "twine>=6.1.0,<7",
-    "poetry-bumpversion>=0.3.2,<0.4",
-    "httpx<0.28",
-    "ipykernel>=6.25.2",
+    "pytest>=8.0",
+    "ruff>=0.11",  # sync'ed with .pre-commit-config
+    "pre-commit>=4.0",
+    "twine>=6.1",
+    "ipykernel>=6.25",
+    "datamodel-code-generator[http]>=0.26.3",
+    "respx>=0.20",
+    "poetry-bumpversion>=0.3.2",
+    "httpx>=0.27",
 ]
 docs = [
-    "mkdocs>=1.5.3",
-    "mkdocstrings[crystal, python]>=0.27.0,<0.28",
-    "mkdocs-material>=9.0.0,<10",
-    "griffe>=1.0.0,<2",
-    "pymdown-extensions>=10.0.0,<11",
-    "griffe-fieldz>=0.2.0,<0.3",
-    "black>=22.1.0",
+    "mkdocs>=1.6",
+    "mkdocstrings[crystal, python]>=0.29",
+    "mkdocs-material>=9.0",
+    "griffe>=1.0",
+    "pymdown-extensions>=10.0",
+    "griffe-fieldz>=0.2",
+    "black>=25.0",
 ]
 
 [project.urls]
@@ -181,34 +156,6 @@ documentation = "https://mostly-ai.github.io/mostlyai/"
 
 [tool.uv]
 default-groups = ["dev", "docs"]
-conflicts = [
-  [
-    { extra = "local-cpu" },
-    { extra = "local-gpu" },
-  ],
-]
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
-
-#[[tool.uv.index]]
-#name = "pytorch-gpu"
-#url = "https://pypi.org/simple"
-#explicit = true
-
-[tool.uv.sources]
-torch = [
-  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
-]
-torchaudio = [
-  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
-]
-torchvision = [
-  { index = "pytorch-cpu", extra = "local-cpu", marker = "sys_platform == 'linux'"},
-]
-fastapi_mcp = { git = "https://github.com/shuangwu5/fastapi_mcp.git", branch = "fix-http-tool" }
 
 [tool.hatch.build.targets.sdist]
 include = ["mostlyai/sdk"]
@@ -223,6 +170,9 @@ exclude = [
     "tools/",
     "tools/**/*",
 ]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [build-system]
 requires = ["hatchling"]
