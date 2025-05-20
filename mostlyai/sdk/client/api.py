@@ -453,10 +453,11 @@ class MostlyAI(_MostlyBaseClient):
                                 'enable_flexible_generation': True,  # allow seed, imputation, rebalancing and fairness; set to False for max accuracy
                                 'value_protection': True,            # privacy protect value ranges; set to False for allowing all seen values
                                 'differential_privacy': {            # set DP configs if explicitly requested
-                                    'max_epsilon': 10.0,               # - max epsilon value, used as stopping criterion
-                                    'noise_multiplier': 1.5,           # - DP noise multiplier
-                                    'max_grad_norm': 1.0,              # - DP max grad norm
-                                    'delta': 1e-5,                     # - DP delta value
+                                    'max_epsilon': 5.0,                # - max DP epsilon value, used as stopping criterion
+                                    'noise_multiplier': 1.5,           # - noise multiplier for DP-SGD training
+                                    'max_grad_norm': 1.0,              # - max grad norm for DP-SGD training
+                                    'delta': 1e-5,                     # - delta value for DP-SGD training
+                                    'value_protection_epsilon': 2.0,   # - DP epsilon for determining value ranges / data domains
                                 },
                                 'enable_model_report': True,         # generate a model report, including quality metrics
                             },
