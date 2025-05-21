@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 from mostlyai.sdk.client.exceptions import APIStatusError
 import pytest
 from mostlyai.sdk import MostlyAI
@@ -197,3 +198,20 @@ def test_simple_flat(tmp_path, encoding_types):
 
     # logs
     sd.generation.logs(tmp_path)
+
+
+def test_reproducibility(tmp_path):
+    mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
+    df = pd.DataFrame(
+        {"a": np.random.choice(["a1", "a2", "a3", "a4"], size=150), "b": np.random.choice([1, 2, 3, 4], size=150)}
+    )
+    config = {"random_state": 42, "tables": [{"name": "data", "data": df, "model_configuration": {"max_epochs": 0.1}}]}
+    g1 = mostly.train(config=config)
+    g2 = mostly.train(config=config)
+    assert g1.accuracy == g2.accuracy
+    sd1 = mostly.generate(g1, size=50)
+    sd2 = mostly.generate(g2, size=50)
+    assert sd1.data().equals(sd2.data())
+    pr1 = mostly.probe(g1, size=50)
+    pr2 = mostly.probe(g2, size=50)
+    assert pr1.equals(pr2)
