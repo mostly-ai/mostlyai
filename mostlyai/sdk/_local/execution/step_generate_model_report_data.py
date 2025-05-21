@@ -49,7 +49,6 @@ def execute_step_generate_model_report_data(
             output_path=ctx_input_path,
             max_sample_size=max_sample_size,
             ctx_primary_key=ctx_primary_key,
-            random_state=generator.random_state,
         )
         ctx_data = pd.read_parquet(ctx_input_path)
     else:

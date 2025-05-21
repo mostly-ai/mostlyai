@@ -191,6 +191,7 @@ def create_report(
             max_sample_size_embeddings=10_000,
             statistics_path=workspace_dir / "ModelQAStatistics",
             update_progress=update_progress,
+            random_state=generator.random_state,
         )
         # convert metrics from QA domain to SDK domain (if applicable)
         metrics = ModelMetrics(**metrics.model_dump()) if metrics else None
@@ -211,6 +212,7 @@ def create_report(
             report_credits=report_credits,
             max_sample_size_accuracy=100_000,
             update_progress=update_progress,
+            random_state=generator.random_state,
         )
         metrics = None
     return metrics

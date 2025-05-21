@@ -39,5 +39,4 @@ def execute_step_create_data_report(
         target_table_name=target_table_name,
         report_credits=report_credits,
         update_progress=update_progress,
-        random_state=generator.random_state,
     )
