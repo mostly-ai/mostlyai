@@ -267,10 +267,10 @@ def job_wait(
                     current_task = progress.tasks[current_task_id]
                     if not current_task.started and step.start_date is not None:
                         progress.start_task(current_task_id)
-                        if step.step_code == StepCode.train_model:
-                            layout.add_row(Text("\n\n"))
-                            layout.add_row(training_log)
-                            step_id_to_layout_idx[step.id] = len(layout.rows) - 1
+                    if step.step_code == StepCode.train_model and step_id_to_layout_idx.get(step.id) is None:
+                        layout.add_row(Text("\n\n"))
+                        layout.add_row(training_log)
+                        step_id_to_layout_idx[step.id] = len(layout.rows) - 1
                     if step.progress.max > 0:
                         progress.update(
                             current_task_id,

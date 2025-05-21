@@ -310,7 +310,15 @@ class Generator:
         Returns:
             Generator: The cloned generator object.
         """
-        return self.client._clone(generator_id=self.id, training_status=training_status)
+        generator = self.client._clone(generator_id=self.id, training_status=training_status)
+        gid = generator.id
+        if self.client.local:
+            rich.print(f"Created generator [dodger_blue2]{gid}[/]")
+        else:
+            rich.print(
+                f"Created generator [link={self.client.base_url}/d/generators/{gid} dodger_blue2 underline]{gid}[/]"
+            )
+        return generator
 
     def reports(self, file_path: str | Path | None = None, display: bool = False) -> Path | None:
         """

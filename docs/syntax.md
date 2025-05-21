@@ -10,7 +10,7 @@ hide:
 ```python
 from mostlyai.sdk import MostlyAI
 
-# local mode
+# local mode (with TCP port)
 mostly = MostlyAI(
     local=True,
     local_dir='~/mostlyai',
@@ -66,6 +66,11 @@ g.delete()
 fn = g.export_to_file()
 # import a generator from a ZIP file
 g = mostly.generators.import_from_file(fn)
+
+# continue training of an existing generator (with connectors)
+g2 = g.clone("continue")
+g2.training.start()
+g2.training.wait()
 ```
 
 ## Synthetic Datasets

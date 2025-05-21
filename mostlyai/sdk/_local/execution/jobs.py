@@ -157,9 +157,12 @@ def _mark_failed(resource: Generator | SyntheticDataset, resource_dir: Path):
     write_job_progress_to_json(resource_dir, job_progress)
 
 
-def _copy_model(generator_dir: Path, model_label: str, workspace_dir: Path):
+def _copy_model(generator_dir: Path, model_label: str, workspace_dir: Path) -> bool:
     model_path = generator_dir / "ModelStore" / model_label
-    shutil.copytree(model_path, workspace_dir / "ModelStore")
+    if model_path.exists():
+        shutil.copytree(model_path, workspace_dir / "ModelStore")
+        return True
+    return False
 
 
 def _copy_statistics(generator_dir: Path, model_label: str, workspace_dir: Path) -> bool:
@@ -334,9 +337,8 @@ class Execution:
         workspace_dir.mkdir(parents=True, exist_ok=True)
         update_progress_fn = partial(LocalProgressCallback, resource_path=generator_dir, model_label=model_label)
 
-        # if training shall be continued, then let's first copy the ModelStore
-        if generator.training_status == ProgressStatus.continue_:
-            _copy_model(generator_dir=generator_dir, model_label=model_label_path, workspace_dir=workspace_dir)
+        # let's first copy the ModelStore in case that it already exists (training continuation)
+        _copy_model(generator_dir=generator_dir, model_label=model_label_path, workspace_dir=workspace_dir)
 
         # step: PULL_TRAINING_DATA
         connectors = [
