@@ -88,9 +88,7 @@ def _pull_context_for_report_generation(
     output_path: Path,
     max_sample_size: int,
     ctx_primary_key: str,
-    random_state: int | None = None,
 ):
-    # TODO: implement random_state
     ctx_trn_files = sorted(ctx_data_path.glob("part.*-trn.parquet"))
     ctx_val_files = sorted(ctx_data_path.glob("part.*-val.parquet"))
     # fetch keys alone first

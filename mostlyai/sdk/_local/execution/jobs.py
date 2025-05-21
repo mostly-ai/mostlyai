@@ -13,7 +13,9 @@
 # limitations under the License.
 import json
 import logging
+import os
 import shutil
+import struct
 import traceback
 from collections.abc import Callable
 from functools import partial
@@ -76,6 +78,24 @@ from mostlyai.sdk._local.execution.plan import (
 from mostlyai.sdk._local.progress import LocalProgressCallback, get_current_utc_time
 
 _LOG = logging.getLogger(__name__)
+
+
+def _set_random_state(random_state: int | None = None):
+    def get_random_int_from_os() -> int:
+        # 32-bit, cryptographically secure random int from os
+        return int(struct.unpack("I", os.urandom(4))[0])
+
+    if random_state is not None:
+        _LOG.info(f"Global random_state set to `{random_state}`")
+
+    if random_state is None:
+        random_state = get_random_int_from_os()
+
+    import random
+    import numpy as np
+
+    random.seed(random_state)
+    np.random.seed(random_state)
 
 
 def _move_training_artefacts(generator_dir: Path, job_workspace_dir: Path):
@@ -523,7 +543,6 @@ class Execution:
             step="finalize_generation",
         )
 
-        # TODO: random state for non-context relationships
         usages = execute_step_finalize_generation(
             schema=schema,
             is_probe=False,
@@ -565,7 +584,6 @@ class Execution:
             step="finalize_generation",
         )
         # step: FINALIZE_GENERATION
-        # TODO: random state for non-context relationships
         _ = execute_step_finalize_generation(
             schema=schema,
             is_probe=True,
@@ -579,9 +597,11 @@ class Execution:
 def execute_training_job(generator_id: str, home_dir: Path):
     generator_dir = home_dir / "generators" / generator_id
     generator = read_generator_from_json(generator_dir)
+    _set_random_state(generator.random_state)
     if generator.training_status not in [ProgressStatus.new, ProgressStatus.continue_]:
         raise ValueError("Generator has already been trained")
     _mark_in_progress(resource=generator, resource_dir=generator_dir)
+
     # PLAN
     plan = make_generator_execution_plan(generator)
     # EXECUTE
@@ -605,7 +625,6 @@ def execute_training_job(generator_id: str, home_dir: Path):
         write_generator_to_json(generator_dir, generator)
 
     try:
-        # TODO: random state for probing random samples
         _probe_random_samples(home_dir=home_dir, generator=generator)
     except Exception as e:
         _LOG.info(f"Failed to probe random samples: {e}")
@@ -617,12 +636,13 @@ def execute_generation_job(synthetic_dataset_id: str, home_dir: Path):
     synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
     generator_dir = home_dir / "generators" / synthetic_dataset.generator_id
     generator = read_generator_from_json(generator_dir)
+    _set_random_state(generator.random_state)
     if generator.training_status != ProgressStatus.done:
         raise ValueError("Generator has not been trained yet")
     if synthetic_dataset.generation_status != ProgressStatus.new:
         raise ValueError("Synthetic Dataset has already been generated")
-
     _mark_in_progress(resource=synthetic_dataset, resource_dir=synthetic_dataset_dir)
+
     # PLAN
     plan = make_synthetic_dataset_execution_plan(generator, synthetic_dataset)
     # EXECUTE
@@ -656,6 +676,7 @@ def execute_probing_job(synthetic_dataset_id: str, home_dir: Path) -> list[Probe
     generator_id = synthetic_dataset.generator_id
     generator_dir = home_dir / "generators" / generator_id
     generator = read_generator_from_json(generator_dir)
+    _set_random_state(generator.random_state)
 
     # PLAN
     plan = make_synthetic_dataset_execution_plan(generator, synthetic_dataset, is_probe=True)

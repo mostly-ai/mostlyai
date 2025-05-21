@@ -41,9 +41,7 @@ def pull(
     trn_val_split: float | None = 0.8,
     workspace_dir: str | Path = "engine-ws",
     update_progress: ProgressCallback | None = None,
-    random_state: int | None = None,
 ):
-    # TODO implement random_state
     t0 = time.time()
     with ProgressCallbackWrapper(update_progress, description="Pull training data") as progress:
         workspace_dir = Path(workspace_dir)

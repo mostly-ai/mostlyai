@@ -32,9 +32,7 @@ def pull_context(
     max_sample_size: int | None = None,
     model_type: str | ModelType = ModelType.tabular,
     workspace_dir: str | Path = "engine-ws",
-    random_state: int | None = None,
 ):
-    # TODO: implement random_state
     t0 = time.time()
     workspace_dir = Path(workspace_dir)
     model_type = ModelType(model_type)
