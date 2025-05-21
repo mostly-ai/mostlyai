@@ -375,6 +375,7 @@ class Execution:
 
         # step: ENCODE_TRAINING_DATA
         execute_step_encode_training_data(
+            generator=generator,
             workspace_dir=workspace_dir,
             update_progress=update_progress_fn(step_code=StepCode.encode_training_data),
         )
@@ -520,6 +521,7 @@ class Execution:
             step="finalize_generation",
         )
 
+        # TODO: random state for non-context relationships
         usages = execute_step_finalize_generation(
             schema=schema,
             is_probe=False,
@@ -561,6 +563,7 @@ class Execution:
             step="finalize_generation",
         )
         # step: FINALIZE_GENERATION
+        # TODO: random state for non-context relationships
         _ = execute_step_finalize_generation(
             schema=schema,
             is_probe=True,
@@ -600,6 +603,7 @@ def execute_training_job(generator_id: str, home_dir: Path):
         write_generator_to_json(generator_dir, generator)
 
     try:
+        # TODO: random state for probing random samples
         _probe_random_samples(home_dir=home_dir, generator=generator)
     except Exception as e:
         _LOG.info(f"Failed to probe random samples: {e}")

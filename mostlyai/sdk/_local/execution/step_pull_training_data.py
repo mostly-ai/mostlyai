@@ -53,6 +53,7 @@ def execute_step_pull_training_data(
         max_sample_size=model_config.max_sample_size,
         workspace_dir=workspace_dir,
         update_progress=update_progress,
+        random_state=generator.random_state,
     )
 
     return tgt_table_columns, tgt_table_total_rows

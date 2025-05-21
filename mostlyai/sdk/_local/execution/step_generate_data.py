@@ -53,6 +53,7 @@ def execute_step_generate_data(
             max_sample_size=None,
             model_type=model_type,
             workspace_dir=workspace_dir,
+            random_state=generator.random_state,
         )
         ### TODO: FIX
         # Hack that enables single table, single text column generation
@@ -107,4 +108,5 @@ def execute_step_generate_data(
         fairness=fairness,
         workspace_dir=workspace_dir,
         update_progress=update_progress,
+        random_state=generator.random_state,
     )

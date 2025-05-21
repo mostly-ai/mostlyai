@@ -16,7 +16,7 @@ from collections.abc import Callable
 
 import pandas as pd
 
-from mostlyai.sdk.domain import ModelType
+from mostlyai.sdk.domain import ModelType, Generator
 from pathlib import Path
 
 _LOG = logging.getLogger(__name__)
@@ -24,6 +24,7 @@ _LOG = logging.getLogger(__name__)
 
 def execute_step_generate_model_report_data(
     *,
+    generator: Generator,
     workspace_dir: Path,
     model_type: ModelType,
     update_progress: Callable,
@@ -48,6 +49,7 @@ def execute_step_generate_model_report_data(
             output_path=ctx_input_path,
             max_sample_size=max_sample_size,
             ctx_primary_key=ctx_primary_key,
+            random_state=generator.random_state,
         )
         ctx_data = pd.read_parquet(ctx_input_path)
     else:
@@ -59,6 +61,7 @@ def execute_step_generate_model_report_data(
         sample_size=max_sample_size,
         workspace_dir=workspace_dir,
         update_progress=update_progress,
+        random_state=generator.random_state,
     )
 
 
@@ -80,8 +83,14 @@ def qa_sample_size_heuristic(tgt_stats: dict, model_type: ModelType) -> int:
 
 
 def _pull_context_for_report_generation(
-    *, ctx_data_path: Path, output_path: Path, max_sample_size: int, ctx_primary_key: str
+    *,
+    ctx_data_path: Path,
+    output_path: Path,
+    max_sample_size: int,
+    ctx_primary_key: str,
+    random_state: int | None = None,
 ):
+    # TODO: implement random_state
     ctx_trn_files = sorted(ctx_data_path.glob("part.*-trn.parquet"))
     ctx_val_files = sorted(ctx_data_path.glob("part.*-val.parquet"))
     # fetch keys alone first

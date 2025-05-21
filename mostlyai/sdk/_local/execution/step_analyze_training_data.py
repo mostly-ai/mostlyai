@@ -53,6 +53,7 @@ def execute_step_analyze_training_data(
         value_protection=model_config.value_protection,
         differential_privacy=differential_privacy,
         update_progress=update_progress,
+        random_state=generator.random_state,
     )
 
     # read stats
