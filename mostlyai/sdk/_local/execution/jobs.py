@@ -417,6 +417,7 @@ class Execution:
         if StepCode.generate_model_report_data in step_codes:
             # step: GENERATE_MODEL_REPORT_DATA
             execute_step_generate_model_report_data(
+                generator=generator,
                 workspace_dir=workspace_dir,
                 model_type=model_type,
                 update_progress=update_progress_fn(step_code=StepCode.generate_model_report_data),
