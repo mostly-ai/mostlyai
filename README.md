@@ -224,6 +224,27 @@ uv pip install --index-strategy unsafe-first-match -U torch==2.6.0+cpu torchvisi
 pip install -U torch==2.6.0+cpu torchvision==0.21.0+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
 ```
 
+### Start a MCP Server Locally
+
+1. Initialize the client with LOCAL mode on a TCP port
+
+```python
+from mostlyai.sdk import MostlyAI
+mostly = MostlyAI(local=True, local_port=8080)
+```
+
+2. Add the configuration to the MCP client
+
+```json
+{
+    "mcpServers": {
+      "mostlyai": {
+        "command": "npx",
+        "args": ["mcp-remote", "http://localhost:8080/api/v2/mcp"]
+      }
+    }
+}
+```
 
 > **Note for Google Colab users**: Installing any of the local extras (`mostlyai[local]`, or `mostlyai[local-gpu]`) will downgrade Numpy from 2.0 to Numpy 1.26, due to Opacus dependency. You'll need to restart the runtime after installation for the changes to take effect.
 
