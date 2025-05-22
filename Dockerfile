@@ -64,6 +64,7 @@ RUN uv pip install -e ".[local,databricks,googlebigquery,hive,mssql,mysql,oracle
 COPY ./tools/docker_entrypoint.py /opt/app-root/src/entrypoint.py
 
 USER nonroot
+WORKDIR /home/nonroot
 
 EXPOSE 8080
 ENTRYPOINT [ "python", "/opt/app-root/src/entrypoint.py" ]
