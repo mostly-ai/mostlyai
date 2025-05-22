@@ -74,10 +74,13 @@ class LocalServer:
         self._mcp_server = FastApiMCP(
             self._app,
             name="MOSTLY AI MCP",
+            # include_operations=None,  # replace it with the list of tool names to be included
+            # exclude_operations=None,  # replace it with the list of tool names to be excluded
             # describe_all_responses=True,
             # describe_full_response_schema=True,
         )
         self._mcp_server.mount()
+        print(f"Available MCP tools: {[t.name for t in self._mcp_server.tools]}")
         self.register_exception_handlers()
         self._server = None
         self._thread = None
