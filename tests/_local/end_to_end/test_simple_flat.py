@@ -205,13 +205,17 @@ def test_reproducibility(tmp_path):
     df = pd.DataFrame(
         {"a": np.random.choice(["a1", "a2", "a3", "a4"], size=150), "b": np.random.choice([1, 2, 3, 4], size=150)}
     )
-    config = {"random_state": 42, "tables": [{"name": "data", "data": df, "model_configuration": {"max_epochs": 0.1}}]}
-    g1 = mostly.train(config=config)
-    g2 = mostly.train(config=config)
+    g_config = {
+        "random_state": 42,
+        "tables": [{"name": "data", "data": df, "model_configuration": {"max_epochs": 0.1}}],
+    }
+    g1 = mostly.train(config=g_config)
+    g2 = mostly.train(config=g_config)
     assert g1.accuracy == g2.accuracy
-    sd1 = mostly.generate(g1, size=50)
-    sd2 = mostly.generate(g2, size=50)
+    sd_config = {"random_state": 43, "tables": [{"name": "data", "configuration": {"sample_size": 50}}]}
+    sd1 = mostly.generate(g1, config=sd_config)
+    sd2 = mostly.generate(g2, config=sd_config)
     assert sd1.data().equals(sd2.data())
-    pr1 = mostly.probe(g1, size=50)
-    pr2 = mostly.probe(g2, size=50)
+    pr1 = mostly.probe(g1, config=sd_config)
+    pr2 = mostly.probe(g2, config=sd_config)
     assert pr1.equals(pr2)

@@ -16,12 +16,13 @@ from pathlib import Path
 from collections.abc import Callable
 
 from mostlyai.sdk._local.execution.step_create_model_report import create_report
-from mostlyai.sdk.domain import Generator, ModelType, StepCode
+from mostlyai.sdk.domain import Generator, ModelType, StepCode, SyntheticDataset
 
 
 def execute_step_create_data_report(
     *,
     generator: Generator,
+    synthetic_dataset: SyntheticDataset,
     target_table_name: str,
     model_type: ModelType,
     workspace_dir: Path,
@@ -39,4 +40,5 @@ def execute_step_create_data_report(
         target_table_name=target_table_name,
         report_credits=report_credits,
         update_progress=update_progress,
+        random_state=synthetic_dataset.random_state,
     )

@@ -505,6 +505,7 @@ class Execution:
                 # step: GENERATE_DATA_REPORT
                 execute_step_create_data_report(
                     generator=generator,
+                    synthetic_dataset=synthetic_dataset,
                     target_table_name=step.target_table_name,
                     model_type=model_type,
                     workspace_dir=workspace_dir,
@@ -635,9 +636,9 @@ def execute_training_job(generator_id: str, home_dir: Path):
 def execute_generation_job(synthetic_dataset_id: str, home_dir: Path):
     synthetic_dataset_dir = home_dir / "synthetic-datasets" / synthetic_dataset_id
     synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
+    _set_random_state(synthetic_dataset.random_state)
     generator_dir = home_dir / "generators" / synthetic_dataset.generator_id
     generator = read_generator_from_json(generator_dir)
-    _set_random_state(generator.random_state)
     if generator.training_status != ProgressStatus.done:
         raise ValueError("Generator has not been trained yet")
     if synthetic_dataset.generation_status != ProgressStatus.new:
@@ -674,10 +675,10 @@ def execute_generation_job(synthetic_dataset_id: str, home_dir: Path):
 def execute_probing_job(synthetic_dataset_id: str, home_dir: Path) -> list[Probe]:
     synthetic_dataset_dir = home_dir / "synthetic-datasets" / synthetic_dataset_id
     synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
+    _set_random_state(synthetic_dataset.random_state)
     generator_id = synthetic_dataset.generator_id
     generator_dir = home_dir / "generators" / generator_id
     generator = read_generator_from_json(generator_dir)
-    _set_random_state(generator.random_state)
 
     # PLAN
     plan = make_synthetic_dataset_execution_plan(generator, synthetic_dataset, is_probe=True)
