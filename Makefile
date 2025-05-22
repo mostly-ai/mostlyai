@@ -46,7 +46,7 @@ HOST_LOCAL_DIR ?=
 
 .PHONY: docker-build
 docker-build: ## Build the docker image
-	DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t quay.io/mostlyai/sdk
+	docker buildx build . --platform=linux/amd64 -t quay.io/mostlyai/sdk
 
 .PHONY: docker-run
 docker-run: ## Start the docker container

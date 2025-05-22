@@ -251,7 +251,7 @@ As an alternative, you can also build a Docker image, which provides you with an
 
     If your environment is capable of executing Makefile (see [here](https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L47-L73)), then execute `make docker-build`.
 
-    Otherwise, use `DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t quay.io/mostlyai/sdk` instead.
+    Otherwise, use `docker buildx build . --platform=linux/amd64 -t quay.io/mostlyai/sdk` instead.
 
 </details>
 
