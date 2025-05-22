@@ -13,9 +13,7 @@
 # limitations under the License.
 import json
 import logging
-import os
 import shutil
-import struct
 import traceback
 from collections.abc import Callable
 from functools import partial
@@ -76,26 +74,14 @@ from mostlyai.sdk._local.execution.plan import (
     make_synthetic_dataset_execution_plan,
 )
 from mostlyai.sdk._local.progress import LocalProgressCallback, get_current_utc_time
+from mostlyai import engine
 
 _LOG = logging.getLogger(__name__)
 
 
 def _set_random_state(random_state: int | None = None):
-    def get_random_int_from_os() -> int:
-        # 32-bit, cryptographically secure random int from os
-        return int(struct.unpack("I", os.urandom(4))[0])
-
-    if random_state is not None:
-        _LOG.info(f"Global random_state set to `{random_state}`")
-
-    if random_state is None:
-        random_state = get_random_int_from_os()
-
-    import random
-    import numpy as np
-
-    random.seed(random_state)
-    np.random.seed(random_state)
+    # rely on engine to set global random state
+    engine.set_random_state(random_state)
 
 
 def _move_training_artefacts(generator_dir: Path, job_workspace_dir: Path):
@@ -397,7 +383,6 @@ class Execution:
 
         # step: ENCODE_TRAINING_DATA
         execute_step_encode_training_data(
-            generator=generator,
             workspace_dir=workspace_dir,
             update_progress=update_progress_fn(step_code=StepCode.encode_training_data),
         )
@@ -505,7 +490,6 @@ class Execution:
                 # step: GENERATE_DATA_REPORT
                 execute_step_create_data_report(
                     generator=generator,
-                    synthetic_dataset=synthetic_dataset,
                     target_table_name=step.target_table_name,
                     model_type=model_type,
                     workspace_dir=workspace_dir,

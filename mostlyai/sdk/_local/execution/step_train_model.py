@@ -69,5 +69,4 @@ def execute_step_train_model(
         workspace_dir=workspace_dir,
         upload_model_data_callback=upload_model_data_callback,
         update_progress=update_progress,
-        random_state=generator.random_state,
     )

@@ -17,12 +17,10 @@ from pathlib import Path
 from collections.abc import Callable
 
 from mostlyai.sdk._local.execution.migration import migrate_workspace
-from mostlyai.sdk.domain import Generator
 
 
 def execute_step_encode_training_data(
     *,
-    generator: Generator,
     workspace_dir: Path,
     update_progress: Callable,
 ):
@@ -36,5 +34,4 @@ def execute_step_encode_training_data(
     engine.encode(
         workspace_dir=workspace_dir,
         update_progress=update_progress,
-        random_state=generator.random_state,
     )

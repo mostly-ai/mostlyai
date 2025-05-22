@@ -107,5 +107,4 @@ def execute_step_generate_data(
         fairness=fairness,
         workspace_dir=workspace_dir,
         update_progress=update_progress,
-        random_state=synthetic_dataset.random_state,
     )
