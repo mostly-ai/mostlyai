@@ -16,7 +16,7 @@ from collections.abc import Callable
 
 import pandas as pd
 
-from mostlyai.sdk.domain import ModelType, Generator
+from mostlyai.sdk.domain import ModelType
 from pathlib import Path
 
 _LOG = logging.getLogger(__name__)
@@ -24,7 +24,6 @@ _LOG = logging.getLogger(__name__)
 
 def execute_step_generate_model_report_data(
     *,
-    generator: Generator,
     workspace_dir: Path,
     model_type: ModelType,
     update_progress: Callable,
