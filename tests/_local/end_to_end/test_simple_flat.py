@@ -219,9 +219,11 @@ def test_reproducibility(tmp_path):
     sd1 = mostly.generate(g1, config=sd_config)
     sd2 = mostly.generate(g2, config=sd_config)
     assert sd1.data().equals(sd2.data())
-    del sd_config["random_state"]
-    sd3 = mostly.generate(g1, config=sd_config)
-    assert not sd1.data().equals(sd3.data())
     pr1 = mostly.probe(g1, config=sd_config)
     pr2 = mostly.probe(g2, config=sd_config)
     assert pr1.equals(pr2)
+    del sd_config["random_state"]
+    sd3 = mostly.generate(g1, config=sd_config)
+    pr3 = mostly.probe(g1, config=sd_config)
+    assert not sd1.data().equals(sd3.data())
+    assert not pr1.equals(pr3)
