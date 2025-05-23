@@ -35,6 +35,7 @@ from mostlyai.sdk.domain import (
     SyntheticDatasetReportType,
     ModelType,
     SourceColumnConfig,
+    ConnectorAccessType,
 )
 
 
@@ -52,6 +53,8 @@ class Connector:
     def update(
         self,
         name: str | None = None,
+        description: str | None = None,
+        access_type: ConnectorAccessType | None = None,
         config: dict[str, Any] | None = None,
         secrets: dict[str, str] | None = None,
         ssl: dict[str, str] | None = None,
@@ -62,6 +65,8 @@ class Connector:
 
         Args:
             name (str | None): The name of the connector.
+            description (str | None): The description of the connector.
+            access_type (ConnectorAccessType | None): The access type of the connector.
             config (dict[str, Any] | None): Connector configuration.
             secrets (dict[str, str] | None): Secret values for the connector.
             ssl (dict[str, str] | None): SSL configuration for the connector.
@@ -69,6 +74,8 @@ class Connector:
         """
         patch_config = ConnectorPatchConfig(
             name=name,
+            description=description,
+            access_type=access_type,
             config=config,
             secrets=secrets,
             ssl=ssl,

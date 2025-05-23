@@ -24,7 +24,6 @@ enum_replace_dict = {
     "        'AUTO'": "        ModelEncodingType.auto",
     "        'NEW'": "        GeneratorCloneTrainingStatus.new",
     "        'CONSTANT'": "        RareCategoryReplacementMethod.constant",
-    "Field('SOURCE'": "Field(ConnectorAccessType.source",
 }
 
 
