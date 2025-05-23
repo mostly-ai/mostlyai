@@ -110,7 +110,7 @@ def test_simple_flat(tmp_path, encoding_types):
     connector_cfg = {
         "name": "Test 1",
         "type": "S3_STORAGE",
-        "access_type": "SOURCE",
+        "access_type": "READ_DATA",
         "config": {"accessKey": "XXX"},
         "secrets": {"secretKey": "a89fb747734f4162bf36c8f1e853355f2176b583013c26e83c3324e453fd2e7b"},
         "ssl": None,

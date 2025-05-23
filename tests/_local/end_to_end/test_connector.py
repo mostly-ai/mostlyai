@@ -77,7 +77,7 @@ def test_connector(tmp_path, sample_dataframe):
         config={
             "name": "Test 1",
             "type": "S3_STORAGE",
-            "access_type": "SOURCE",
+            "access_type": "READ_DATA",
             "config": {
                 "access_key": "XXX",
             },
@@ -88,8 +88,11 @@ def test_connector(tmp_path, sample_dataframe):
         test_connection=False,
     )
     assert c.name == "Test 1"
-    c.update(name="Test 2", test_connection=False)
+    assert c.access_type == "READ_DATA"
+    c.update(name="Test 2", description="Test 2", access_type="WRITE_DATA", test_connection=False)
     assert c.name == "Test 2"
+    assert c.description == "Test 2"
+    assert c.access_type == "WRITE_DATA"
 
     c.delete()
 

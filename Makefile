@@ -46,7 +46,7 @@ HOST_LOCAL_DIR ?=
 
 .PHONY: docker-build
 docker-build: ## Build the docker image
-	DOCKER_BUILDKIT=1 docker build . --platform=linux/amd64 -t mostlyai/mostlyai
+	docker buildx build . --platform=linux/amd64 -t quay.io/mostlyai/sdk
 
 .PHONY: docker-run
 docker-run: ## Start the docker container
@@ -56,7 +56,7 @@ docker-run: ## Start the docker container
 	@if [ -z "$(HOST_LOCAL_DIR)" ]; then \
             docker run --platform=linux/amd64 -it -p $(HOST_PORT):8080 \
             -v ~/.cache/huggingface:/home/nonroot/.cache/huggingface \
-            mostlyai/mostlyai ; \
+            quay.io/mostlyai/sdk ; \
         else \
             if [ ! -d $(HOST_LOCAL_DIR) ]; then \
                 echo "Failed to mount local_dir: $(HOST_LOCAL_DIR) does not exist"; \
@@ -68,7 +68,7 @@ docker-run: ## Start the docker container
               -v $$REAL_PATH:/home/nonroot/mostlyai \
               -v ~/.cache/huggingface:/home/nonroot/.cache/huggingface \
               -v /opt/app-root/src/mostlyai/.venv \
-              mostlyai/mostlyai ; \
+              quay.io/mostlyai/sdk ; \
         fi;
 
 # Default files to update

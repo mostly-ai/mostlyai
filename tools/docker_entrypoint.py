@@ -18,15 +18,6 @@ def main() -> None:
     Entrypoint for the Synthetic Data SDK Docker image.
     Can be called without any arguments which would start in a Local mode, running on port 8080.
     Alternatively, any arguments can be passed as key-value pairs and they will be used when initiating the MostlyAI class.
-
-    Example:
-    ```bash
-    docker run mostlyai/mostlyai
-    # Connected to http://127.0.0.1:8080 with 16 GB RAM, 11 CPUs, 0 GPUs available
-
-    docker run mostlyai/mostlyai --local=True --local_port=8082 --ssl_verify=False
-    # Connected to http://127.0.0.1:8082 with 16 GB RAM, 11 CPUs, 0 GPUs available
-    ```
     """
     from argparse import ArgumentParser
     from time import sleep
