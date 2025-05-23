@@ -50,16 +50,39 @@ FROM deps AS build
 ENV UV_SYSTEM_PYTHON=1
 ENV UV_FROZEN=true
 ENV UV_NO_CACHE=true
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 COPY ./uv.lock ./pyproject.toml ./
-RUN uv venv && \
-  uv pip install --index-strategy unsafe-first-match torch==2.6.0+cpu torchvision==0.21.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+RUN uv sync --no-editable --all-extras --no-extra local-gpu \
+  --no-install-package torch \
+  --no-install-package torchvision \
+  --no-install-package torchaudio \
+  --no-install-package vllm \
+  --no-install-package bitsandbytes \
+  --no-install-package nvidia-cudnn-cu12 \
+  --no-install-package nvidia-cublas-cu12 \
+  --no-install-package nvidia-cusparse-cu12 \
+  --no-install-package nvidia-cufft-cu12 \
+  --no-install-package nvidia-cuda-cupti-cu12 \
+  --no-install-package nvidia-nvjitlink-cu12 \
+  --no-install-package nvidia-cuda-nvrtc-cu12 \
+  --no-install-package nvidia-curand-cu12 \
+  --no-install-package nvidia-cusolver-cu12 \
+  --no-install-package nvidia-cusparselt-cu12 \
+  --no-install-package nvidia-nccl-cu12 \
+  --no-install-package ray \
+  --no-install-package cupy-cuda12x \
+  --no-install-package triton \
+  --no-install-package mostlyai \
+  --no-install-project
+
+RUN uv pip install --index-strategy unsafe-first-match torch==2.6.0+cpu torchvision==0.21.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
 
 COPY mostlyai ./mostlyai
 COPY README.md ./
-RUN uv pip install -e ".[local,databricks,googlebigquery,hive,mssql,mysql,oracle,postgres,snowflake]"
+RUN uv pip install -e .
 
 COPY ./tools/docker_entrypoint.py /opt/app-root/src/entrypoint.py
 
