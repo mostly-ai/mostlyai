@@ -51,6 +51,8 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
     def update(
         self,
         name: str | None = None,
+        description: str | None = None,
+        access_type: ConnectorAccessType | None = None,
         config: dict[str, Any] | None = None,
         secrets: dict[str, str] | None = None,
         ssl: dict[str, str] | None = None,
@@ -61,6 +63,8 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
 
         Args:
             name (str | None): The name of the connector.
+            description (str | None): The description of the connector.
+            access_type (ConnectorAccessType | None): The access type of the connector.
             config (dict[str, Any] | None): Connector configuration.
             secrets (dict[str, str] | None): Secret values for the connector.
             ssl (dict[str, str] | None): SSL configuration for the connector.
@@ -68,6 +72,8 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
         """
         patch_config = ConnectorPatchConfig(
             name=name,
+            description=description,
+            access_type=access_type,
             config=config,
             secrets=secrets,
             ssl=ssl,
@@ -313,7 +319,9 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
         if self.client.local:
             rich.print(f"Created generator [dodger_blue2]{gid}[/]")
         else:
-            rich.print(f"Created generator [link={self.client.base_url}/d/generators/{gid} dodger_blue2 underline]{gid}[/]")
+            rich.print(
+                f"Created generator [link={self.client.base_url}/d/generators/{gid} dodger_blue2 underline]{gid}[/]"
+            )
         return generator
 
     def reports(self, file_path: str | Path | None = None, display: bool = False) -> Path | None:
