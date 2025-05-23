@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 from mostlyai.sdk.client.exceptions import APIStatusError
 import pytest
 from mostlyai.sdk import MostlyAI
@@ -197,3 +198,32 @@ def test_simple_flat(tmp_path, encoding_types):
 
     # logs
     sd.generation.logs(tmp_path)
+
+
+def test_reproducibility(tmp_path):
+    mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
+    df = pd.DataFrame(
+        {"a": np.random.choice(["a1", "a2", "a3", "a4"], size=150), "b": np.random.choice([1, 2, 3, 4], size=150)}
+    )
+    g_config = {
+        "random_state": 42,
+        "tables": [{"name": "data", "data": df, "model_configuration": {"max_epochs": 0.1}}],
+    }
+    g1 = mostly.train(config=g_config)
+    g2 = mostly.train(config=g_config)
+    assert g1.accuracy == g2.accuracy
+    del g_config["random_state"]
+    g3 = mostly.train(config=g_config)
+    assert g1.accuracy != g3.accuracy
+    sd_config = {"random_state": 43, "tables": [{"name": "data", "configuration": {"sample_size": 50}}]}
+    sd1 = mostly.generate(g1, config=sd_config)
+    sd2 = mostly.generate(g2, config=sd_config)
+    assert sd1.data().equals(sd2.data())
+    pr1 = mostly.probe(g1, config=sd_config)
+    pr2 = mostly.probe(g2, config=sd_config)
+    assert pr1.equals(pr2)
+    del sd_config["random_state"]
+    sd3 = mostly.generate(g1, config=sd_config)
+    pr3 = mostly.probe(g1, config=sd_config)
+    assert not sd1.data().equals(sd3.data())
+    assert not pr1.equals(pr3)

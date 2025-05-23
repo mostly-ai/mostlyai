@@ -74,8 +74,14 @@ from mostlyai.sdk._local.execution.plan import (
     make_synthetic_dataset_execution_plan,
 )
 from mostlyai.sdk._local.progress import LocalProgressCallback, get_current_utc_time
+from mostlyai import engine
 
 _LOG = logging.getLogger(__name__)
+
+
+def _set_random_state(random_state: int | None = None):
+    # rely on engine to set global random state
+    engine.set_random_state(random_state)
 
 
 def _move_training_artefacts(generator_dir: Path, job_workspace_dir: Path):
@@ -576,9 +582,11 @@ class Execution:
 def execute_training_job(generator_id: str, home_dir: Path):
     generator_dir = home_dir / "generators" / generator_id
     generator = read_generator_from_json(generator_dir)
+    _set_random_state(generator.random_state)
     if generator.training_status not in [ProgressStatus.new, ProgressStatus.continue_]:
         raise ValueError("Generator has already been trained")
     _mark_in_progress(resource=generator, resource_dir=generator_dir)
+
     # PLAN
     plan = make_generator_execution_plan(generator)
     # EXECUTE
@@ -611,14 +619,15 @@ def execute_training_job(generator_id: str, home_dir: Path):
 def execute_generation_job(synthetic_dataset_id: str, home_dir: Path):
     synthetic_dataset_dir = home_dir / "synthetic-datasets" / synthetic_dataset_id
     synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
+    _set_random_state(synthetic_dataset.random_state)
     generator_dir = home_dir / "generators" / synthetic_dataset.generator_id
     generator = read_generator_from_json(generator_dir)
     if generator.training_status != ProgressStatus.done:
         raise ValueError("Generator has not been trained yet")
     if synthetic_dataset.generation_status != ProgressStatus.new:
         raise ValueError("Synthetic Dataset has already been generated")
-
     _mark_in_progress(resource=synthetic_dataset, resource_dir=synthetic_dataset_dir)
+
     # PLAN
     plan = make_synthetic_dataset_execution_plan(generator, synthetic_dataset)
     # EXECUTE
@@ -649,6 +658,7 @@ def execute_generation_job(synthetic_dataset_id: str, home_dir: Path):
 def execute_probing_job(synthetic_dataset_id: str, home_dir: Path) -> list[Probe]:
     synthetic_dataset_dir = home_dir / "synthetic-datasets" / synthetic_dataset_id
     synthetic_dataset = read_synthetic_dataset_from_json(synthetic_dataset_dir)
+    _set_random_state(synthetic_dataset.random_state)
     generator_id = synthetic_dataset.generator_id
     generator_dir = home_dir / "generators" / generator_id
     generator = read_generator_from_json(generator_dir)
