@@ -43,6 +43,7 @@ dependencies = [
     "ipywidgets>=8.1.0",
     "duckdb>=1.2.1",
     "sqlparse>=0.5.3",
+    "fastmcp @ git+https://github.com/shuangwu5/fastmcp.git@prototype",
 ]
 
 [project.optional-dependencies]
