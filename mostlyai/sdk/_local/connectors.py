@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import uuid
 from pathlib import Path
 from io import BytesIO
 import pandas as pd
@@ -117,6 +117,8 @@ def query_data_from_connector(connector: Connector, sql: str) -> pd.DataFrame:
 
     try:
         data_container = create_container_from_connector(connector)
-        return data_container.query(sql)
+        df = data_container.query(sql)
+        # sanitize for pyarrow
+        return df.applymap(lambda x: str(x) if isinstance(x, uuid.UUID) else x)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
