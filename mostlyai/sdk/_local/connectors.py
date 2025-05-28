@@ -76,17 +76,22 @@ def _data_table_from_connector_and_location(connector: Connector, location: str,
 
 
 def _sanitize_for_pyarrow(df: pd.DataFrame) -> pd.DataFrame:
-    return df.applymap(
-        lambda x: x.tolist()
-        if isinstance(x, np.ndarray)
-        else float(x)
-        if isinstance(x, decimal.Decimal)
-        else x.value
-        if isinstance(x, enum.Enum)
-        else str(x)
-        if isinstance(x, uuid.UUID)
-        else x
-    )
+    result = df.copy()
+
+    for col in df.columns:
+        sample = df[col].dropna().iloc[0] if not df[col].empty else None
+
+        if sample is not None:
+            if isinstance(sample, np.ndarray):
+                result[col] = df[col].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
+            elif isinstance(sample, decimal.Decimal):
+                result[col] = df[col].astype(float)
+            elif isinstance(sample, enum.Enum):
+                result[col] = df[col].apply(lambda x: x.value if isinstance(x, enum.Enum) else x)
+            elif isinstance(sample, uuid.UUID):
+                result[col] = df[col].astype(str)
+
+    return result
 
 
 def read_data_from_connector(connector: Connector, config: ConnectorReadDataConfig) -> pd.DataFrame:
