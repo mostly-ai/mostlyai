@@ -111,6 +111,7 @@ class MostlyAI(_MostlyBaseClient):
         local: bool | None = None,
         local_dir: str | Path | None = None,
         local_port: int | None = None,
+        mcp_port: int | None = None,
         timeout: float = 60.0,
         ssl_verify: bool = True,
         quiet: bool = False,
@@ -223,6 +224,22 @@ class MostlyAI(_MostlyBaseClient):
         else:
             raise ValueError("Invalid SDK mode")
 
+        if mcp_port:
+            from mostlyai.sdk._local.mcp_server import MCPServer
+
+            api_client_kwargs = {
+                "base_url": self.base_url,
+                "headers": self.headers,
+                "uds": uds,
+                "timeout": self.timeout,
+                "verify": self.ssl_verify,
+            }
+            self.mcp_server = MCPServer(
+                api_client_kwargs=api_client_kwargs,
+                port=mcp_port,
+            )
+            mcp_server_url = f"http://localhost:{mcp_port}/sse"
+            rich.print(f"Started MCP server on [link={mcp_server_url} dodger_blue2 underline]{mcp_server_url}[/]")
         if quiet:
             rich.get_console().quiet = True
 

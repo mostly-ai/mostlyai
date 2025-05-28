@@ -74,9 +74,10 @@ class _MostlyBaseClient:
         self.timeout = timeout
         self.ssl_verify = ssl_verify
 
+    @property
     def headers(self):
         return {
-            "Accept": "application/json",
+            "Accept": "application/json, application/octet-stream",
             "X-MOSTLY-API-KEY": self.api_key,
         }
 
@@ -120,7 +121,7 @@ class _MostlyBaseClient:
         full_path = [self.base_url] + prefix + path_list
         full_url = "/".join(full_path)
 
-        kwargs["headers"] = self.headers() | kwargs.get("headers", {})
+        kwargs["headers"] = self.headers | kwargs.get("headers", {})
 
         if (request_size := _get_total_size(kwargs)) > MAX_REQUEST_SIZE:
             warnings.warn(f"The overall {request_size=} exceeds {MAX_REQUEST_SIZE}.", UserWarning)
