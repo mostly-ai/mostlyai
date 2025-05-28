@@ -227,6 +227,28 @@ pip install -U torch==2.6.0+cpu torchvision==0.21.0+cpu 'mostlyai[local]' --extr
 
 > **Note for Google Colab users**: Installing any of the local extras (`mostlyai[local]`, or `mostlyai[local-gpu]`) will downgrade Numpy from 2.0 to Numpy 1.26, due to Opacus dependency. You'll need to restart the runtime after installation for the changes to take effect.
 
+### Start a MCP Server Locally
+
+1. Initialize the client with an extra parameter `mcp_port`
+
+```python
+from mostlyai.sdk import MostlyAI
+mostly = MostlyAI(mcp_port=8081)
+```
+
+2. Add the configuration to your MCP client
+
+```json
+{
+    "mcpServers": {
+      "mostlyai": {
+        "command": "npx",
+        "args": ["mcp-remote", "http://localhost:8081/sse"]
+      }
+    }
+}
+```
+
 ### Data Connectors
 
 Add any of the following extras for further data connectors support in LOCAL mode: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`. E.g.
