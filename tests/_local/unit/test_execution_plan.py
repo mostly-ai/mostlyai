@@ -91,6 +91,7 @@ def test_make_synthetic_dataset_execution_plan():
                         {"name": "order_id", "model_encoding_type": "AUTO"},
                     ],
                     "foreign_keys": [{"column": "order_id", "referenced_table": "orders", "is_context": True}],
+                    "language_model_configuration": {"enable_model_report": False},
                 },
             ],
         }
@@ -125,7 +126,7 @@ def test_make_synthetic_dataset_execution_plan():
             Step(step_code=StepCode.generate_data_tabular, target_table_name="order_items"),
             Step(step_code=StepCode.create_data_report_tabular, target_table_name="order_items"),
             Step(step_code=StepCode.generate_data_language, target_table_name="order_items"),
-            Step(step_code=StepCode.create_data_report_language, target_table_name="order_items"),
+            # No data report for order_items table
             Step(step_code=StepCode.generate_data_tabular, target_table_name="prices"),
             Step(step_code=StepCode.create_data_report_tabular, target_table_name="prices"),
             Step(step_code=StepCode.finalize_generation),

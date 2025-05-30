@@ -159,7 +159,7 @@ def make_generator_execution_plan(generator: Generator) -> ExecutionPlan:
 
 
 def make_synthetic_dataset_execution_plan(
-    generator: Generator, synthetic_dataset: SyntheticDataset | None = None, is_probe: bool = False
+    generator: Generator, synthetic_dataset: SyntheticDataset, is_probe: bool = False
 ) -> ExecutionPlan:
     execution_plan = ExecutionPlan(tasks=[])
     sync_task = execution_plan.add_task(TaskType.sync)
@@ -168,20 +168,23 @@ def make_synthetic_dataset_execution_plan(
     generate_steps = []
 
     def add_generation_steps(table: SourceTable):
-        if synthetic_dataset:
-            synthetic_table = next(t for t in synthetic_dataset.tables if t.name == table.name)
-            enable_data_report = synthetic_table.configuration.enable_data_report
-        else:
-            enable_data_report = True
+        synthetic_table = next(t for t in synthetic_dataset.tables if t.name == table.name)
+        enable_tabular_model_report = (
+            table.tabular_model_configuration.enable_model_report if table.tabular_model_configuration else True
+        )
+        enable_language_model_report = (
+            table.language_model_configuration.enable_model_report if table.language_model_configuration else True
+        )
+        enable_data_report = synthetic_table.configuration.enable_data_report
         if has_tabular_model(table):
             steps = [Step(step_code=StepCode.generate_data_tabular, target_table_name=table.name)]
-            if not is_probe and enable_data_report:
+            if not is_probe and enable_data_report and enable_tabular_model_report:
                 steps.append(Step(step_code=StepCode.create_data_report_tabular, target_table_name=table.name))
             generate_steps.extend(steps)
 
         if has_language_model(table):
             steps = [Step(step_code=StepCode.generate_data_language, target_table_name=table.name)]
-            if not is_probe and enable_data_report:
+            if not is_probe and enable_data_report and enable_language_model_report:
                 steps.append(Step(step_code=StepCode.create_data_report_language, target_table_name=table.name))
             generate_steps.extend(steps)
 
