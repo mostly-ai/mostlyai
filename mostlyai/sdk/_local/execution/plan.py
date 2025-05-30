@@ -57,16 +57,20 @@ def has_language_model(table: SourceTable) -> bool:
 
 
 def get_model_type_generation_steps_map(
-    enable_data_report: bool,
-    enable_tabular_model_report: bool,
-    enable_language_model_report: bool,
+    enable_data_report: bool, table: SourceTable
 ) -> dict[ModelType, list[StepCode]]:
-    return {
-        ModelType.tabular: [StepCode.generate_data_tabular]
-        + ([StepCode.create_data_report_tabular] if enable_data_report and enable_tabular_model_report else []),
-        ModelType.language: [StepCode.generate_data_language]
-        + ([StepCode.create_data_report_language] if enable_data_report and enable_language_model_report else []),
+    steps = {
+        ModelType.tabular: [StepCode.generate_data_tabular],
+        ModelType.language: [StepCode.generate_data_language],
     }
+    if enable_data_report and has_tabular_model(table):
+        enable_tabular_model_report = table.tabular_model_configuration.enable_model_report
+        if enable_tabular_model_report:
+            steps[ModelType.tabular].append(StepCode.create_data_report_tabular)
+    if enable_data_report and has_language_model(table):
+        enable_language_model_report = table.language_model_configuration.enable_model_report
+        if enable_language_model_report:
+            steps[ModelType.language].append(StepCode.create_data_report_language)
 
 
 class Step(BaseModel):
