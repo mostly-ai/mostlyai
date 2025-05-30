@@ -48,13 +48,6 @@ FINALIZE_GENERATION_TASK_STEPS: list[StepCode] = [
 ]
 
 
-def _get_keys(table: SourceTable) -> list[str]:
-    keys = [fk.column for fk in (table.foreign_keys or [])]
-    if table.primary_key:
-        keys.append(table.primary_key)
-    return keys
-
-
 def has_tabular_model(table: SourceTable) -> bool:
     return table.tabular_model_configuration is not None
 
@@ -63,12 +56,16 @@ def has_language_model(table: SourceTable) -> bool:
     return table.language_model_configuration is not None
 
 
-def get_model_type_generation_steps_map(include_report: bool) -> dict[ModelType, list[StepCode]]:
+def get_model_type_generation_steps_map(
+    enable_data_report: bool,
+    enable_tabular_model_report: bool,
+    enable_language_model_report: bool,
+) -> dict[ModelType, list[StepCode]]:
     return {
         ModelType.tabular: [StepCode.generate_data_tabular]
-        + ([StepCode.create_data_report_tabular] if include_report else []),
+        + ([StepCode.create_data_report_tabular] if enable_data_report and enable_tabular_model_report else []),
         ModelType.language: [StepCode.generate_data_language]
-        + ([StepCode.create_data_report_language] if include_report else []),
+        + ([StepCode.create_data_report_language] if enable_data_report and enable_language_model_report else []),
     }
 
 
@@ -169,20 +166,16 @@ def make_synthetic_dataset_execution_plan(
 
     def add_generation_steps(table: SourceTable):
         synthetic_table = next(t for t in synthetic_dataset.tables if t.name == table.name)
-        enable_tabular_model_report = (
-            table.tabular_model_configuration.enable_model_report if table.tabular_model_configuration else True
-        )
-        enable_language_model_report = (
-            table.language_model_configuration.enable_model_report if table.language_model_configuration else True
-        )
         enable_data_report = synthetic_table.configuration.enable_data_report
         if has_tabular_model(table):
+            enable_tabular_model_report = table.tabular_model_configuration.enable_model_report
             steps = [Step(step_code=StepCode.generate_data_tabular, target_table_name=table.name)]
             if not is_probe and enable_data_report and enable_tabular_model_report:
                 steps.append(Step(step_code=StepCode.create_data_report_tabular, target_table_name=table.name))
             generate_steps.extend(steps)
 
         if has_language_model(table):
+            enable_language_model_report = table.language_model_configuration.enable_model_report
             steps = [Step(step_code=StepCode.generate_data_language, target_table_name=table.name)]
             if not is_probe and enable_data_report and enable_language_model_report:
                 steps.append(Step(step_code=StepCode.create_data_report_language, target_table_name=table.name))
