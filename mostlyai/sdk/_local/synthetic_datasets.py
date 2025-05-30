@@ -118,11 +118,10 @@ def create_synthetic_dataset(
     # create job progress
     progress_steps: list[ProgressStep] = []
     for table in generator.tables:
-        gen_table = next(t for t in generator.tables if t.name == table.name)
         sd_table = next(t for t in config.tables if t.name == table.name)
         steps_map = get_model_type_generation_steps_map(
             enable_data_report=sd_table.configuration.enable_data_report,
-            table=gen_table,
+            table=table,
         )
         model_types = [
             model_type

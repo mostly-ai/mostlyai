@@ -71,6 +71,7 @@ def get_model_type_generation_steps_map(
         enable_language_model_report = table.language_model_configuration.enable_model_report
         if enable_language_model_report:
             steps[ModelType.language].append(StepCode.create_data_report_language)
+    return steps
 
 
 class Step(BaseModel):
