@@ -224,7 +224,7 @@ def test_make_generator_execution_plan():
 
 def test_make_synthetic_dataset_execution_plan_with_probe():
     model_config = arbitrary_model_config()
-    config = Generator(
+    generator = Generator(
         name="test_probe_dataset",
         training_status=ProgressStatus.in_progress,
         tables=[
@@ -259,8 +259,13 @@ def test_make_synthetic_dataset_execution_plan_with_probe():
             ),
         ],
     )
+    synthetic_dataset = SyntheticDataset(
+        tables=[
+            SyntheticTable(name=table.name, configuration=SyntheticTableConfiguration()) for table in generator.tables
+        ]
+    )
 
-    execution_plan = make_synthetic_dataset_execution_plan(config, is_probe=True)
+    execution_plan = make_synthetic_dataset_execution_plan(generator, synthetic_dataset, is_probe=True)
 
     expected_execution_plan = ExecutionPlan(tasks=[])
     sync_task = expected_execution_plan.add_task(TaskType.sync)
