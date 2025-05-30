@@ -586,10 +586,11 @@ class TestPullSequential(DisableMaskKeys):
         assert ctx_data.shape == (0, ctx_df.shape[1])
         assert tgt_data.shape == (0, tgt_df.shape[1])
 
-    def test_pull_key_dtype_mismatch(self, tmp_path, two_table_data):
-        # test scenario where PK is a string, and FK is an integer
+    @pytest.mark.parametrize("pk_dtype", ["string", "float"])
+    def test_pull_key_dtype_mismatch(self, tmp_path, two_table_data, pk_dtype):
+        # test scenario where PK is a {pk_dtype}, and FK is an integer
         ctx_df, tgt_df = two_table_data
-        ctx_df["id"] = ctx_df["id"].astype("string")
+        ctx_df["id"] = ctx_df["id"].astype(pk_dtype)
         schema = self.create_two_table_schema(tmp_path, ctx_df, tgt_df)
         # pull data
         pull(tgt="tgt", schema=schema, workspace_dir=tmp_path)

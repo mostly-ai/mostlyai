@@ -322,6 +322,10 @@ def coerce_dtype_by_encoding(
         x = x.astype(STRING)
     elif encoding_type is None or encoding_type == ModelEncodingType.auto:
         # treat keys as strings
+        if pd.api.types.is_float_dtype(x):
+            # convert float values that represent whole numbers to integers
+            if x.dropna().apply(lambda v: float(v).is_integer()).all():
+                x = x.astype("Int64")
         x = x.astype(STRING)
     else:
         raise MostlyDataException(f"Incorrect ModelEncodingType {encoding_type} for {x.name}.")
