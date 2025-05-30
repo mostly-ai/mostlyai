@@ -207,7 +207,7 @@ def test_reproducibility(tmp_path):
     )
     g_config = {
         "random_state": 42,
-        "tables": [{"name": "data", "data": df, "model_configuration": {"max_epochs": 0.1}}],
+        "tables": [{"name": "data", "data": df, "tabular_model_configuration": {"max_epochs": 0.1}}],
     }
     g1 = mostly.train(config=g_config)
     g2 = mostly.train(config=g_config)
