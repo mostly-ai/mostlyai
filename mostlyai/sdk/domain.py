@@ -3643,7 +3643,7 @@ class _SyntheticTableConfigValidation(CustomBaseModel):
             ]
             if cfg
         ]
-        if not all(cfg.enable_model_report for cfg in configs):
+        if all(cfg.enable_model_report is False for cfg in configs):
             if validation.synthetic_table.configuration is not None:
                 validation.synthetic_table.configuration.enable_data_report = False
         return validation
