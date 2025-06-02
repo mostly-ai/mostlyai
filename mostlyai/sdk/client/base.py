@@ -77,7 +77,7 @@ class _MostlyBaseClient:
     @property
     def headers(self):
         return {
-            "Accept": "application/json, application/octet-stream",
+            "Accept": "application/json",
             "X-MOSTLY-API-KEY": self.api_key,
         }
 

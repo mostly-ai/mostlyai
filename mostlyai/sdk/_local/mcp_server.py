@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import atexit
 import re
 from threading import Thread
 import time
@@ -55,8 +54,8 @@ class MCPServer:
             name="MOSTLY AI MCP Server",
             # temp: only include endpoints related to connectors
             route_maps=[
-                RouteMap(methods="*", pattern=r".*\/connectors.*", mcp_type=MCPType.TOOL),
-                RouteMap(methods="*", pattern=r"^(?!.*\/connectors).*", mcp_type=MCPType.EXCLUDE),
+                RouteMap(methods="*", pattern=r".*\/connector.*", mcp_type=MCPType.TOOL),
+                RouteMap(methods="*", pattern=r"^(?!.*\/connector).*", mcp_type=MCPType.EXCLUDE),
             ],
             log_level="ERROR",
         )
@@ -66,19 +65,10 @@ class MCPServer:
         self._server.run(transport="sse", host="127.0.0.1", port=self.port, log_level="error")
 
     def start(self):
-        if not self._server:
+        if not self._server and not self._started:
             self._create_server()
             self._thread = Thread(target=self._run_server, daemon=True)
             self._thread.start()
             self._started = True
-            atexit.register(self.stop)
             # give the server a moment to start
-            time.sleep(1)
-
-    def stop(self):
-        if self._server and self._started:
-            self._thread.join()
-            self._started = False
-
-    def __del__(self):
-        self.stop()
+            time.sleep(3)
