@@ -26,8 +26,8 @@ import pandas as pd
 import pyarrow as pa
 
 from mostlyai.sdk._data.exceptions import MostlyDataException
-from mostlyai.sdk.domain import ModelEncodingType
 from mostlyai.sdk._data.util.common import absorb_errors
+from mostlyai.sdk.domain import ModelEncodingType
 
 STRING = "string[pyarrow]"  # This utilizes pyarrow's large string type since pandas 2.2
 INT64 = "int64[pyarrow]"

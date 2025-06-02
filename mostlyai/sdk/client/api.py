@@ -21,33 +21,33 @@ import rich
 from rich.prompt import Prompt
 
 from mostlyai import sdk
-from mostlyai.sdk.client.base import GET, _MostlyBaseClient, DEFAULT_BASE_URL
-from mostlyai.sdk.client.exceptions import APIError
-from mostlyai.sdk.client.connectors import _MostlyConnectorsClient
-from mostlyai.sdk.client.generators import _MostlyGeneratorsClient
-from mostlyai.sdk.domain import (
-    Connector,
-    CurrentUser,
-    Generator,
-    SyntheticDataset,
-    ModelType,
-    ConnectorConfig,
-    GeneratorConfig,
-    SourceTableConfig,
-    SyntheticDatasetConfig,
-    SyntheticProbeConfig,
-    AboutService,
+from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
+from mostlyai.sdk.client._utils import (
+    Seed,
+    check_local_mode_available,
+    harmonize_sd_config,
+    validate_base_url,
 )
+from mostlyai.sdk.client.base import DEFAULT_BASE_URL, GET, _MostlyBaseClient
+from mostlyai.sdk.client.connectors import _MostlyConnectorsClient
+from mostlyai.sdk.client.exceptions import APIError
+from mostlyai.sdk.client.generators import _MostlyGeneratorsClient
 from mostlyai.sdk.client.synthetic_datasets import (
     _MostlySyntheticDatasetsClient,
     _MostlySyntheticProbesClient,
 )
-from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
-from mostlyai.sdk.client._utils import (
-    harmonize_sd_config,
-    Seed,
-    check_local_mode_available,
-    validate_base_url,
+from mostlyai.sdk.domain import (
+    AboutService,
+    Connector,
+    ConnectorConfig,
+    CurrentUser,
+    Generator,
+    GeneratorConfig,
+    ModelType,
+    SourceTableConfig,
+    SyntheticDataset,
+    SyntheticDatasetConfig,
+    SyntheticProbeConfig,
 )
 
 

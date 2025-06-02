@@ -14,9 +14,10 @@
 
 # helper script to convert CSV files into a single SQLite database file
 
-import sqlalchemy as sa
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
+import sqlalchemy as sa
 
 
 def create_table_sql(df, tbl_name):

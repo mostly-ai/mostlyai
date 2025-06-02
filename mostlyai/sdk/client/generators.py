@@ -12,18 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import re
+import tempfile
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
-from collections.abc import Iterator
-import re
-import requests
 from urllib.parse import urlparse
-import tempfile
-import os
 
 import pandas as pd
+import requests
 import rich
 
+from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
+from mostlyai.sdk.client._utils import job_wait
 from mostlyai.sdk.client.base import (
     DELETE,
     GET,
@@ -34,14 +36,12 @@ from mostlyai.sdk.client.base import (
 )
 from mostlyai.sdk.domain import (
     Generator,
-    JobProgress,
-    GeneratorListItem,
     GeneratorConfig,
+    GeneratorListItem,
     GeneratorPatchConfig,
+    JobProgress,
     ModelType,
 )
-from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
-from mostlyai.sdk.client._utils import job_wait
 
 
 class _MostlyGeneratorsClient(_MostlyBaseClient):

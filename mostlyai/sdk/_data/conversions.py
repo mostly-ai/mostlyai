@@ -16,10 +16,10 @@ import logging
 from pydoc import locate
 from typing import Any
 
-from mostlyai.sdk.domain import Connector, ConnectorType
 from mostlyai.sdk._data.db.base import SqlAlchemyContainer
 from mostlyai.sdk._data.file.base import FileContainer
 from mostlyai.sdk._data.file.container.bucket_based import BucketBasedContainer
+from mostlyai.sdk.domain import Connector, ConnectorType
 
 _LOG = logging.getLogger(__name__)
 

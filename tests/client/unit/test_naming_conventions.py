@@ -17,8 +17,8 @@ from datamodel_code_generator.reference import camel_to_snake
 
 from mostlyai.sdk.client._naming_conventions import (
     _snake_to_camel,
-    map_snake_to_camel_case,
     map_camel_to_snake_case,
+    map_snake_to_camel_case,
 )
 
 

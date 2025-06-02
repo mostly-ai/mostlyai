@@ -13,8 +13,8 @@
 # limitations under the License.
 
 
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 
 from mostlyai.sdk._local.execution.migration import migrate_workspace
 

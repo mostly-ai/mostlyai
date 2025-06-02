@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import time
-from pathlib import Path
-from typing import Union, Any
 from collections.abc import Callable
+from pathlib import Path
+from threading import Event, Thread
+from typing import Any, Union
 from urllib.parse import urlparse
-from threading import Thread, Event
 
 import pandas as pd
 import rich
@@ -25,28 +25,28 @@ from rich import box
 from rich.console import RenderableType
 from rich.live import Live
 from rich.progress import (
-    Progress,
-    TextColumn,
     BarColumn,
+    Progress,
     TaskProgressColumn,
+    TextColumn,
     TimeElapsedColumn,
 )
 from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 
+from mostlyai.sdk.client._naming_conventions import map_camel_to_snake_case
 from mostlyai.sdk.client.exceptions import APIError
 from mostlyai.sdk.domain import (
-    StepCode,
-    ProgressStatus,
     Generator,
+    GeneratorListItem,
+    ProgressStatus,
+    StepCode,
     SyntheticDatasetConfig,
     SyntheticProbeConfig,
-    SyntheticTableConfiguration,
     SyntheticTableConfig,
-    GeneratorListItem,
+    SyntheticTableConfiguration,
 )
-from mostlyai.sdk.client._naming_conventions import map_camel_to_snake_case
 
 
 def check_local_mode_available() -> None:

@@ -12,21 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import atexit
+import os
 import tempfile
 import time
 from pathlib import Path
-
 from threading import Thread
 
+import rich
+import uvicorn
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
-import rich
-from fastapi import FastAPI
-import uvicorn
 
 from mostlyai.sdk._local.routes import Routes
-
-import os
 
 
 class LocalServer:

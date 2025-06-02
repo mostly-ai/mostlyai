@@ -13,17 +13,18 @@
 # limitations under the License.
 
 import csv
+import datetime
 import os
 import random
 import tempfile
-import datetime
 
+import duckdb
 import numpy as np
 import pandas as pd
 import pyarrow.dataset as ds
 import pytest
+
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
-import duckdb
 
 
 def test_read_data(sample_csv_file):

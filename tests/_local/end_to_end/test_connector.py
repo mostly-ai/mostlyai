@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mostlyai.sdk import MostlyAI
-import pandas as pd
-from sqlalchemy import create_engine
-import pytest
 import numpy as np
+import pandas as pd
+import pytest
+from sqlalchemy import create_engine
+
+from mostlyai.sdk import MostlyAI
 
 
 @pytest.fixture

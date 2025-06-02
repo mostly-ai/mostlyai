@@ -15,10 +15,10 @@
 import logging
 from typing import Any
 
+import duckdb
 import gcsfs
 from cloudpathlib.gs import GSClient, GSPath
 from google.cloud import storage
-import duckdb
 
 from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.file.container.bucket_based import BucketBasedContainer

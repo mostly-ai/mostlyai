@@ -15,8 +15,8 @@
 
 import pandas as pd
 
-from mostlyai.sdk._data.file.container.bucket_based import BucketBasedContainer
 from mostlyai.sdk._data.file.base import LocalFileContainer
+from mostlyai.sdk._data.file.container.bucket_based import BucketBasedContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.file.utils import read_data_table_from_path

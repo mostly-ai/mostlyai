@@ -20,20 +20,19 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 import pytest
+from pandas.testing import assert_series_equal
 
 from mostlyai.sdk._data import pull, pull_context
-from mostlyai.sdk.domain import ModelEncodingType
 from mostlyai.sdk._data.base import (
-    Schema,
     ForeignKey,
+    Schema,
 )
-from mostlyai.sdk._data.util.common import TEMPORARY_PRIMARY_KEY
 from mostlyai.sdk._data.dtype import (
+    STRING,
     is_float_dtype,
     is_integer_dtype,
     is_string_dtype,
     is_timestamp_dtype,
-    STRING,
 )
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
@@ -42,8 +41,8 @@ from mostlyai.sdk._data.pull_utils import (
     determine_n_partitions,
     mask_keys,
 )
-from pandas.testing import assert_series_equal
-
+from mostlyai.sdk._data.util.common import TEMPORARY_PRIMARY_KEY
+from mostlyai.sdk.domain import ModelEncodingType
 
 PULL_MODULE = "mostlyai.sdk._data.pull_utils"
 

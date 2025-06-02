@@ -12,30 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mostlyai.sdk.domain import (
-    ModelEncodingType,
-    Generator,
-    SourceColumn,
-    SourceTable,
-    SourceForeignKey,
-    ProgressStatus,
-    GeneratorConfig,
-    TaskType,
-    StepCode,
-    SyntheticTableConfiguration,
-)
 from mostlyai.sdk._local.execution.plan import (
-    ExecutionPlan,
-    make_synthetic_dataset_execution_plan,
-    make_generator_execution_plan,
-    Step,
-    TRAINING_TASK_STEPS,
     TRAINING_TASK_REPORT_STEPS,
+    TRAINING_TASK_STEPS,
+    ExecutionPlan,
+    Step,
+    make_generator_execution_plan,
+    make_synthetic_dataset_execution_plan,
 )
 from mostlyai.sdk.domain import (
+    Generator,
+    GeneratorConfig,
     ModelConfiguration,
+    ModelEncodingType,
+    ProgressStatus,
+    SourceColumn,
+    SourceForeignKey,
+    SourceTable,
+    StepCode,
     SyntheticDataset,
     SyntheticTable,
+    SyntheticTableConfiguration,
+    TaskType,
 )
 
 

@@ -26,30 +26,30 @@ import numpy as np
 import pandas as pd
 import xxhash
 
-from mostlyai.sdk.domain import ModelType, ModelEncodingType
 from mostlyai.sdk._data.base import (
     ContextRelation,
     DataIdentifier,
-    Schema,
     NonContextRelation,
+    Schema,
 )
-from mostlyai.sdk._data.util.common import TEMPORARY_PRIMARY_KEY
 from mostlyai.sdk._data.context import (
     add_gpc_context,
     add_ns_context,
-    get_ns_prev_cur_name,
     add_scp_context,
     drop_unsupported_encoding_types_from_context,
+    get_ns_prev_cur_name,
     get_table_chain_to_tgt,
 )
 from mostlyai.sdk._data.dtype import STRING
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
-from mostlyai.sdk._data.non_context import handle_non_context_relations
 from mostlyai.sdk._data.language_model import (
-    split_language_model,
     drop_language_columns_in_target,
+    split_language_model,
 )
+from mostlyai.sdk._data.non_context import handle_non_context_relations
 from mostlyai.sdk._data.progress_callback import ProgressCallbackWrapper
+from mostlyai.sdk._data.util.common import TEMPORARY_PRIMARY_KEY
+from mostlyai.sdk.domain import ModelEncodingType, ModelType
 
 _LOG = logging.getLogger(__name__)
 

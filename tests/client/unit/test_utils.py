@@ -18,34 +18,34 @@ import math
 import tempfile
 import uuid
 from pathlib import Path
-from unittest.mock import patch, Mock, ANY
+from unittest.mock import ANY, Mock, patch
 
 import pandas as pd
 import pytest
 from rich.console import Console
 
 from mostlyai.sdk._local.progress import get_current_utc_time
-from mostlyai.sdk.domain import (
-    JobProgress,
-    ProgressStatus,
-    ProgressStep,
-    ProgressValue,
-    StepCode,
-    Generator,
-    Metadata,
-    SourceTable,
-    SyntheticDatasetConfig,
-    SyntheticTableConfig,
-    SyntheticProbeConfig,
-    SourceForeignKey,
-)
 from mostlyai.sdk.client._base_utils import (
     convert_to_base64,
     read_table_from_path,
 )
 from mostlyai.sdk.client._utils import (
-    job_wait,
     harmonize_sd_config,
+    job_wait,
+)
+from mostlyai.sdk.domain import (
+    Generator,
+    JobProgress,
+    Metadata,
+    ProgressStatus,
+    ProgressStep,
+    ProgressValue,
+    SourceForeignKey,
+    SourceTable,
+    StepCode,
+    SyntheticDatasetConfig,
+    SyntheticProbeConfig,
+    SyntheticTableConfig,
 )
 
 UTILS_MODULE = "mostlyai.sdk.utils"

@@ -15,67 +15,66 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import uuid
 import zipfile
 from io import BytesIO
 from pathlib import Path
-import tempfile
 
-from fastapi import APIRouter, Body, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from starlette.background import BackgroundTask
 
 from mostlyai import sdk
 from mostlyai.sdk._data.conversions import create_container_from_connector
-from mostlyai.sdk._local import generators, synthetic_datasets
+from mostlyai.sdk._data.file.utils import read_data_table_from_path
+from mostlyai.sdk._local import connectors, generators, synthetic_datasets
 from mostlyai.sdk._local.execution.jobs import execute_probing_job
 from mostlyai.sdk._local.generators import create_generator as create_generator_model
-from mostlyai.sdk._local import connectors
-from mostlyai.sdk.domain import (
-    AboutService,
-    ConnectorType,
-    CurrentUser,
-    Generator,
-    GeneratorPatchConfig,
-    GeneratorListItem,
-    GeneratorConfig,
-    ProgressStatus,
-    JobProgress,
-    ConnectorConfig,
-    Connector,
-    ConnectorListItem,
-    SyntheticDataset,
-    SyntheticDatasetConfig,
-    SyntheticDatasetPatchConfig,
-    SyntheticDatasetFormat,
-    ConnectorPatchConfig,
-    ComputeListItem,
-    ModelType,
-    SyntheticProbeConfig,
-    Probe,
-    GeneratorCloneConfig,
-    GeneratorCloneTrainingStatus,
-    SyntheticDatasetReportType,
-    SyntheticDatasetListItem,
-    ConnectorReadDataConfig,
-    IfExists,
-    ConnectorWriteDataConfig,
-    ConnectorDeleteDataConfig,
-)
 from mostlyai.sdk._local.storage import (
     convert_model_label_path,
-    get_model_label,
-    read_generator_from_json,
-    write_generator_to_json,
-    read_job_progress_from_json,
-    read_connector_from_json,
-    read_synthetic_dataset_from_json,
-    write_synthetic_dataset_to_json,
     create_zip_in_memory,
+    get_model_label,
+    read_connector_from_json,
+    read_generator_from_json,
+    read_job_progress_from_json,
+    read_synthetic_dataset_from_json,
     write_connector_to_json,
+    write_generator_to_json,
+    write_synthetic_dataset_to_json,
 )
-from mostlyai.sdk._data.file.utils import read_data_table_from_path
+from mostlyai.sdk.domain import (
+    AboutService,
+    ComputeListItem,
+    Connector,
+    ConnectorConfig,
+    ConnectorDeleteDataConfig,
+    ConnectorListItem,
+    ConnectorPatchConfig,
+    ConnectorReadDataConfig,
+    ConnectorType,
+    ConnectorWriteDataConfig,
+    CurrentUser,
+    Generator,
+    GeneratorCloneConfig,
+    GeneratorCloneTrainingStatus,
+    GeneratorConfig,
+    GeneratorListItem,
+    GeneratorPatchConfig,
+    IfExists,
+    JobProgress,
+    ModelType,
+    Probe,
+    ProgressStatus,
+    SyntheticDataset,
+    SyntheticDatasetConfig,
+    SyntheticDatasetFormat,
+    SyntheticDatasetListItem,
+    SyntheticDatasetPatchConfig,
+    SyntheticDatasetReportType,
+    SyntheticProbeConfig,
+)
 
 
 class Routes:

@@ -15,12 +15,13 @@
 import io
 import re
 import zipfile
-from typing import Any
 from collections.abc import Iterator
+from typing import Any
 
 import pandas as pd
 import rich
 
+from mostlyai.sdk.client._utils import job_wait
 from mostlyai.sdk.client.base import (
     DELETE,
     GET,
@@ -31,16 +32,15 @@ from mostlyai.sdk.client.base import (
 )
 from mostlyai.sdk.domain import (
     JobProgress,
+    ModelType,
     SyntheticDataset,
+    SyntheticDatasetConfig,
     SyntheticDatasetFormat,
     SyntheticDatasetListItem,
-    SyntheticDatasetConfig,
-    SyntheticProbeConfig,
     SyntheticDatasetPatchConfig,
     SyntheticDatasetReportType,
-    ModelType,
+    SyntheticProbeConfig,
 )
-from mostlyai.sdk.client._utils import job_wait
 
 
 class _MostlySyntheticDatasetsClient(_MostlyBaseClient):

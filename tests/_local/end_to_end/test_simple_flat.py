@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import numpy as np
-from mostlyai.sdk.client.exceptions import APIStatusError
-import pytest
-from mostlyai.sdk import MostlyAI
-from mostlyai.sdk.domain import GeneratorConfig, SyntheticDatasetConfig, ProgressStatus
 import pandas as pd
+import pytest
+
+from mostlyai.sdk import MostlyAI
+from mostlyai.sdk.client.exceptions import APIStatusError
+from mostlyai.sdk.domain import GeneratorConfig, ProgressStatus, SyntheticDatasetConfig
 
 
 @pytest.mark.parametrize(

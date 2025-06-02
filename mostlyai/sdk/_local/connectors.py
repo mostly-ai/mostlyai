@@ -12,25 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pathlib import Path
 from io import BytesIO
+from pathlib import Path
+
 import pandas as pd
 from fastapi import HTTPException
 
 from mostlyai.sdk._data.conversions import create_container_from_connector
+from mostlyai.sdk._data.file.utils import make_data_table_from_container
 from mostlyai.sdk._data.util.common import encrypt, get_passphrase
 from mostlyai.sdk._local.storage import write_connector_to_json
 from mostlyai.sdk.domain import (
-    ConnectorConfig,
     Connector,
-    ConnectorPatchConfig,
     ConnectorAccessType,
-    ConnectorReadDataConfig,
-    ConnectorWriteDataConfig,
+    ConnectorConfig,
     ConnectorDeleteDataConfig,
+    ConnectorPatchConfig,
+    ConnectorReadDataConfig,
     ConnectorType,
+    ConnectorWriteDataConfig,
 )
-from mostlyai.sdk._data.file.utils import make_data_table_from_container
 
 
 def create_connector(home_dir: Path, config: ConnectorConfig, test_connection: bool = True) -> Connector:

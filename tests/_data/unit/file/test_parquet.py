@@ -15,8 +15,9 @@
 
 import numpy as np
 import pandas as pd
-from pyarrow import Table
 import pytest
+from pyarrow import Table
+
 from mostlyai.sdk._data.dtype import VirtualVarchar
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 

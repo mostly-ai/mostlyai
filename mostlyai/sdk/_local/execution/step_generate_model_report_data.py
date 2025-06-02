@@ -13,11 +13,11 @@
 # limitations under the License.
 import logging
 from collections.abc import Callable
+from pathlib import Path
 
 import pandas as pd
 
 from mostlyai.sdk.domain import ModelType
-from pathlib import Path
 
 _LOG = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ def execute_step_generate_model_report_data(
 
 def qa_sample_size_heuristic(tgt_stats: dict, model_type: ModelType) -> int:
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
-    from mostlyai.engine._common import get_sequence_length_stats, get_cardinalities
+    from mostlyai.engine._common import get_cardinalities, get_sequence_length_stats
 
     if model_type == ModelType.language:
         return 1_000

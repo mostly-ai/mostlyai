@@ -16,7 +16,7 @@ from pathlib import Path
 
 import typer
 
-from mostlyai.sdk._local.execution.jobs import execute_training_job, execute_generation_job
+from mostlyai.sdk._local.execution.jobs import execute_generation_job, execute_training_job
 
 cli = typer.Typer(pretty_exceptions_enable=False)
 

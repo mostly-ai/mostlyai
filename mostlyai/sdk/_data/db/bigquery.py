@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import logging
+from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
-from collections.abc import Iterable
 
 import pandas as pd
 from google.api_core.exceptions import NotFound
@@ -24,8 +24,8 @@ from google.oauth2.service_account import Credentials
 from sqlalchemy import exc
 from sqlalchemy_bigquery import BigQueryDialect
 
-from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.db.base import DBDType, SqlAlchemyContainer, SqlAlchemyTable
+from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.util.common import validate_gcs_key_file
 
 _LOG = logging.getLogger(__name__)

@@ -15,15 +15,15 @@
 import logging
 import re
 
-from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.base import DataContainer, DataTable
 from mostlyai.sdk._data.db.base import SqlAlchemyContainer
+from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.file.base import (
+    FILE_TYPE_COMPRESSED,
     FileContainer,
     FileDataTable,
-    get_file_name_and_type,
-    FILE_TYPE_COMPRESSED,
     FileType,
+    get_file_name_and_type,
 )
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.feather import FeatherDataTable

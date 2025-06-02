@@ -19,8 +19,8 @@ import sqlalchemy as sa
 from snowflake.sqlalchemy import URL
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 
-from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.db.base import DBDType, SqlAlchemyContainer, SqlAlchemyTable
+from mostlyai.sdk._data.exceptions import MostlyDataException
 
 _LOG = logging.getLogger(__name__)
 

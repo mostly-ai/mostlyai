@@ -17,8 +17,8 @@ import logging
 import numpy as np
 import pandas as pd
 
+from mostlyai.sdk._data.base import ContextRelation, DataIdentifier, Schema
 from mostlyai.sdk.domain import ModelEncodingType, ModelType
-from mostlyai.sdk._data.base import Schema, DataIdentifier, ContextRelation
 
 _LOG = logging.getLogger(__name__)
 

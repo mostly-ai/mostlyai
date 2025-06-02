@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 
-from mostlyai.sdk.domain import ModelType, Generator
+from mostlyai.sdk.domain import Generator, ModelType
 
 _LOG = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ def execute_step_train_model(
 ):
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
     from mostlyai import engine
-    from mostlyai.engine.domain import ModelStateStrategy, DifferentialPrivacyConfig
+    from mostlyai.engine.domain import DifferentialPrivacyConfig, ModelStateStrategy
 
     _LOG.info(f"mostlyai-engine: {engine.__version__}")
 

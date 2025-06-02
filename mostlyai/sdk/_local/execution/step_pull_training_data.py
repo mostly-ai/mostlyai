@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 
 from mostlyai.sdk import _data as data
-from mostlyai.sdk._data.base import Schema, ForeignKey
+from mostlyai.sdk._data.base import ForeignKey, Schema
 from mostlyai.sdk._data.conversions import create_container_from_connector
 from mostlyai.sdk._data.file.utils import make_data_table_from_container
-from mostlyai.sdk.domain import Generator, Connector, ModelType
+from mostlyai.sdk.domain import Connector, Generator, ModelType
 
 
 def execute_step_pull_training_data(

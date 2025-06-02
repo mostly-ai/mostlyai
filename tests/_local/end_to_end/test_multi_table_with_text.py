@@ -13,9 +13,10 @@
 # limitations under the License.
 import zipfile
 
-from mostlyai.sdk import MostlyAI
-import pandas as pd
 import numpy as np
+import pandas as pd
+
+from mostlyai.sdk import MostlyAI
 
 
 def test_multi_table_with_text(tmp_path):

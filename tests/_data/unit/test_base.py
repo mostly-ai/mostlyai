@@ -13,13 +13,12 @@
 # limitations under the License.
 
 import functools
-from typing import Any
 from collections.abc import Iterable
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
-from mostlyai.sdk.domain import ModelEncodingType
 
 from mostlyai.sdk._data.base import (
     ContextRelation,
@@ -27,12 +26,13 @@ from mostlyai.sdk._data.base import (
     DataIdentifier,
     DataRelation,
     DataTable,
-    Schema,
     ForeignKey,
     NonContextRelation,
+    Schema,
 )
-from mostlyai.sdk._data.util.common import OrderBy
 from mostlyai.sdk._data.dtype import VirtualDatetime, VirtualInteger, VirtualVarchar
+from mostlyai.sdk._data.util.common import OrderBy
+from mostlyai.sdk.domain import ModelEncodingType
 
 
 class UnbiasedDataContainer(DataContainer): ...

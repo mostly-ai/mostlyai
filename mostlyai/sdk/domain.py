@@ -17,21 +17,21 @@
 
 from __future__ import annotations
 
+import inspect
+import sys
+import uuid
+import zipfile
 from datetime import datetime
 from enum import Enum
-import pandas as pd
 from pathlib import Path
-from pydantic import field_validator, model_validator
-import uuid
-import rich
-import zipfile
-import sys
-import inspect
-from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
-from typing import Any, ClassVar, Literal, Annotated
+from typing import Annotated, Any, ClassVar, Literal
 
+import pandas as pd
+import rich
+from pydantic import Field, RootModel, field_validator, model_validator
+
+from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from mostlyai.sdk.client.base import CustomBaseModel
-from pydantic import Field, RootModel
 
 
 class AboutService(CustomBaseModel):

@@ -14,13 +14,13 @@
 
 from pathlib import Path
 
-from mostlyai.sdk._data.base import Schema, DataContainer
+from mostlyai.sdk._data.base import DataContainer, Schema
 from mostlyai.sdk._data.conversions import create_container_from_connector
 from mostlyai.sdk._data.db.base import SqlAlchemyContainer
 from mostlyai.sdk._data.file.container.bucket_based import BucketBasedContainer
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.file.utils import make_data_table_from_container
-from mostlyai.sdk._data.push import push_data_by_copying, push_data
+from mostlyai.sdk._data.push import push_data, push_data_by_copying
 from mostlyai.sdk.domain import Connector, Generator, SyntheticDatasetDelivery
 
 

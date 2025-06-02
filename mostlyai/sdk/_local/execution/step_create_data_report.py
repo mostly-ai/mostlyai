@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 
 from mostlyai.sdk._local.execution.step_create_model_report import create_report
 from mostlyai.sdk.domain import Generator, ModelType, StepCode

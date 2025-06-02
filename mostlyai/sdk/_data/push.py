@@ -22,9 +22,9 @@ from pathlib import Path
 import pandas as pd
 from cloudpathlib import CloudPath
 
-from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.base import DataTable, Schema
 from mostlyai.sdk._data.dtype import PandasDType
+from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 
 _LOG = logging.getLogger(__name__)

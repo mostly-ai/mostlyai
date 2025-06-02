@@ -23,19 +23,19 @@ from pydantic import Field, field_validator, model_validator
 from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from mostlyai.sdk.client.base import CustomBaseModel
 from mostlyai.sdk.domain import (
-    JobProgress,
+    ConnectorAccessType,
     ConnectorPatchConfig,
-    GeneratorPatchConfig,
-    SyntheticDatasetDelivery,
-    SyntheticDatasetPatchConfig,
     Generator,
     GeneratorConfig,
+    GeneratorPatchConfig,
+    JobProgress,
     ModelEncodingType,
-    ProgressStatus,
-    SyntheticDatasetReportType,
     ModelType,
+    ProgressStatus,
     SourceColumnConfig,
-    ConnectorAccessType,
+    SyntheticDatasetDelivery,
+    SyntheticDatasetPatchConfig,
+    SyntheticDatasetReportType,
 )
 
 

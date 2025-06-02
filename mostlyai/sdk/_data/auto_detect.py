@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re
 import logging
+import re
 import time
 
 import pandas as pd
 
 from mostlyai.engine._common import safe_convert_datetime
-from mostlyai.sdk.domain import ModelEncodingType
 from mostlyai.sdk._data.base import DataTable
-from mostlyai.sdk._data.dtype import VirtualDType, VirtualVarchar, VirtualInteger
-from mostlyai.sdk._data.util.common import run_with_timeout_unsafe, absorb_errors
+from mostlyai.sdk._data.dtype import VirtualDType, VirtualInteger, VirtualVarchar
+from mostlyai.sdk._data.util.common import absorb_errors, run_with_timeout_unsafe
+from mostlyai.sdk.domain import ModelEncodingType
 
 AUTODETECT_SAMPLE_SIZE = 10_000
 AUTODETECT_TIMEOUT = 15
