@@ -11,13 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import decimal
-import enum
-import uuid
+
 from pathlib import Path
 from io import BytesIO
-
-import numpy as np
 import pandas as pd
 from fastapi import HTTPException
 
@@ -75,25 +71,6 @@ def _data_table_from_connector_and_location(connector: Connector, location: str,
     return data_table
 
 
-def _sanitize_for_pyarrow(df: pd.DataFrame) -> pd.DataFrame:
-    result = df.copy()
-
-    for col in df.columns:
-        sample = df[col].dropna().iloc[0] if not df[col].empty else None
-
-        if sample is not None:
-            if isinstance(sample, np.ndarray):
-                result[col] = df[col].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
-            elif isinstance(sample, decimal.Decimal):
-                result[col] = df[col].astype(float)
-            elif isinstance(sample, enum.Enum):
-                result[col] = df[col].apply(lambda x: x.value if isinstance(x, enum.Enum) else x)
-            elif isinstance(sample, uuid.UUID):
-                result[col] = df[col].astype(str)
-
-    return result
-
-
 def read_data_from_connector(connector: Connector, config: ConnectorReadDataConfig) -> pd.DataFrame:
     if connector.access_type not in {ConnectorAccessType.read_data, ConnectorAccessType.write_data}:
         raise HTTPException(status_code=400, detail="Connector does not have read access")
@@ -116,7 +93,6 @@ def write_data_to_connector(connector: Connector, config: ConnectorWriteDataConf
             connector=connector, location=config.location, is_output=True
         )
         df = pd.read_parquet(BytesIO(config.file))
-        df = _sanitize_for_pyarrow(df)
         data_table.write_data(df, if_exists=config.if_exists.value.lower())
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -141,7 +117,6 @@ def query_data_from_connector(connector: Connector, sql: str) -> pd.DataFrame:
 
     try:
         data_container = create_container_from_connector(connector)
-        df = data_container.query(sql)
-        return _sanitize_for_pyarrow(df)
+        return data_container.query(sql)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
