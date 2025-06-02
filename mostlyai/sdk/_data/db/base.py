@@ -14,6 +14,8 @@
 
 import abc
 import base64
+import decimal
+import enum
 import functools
 import hashlib
 import logging
@@ -24,6 +26,7 @@ import socket
 import subprocess
 import tempfile
 import time
+import uuid
 from collections import defaultdict
 from collections.abc import Callable, Generator, Iterable
 from contextlib import contextmanager
@@ -31,6 +34,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal, Optional
 
+import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 import sqlalchemy.sql.sqltypes as sa_types
@@ -47,6 +51,8 @@ from mostlyai.sdk._data.base import (
 )
 from mostlyai.sdk._data.db.types_coercion import coerce_to_sql_dtype
 from mostlyai.sdk._data.dtype import (
+    FLOAT64,
+    STRING,
     VirtualBoolean,
     VirtualDate,
     VirtualDatetime,
@@ -590,7 +596,7 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
         assert_read_only_sql(sql)
         with self.init_sa_connection() as engine:
             try:
-                return pd.read_sql(sql, engine)
+                return pd.read_sql(sql, engine, dtype_backend="pyarrow")
             except sa.exc.SQLAlchemyError as e:
                 _LOG.error(f"Error executing query: {str(e)}")
                 raise
@@ -1283,6 +1289,8 @@ class SqlAlchemyTable(DBTable, abc.ABC):
         assert self.is_output
         _LOG.info(f"write data {df.shape} to table `{self.name}` started")
 
+        df = _normalize_for_sql(df)
+
         # map mostly-data dtypes to SQLAlchemy dtypes
         dtypes = self.dtype_class().from_dtypes_unwrap(self.dtypes)
 
@@ -1309,6 +1317,37 @@ class SqlAlchemyTable(DBTable, abc.ABC):
     def row_count(self) -> int:
         stmt = sa.select(sa.func.count()).select_from(self._sa_table)
         return self._sa_execute([stmt]).loc[0, "count_1"]
+
+
+def _normalize_for_sql(df: pd.DataFrame) -> pd.DataFrame:
+    # ensure pd.DataFrame.to_sql(...) works alongside pyarrow backend
+    apply_map = {
+        np.ndarray: lambda x: x.tolist() if isinstance(x, np.ndarray) else x,
+        enum.Enum: lambda x: x.value if isinstance(x, enum.Enum) else x,
+    }
+    astype_map = {
+        decimal.Decimal: FLOAT64,
+        uuid.UUID: STRING,
+    }
+
+    for col in df.columns:
+        series = df[col]
+        if series.empty or series.dropna().empty:
+            continue
+
+        sample = series.dropna().iloc[0]
+
+        for typ, astype_target in astype_map.items():
+            if isinstance(sample, typ):
+                df[col] = series.astype(astype_target)
+                break
+        else:
+            for typ, apply_func in apply_map.items():
+                if isinstance(sample, typ):
+                    df[col] = series.apply(apply_func)
+                    break
+
+    return df
 
 
 def _write_chunk(
