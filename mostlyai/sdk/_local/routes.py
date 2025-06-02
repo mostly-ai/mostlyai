@@ -203,7 +203,7 @@ class Routes:
             shutil.rmtree(connector_dir, ignore_errors=True)
 
         @self.router.get("/connectors/{id}/locations")
-        async def list_connector_locations(id: str, prefix: str):
+        async def list_connector_locations(id: str, prefix: str | None = None):
             connector_dir = self.home_dir / "connectors" / id
             connector = read_connector_from_json(connector_dir)
             container = create_container_from_connector(connector)
