@@ -15,8 +15,8 @@
 import functools
 import logging
 import time
-from typing import Any
 from collections.abc import Iterable
+from typing import Any
 
 import pandas as pd
 import pyarrow.dataset as ds
@@ -24,7 +24,6 @@ import smart_open
 from pyarrow import json as pa_json
 
 from mostlyai.sdk._data.base import order_df_by
-from mostlyai.sdk._data.util.common import OrderBy
 from mostlyai.sdk._data.dtype import (
     coerce_dtypes_by_encoding,
     is_date_dtype,
@@ -32,6 +31,7 @@ from mostlyai.sdk._data.dtype import (
     pyarrow_to_pandas_map,
 )
 from mostlyai.sdk._data.file.base import FileContainer, FileDataTable, LocalFileContainer
+from mostlyai.sdk._data.util.common import OrderBy
 
 _LOG = logging.getLogger(__name__)
 

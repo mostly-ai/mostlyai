@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections.abc import Callable
 from functools import partial
 from typing import Protocol
-from collections.abc import Callable
 
 from rich.progress import Progress
 

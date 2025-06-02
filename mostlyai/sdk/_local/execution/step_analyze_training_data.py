@@ -14,12 +14,11 @@
 
 
 from collections import ChainMap, defaultdict
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 
 from mostlyai.engine.domain import DifferentialPrivacyConfig
-
-from mostlyai.sdk.domain import Generator, ModelType, SourceColumnValueRange, ModelEncodingType
+from mostlyai.sdk.domain import Generator, ModelEncodingType, ModelType, SourceColumnValueRange
 
 
 def execute_step_analyze_training_data(
@@ -74,7 +73,7 @@ def _get_encoding_types(stats: dict) -> dict[str, ModelEncodingType]:
 
 def _get_value_ranges(stats: dict) -> dict[str, SourceColumnValueRange]:
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
-    from mostlyai.engine._encoding_types.tabular.categorical import CATEGORICAL_UNKNOWN_TOKEN, CATEGORICAL_NULL_TOKEN
+    from mostlyai.engine._encoding_types.tabular.categorical import CATEGORICAL_NULL_TOKEN, CATEGORICAL_UNKNOWN_TOKEN
 
     def parse_values(col_stats: dict) -> dict:
         size_limit = 1_000

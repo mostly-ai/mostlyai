@@ -11,18 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pydantic import BaseModel, Field, ConfigDict
+import uuid
 from collections import deque
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from mostlyai.sdk.domain import (
-    ModelEncodingType,
     Generator,
+    ModelEncodingType,
+    ModelType,
     SourceTable,
     StepCode,
-    TaskType,
-    ModelType,
     SyntheticDataset,
+    TaskType,
 )
-import uuid
 
 TABULAR_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith(ModelType.tabular)] + [
     ModelEncodingType.auto

@@ -18,9 +18,9 @@ from pathlib import Path
 from typing import Any
 
 from mostlyai.sdk._data.base import Schema
-from mostlyai.sdk.domain import ModelType
 from mostlyai.sdk._data.progress_callback import ProgressCallbackWrapper
-from mostlyai.sdk._data.pull_utils import prepare_schema, handle_workspace_dir, pull_split
+from mostlyai.sdk._data.pull_utils import handle_workspace_dir, prepare_schema, pull_split
+from mostlyai.sdk.domain import ModelType
 
 _LOG = logging.getLogger(__name__)
 

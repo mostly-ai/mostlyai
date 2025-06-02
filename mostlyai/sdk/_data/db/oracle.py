@@ -21,15 +21,15 @@ import numpy as np
 import oracledb
 import pandas as pd
 import sqlalchemy as sa
+import sqlalchemy.dialects.oracle as oracle
 import sqlalchemy.dialects.oracle as sa_oracle
-from pandas.io.sql import SQLTable, SQLDatabase
+from pandas.io.sql import SQLDatabase, SQLTable
 from sqlalchemy import text
 from sqlalchemy.dialects.oracle.base import OracleDialect
-import sqlalchemy.dialects.oracle as oracle
 
-from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.db.base import DBDType, SqlAlchemyContainer, SqlAlchemyTable
 from mostlyai.sdk._data.dtype import STRING
+from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.util.common import run_with_timeout_unsafe
 
 _LOG = logging.getLogger(__name__)

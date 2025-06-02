@@ -16,30 +16,29 @@ import abc
 import functools
 import itertools
 import logging
+from collections.abc import Generator, Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
-from collections.abc import Generator, Iterable
 
 import networkx as nx
 import pandas as pd
 
-from mostlyai.sdk._data.exceptions import MostlyDataException
-from mostlyai.sdk.domain import ModelEncodingType
-
 from mostlyai.sdk._data.dtype import V_DTYPE_ENCODING_TYPE_MAP, DType, VirtualDType
+from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.util.common import (
+    DATA_TABLE_METADATA_FIELDS,
+    IS_NULL,
+    MAX_SCP_SIBLINGS_LIMIT,
+    NON_CONTEXT_COLUMN_INFIX,
+    TABLE_COLUMN_INFIX,
+    Key,
+    OrderBy,
     as_list,
     decrypt,
     get_passphrase,
-    MAX_SCP_SIBLINGS_LIMIT,
-    TABLE_COLUMN_INFIX,
-    NON_CONTEXT_COLUMN_INFIX,
-    IS_NULL,
-    DATA_TABLE_METADATA_FIELDS,
-    Key,
-    OrderBy,
 )
+from mostlyai.sdk.domain import ModelEncodingType
 
 _LOG = logging.getLogger(__name__)
 

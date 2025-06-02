@@ -31,11 +31,11 @@ import rich
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from rich.console import Console
 
-from mostlyai.sdk.client.exceptions import APIError, APIStatusError
 from mostlyai.sdk.client._naming_conventions import (
-    map_snake_to_camel_case,
     map_camel_to_snake_case,
+    map_snake_to_camel_case,
 )
+from mostlyai.sdk.client.exceptions import APIError, APIStatusError
 
 _LOG = logging.getLogger(__name__)
 

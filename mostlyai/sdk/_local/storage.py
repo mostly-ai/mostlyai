@@ -13,20 +13,21 @@
 # limitations under the License.
 
 import json
-from pathlib import Path
-import zipfile
 import os
+import zipfile
 from io import BytesIO
+from pathlib import Path
 
-from pydantic import BaseModel
 from filelock import FileLock
+from pydantic import BaseModel
+
 from mostlyai.sdk.domain import (
+    Connector,
     Generator,
     JobProgress,
-    Connector,
-    SyntheticDataset,
-    SourceTable,
     ModelType,
+    SourceTable,
+    SyntheticDataset,
     SyntheticTable,
 )
 

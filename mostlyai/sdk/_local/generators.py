@@ -14,35 +14,35 @@
 
 from pathlib import Path
 
+from mostlyai.sdk._local.execution.plan import (
+    TRAINING_TASK_REPORT_STEPS,
+    TRAINING_TASK_STEPS,
+    has_language_model,
+    has_tabular_model,
+)
 from mostlyai.sdk._local.storage import (
     get_model_label,
-    write_generator_to_json,
-    write_connector_to_json,
-    write_job_progress_to_json,
     read_generator_from_json,
-)
-from mostlyai.sdk._local.execution.plan import (
-    has_tabular_model,
-    has_language_model,
-    TRAINING_TASK_STEPS,
-    TRAINING_TASK_REPORT_STEPS,
+    write_connector_to_json,
+    write_generator_to_json,
+    write_job_progress_to_json,
 )
 from mostlyai.sdk.client._base_utils import convert_to_df
 from mostlyai.sdk.domain import (
-    GeneratorConfig,
-    ProgressStatus,
-    Generator,
-    SourceColumnConfig,
-    ConnectorAccessType,
     Connector,
+    ConnectorAccessType,
     ConnectorType,
-    ProgressStep,
-    ModelType,
-    ProgressValue,
+    Generator,
+    GeneratorConfig,
     JobProgress,
-    TaskType,
-    SourceTableConfig,
+    ModelType,
+    ProgressStatus,
+    ProgressStep,
+    ProgressValue,
+    SourceColumnConfig,
     SourceForeignKeyConfig,
+    SourceTableConfig,
+    TaskType,
 )
 
 

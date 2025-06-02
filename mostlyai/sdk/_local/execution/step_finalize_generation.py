@@ -19,7 +19,7 @@ from typing import Literal
 
 import pandas as pd
 
-from mostlyai.sdk._data.base import Schema, NonContextRelation, ForeignKey
+from mostlyai.sdk._data.base import ForeignKey, NonContextRelation, Schema
 from mostlyai.sdk._data.dtype import is_timestamp_dtype
 from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
@@ -27,8 +27,8 @@ from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.non_context import postproc_non_context
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._data.util.common import (
-    NON_CONTEXT_COLUMN_INFIX,
     IS_NULL,
+    NON_CONTEXT_COLUMN_INFIX,
 )
 from mostlyai.sdk._local.storage import get_model_label
 from mostlyai.sdk.domain import Generator, ModelType, SyntheticDataset

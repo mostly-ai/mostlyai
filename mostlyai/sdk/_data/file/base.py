@@ -18,10 +18,10 @@ import logging
 import re
 import time
 from abc import abstractmethod
+from collections.abc import Generator, Iterable
 from enum import Enum
 from pathlib import Path
 from typing import Any
-from collections.abc import Generator, Iterable
 from urllib.parse import urlparse
 
 import duckdb
@@ -33,18 +33,18 @@ from cloudpathlib import AnyPath
 from fsspec.implementations.local import LocalFileSystem
 from pyarrow import ArrowIndexError, ArrowInvalid
 
-from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.base import (
     DataContainer,
     DataTable,
     order_df_by,
 )
-from mostlyai.sdk._data.util.common import SCHEME_SEP, DATA_TABLE_METADATA_FIELDS, OrderBy, assert_read_only_sql
 from mostlyai.sdk._data.dtype import (
     PandasDType,
     coerce_dtypes_by_encoding,
     pyarrow_to_pandas_map,
 )
+from mostlyai.sdk._data.exceptions import MostlyDataException
+from mostlyai.sdk._data.util.common import DATA_TABLE_METADATA_FIELDS, SCHEME_SEP, OrderBy, assert_read_only_sql
 
 FILE_DATA_TABLE_LAZY_INIT_FIELDS = DATA_TABLE_METADATA_FIELDS + [
     "columns",

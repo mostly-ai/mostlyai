@@ -14,7 +14,7 @@
 
 import pandas as pd
 
-from mostlyai.sdk._data.base import DataIdentifier, Schema, NonContextRelation, ForeignKey
+from mostlyai.sdk._data.base import DataIdentifier, ForeignKey, NonContextRelation, Schema
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.non_context import (
     handle_non_context_relation,

@@ -14,19 +14,18 @@
 
 import logging
 import os
+import re
 import tempfile
 from typing import Any
 from urllib.parse import urlparse
-import re
 
 import boto3 as boto3
+import duckdb
 import s3fs
 from cloudpathlib.s3 import S3Client, S3Path
-import duckdb
 
 from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.file.container.bucket_based import BucketBasedContainer
-
 
 _LOG = logging.getLogger(__name__)
 

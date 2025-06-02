@@ -13,13 +13,13 @@
 # limitations under the License.
 
 import base64
+import csv
 import io
 import warnings
 from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
-import csv
 
 warnings.simplefilter("always", DeprecationWarning)
 

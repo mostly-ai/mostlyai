@@ -17,7 +17,7 @@ from copy import copy
 
 import pandas as pd
 
-from mostlyai.sdk._data.base import DataTable, Schema, NonContextRelation, DataIdentifier
+from mostlyai.sdk._data.base import DataIdentifier, DataTable, NonContextRelation, Schema
 
 _LOG = logging.getLogger(__name__)
 

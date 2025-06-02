@@ -14,15 +14,15 @@
 
 from typing import Any
 
+import duckdb
 from adlfs import AzureBlobFileSystem
-from cloudpathlib import AzureBlobClient
-from cloudpathlib.azure import AzureBlobPath
-from mostlyai.sdk._data.exceptions import MostlyDataException
-from mostlyai.sdk._data.file.container.bucket_based import BucketBasedContainer
-
 from azure.identity import ClientSecretCredential
 from azure.storage.blob import BlobServiceClient
-import duckdb
+from cloudpathlib import AzureBlobClient
+from cloudpathlib.azure import AzureBlobPath
+
+from mostlyai.sdk._data.exceptions import MostlyDataException
+from mostlyai.sdk._data.file.container.bucket_based import BucketBasedContainer
 
 
 class AzureBlobFileContainer(BucketBasedContainer):

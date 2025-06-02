@@ -20,16 +20,14 @@ from urllib.parse import quote
 
 import numpy as np
 import pandas as pd
+import sqlalchemy as sa
+from impala.dbapi import connect as impala_connect
 from impala.sqlalchemy import ImpalaDialect, _impala_type_to_sqlalchemy_type
 from pyhive.sqlalchemy_hive import HiveDialect
-from impala.dbapi import connect as impala_connect
-
-from mostlyai.sdk._data.exceptions import MostlyDataException
-
-from mostlyai.sdk._data.db.base import DBDType, SqlAlchemyContainer, SqlAlchemyTable
-import sqlalchemy as sa
 from sqlalchemy.dialects import registry
 
+from mostlyai.sdk._data.db.base import DBDType, SqlAlchemyContainer, SqlAlchemyTable
+from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.util.common import run_with_timeout_unsafe
 
 _LOG = logging.getLogger(__name__)

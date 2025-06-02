@@ -18,16 +18,16 @@ import time
 from pathlib import Path
 
 from mostlyai.sdk._data.base import Schema
-from mostlyai.sdk.domain import ModelType
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._data.pull_utils import (
-    prepare_schema,
     handle_workspace_dir,
-    pull_split,
-    remake_schema_after_pull_fetch,
+    prepare_schema,
     pull_fetch,
     pull_keys,
+    pull_split,
+    remake_schema_after_pull_fetch,
 )
+from mostlyai.sdk.domain import ModelType
 
 _LOG = logging.getLogger(__name__)
 

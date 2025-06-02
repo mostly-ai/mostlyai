@@ -21,8 +21,9 @@ import numpy as np
 import pandas as pd
 import pytest as pytest
 import sqlalchemy as sa
+
 from mostlyai.sdk._data.base import ForeignKey, Schema
-from mostlyai.sdk._data.db.sqlite import SqliteDType, SqliteTable, SqliteContainer
+from mostlyai.sdk._data.db.sqlite import SqliteContainer, SqliteDType, SqliteTable
 from mostlyai.sdk._data.dtype import PandasDType
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable

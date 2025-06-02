@@ -15,12 +15,12 @@
 import pytest
 
 from mostlyai.sdk.domain import (
-    SourceTableConfig,
-    GeneratorConfig,
-    SourceColumn,
-    ModelEncodingType,
-    SyntheticDatasetConfig,
     Generator,
+    GeneratorConfig,
+    ModelEncodingType,
+    SourceColumn,
+    SourceTableConfig,
+    SyntheticDatasetConfig,
     SyntheticProbeConfig,
     SyntheticTableConfiguration,
 )

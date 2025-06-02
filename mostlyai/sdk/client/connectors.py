@@ -15,11 +15,11 @@
 from __future__ import annotations
 
 import io
-from typing import Any
 from collections.abc import Iterator
+from typing import Any
 
-import rich
 import pandas as pd
+import rich
 
 from mostlyai.sdk.client.base import (
     DELETE,
@@ -31,9 +31,9 @@ from mostlyai.sdk.client.base import (
 )
 from mostlyai.sdk.domain import (
     Connector,
+    ConnectorConfig,
     ConnectorListItem,
     ConnectorPatchConfig,
-    ConnectorConfig,
     IfExists,
 )
 

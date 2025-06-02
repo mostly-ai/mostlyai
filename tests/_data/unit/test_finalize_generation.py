@@ -23,12 +23,12 @@ from mostlyai.sdk._data.base import Schema
 from mostlyai.sdk._data.dtype import STRING
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
+from mostlyai.sdk._local.execution.jobs import _merge_tabular_language_data
 from mostlyai.sdk._local.execution.step_finalize_generation import (
-    finalize_table_generation,
     export_data_to_excel,
+    finalize_table_generation,
     zip_data,
 )
-from mostlyai.sdk._local.execution.jobs import _merge_tabular_language_data
 
 
 @pytest.fixture

@@ -12,22 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import concurrent.futures
 import hashlib
 import json
 import logging
 import os
 import traceback
 import uuid
+from collections.abc import Callable
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Any, Union, Literal
-from collections.abc import Callable
+from typing import Any, Literal, Union
 
 import pandas as pd
+import sqlparse
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
-import concurrent.futures
-import sqlparse
 from sqlparse.tokens import DML
 
 from mostlyai.sdk._data.exceptions import MostlyDataException

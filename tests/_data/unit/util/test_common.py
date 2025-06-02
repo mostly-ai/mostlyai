@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+
 from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.util.common import assert_read_only_sql
 

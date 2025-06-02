@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import json
 import math
-import datetime
 from pathlib import Path
 
 from pydantic import BaseModel
 
 from mostlyai.sdk._local.storage import write_to_json
-from mostlyai.sdk.domain import StepCode, JobProgress, ProgressStatus
+from mostlyai.sdk.domain import JobProgress, ProgressStatus, StepCode
 
 
 def get_current_utc_time() -> datetime.datetime:
