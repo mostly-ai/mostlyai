@@ -91,6 +91,7 @@ def test_make_synthetic_dataset_execution_plan():
                         {"name": "order_id", "model_encoding_type": "AUTO"},
                     ],
                     "foreign_keys": [{"column": "order_id", "referenced_table": "orders", "is_context": True}],
+                    "tabular_model_configuration": {"enable_model_report": False},
                 },
             ],
         }
@@ -123,7 +124,7 @@ def test_make_synthetic_dataset_execution_plan():
             Step(step_code=StepCode.generate_data_tabular, target_table_name="orders"),
             # No data report for orders table
             Step(step_code=StepCode.generate_data_tabular, target_table_name="order_items"),
-            Step(step_code=StepCode.create_data_report_tabular, target_table_name="order_items"),
+            # No tabular data report for order_items table
             Step(step_code=StepCode.generate_data_language, target_table_name="order_items"),
             Step(step_code=StepCode.create_data_report_language, target_table_name="order_items"),
             Step(step_code=StepCode.generate_data_tabular, target_table_name="prices"),
@@ -223,7 +224,7 @@ def test_make_generator_execution_plan():
 
 def test_make_synthetic_dataset_execution_plan_with_probe():
     model_config = arbitrary_model_config()
-    config = Generator(
+    generator = Generator(
         name="test_probe_dataset",
         training_status=ProgressStatus.in_progress,
         tables=[
@@ -258,8 +259,13 @@ def test_make_synthetic_dataset_execution_plan_with_probe():
             ),
         ],
     )
+    synthetic_dataset = SyntheticDataset(
+        tables=[
+            SyntheticTable(name=table.name, configuration=SyntheticTableConfiguration()) for table in generator.tables
+        ]
+    )
 
-    execution_plan = make_synthetic_dataset_execution_plan(config, is_probe=True)
+    execution_plan = make_synthetic_dataset_execution_plan(generator, synthetic_dataset, is_probe=True)
 
     expected_execution_plan = ExecutionPlan(tasks=[])
     sync_task = expected_execution_plan.add_task(TaskType.sync)
