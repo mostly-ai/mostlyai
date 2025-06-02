@@ -19,21 +19,20 @@ import enum
 import functools
 import hashlib
 import logging
+import os
 import re
 import shutil
-import os
-
 import socket
 import subprocess
 import tempfile
 import time
 import uuid
 from collections import defaultdict
+from collections.abc import Callable, Generator, Iterable
 from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal, Optional
-from collections.abc import Callable, Generator, Iterable
 
 import numpy as np
 import pandas as pd
@@ -41,17 +40,19 @@ import sqlalchemy as sa
 import sqlalchemy.sql.sqltypes as sa_types
 import sshtunnel
 from joblib import Parallel, delayed
+from sqlalchemy import Table
 from sqlalchemy.orm import sessionmaker
 
-from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.base import (
     DataContainer,
     DataTable,
-    order_df_by,
     ForeignKey,
+    order_df_by,
 )
 from mostlyai.sdk._data.db.types_coercion import coerce_to_sql_dtype
 from mostlyai.sdk._data.dtype import (
+    FLOAT64,
+    STRING,
     VirtualBoolean,
     VirtualDate,
     VirtualDatetime,
@@ -63,9 +64,9 @@ from mostlyai.sdk._data.dtype import (
     WrappedDType,
     coerce_dtypes_by_encoding,
 )
-from mostlyai.sdk._data.util.common import prepare_ssl_path, ColumnSort, OrderBy, assert_read_only_sql
+from mostlyai.sdk._data.exceptions import MostlyDataException
+from mostlyai.sdk._data.util.common import ColumnSort, OrderBy, assert_read_only_sql, prepare_ssl_path
 from mostlyai.sdk._data.util.kerberos import is_kerberos_ticket_alive
-from sqlalchemy import Table
 
 _LOG = logging.getLogger(__name__)
 
@@ -1325,8 +1326,8 @@ def _normalize_for_sql(df: pd.DataFrame) -> pd.DataFrame:
         enum.Enum: lambda x: x.value if isinstance(x, enum.Enum) else x,
     }
     astype_map = {
-        decimal.Decimal: float,
-        uuid.UUID: str,
+        decimal.Decimal: FLOAT64,
+        uuid.UUID: STRING,
     }
 
     for col in df.columns:
