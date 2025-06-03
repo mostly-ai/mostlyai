@@ -408,7 +408,7 @@ class MostlyAI(_MostlyBaseClient):
         Returns:
             Generator: The created generator.
 
-        Example of single table with default configurations:
+        Example of a single flat table with default configurations:
             ```python
             # read original data
             import pandas as pd
@@ -425,7 +425,7 @@ class MostlyAI(_MostlyBaseClient):
             )
             ```
 
-        Example of single table with custom configurations:
+        Example of a single flat table with custom configurations:
             ```python
             # read original data
             import pandas as pd
@@ -477,12 +477,12 @@ class MostlyAI(_MostlyBaseClient):
             )
             ```
 
-        Example of multi-table with custom configurations:
+        Example of a multi-table sequential dataset (time series):
             ```python
             # read original data
             import pandas as pd
             df_purchases = pd.read_csv('https://github.com/mostly-ai/public-demo-data/raw/dev/cdnow/purchases.csv.gz')
-            df_users = df_purchases[['users_id']].drop_duplicates()
+            df_users = df_purchases[['users_id']].drop_duplicates()  # create a table representing subjects / groups, if not already present
             # instantiate client
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
@@ -510,7 +510,7 @@ class MostlyAI(_MostlyBaseClient):
             }, start=True, wait=True)
             ```
 
-        Example of multi-model with TABULAR and LANGUAGE models:
+        Example of a single flat table with TABULAR and LANGUAGE models:
             ```python
             # read original data
             import pandas as pd
