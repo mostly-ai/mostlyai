@@ -231,7 +231,7 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         # Check if 'Content-Disposition' header is present
         if "Content-Disposition" in response.headers:
             content_disposition = response.headers["Content-Disposition"]
-            filename = re.findall(r"filename(=|\*=UTF-8'')(.+)", content_disposition)[0][1]
+            filename = re.findall(r"filename(?:=|\*=UTF-8'')(.+)", content_disposition)[0]
         else:
             filename = f"synthetic-dataset-{synthetic_dataset_id[:8]}.zip"
         return content_bytes, filename
