@@ -535,7 +535,7 @@ def fetch_context_tables(
                 schema=schema,
                 table_name=sibling_table,
                 fetch_dir=fetch_dir,
-                deduplicate_pks=False,  # allow duplicate PKs in cross table context
+                deduplicate_pks=True,  # drop duplicate PKs in cross table context
                 where={context_key.column: pks},
                 sample_fraction=None,
                 key_fraction_df=None,
@@ -585,7 +585,7 @@ def fetch_target_table(
         schema=schema,
         table_name=tgt,
         fetch_dir=fetch_dir,
-        deduplicate_pks=False,  # allow duplicate PKs in target table
+        deduplicate_pks=True,  # drop duplicate PKs in target table
         where=where,
         key_fraction_df=key_fraction_df,
         sample_fraction=sample_fraction,
