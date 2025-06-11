@@ -48,7 +48,7 @@ class AwsS3FileContainer(BucketBasedContainer):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self.endpoint_url = endpoint_url
+        self.endpoint_url = endpoint_url or None
         self.access_key = access_key
         self.secret_key = secret_key
         # SSL
@@ -93,7 +93,7 @@ class AwsS3FileContainer(BucketBasedContainer):
                 key=self.access_key,
                 client_kwargs=client_kwargs,
             )
-            self._boto_resource = boto_session.resource("s3", endpoint_url=endpoint_url, verify=self.ssl_verify)
+            self._boto_resource = boto_session.resource("s3", endpoint_url=self.endpoint_url, verify=self.ssl_verify)
             self._boto_client = boto_session.client("s3", endpoint_url=self.endpoint_url, verify=self.ssl_verify)
         # patch CloudPath to use the same boto3 resource/client
         self._client.s3 = self._boto_resource
