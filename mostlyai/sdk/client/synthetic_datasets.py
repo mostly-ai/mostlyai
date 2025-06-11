@@ -252,7 +252,6 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
                     name for name in z.namelist() if name.startswith(f"{table}/") and name.endswith(".parquet")
                 ]
                 dfs[table] = pd.concat([pd.read_parquet(z.open(name)) for name in pqt_files], axis=0)
-                dfs[table].name = table
         return dfs
 
     def _report(
