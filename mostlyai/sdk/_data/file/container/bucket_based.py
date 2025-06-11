@@ -107,7 +107,7 @@ class BucketBasedContainer(FileContainer, abc.ABC):
         locations = []
         try:
             protocol = self.path_prefix
-            if not prefix:
+            if not prefix or prefix == "/":
                 prefix = "/"
             elif not prefix.startswith(protocol):
                 prefix = protocol + prefix
