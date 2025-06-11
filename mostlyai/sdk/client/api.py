@@ -241,6 +241,12 @@ class MostlyAI(_MostlyBaseClient):
         """
         Create a connector and optionally validate the connection before saving.
 
+        There are 3 access types for a connector (which are independent of the connector type):
+
+        - `READ_PROTECTED`:  The connector is restricted to being used solely as a source for training a generator. Direct data access is not permitted, only schema access via `c.locations(prefix)` and `c.schema(location)` is available.
+        - `READ_DATA`: This connector allows full read access. It can also be used as a source for training a generator.
+        - `WRITE_DATA`: This connector allows full read and write access. It can be also used as a source for training a generator, as well as a destination for delivering a synthetic dataset.
+
         Args:
             config (ConnectorConfig | dict[str, Any]): Configuration for the connector. Can be either a ConnectorConfig object or an equivalent dictionary.
             test_connection (bool | None): Whether to validate the connection before saving. Default is True.
@@ -254,6 +260,7 @@ class MostlyAI(_MostlyBaseClient):
             mostly = MostlyAI()
             c = mostly.connect(
                 config={
+                    'access_type': 'READ_PROTECTED',  # or 'READ_DATA' or 'WRITE_DATA'
                     'type': 'S3_STORAGE',
                     'config': {
                         'accessKey': '...',
@@ -395,7 +402,9 @@ class MostlyAI(_MostlyBaseClient):
         progress_bar: bool = True,
     ) -> Generator:
         """
-        Train a generator.
+        Create a generator resource. Once trained, it will include the model as well as optionally a model report.
+
+        Note: A generator is initially being configured. That training job can be either launched immediately or later. One can check progress via `g.training.progress()`. Once the job has finished, the generator is available for use.
 
         Args:
             config (GeneratorConfig | dict | None): The configuration parameters of the generator to be created. Either `config` or `data` must be provided.
@@ -591,7 +600,9 @@ class MostlyAI(_MostlyBaseClient):
         progress_bar: bool = True,
     ) -> SyntheticDataset:
         """
-        Generate synthetic data.
+        Create a synthetic dataset resource. Once generated, it will include the data as well as optionally a data report.
+
+        Note: A synthetic dataset is initially being configured. That generation job can be either launched immediately or later. One can check progress via `sd.generation.progress()`. Once the job has finished, the synthetic dataset is available for download via `sd.data()`, and the reports are available via `sd.reports()`.
 
         Args:
             generator (Generator | str): The generator instance or its UUID.
@@ -672,46 +683,55 @@ class MostlyAI(_MostlyBaseClient):
         return_type: Literal["auto", "dict"] = "auto",
     ) -> pd.DataFrame | dict[str, pd.DataFrame]:
         """
-        Probe a generator.
+        Probe a generator for a new synthetic dataset (synchronously).
 
         Args:
             generator (Generator | str): The generator instance or its UUID.
             size (int | dict[str, int] | None): Sample size(s) for the subject table(s). Default is 1, if no seed is provided.
-            seed (Seed | dict[str, Seed] | None): Seed data for the subject table(s).
+            seed (Seed | dict[str, Seed] | None): Seed data for the subject table(s). Check generator details for possible value ranges.
             config (SyntheticProbeConfig | dict | None): Configuration for the probe.
-            return_type (Literal["auto", "dict"]): Format of the return value. "auto" for pandas DataFrame if a single table, otherwise a dictionary. Default is "auto".
+            return_type (Literal["auto", "dict"]): The type of the return value. "dict" will always provide a dictionary of DataFrames. "auto" will return a single DataFrame for a single-table generator, and a dictionary of DataFrames for a multi-table generator. Default is "auto".
 
         Returns:
-            pd.DataFrame | dict[str, pd.DataFrame]: The created synthetic probe.
+            pd.DataFrame | dict[str, pd.DataFrame]: The created synthetic probe. See return_type for the format of the return value.
 
         Example for probing a generator for 10 synthetic samples:
             ```python
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
-            probe = mostly.probe(
-                generator='INSERT_YOUR_GENERATOR_ID',
-                size=10
-            )
+            data = mostly.probe('INSERT_YOUR_GENERATOR_ID', size=10, return_type="dict")
             ```
 
-        Example for conditional probing a generator for 10 synthetic samples:
+        Example for conditional probing based on a seed DataFrame:
             ```python
             import pandas as pd
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
-            g = mostly.generators.get('INSERT_YOUR_GENERATOR_ID')
-            print('columns:', [c.name for c in g.tables[0].columns])
-            # columns: ['age', 'workclass', 'fnlwgt', ...]
-            col = g.tables[0].columns[1]
-            print(col.name, col.value_range.values)
-            # workclass: ['Federal-gov', 'Local-gov', 'Never-worked', ...]
-            mostly.probe(
-                generator=g,
-                seed=pd.DataFrame({
-                    'age': [63, 45],
-                    'sex': ['Female', 'Male'],
-                    'workclass': ['Sales', 'Tech-support'],
-                }),
+            seed = pd.DataFrame({'col1': ['x', 'y'], 'col2': [13, 74]})
+            data = mostly.probe('INSERT_YOUR_GENERATOR_ID', seed=seed, return_type="dict")
+            ```
+
+        Example for advanced probing configuration:
+            ```python
+            import pandas as pd
+            from mostlyai.sdk import MostlyAI
+            mostly = MostlyAI()
+            data = mostly.probe(
+                'INSERT_YOUR_GENERATOR_ID',
+                config={
+                    'tables': [{
+                        'name': 'tbl1',
+                        'configuration': {
+                            'sample_size': 100,
+                            'sampling_temperature': 1.0,
+                            'sampling_top_p': 1.0,
+                            'rebalancing': {'column': 'country', 'probabilities': {'US': 0.5, 'CA', 0.3}},
+                            'imputation': {'columns': ['age']},
+                            'fairness': {'target_column': 'income', 'sensitive_columns': ['gender']},
+                        }
+                    }]
+                },
+                return_type="dict"
             )
             ```
         """

@@ -214,7 +214,7 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
         Execute a read-only SQL query against the connector's data source.
 
         Queries can include statements like SELECT, SHOW, or DESCRIBE, but must not modify data or state.
-        For file-based connectors (S3_STORAGE, GOOGLE_CLOUD_STORAGE, AZURE_STORAGE) queries are executed using DuckDB.
+        For file-based connectors (S3_STORAGE, GOOGLE_CLOUD_STORAGE, AZURE_STORAGE) queries are executed using DuckDB. Use connector-type-specific prefixes. See examples.
 
         Args:
             sql (str): The SQL query to execute.
@@ -542,10 +542,10 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
         Download synthetic dataset and return as dictionary of pandas DataFrames.
 
         Args:
-            return_type (Literal["auto", "dict"]): The format of the returned data. Default is "auto".
+            return_type (Literal["auto", "dict"]): The type of the return value. "dict" will always provide a dictionary of DataFrames. "auto" will return a single DataFrame for a single-table generator, and a dictionary of DataFrames for a multi-table generator. Default is "auto".
 
         Returns:
-            Union[pd.DataFrame, dict[str, pd.DataFrame]]: The synthetic dataset as a dictionary of pandas DataFrames.
+            Union[pd.DataFrame, dict[str, pd.DataFrame]]: The synthetic dataset. See return_type for the format of the return value.
         """
         dfs = self.client._data(
             synthetic_dataset_id=self.id,
