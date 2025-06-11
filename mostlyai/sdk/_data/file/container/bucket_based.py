@@ -106,8 +106,11 @@ class BucketBasedContainer(FileContainer, abc.ABC):
         """
         locations = []
         try:
+            protocol = self.path_prefix
             if not prefix:
                 prefix = "/"
+            elif not prefix.startswith(protocol):
+                prefix = protocol + prefix
             if self.file_system.exists(prefix):
                 # Strip redundant slashes if any
                 prefix = prefix.rstrip("/") + "/" if self.file_system.isdir(prefix) else prefix.rstrip("/")
@@ -121,6 +124,8 @@ class BucketBasedContainer(FileContainer, abc.ABC):
                     loc["name"] + "/" if loc["type"] == "directory" and not loc["name"].endswith("/") else loc["name"]
                     for loc in locations
                 ]
+                # Add the protocol prefix to the locations if not there yet
+                locations = [protocol + loc if not loc.lower().startswith(protocol) else loc for loc in locations]
                 # Append the prefix itself in the list if it is not there yet
                 if prefix not in locations and prefix != "/":
                     locations = [prefix] + locations
