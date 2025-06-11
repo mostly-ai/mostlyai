@@ -780,10 +780,10 @@ class SyntheticDataset:
         Download synthetic dataset and return as dictionary of pandas DataFrames.
 
         Args:
-            return_type (Literal["auto", "dict"]): The format of the returned data. Default is "auto".
+            return_type (Literal["auto", "dict"]): The type of the return value. "dict" will always provide a dictionary of DataFrames. "auto" will return a single DataFrame for a single-table generator, and a dictionary of DataFrames for a multi-table generator. Default is "auto".
 
         Returns:
-            Union[pd.DataFrame, dict[str, pd.DataFrame]]: The synthetic dataset as a dictionary of pandas DataFrames.
+            Union[pd.DataFrame, dict[str, pd.DataFrame]]: The synthetic dataset. See return_type for the format of the return value.
         """
         dfs = self.client._data(
             synthetic_dataset_id=self.id,
