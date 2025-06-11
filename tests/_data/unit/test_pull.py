@@ -339,9 +339,9 @@ class TestPullSingle(DisableMaskKeys):
         schema = self.create_single_table_schema(tmp_path, tgt_df, tgt_pk="id")
         # pull data
         pull(tgt="tgt", schema=schema, workspace_dir=tmp_path)
-        # check that we didn't drop the duplicate key in tgt
+        # check that we dropped the duplicate key in tgt
         tgt_data = pd.read_parquet(tmp_path / "OriginalData" / "tgt-data")
-        assert len(tgt_data) == 3
+        assert len(tgt_data) == 2
 
     @pytest.mark.parametrize("tgt_pk", [None, "id"])
     def test_pull_partitioned(self, tmp_path, single_table_data, tgt_pk):
@@ -633,12 +633,12 @@ class TestPullSequential(DisableMaskKeys):
         schema = self.create_two_table_schema(tmp_path, ctx_df, tgt_df, tgt_pk="id")
         # pull data
         pull(tgt="tgt", schema=schema, workspace_dir=tmp_path)
-        # check that we silently dropped the duplicate key
+        # check that we dropped the duplicate key in ctx
         ctx_data = pd.read_parquet(tmp_path / "OriginalData" / "ctx-data")
         assert len(ctx_data) == 2
-        # check that we didn't drop the duplicate key in tgt
+        # check that we dropped the duplicate key in tgt
         tgt_data = pd.read_parquet(tmp_path / "OriginalData" / "tgt-data")
-        assert len(tgt_data) == 3
+        assert len(tgt_data) == 2
 
     def test_max_samples_per_root_language_model(self, tmp_path):
         gpc_df = pd.DataFrame({"id": [0, 1]})
