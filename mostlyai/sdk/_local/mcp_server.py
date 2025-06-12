@@ -88,28 +88,41 @@ def _doc_string(obj, cascade: bool = True):
     else:
         return inspect.getdoc(obj.__class__) or ''
 
+# static map of tool names to their long-form documentation
+_TOOL_DOCS = {
+    "connect": (
+        "connect:\n"
+        + _doc_string(MostlyAI.connect)
+        + _doc_string(getattr(__import__('mostlyai.sdk.domain', fromlist=['ConnectorConfig']), 'ConnectorConfig'), cascade=True)
+    ),
+    "train_generator": (
+        "train_generator:\n"
+        + _doc_string(MostlyAI.train)
+        + _doc_string(getattr(__import__('mostlyai.sdk.domain', fromlist=['GeneratorConfig']), 'GeneratorConfig'))
+    ),
+    "generate": (
+        "generate:\n"
+        + _doc_string(MostlyAI.generate)
+        + _doc_string(getattr(__import__('mostlyai.sdk.domain', fromlist=['SyntheticDatasetConfig']), 'SyntheticDatasetConfig'), cascade=True)
+    ),
+    "probe": (
+        "probe:\n"
+        + _doc_string(MostlyAI.probe)
+        + _doc_string(getattr(__import__('mostlyai.sdk.domain', fromlist=['SyntheticProbeConfig']), 'SyntheticProbeConfig'), cascade=True)
+    ),
+}
+
 @mcp.tool(
-    description="""
-    Train a synthetic data generator from a CSV/Parquet file or a config dict.
-
-    Args:
-        name (str): Name for the generator.
-        data (str): Path to CSV or Parquet file (ignored if config is provided).
-        config (dict, optional): Generator configuration (see below). If provided, data is ignored.
-
-    Example usage:
-    ```python
-    # train from file
-    result = train_generator(name=\"my-generator\", data=\"/path/to/data.csv\")
-    print(result.csv_path)
-
-    # train from config
-    result = train_generator(name=\"my-generator\", config={...})
-    ```
-
+    description="Get the full documentation for a tool by name. Usage: introspect(tool_name='connect')"
+)
+def introspect(tool_name: str) -> str:
     """
-    + _doc_string(MostlyAI.train)
-    + _doc_string(getattr(__import__('mostlyai.sdk.domain', fromlist=['GeneratorConfig']), 'GeneratorConfig'))
+    return the long-form documentation for a given tool name.
+    """
+    return _TOOL_DOCS.get(tool_name, f"no documentation found for tool '{tool_name}'.")
+
+@mcp.tool(
+    description="Train a synthetic data generator from a CSV/Parquet file or a config dict. For full details, use introspect('train_generator')."
 )
 def train_generator(
     name: str,
@@ -120,44 +133,13 @@ def train_generator(
     return dict(generator_id=g.id, name=g.name)
 
 @mcp.tool(
-    description="""
-    Create a connector and optionally validate the connection before saving.
-
-    Args:
-        config (dict): Configuration for the connector. See below for details.
-        test_connection (bool, optional): Whether to validate the connection before saving. Default is True.
-
-    Example usage:
-    ```python
-    connector = connect(config={...})
-    print(connector.id)
-    ```
-    """
-    + _doc_string(MostlyAI.connect)
-    + _doc_string(getattr(__import__('mostlyai.sdk.domain', fromlist=['ConnectorConfig']), 'ConnectorConfig'), cascade=True)
+    description="Create a connector and optionally validate the connection before saving. For full details, use introspect('connect')."
 )
 def connect(config: dict, test_connection: bool = True):
     return mostly.connect(config=config, test_connection=test_connection)
 
 @mcp.tool(
-    description="""
-    Generate synthetic data from a trained generator.
-
-    Args:
-        generator (str): The generator UUID or object.
-        config (dict, optional): Synthetic dataset configuration.
-        size (int or dict, optional): Sample size(s) for the subject table(s).
-        seed (dict or DataFrame, optional): Seed data for the subject table(s).
-        name (str, optional): Name of the synthetic dataset.
-
-    Example usage:
-    ```python
-    sd = generate(generator="<generator_id>", size=1000)
-    print(sd)
-    ```
-    """
-    + _doc_string(MostlyAI.generate)
-    + _doc_string(getattr(__import__('mostlyai.sdk.domain', fromlist=['SyntheticDatasetConfig']), 'SyntheticDatasetConfig'), cascade=True)
+    description="Generate synthetic data from a trained generator. For full details, use introspect('generate')."
 )
 def generate(
     generator: str,
@@ -175,22 +157,7 @@ def generate(
     )
 
 @mcp.tool(
-    description="""
-    Probe a trained generator to get synthetic samples.
-
-    Args:
-        generator_id (str): The generator UUID.
-        sample_size (int): Number of synthetic rows to generate.
-        config (dict, optional): Additional probe configuration (see below).
-
-    Example usage:
-    ```python
-    rows = probe(generator_id="<generator_id>", sample_size=5)
-    print(rows)  # list of dicts, each representing a synthetic row
-    ```
-    """
-    + _doc_string(MostlyAI.probe)
-    + _doc_string(getattr(__import__('mostlyai.sdk.domain', fromlist=['SyntheticProbeConfig']), 'SyntheticProbeConfig'), cascade=True)
+    description="Probe a trained generator to get synthetic samples. For full details, use introspect('probe')."
 )
 def probe(
     generator_id: str,
