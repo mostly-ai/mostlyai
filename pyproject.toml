@@ -43,6 +43,7 @@ dependencies = [
     "ipywidgets>=8.1.0",
     "duckdb>=1.2.1",
     "sqlparse>=0.5.3",
+    "mcp>=1.9.4",
 ]
 
 [project.optional-dependencies]
@@ -147,6 +148,9 @@ docs = [
     "griffe-fieldz>=0.2",
     "black>=25.0",
 ]
+
+[project.scripts]
+mcp-server = "mostlyai.sdk.mcp_server:main"
 
 [project.urls]
 homepage = "https://app.mostly.ai/"
