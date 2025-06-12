@@ -59,10 +59,10 @@ class KeycloakServerSettings(BaseSettings):
     keycloak_realm: str  # MCP_KEYCLOAK_KEYCLOAK_REALM env var
     keycloak_server_url: AnyHttpUrl = AnyHttpUrl(f"{os.environ['MOSTLY_BASE_URL']}/auth")
     keycloak_callback_path: str | None = None
+    keycloak_scope: str = "openid"
 
     # MCP OAuth settings
-    mcp_scope: str = "user"
-    keycloak_scope: str = "openid"
+    mcp_scope: str = "claudeai"
 
     def __init__(self, **data):
         """Initialize settings with values from environment variables.
@@ -103,10 +103,12 @@ class KeycloakOAuthProvider(OAuthAuthorizationServerProvider):
 
     async def get_client(self, client_id: str) -> OAuthClientInformationFull | None:
         """Get OAuth client information."""
+        print(f"get_client: {client_id}")
         return self.clients.get(client_id)
 
     async def register_client(self, client_info: OAuthClientInformationFull):
         """Register a new OAuth client."""
+        print(f"register_client: {client_info}")
         self.clients[client_info.client_id] = client_info
 
     async def authorize(self, client: OAuthClientInformationFull, params: AuthorizationParams) -> str:
@@ -211,6 +213,8 @@ class KeycloakOAuthProvider(OAuthAuthorizationServerProvider):
         if authorization_code.code not in self.auth_codes:
             raise ValueError("Invalid authorization code")
 
+        token_lifespan = 300  # 5 minutes (short span for the convenience of debugging)
+
         # Generate MCP access token
         mcp_token = f"mcp_{secrets.token_hex(32)}"
 
@@ -219,7 +223,7 @@ class KeycloakOAuthProvider(OAuthAuthorizationServerProvider):
             token=mcp_token,
             client_id=client.client_id,
             scopes=authorization_code.scopes,
-            expires_at=int(time.time()) + 3600,
+            expires_at=int(time.time()) + token_lifespan,
         )
 
         # Find Keycloak token for this client
@@ -241,7 +245,7 @@ class KeycloakOAuthProvider(OAuthAuthorizationServerProvider):
         return OAuthToken(
             access_token=mcp_token,
             token_type="Bearer",
-            expires_in=3600,
+            expires_in=token_lifespan,
             scope=" ".join(authorization_code.scopes),
         )
 
@@ -299,8 +303,9 @@ def create_keycloak_mcp_server(settings: KeycloakServerSettings) -> FastMCP:
             enabled=True,
             valid_scopes=[settings.mcp_scope],
             default_scopes=[settings.mcp_scope],
+            client_secret_expiry_seconds=300,  # 5 minutes (short span for the convenience of debugging)
         ),
-        required_scopes=[settings.mcp_scope],
+        required_scopes=[],
     )
 
     # Create FastMCP server with OAuth
