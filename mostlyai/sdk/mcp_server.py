@@ -51,14 +51,14 @@ class KeycloakServerSettings(BaseSettings):
     # Server settings
     host: str = "localhost"
     port: int = 8000
-    server_url: AnyHttpUrl = AnyHttpUrl(f"http://{host}:{port}")
+    server_url: AnyHttpUrl | None = None
 
     # Keycloak OAuth settings - MUST be provided via environment variables
     keycloak_client_id: str  # MCP_KEYCLOAK_KEYCLOAK_CLIENT_ID env var
     keycloak_client_secret: str  # MCP_KEYCLOAK_KEYCLOAK_CLIENT_SECRET env var
     keycloak_realm: str  # MCP_KEYCLOAK_KEYCLOAK_REALM env var
     keycloak_server_url: AnyHttpUrl = AnyHttpUrl(f"{os.environ['MOSTLY_BASE_URL']}/auth")
-    keycloak_callback_path: str = f"http://{host}:{port}/keycloak/callback"
+    keycloak_callback_path: str | None = None
 
     # MCP OAuth settings
     mcp_scope: str = "user"
@@ -71,6 +71,10 @@ class KeycloakServerSettings(BaseSettings):
         are required and must be provided via environment variables.
         """
         super().__init__(**data)
+        self.server_url = self.server_url or AnyHttpUrl(
+            f"{os.getenv('RAILWAY_SERVER_URL', f'http://{self.host}:{self.port}')}"
+        )
+        self.keycloak_callback_path = self.keycloak_callback_path or f"{self.server_url._url}keycloak/callback"
 
     @property
     def keycloak_auth_url(self) -> str:
