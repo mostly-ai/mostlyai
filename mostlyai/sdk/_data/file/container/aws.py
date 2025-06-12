@@ -92,6 +92,7 @@ class AwsS3FileContainer(BucketBasedContainer):
                 secret=self.secret_key,
                 key=self.access_key,
                 client_kwargs=client_kwargs,
+                cache_regions=True,
             )
             self._boto_resource = boto_session.resource("s3", endpoint_url=self.endpoint_url, verify=self.ssl_verify)
             self._boto_client = boto_session.client("s3", endpoint_url=self.endpoint_url, verify=self.ssl_verify)
