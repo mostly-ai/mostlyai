@@ -56,6 +56,19 @@ plugins:
             extensions:
             - griffe_fieldz
             docstring_style: google
+  - llmstxt:
+      full_output: llms-full.txt
+      sections:
+        Getting started:
+          - index.md
+        Usage Examples:
+          - usage.md
+        API Reference:
+          - api_client.md
+        Schema Reference:
+          - api_domain.md
+        Cheat Sheet:
+          - syntax.md
 
 markdown_extensions:
   - pymdownx.highlight:
