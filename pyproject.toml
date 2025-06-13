@@ -142,6 +142,7 @@ docs = [
     "mkdocs>=1.6",
     "mkdocstrings[crystal, python]>=0.29",
     "mkdocs-material>=9.0",
+    "mkdocs-llmstxt>=0.2",
     "griffe>=1.0",
     "pymdown-extensions>=10.0",
     "griffe-fieldz>=0.2",
