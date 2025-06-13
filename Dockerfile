@@ -53,6 +53,8 @@ RUN apk add --no-cache --virtual temp-build-deps gcc~12 postgresql-dev \
   --no-install-package nvidia-cusolver-cu12 \
   --no-install-package nvidia-cusparselt-cu12 \
   --no-install-package nvidia-nccl-cu12 \
+  --no-install-package nvidia-cuda-runtime-cu12 \
+  --no-install-package nvidia-nvtx-cu12 \
   --no-install-package ray \
   --no-install-package cupy-cuda12x \
   --no-install-package triton \
@@ -60,13 +62,13 @@ RUN apk add --no-cache --virtual temp-build-deps gcc~12 postgresql-dev \
   --no-install-project \
   && apk del temp-build-deps
 
-RUN uv pip install --index-strategy unsafe-first-match torch==2.6.0+cpu torchvision==0.21.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+RUN uv pip install torch==2.6.0 torchvision==0.21.0 --torch-backend=cpu
 COPY mostlyai ./mostlyai
 COPY README.md ./
 RUN uv pip install -e .
-COPY ./tools/docker_entrypoint.py ./entrypoint.py
+COPY ./tools/docker_entrypoint.py /app/entrypoint.py
 
 USER nonroot
 
 EXPOSE 8080
-ENTRYPOINT [ "uv", "run", "--", "entrypoint.py" ]
+ENTRYPOINT [ "uv", "run", "--project", "/app", "--", "/app/entrypoint.py" ]
