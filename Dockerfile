@@ -71,4 +71,5 @@ COPY ./tools/docker_entrypoint.py /app/entrypoint.py
 USER nonroot
 
 EXPOSE 8080
-ENTRYPOINT [ "uv", "run", "--project", "/app", "--", "/app/entrypoint.py" ]
+ENTRYPOINT [ "uv", "run", "--no-sync", "--project", "/app", "--"]
+CMD ["/app/entrypoint.py"]
