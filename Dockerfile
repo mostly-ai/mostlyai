@@ -5,7 +5,6 @@ FROM cgr.dev/chainguard/wolfi-base:latest AS base
 ENV LANG="C.UTF-8"
 ENV UV_FROZEN=true
 ENV UV_NO_CACHE=true
-ENV UV_SYSTEM_PYTHON=1
 
 WORKDIR /app
 RUN chmod 777 /app
@@ -72,4 +71,5 @@ COPY ./tools/docker_entrypoint.py /app/entrypoint.py
 USER nonroot
 
 EXPOSE 8080
-ENTRYPOINT [ "uv", "run", "--no-sync", "--project", "/app", "--", "/app/entrypoint.py" ]
+ENTRYPOINT [ "uv", "run", "--no-sync", "--project", "/app", "--"]
+CMD ["/app/entrypoint.py"]
