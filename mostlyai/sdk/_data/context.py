@@ -259,7 +259,7 @@ def get_table_chain_to_tgt(schema: Schema, tables: list[str], tgt: str) -> tuple
     nodes, path = sub_schema.path_to(tgt)
     path.append(
         ContextRelation(
-            parent=DataIdentifier(table=tgt, column=schema.tables[tgt].primary_key),
+            parent=DataIdentifier(table=tgt, column=schema.get_primary_key(tgt)),
             child=DataIdentifier(),
         )
     )
