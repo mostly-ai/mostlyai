@@ -287,13 +287,13 @@ def export_meta(
     tgt_metadata_path = workspace_dir / "OriginalData" / "tgt-meta"
     tgt_metadata_path.mkdir(parents=True, exist_ok=True)
     # tgt-meta / keys.json
-    tgt_pk = pk.column if (pk := schema.get_primary_key(tgt)) else None
+    tgt_pk = schema.get_primary_key(tgt)
     for rel in schema.subset(relations_to=tgt).relations:
-        if rel.child == DataIdentifier(tgt, tgt_pk):
+        if rel.child == tgt_pk:
             # having the same field as PK and FK is not supported
             # FK is prioritised, thus removing PK role from it
             tgt_pk = None
-    if tgt_pk and tgt_pk in tgt_table.columns:
+    if tgt_pk and tgt_pk.column in tgt_table.columns:
         tgt_keys = {"primary_key": tgt_pk}
     else:
         tgt_keys = {}
