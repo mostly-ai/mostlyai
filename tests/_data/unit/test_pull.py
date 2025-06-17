@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import sqlite3
 from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
@@ -27,6 +28,7 @@ from mostlyai.sdk._data.base import (
     ForeignKey,
     Schema,
 )
+from mostlyai.sdk._data.db.sqlite import SqliteContainer, SqliteTable
 from mostlyai.sdk._data.dtype import (
     STRING,
     is_float_dtype,
@@ -2115,3 +2117,34 @@ class TestPullEmptySequences:
         ctx_files = sorted([f.name for f in (tmp_path / "OriginalData" / "ctx-data").glob("*.parquet")])
         tgt_files = sorted([f.name for f in (tmp_path / "OriginalData" / "tgt-data").glob("*.parquet")])
         assert ctx_files == tgt_files
+
+
+class TestPullWithDB:
+    def test_excluded_primary_key(self, tmp_path):
+        db_path = tmp_path / "database.db"
+        with sqlite3.connect(str(db_path)) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY,
+                username TEXT NOT NULL,
+                email TEXT
+            )
+            """)
+            cursor.execute("INSERT INTO users (username, email) VALUES (?, ?)", ("alice", "alice@example.com"))
+            cursor.execute("INSERT INTO users (username, email) VALUES (?, ?)", ("bob", "bob@example.com"))
+        tables = {
+            "users": SqliteTable(
+                name="users",
+                container=SqliteContainer(dbname=str(db_path)),
+                primary_key=None,  # we specifically exclude the existing primary key in this test
+                columns=["username", "email"],
+            ),
+        }
+        schema = Schema(tables=tables)
+
+        pull(tgt="users", schema=schema, workspace_dir=tmp_path)
+
+        df = pd.read_parquet(tmp_path / "OriginalData" / "tgt-data")
+        assert len(df) == 2
+        assert set(df.columns) == {"username", "email"}
