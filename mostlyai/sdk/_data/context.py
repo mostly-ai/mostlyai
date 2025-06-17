@@ -257,11 +257,5 @@ def get_table_chain_to_tgt(schema: Schema, tables: list[str], tgt: str) -> tuple
     """
     sub_schema = schema.subset(relation_type=ContextRelation, tables=tables + [tgt])
     nodes, path = sub_schema.path_to(tgt)
-    tgt_pk = pk.column if (pk := schema.get_primary_key(tgt)) else None
-    path.append(
-        ContextRelation(
-            parent=DataIdentifier(table=tgt, column=tgt_pk),
-            child=DataIdentifier(),
-        )
-    )
+    path.append(ContextRelation(parent=schema.get_primary_key(tgt), child=DataIdentifier()))
     return nodes, path
