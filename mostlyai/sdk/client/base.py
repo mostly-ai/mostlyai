@@ -63,22 +63,30 @@ class _MostlyBaseClient:
         self,
         base_url: str | None = None,
         api_key: str | None = None,
+        bearer_token: str | None = None,
         uds: str | None = None,
         timeout: float = 60.0,
         ssl_verify: bool = True,
     ):
         self.base_url = (base_url or os.getenv("MOSTLY_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
         self.api_key = api_key or os.getenv("MOSTLY_API_KEY", "")
+        self.bearer_token = bearer_token or os.getenv("MOSTLY_BEARER_TOKEN", "")
         self.local = self.api_key == "local"
         self.transport = httpx.HTTPTransport(uds=uds) if uds else None
         self.timeout = timeout
         self.ssl_verify = ssl_verify
 
     def headers(self):
-        return {
+        headers = {
             "Accept": "application/json",
-            "X-MOSTLY-API-KEY": self.api_key,
         }
+
+        if self.bearer_token:
+            headers["Authorization"] = f"Bearer {self.bearer_token}"
+        else:
+            headers["X-MOSTLY-API-KEY"] = self.api_key
+
+        return headers
 
     def request(
         self,
