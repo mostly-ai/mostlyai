@@ -287,7 +287,7 @@ def export_meta(
     tgt_metadata_path = workspace_dir / "OriginalData" / "tgt-meta"
     tgt_metadata_path.mkdir(parents=True, exist_ok=True)
     # tgt-meta / keys.json
-    tgt_pk = tgt_table.primary_key
+    tgt_pk = pk.column if (pk := schema.get_primary_key(tgt)) else None
     for rel in schema.subset(relations_to=tgt).relations:
         if rel.child == DataIdentifier(tgt, tgt_pk):
             # having the same field as PK and FK is not supported

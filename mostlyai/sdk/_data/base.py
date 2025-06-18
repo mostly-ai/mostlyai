@@ -188,13 +188,17 @@ class Schema:
             return ctx_rel.child
 
     def get_primary_key(self, table_name: str) -> DataIdentifier | None:
-        context_relations = self.get_child_context_relations(table_name)
-        # first, check primary key on table
+        primary_key = None
         if self.tables[table_name].primary_key is not None:
-            return DataIdentifier(table_name, self.tables[table_name].primary_key)
-        # fall back to checking primary key on schema
-        if context_relations:
-            return context_relations[0].parent
+            # first, check primary key on table
+            primary_key = DataIdentifier(table_name, self.tables[table_name].primary_key)
+        elif context_relations := self.get_child_context_relations(table_name):
+            # fall back to checking primary key on schema
+            primary_key = context_relations[0].parent
+        # lastly, check if the primary key is in the included columns
+        if primary_key and primary_key.column not in self.tables[table_name].columns:
+            primary_key = None
+        return primary_key
 
     def get_child_context_relations(self, parent_table: str) -> list[DataRelation]:
         return [rel for rel in self.relations if rel.parent.table == parent_table and isinstance(rel, ContextRelation)]
