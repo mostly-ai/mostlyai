@@ -87,7 +87,7 @@ class CsvDataTable(FileDataTable):
             # with the first file consisting of integers and the others of floats; so, there still
             # might be scenarios where errors occur due to dtype mismatch in CSV chunks; in these
             # cases we shall advise to convert the source data to Parquet
-            read_options=pa_csv.ReadOptions(block_size=10 * 1024 * 1024),
+            read_options=pa_csv.ReadOptions(block_size=100 * 1024 * 1024),
             # add additional formats for datetime conversion
             convert_options=pa_csv.ConvertOptions(
                 timestamp_parsers=[
