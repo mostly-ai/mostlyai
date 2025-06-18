@@ -22,8 +22,45 @@ from mostlyai.sdk import MostlyAI
 from mostlyai.sdk.domain import Generator, Connector, SyntheticDataset
 import inspect
 import types
+import requests
 
-mcp = FastMCP(name="MOSTLY AI MCP Server (minimal)")
+def fetch_docs(url: str, error_prefix: str) -> str:
+    """
+    helper function to fetch documentation from a url
+    """
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.text
+    except Exception as e:
+        return f"{error_prefix}: {str(e)}"
+
+mcp = FastMCP(
+    name="MOSTLY AI MCP",
+    instructions="This MCP server provides access to the Mostly AI API using the SDK. Use llms_docs for quick reference and llms_full_docs for comprehensive details."
+)
+
+@mcp.resource(
+    name="llms_docs",
+    description="Quick reference documentation for the MOSTLY AI SDK",
+    uri="https://mostly-ai.github.io/mostlyai/llms.txt"
+)
+def get_llms_docs() -> str:
+    return fetch_docs(
+        "https://mostly-ai.github.io/mostlyai/llms.txt",
+        "Error fetching quick reference docs"
+    )
+
+@mcp.resource(
+    name="llms_full_docs",
+    description="Comprehensive documentation and examples for the MOSTLY AI SDK",
+    uri="https://mostly-ai.github.io/mostlyai/llms-full.txt"
+)
+def get_llms_full_docs() -> str:
+    return fetch_docs(
+        "https://mostly-ai.github.io/mostlyai/llms-full.txt",
+        "Error fetching full documentation"
+    )
 
 def get_mostly_client():
     api_key = os.getenv("MOSTLY_API_KEY")
@@ -88,41 +125,8 @@ def _doc_string(obj, cascade: bool = True):
     else:
         return inspect.getdoc(obj.__class__) or ''
 
-# static map of tool names to their long-form documentation
-_TOOL_DOCS = {
-    "connect": (
-        "connect:\n"
-        + _doc_string(MostlyAI.connect)
-        + _doc_string(getattr(__import__('mostlyai.sdk.domain', fromlist=['ConnectorConfig']), 'ConnectorConfig'), cascade=True)
-    ),
-    "train_generator": (
-        "train_generator:\n"
-        + _doc_string(MostlyAI.train)
-        + _doc_string(getattr(__import__('mostlyai.sdk.domain', fromlist=['GeneratorConfig']), 'GeneratorConfig'))
-    ),
-    "generate": (
-        "generate:\n"
-        + _doc_string(MostlyAI.generate)
-        + _doc_string(getattr(__import__('mostlyai.sdk.domain', fromlist=['SyntheticDatasetConfig']), 'SyntheticDatasetConfig'), cascade=True)
-    ),
-    "probe": (
-        "probe:\n"
-        + _doc_string(MostlyAI.probe)
-        + _doc_string(getattr(__import__('mostlyai.sdk.domain', fromlist=['SyntheticProbeConfig']), 'SyntheticProbeConfig'), cascade=True)
-    ),
-}
-
 @mcp.tool(
-    description="Get the full documentation for a tool by name. Usage: introspect(tool_name='connect')"
-)
-def introspect(tool_name: str) -> str:
-    """
-    return the long-form documentation for a given tool name.
-    """
-    return _TOOL_DOCS.get(tool_name, f"no documentation found for tool '{tool_name}'.")
-
-@mcp.tool(
-    description="Train a synthetic data generator from a CSV/Parquet file or a config dict. For full details, use introspect('train_generator')."
+    description="Train a synthetic data generator from a CSV/Parquet file or a config dict."
 )
 def train_generator(
     name: str,
@@ -133,7 +137,7 @@ def train_generator(
     return dict(generator_id=g.id, name=g.name)
 
 @mcp.tool(
-    description="Create a connector and optionally validate the connection before saving. For full details, use introspect('connect')."
+    description="Create a connector and optionally validate the connection before saving."
 )
 def connect(config: dict, test_connection: bool = True):
     return mostly.connect(config=config, test_connection=test_connection)
