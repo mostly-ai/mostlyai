@@ -24,13 +24,14 @@ from mostlyai.sdk.domain import GeneratorConfig, ProgressStatus, SyntheticDatase
 
 load_dotenv()
 
+
 @pytest.mark.parametrize(
     "encoding_types",
     [{"a": "AUTO", "b": "AUTO"}, {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"}],
     ids=["AUTO encoding types", "LANGUAGE-only encoding types"],
 )
 def test_simple_flat(tmp_path, encoding_types):
-    mostly = MostlyAI(api_key=os.getenv("STAGING_MOSTLY_API_KEY"), base_url=os.getenv('ENVIRONMENT'), quiet=True)
+    mostly = MostlyAI(api_key=os.getenv("STAGING_MOSTLY_API_KEY"), base_url=os.getenv("ENVIRONMENT"), quiet=True)
 
     # create mock data
     df = pd.DataFrame(
@@ -116,7 +117,7 @@ def test_simple_flat(tmp_path, encoding_types):
         "type": "S3_STORAGE",
         "access_type": "READ_DATA",
         "config": {"accessKey": os.getenv("S3_ACCESS_KEY")},
-        "secrets": {"secretKey":os.getenv("S3_SECRET_KEY")},
+        "secrets": {"secretKey": os.getenv("S3_SECRET_KEY")},
         "ssl": None,
     }
     connector = mostly.connect(config=connector_cfg, test_connection=False)
@@ -207,7 +208,7 @@ def test_simple_flat(tmp_path, encoding_types):
 
 
 def test_reproducibility(tmp_path):
-    mostly = MostlyAI(api_key=os.getenv("STAGING_MOSTLY_API_KEY"), base_url=os.getenv('ENVIRONMENT'), quiet=True)
+    mostly = MostlyAI(api_key=os.getenv("STAGING_MOSTLY_API_KEY"), base_url=os.getenv("ENVIRONMENT"), quiet=True)
     df = pd.DataFrame(
         {"a": np.random.choice(["a1", "a2", "a3", "a4"], size=150), "b": np.random.choice([1, 2, 3, 4], size=150)}
     )
