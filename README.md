@@ -216,16 +216,16 @@ On Linux, one can explicitly install the CPU-only variant of torch together with
 
 ```shell
 # uv pip install
-uv pip install --index-strategy unsafe-first-match -U torch==2.6.0+cpu torchvision==0.21.0+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
+uv pip install --index-strategy unsafe-first-match -U torch==2.7.0+cpu torchvision==0.22.0+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
 ```
 
 ```shell
 # standard pip install
-pip install -U torch==2.6.0+cpu torchvision==0.21.0+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
+pip install -U torch==2.7.0+cpu torchvision==0.22.0+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
 ```
 
 
-> **Note for Google Colab users**: Installing any of the local extras (`mostlyai[local]`, or `mostlyai[local-gpu]`) will downgrade Numpy from 2.0 to Numpy 1.26, due to Opacus dependency. You'll need to restart the runtime after installation for the changes to take effect.
+> **Note for Google Colab users**: Installing any of the local extras (`mostlyai[local]`, or `mostlyai[local-gpu]`) might need restarting the runtime after installation for the changes to take effect.
 
 ### Data Connectors
 
