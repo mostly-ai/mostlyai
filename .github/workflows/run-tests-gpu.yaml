@@ -3,52 +3,47 @@ name: "[GPU] mostlyai Tests"
 on: [workflow_call]
 
 env:
-    PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
-    FORCE_COLOR: "1"
-    STAGING_MOSTLY_API_KEY: ${{ secrets.STAGING_MOSTLY_API_KEY }}
-    ENVIRONMENT: ${{ secrets.ENVIRONMENT }}
-    S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
-    S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+  PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+  FORCE_COLOR: "1"
 
 jobs:
-    run-test-gpu:
-        runs-on: gha-gpu-public
-        container:
-            image: nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
-            options: --gpus all
-        permissions:
-            contents: read
-            packages: write
-        steps:
-          - name: Setup | Install Git
-            run: |
-              export DEBIAN_FRONTEND=noninteractive
-              ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
-              echo "Etc/UTC" > /etc/timezone
-              apt-get update -qq
-              apt-get install -y --no-install-recommends git tzdata build-essential
+  run-test-gpu:
+    runs-on: gha-gpu-public
+    container:
+      image: nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+      options: --gpus all
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Setup | Install Git
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
+          echo "Etc/UTC" > /etc/timezone
+          apt-get update -qq
+          apt-get install -y --no-install-recommends git tzdata build-essential
 
-          - name: Setup | Checkout
-            uses: actions/checkout@v4
-            with:
-                fetch-depth: 1
-                submodules: 'true'
+      - name: Setup | Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: "true"
 
-          - name: Setup | uv
-            uses: astral-sh/setup-uv@v5
-            with:
-                enable-cache: false
-                python-version: '3.10'
+      - name: Setup | uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: false
+          python-version: "3.10"
 
-          - name: Setup | Dependencies
-            run: |
-              uv sync --frozen --only-group dev
-              uv pip install ".[local-gpu]"
+      - name: Setup | Dependencies
+        run: |
+          uv sync --frozen --only-group dev
+          uv pip install ".[local-gpu]"
 
-          - name: Setup | Check for available GPU-s
-            run: nvidia-smi
+      - name: Setup | Check for available GPU-s
+        run: nvidia-smi
 
-          - name: Test | End-to-End Tests
-            run: |
-                uv run --no-sync pytest -vv tests/_local/end_to_end
-                uv run --no-sync pytest -vv tests/client/end_to_end
+      - name: Test | Local Mode End-to-End Tests
+        run: |
+          uv run --no-sync pytest -vv tests/_local/end_to_end

@@ -25,6 +25,14 @@ from mostlyai.sdk.domain import GeneratorConfig, ProgressStatus, SyntheticDatase
 
 load_dotenv()
 
+test_config = {
+    "s3": {
+        "access_key": os.getenv("E2E_CLIENT_S3_ACCESS_KEY"),
+        "secret_key": os.getenv("E2E_CLIENT_S3_SECRET_KEY"),
+        "bucket": os.getenv("E2E_CLIENT_S3_BUCKET"),
+    }
+}
+
 
 @pytest.mark.parametrize(
     "encoding_types",
@@ -32,7 +40,7 @@ load_dotenv()
     ids=["AUTO encoding types", "LANGUAGE-only encoding types"],
 )
 def test_simple_flat(tmp_path, encoding_types):
-    mostly = MostlyAI(api_key=os.getenv("STAGING_MOSTLY_API_KEY"), base_url=os.getenv("ENVIRONMENT"), quiet=True)
+    mostly = MostlyAI(quiet=True)
 
     # create mock data
     df = pd.DataFrame(
@@ -117,8 +125,8 @@ def test_simple_flat(tmp_path, encoding_types):
         "name": "Test 1",
         "type": "S3_STORAGE",
         "access_type": "READ_DATA",
-        "config": {"accessKey": os.getenv("S3_ACCESS_KEY")},
-        "secrets": {"secretKey": os.getenv("S3_SECRET_KEY")},
+        "config": {"accessKey": test_config["s3"]["access_key"]},
+        "secrets": {"secretKey": test_config["s3"]["secret_key"]},
         "ssl": None,
     }
     connector = mostly.connect(config=connector_cfg, test_connection=False)
@@ -129,7 +137,7 @@ def test_simple_flat(tmp_path, encoding_types):
                 {
                     "name": "test_table",
                     "source_connector_id": connector.id,
-                    "location": "testbucketuser-bucket/automation/players_csv/bb_players.csv",
+                    "location": f"{test_config['s3']['bucket']}/automation/players_csv/bb_players.csv",
                 }
             ],
         }
@@ -209,7 +217,7 @@ def test_simple_flat(tmp_path, encoding_types):
 
 
 def test_reproducibility(tmp_path):
-    mostly = MostlyAI(api_key=os.getenv("STAGING_MOSTLY_API_KEY"), base_url=os.getenv("ENVIRONMENT"), quiet=True)
+    mostly = MostlyAI(quiet=True)
     df = pd.DataFrame(
         {"a": np.random.choice(["a1", "a2", "a3", "a4"], size=150), "b": np.random.choice([1, 2, 3, 4], size=150)}
     )
