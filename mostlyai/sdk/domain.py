@@ -509,7 +509,7 @@ class GeneratorUsage(CustomBaseModel):
 class SourceColumnValueRange(CustomBaseModel):
     """
     The (privacy-safe) range of values detected within a source column. These values can then be used as seed values
-    for conditional generation. For CATEGORICAL and NUMERIC_DISCRETE encoding types, this will be given as a list
+    for conditional simulations. For CATEGORICAL and NUMERIC_DISCRETE encoding types, this will be given as a list
     of unique values, sorted by popularity. For other NUMERIC and for DATETIME encoding types, this will be given
     as a min and max value. Note, that this property will only be populated, once the analysis step for the training
     of the generator has been completed.
@@ -2209,7 +2209,7 @@ class ModelConfiguration(CustomBaseModel):
     enable_flexible_generation: bool | None = Field(
         True,
         alias="enableFlexibleGeneration",
-        description="If true, then the trained generator can be used for conditional generation, rebalancing, imputation and fairness.\nIf none of these will be needed, then one can gain extra accuracy by disabling this feature. This will then result in a fixed\ncolumn order being fed into the training process, rather than a column order, that is randomly permuted for every batch.\n",
+        description="If true, then the trained generator can be used for conditional simulations, rebalancing, imputation and fairness.\nIf none of these will be needed, then one can gain extra accuracy by disabling this feature. This will then result in a fixed\ncolumn order being fed into the training process, rather than a column order, that is randomly permuted for every batch.\n",
     )
     value_protection: bool | None = Field(
         True,
@@ -2341,7 +2341,7 @@ class SyntheticTableConfiguration(CustomBaseModel):
     sample_seed_connector_id: str | None = Field(
         None,
         alias="sampleSeedConnectorId",
-        description="The connector id of the seed data for conditional generation.\nOnly applicable for subject tables.\n",
+        description="The connector id of the seed data for conditional simulations.\nOnly applicable for subject tables.\n",
     )
     sample_seed_dict: str | None = Field(
         None,
@@ -2351,7 +2351,7 @@ class SyntheticTableConfiguration(CustomBaseModel):
     sample_seed_data: str | None = Field(
         None,
         alias="sampleSeedData",
-        description="The base64-encoded string derived from a Parquet file containing the specified sample seed data.\nThis allows conditional generation as well as live probing via python clients.\nOnly applicable for subject tables.\n",
+        description="The base64-encoded string derived from a Parquet file containing the specified sample seed data.\nThis allows conditional simulations as well as live probing via python clients.\nOnly applicable for subject tables.\n",
     )
     sampling_temperature: float | None = Field(
         1.0,
