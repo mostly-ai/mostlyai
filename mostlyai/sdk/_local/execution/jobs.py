@@ -376,7 +376,7 @@ class Execution:
         for column in tgt_table.columns:
             if column.name in encoding_types:
                 column.model_encoding_type = encoding_types[column.name]
-        # update generator with column-level value ranges, so that these are known for conditional generation
+        # update generator with column-level value ranges, so that these are known for conditional simulations
         for column in tgt_table.columns:
             if column.name in value_ranges:
                 column.value_range = value_ranges[column.name]

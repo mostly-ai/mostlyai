@@ -28,7 +28,7 @@ jobs:
       - name: Setup | Dependencies
         run: |
           uv sync --frozen --only-group dev
-          uv pip install --index-strategy unsafe-first-match torch==2.6.0+cpu torchvision==0.21.0+cpu ".[local]" --extra-index-url https://download.pytorch.org/whl/cpu
+          uv pip install --index-strategy unsafe-first-match torch==2.7.0+cpu torchvision==0.22.0+cpu ".[local]" --extra-index-url https://download.pytorch.org/whl/cpu
 
       - name: Test | End-to-End Tests
         env:
