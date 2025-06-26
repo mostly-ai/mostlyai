@@ -12,24 +12,58 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 import numpy as np
 import pandas as pd
 import pytest
+from dotenv import load_dotenv
 
 from mostlyai.sdk import MostlyAI
 from mostlyai.sdk.client.exceptions import APIStatusError
 from mostlyai.sdk.domain import GeneratorConfig, ProgressStatus, SyntheticDatasetConfig
 
+load_dotenv()
+
+s3_config = {
+    "access_key": os.getenv("E2E_CLIENT_S3_ACCESS_KEY", "test-access-key"),
+    "secret_key": os.getenv(
+        "E2E_CLIENT_S3_SECRET_KEY", "a89fb747734f4162bf36c8f1e853355f2176b583013c26e83c3324e453fd2e7b"
+    ),
+    "bucket": os.getenv("E2E_CLIENT_S3_BUCKET", "test-bucket"),
+}
+
+
+@pytest.fixture(scope="module")
+def mostly(tmp_path_factory, request):
+    if request.param == "client":
+        if os.getenv("E2E_CLIENT_S3_BUCKET") is None:
+            pytest.skip("Client mode test requires extra env vars")
+        yield MostlyAI(quiet=True)
+    else:
+        yield MostlyAI(local=True, local_dir=tmp_path_factory.mktemp("mostlyai"), quiet=True)
+
 
 @pytest.mark.parametrize(
-    "encoding_types",
-    [{"a": "AUTO", "b": "AUTO"}, {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"}],
-    ids=["AUTO encoding types", "LANGUAGE-only encoding types"],
+    "mostly, encoding_types",
+    [
+        ("local", {"a": "AUTO", "b": "AUTO"}),
+        ("local", {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"}),
+        ("client", {"a": "AUTO", "b": "AUTO"}),
+        # ("client", {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"}),  # TODO: uncomment this after probing issue is fixed
+    ],
+    ids=[
+        "AUTO encoding types (local mode)",
+        "LANGUAGE-only encoding types (local mode)",
+        "AUTO encoding types (client mode)",
+        # "LANGUAGE-only encoding types (client mode)",
+    ],
+    indirect=["mostly"],
 )
-def test_simple_flat(tmp_path, encoding_types):
-    mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
+def test_simple_flat(tmp_path, mostly, encoding_types):
+    ## ===== GENERATOR =====
 
-    # create mock data
+    # Test 1: create/delete
     df = pd.DataFrame(
         {
             "id": range(200),
@@ -38,24 +72,9 @@ def test_simple_flat(tmp_path, encoding_types):
             "text": ["c", "d"] * 100,
         }
     )
-
-    ## GENERATOR
-
-    # config via sugar
-    g = mostly.train(data=df, name="Test 1", start=False)
-    assert g.name == "Test 1"
-    g.delete()
-
-    # config via sugar
     df.to_csv(tmp_path / "test.csv", index=False)
-    g = mostly.train(data=df, name="Test 1", start=False)
-    assert g.name == "Test 1"
-    assert len(df.columns) == len(g.tables[0].columns)
-    g.delete()
-
-    # config via dict
     config = {
-        "name": "Test 1",
+        "name": "SDK E2E Test 1",
         "tables": [
             {
                 "name": "data",
@@ -71,70 +90,75 @@ def test_simple_flat(tmp_path, encoding_types):
             }
         ],
     }
-    g = mostly.train(config=config, start=False)
-    assert g.name == "Test 1"
-    g.delete()
+    kwargs_list = [
+        {"data": df, "name": "SDK E2E Test 1"},  # syntactic sugar: pass a dataframe directly
+        {"data": tmp_path / "test.csv", "name": "SDK E2E Test 1"},  # syntactic sugar: pass a file path
+        {
+            "config": {
+                "name": "SDK E2E Test 1",
+                "tables": [
+                    {
+                        "name": "data",
+                        "data": "https://github.com/mostly-ai/public-demo-data/raw/dev/census/census10k.parquet",
+                    }
+                ],
+            }
+        },  # syntactic sugar: pass a url in config
+        {"config": config},  # config via dict
+        {"config": GeneratorConfig(**config)},  # config via class
+    ]
+    for i, kwargs in enumerate(kwargs_list):
+        g = mostly.train(**kwargs, start=False)
+        assert g.name == "SDK E2E Test 1"
+        if i < len(kwargs_list) - 1:
+            g.delete()
 
-    # config via dict and sugar
-    g = mostly.train(
-        config={
-            "tables": [
-                {
-                    "name": "data",
-                    "data": "https://github.com/mostly-ai/public-demo-data/raw/dev/census/census10k.parquet",
-                }
-            ]
-        },
-        start=False,
-    )
-    g.delete()
-
-    # config via class
-    g = mostly.train(config=GeneratorConfig(**config), start=False)
-    assert g.name == "Test 1"
-
-    # update
-    g.update(name="Test 2")
-    assert g.name == "Test 2"
+    # Test 2: update
+    g.update(name="SDK E2E Test 2")
+    assert g.name == "SDK E2E Test 2"
     g = mostly.generators.get(g.id)
-    assert g.name == "Test 2"
+    assert g.name == "SDK E2E Test 2"
     g_config = g.config()
     assert isinstance(g_config, GeneratorConfig)
-    assert g_config.name == "Test 2"
+    assert g_config.name == "SDK E2E Test 2"
 
     # train
     g.training.start()
     g.training.wait()
     assert g.training_status == "DONE"
 
-    # clone new generator
+    # Test 3: clone
     connector_cfg = {
-        "name": "Test 1",
+        "name": "S3 Connector",
         "type": "S3_STORAGE",
-        "access_type": "READ_DATA",
-        "config": {"accessKey": "XXX"},
-        "secrets": {"secretKey": "a89fb747734f4162bf36c8f1e853355f2176b583013c26e83c3324e453fd2e7b"},
+        "access_type": "READ_PROTECTED",
+        "config": {"accessKey": s3_config["access_key"]},
+        "secrets": {"secretKey": s3_config["secret_key"]},
         "ssl": None,
     }
     connector = mostly.connect(config=connector_cfg, test_connection=False)
     new_g = mostly.generators.create(
         config={
-            "name": "Test 3",
+            "name": "SDK E2E Test 3",
             "tables": [
                 {
                     "name": "test_table",
                     "source_connector_id": connector.id,
+                    "location": f"{s3_config['bucket']}/automation/players_csv/bb_players.csv",
                 }
             ],
         }
     )
     new_g_clone = new_g.clone(training_status="NEW")
-    assert new_g_clone.name == "Test 3"
+    assert new_g_clone.name == "Clone - SDK E2E Test 3"
     assert new_g_clone.tables[0].source_connector_id == connector.id
     assert new_g_clone.training_status == ProgressStatus.new
+    new_g.delete()
+    new_g_clone.delete()
 
     # export / import
     g.export_to_file(tmp_path / "generator.zip")
+    g.delete()
     g = mostly.generators.import_from_file(tmp_path / "generator.zip")
 
     # cloning imported generator raises HTTPException for local due to no source connector ids
@@ -147,14 +171,15 @@ def test_simple_flat(tmp_path, encoding_types):
     # logs
     g.training.logs(tmp_path)
 
-    ## SYNTHETIC PROBE
+    ## ===== SYNTHETIC_PROBE =====
+
     df = mostly.probe(g, size=10)
     assert len(df) == 10
 
     df = mostly.probe(g, seed=pd.DataFrame({"a": ["a1"] * 10}))
     assert len(df) == 10
 
-    ## SYNTHETIC DATASET
+    ## ===== SYNTHETIC_DATASET =====
 
     # config via sugar
     sd = mostly.generate(g, start=False)
@@ -164,7 +189,7 @@ def test_simple_flat(tmp_path, encoding_types):
     # config via dict
     config = {"tables": [{"name": "data", "configuration": {"sample_size": 100}}]}
     sd = mostly.generate(g, config=config, start=False)
-    assert sd.name == "Test 2"
+    assert sd.name == "SDK E2E Test 2"
     sd_config = sd.config()
     assert isinstance(sd_config, SyntheticDatasetConfig)
     assert sd_config.tables[0].configuration.sample_size == 100
@@ -176,19 +201,21 @@ def test_simple_flat(tmp_path, encoding_types):
     sd = mostly.generate(g, config=config, start=False)
 
     # update
-    sd.update(name="Test 2")
-    assert sd.name == "Test 2"
+    sd.update(name="SDK E2E Test 2")
+    assert sd.name == "SDK E2E Test 2"
     sd = mostly.synthetic_datasets.get(sd.id)
-    assert sd.name == "Test 2"
+    assert sd.name == "SDK E2E Test 2"
     sd_config = sd.config()
     assert isinstance(sd_config, SyntheticDatasetConfig)
-    assert sd_config.name == "Test 2"
+    assert sd_config.name == "SDK E2E Test 2"
     assert sd_config.tables[0].configuration.sample_size == 100
 
     # generate
     sd.generation.start()
     sd.generation.wait()
     assert sd.generation_status == "DONE"
+
+    # download
     sd.download(tmp_path)
     syn = sd.data()
     assert len(syn) == 100
@@ -200,9 +227,13 @@ def test_simple_flat(tmp_path, encoding_types):
     # logs
     sd.generation.logs(tmp_path)
 
+    # final cleanup
+    sd.delete()
+    g.delete()
 
-def test_reproducibility(tmp_path):
-    mostly = MostlyAI(local=True, local_dir=tmp_path, quiet=True)
+
+@pytest.mark.parametrize("mostly", ["local"], indirect=True)
+def test_reproducibility(mostly):
     df = pd.DataFrame(
         {"a": np.random.choice(["a1", "a2", "a3", "a4"], size=150), "b": np.random.choice([1, 2, 3, 4], size=150)}
     )

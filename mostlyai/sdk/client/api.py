@@ -594,10 +594,12 @@ class MostlyAI(_MostlyBaseClient):
             # map config to data, in case user incorrectly provided data as first argument
             data = config
         if isinstance(data, (str, Path)):
-            name, df = read_table_from_path(data)
+            table_name, df = read_table_from_path(data)
+            if name is None:
+                name = table_name
             config = GeneratorConfig(
                 name=name,
-                tables=[SourceTableConfig(data=convert_to_base64(df), name=name)],
+                tables=[SourceTableConfig(data=convert_to_base64(df), name=table_name)],
             )
         elif isinstance(data, pd.DataFrame) or (
             data.__class__.__name__ == "DataFrame" and data.__class__.__module__.startswith("pyspark.sql")

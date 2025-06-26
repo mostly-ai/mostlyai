@@ -369,6 +369,7 @@ class Routes:
             if any(read_connector_from_json(c).type == ConnectorType.file_upload for c in connector_dirs):
                 raise HTTPException(status_code=400, detail="Cannot clone a generator with uploaded files.")
             generator_config = generators.get_generator_config(self.home_dir, id)
+            generator_config.name = f"Clone - {generator_config.name}"
             new_generator = create_generator_model(home_dir=self.home_dir, config=generator_config)
             new_generator_dir = self.home_dir / "generators" / new_generator.id
             if config.training_status == GeneratorCloneTrainingStatus.continue_:
