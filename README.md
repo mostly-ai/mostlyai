@@ -50,7 +50,7 @@ https://github.com/user-attachments/assets/9e233213-a259-455c-b8ed-d1f1548b492f
   - In-depth HTML reports for visual analysis
 - **Flexible Sampling**
   - Up-sample to any data volumes
-  - Conditional generation by any columns
+  - Conditional simulations based on any columns
   - Re-balance underrepresented segments
   - Context-aware data imputation
   - Statistical fairness controls
