@@ -30,19 +30,16 @@ jobs:
           uv sync --frozen --only-group dev
           uv pip install --index-strategy unsafe-first-match torch==2.6.0+cpu torchvision==0.21.0+cpu ".[local]" --extra-index-url https://download.pytorch.org/whl/cpu
 
-      - name: Test | Local Mode End-to-End Tests
-        run: |
-          uv run --no-sync pytest -vv tests/_local/end_to_end
-
-      - name: Test | Client Mode End-to-End Tests
+      - name: Test | End-to-End Tests
         env:
           MOSTLY_API_KEY: ${{ secrets.E2E_CLIENT_MOSTLY_API_KEY }}
           MOSTLY_BASE_URL: ${{ secrets.E2E_CLIENT_MOSTLY_BASE_URL }}
           E2E_CLIENT_S3_ACCESS_KEY: ${{ secrets.E2E_CLIENT_S3_ACCESS_KEY }}
           E2E_CLIENT_S3_SECRET_KEY: ${{ secrets.E2E_CLIENT_S3_SECRET_KEY }}
           E2E_CLIENT_S3_BUCKET: ${{ secrets.E2E_CLIENT_S3_BUCKET }}
+        # both local and client mode e2e tests will be run
         run: |
-          uv run --no-sync pytest -vv tests/client/end_to_end
+          uv run --no-sync pytest -vv tests/_local/end_to_end
 
       - name: Test | Unit Tests
         run: |

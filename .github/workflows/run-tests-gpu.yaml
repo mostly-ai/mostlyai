@@ -44,6 +44,7 @@ jobs:
       - name: Setup | Check for available GPU-s
         run: nvidia-smi
 
-      - name: Test | Local Mode End-to-End Tests
+      - name: Test | End-to-End Tests
+        # client mode e2e test will be skipped when no extra environment variable is provided
         run: |
           uv run --no-sync pytest -vv tests/_local/end_to_end
