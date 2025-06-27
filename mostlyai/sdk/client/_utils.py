@@ -288,18 +288,16 @@ def job_wait(
                     if step.status in (ProgressStatus.failed, ProgressStatus.canceled):
                         rich.print(f"[red]Step {step.model_label} {step.step_code.value} {step.status.lower()}")
                         return
-                # check whether we are done
-                if job.progress.value >= job.progress.max:
-                    live.refresh()
-                    time.sleep(1)  # give the system a moment to update the status
-                    return
-            else:
-                if job.end_date or job.progress in (
-                    ProgressStatus.failed,
-                    ProgressStatus.canceled,
-                ):
-                    rich.print(f"Job {job.status.lower()}")
-                    return
+
+            # check whether we are done
+            if job.status in (
+                ProgressStatus.done,
+                ProgressStatus.failed,
+                ProgressStatus.canceled,
+            ):
+                live.refresh()
+                time.sleep(1)  # give the system a moment to update the status
+                return
     except KeyboardInterrupt:
         rich.print(f"[red]Step {step.model_label} {step.step_code.value} {step.status.lower()}")
         return

@@ -122,20 +122,25 @@ def _move_generation_artefacts(synthetic_dataset_dir: Path, job_workspace_dir: P
 def _mark_in_progress(resource: Generator | SyntheticDataset, resource_dir: Path):
     if isinstance(resource, Generator):
         resource.training_status = ProgressStatus.in_progress
+        write_resource_to_json = write_generator_to_json
     else:
         resource.generation_status = ProgressStatus.in_progress
+        write_resource_to_json = write_synthetic_dataset_to_json
     job_progress = read_job_progress_from_json(resource_dir)
     job_progress.status = ProgressStatus.in_progress
     for step in job_progress.steps:
         step.status = ProgressStatus.in_progress
+    write_resource_to_json(resource_dir, resource)
     write_job_progress_to_json(resource_dir, job_progress)
 
 
 def _mark_done(resource: Generator | SyntheticDataset, resource_dir: Path):
     if isinstance(resource, Generator):
         resource.training_status = ProgressStatus.done
+        write_resource_to_json = write_generator_to_json
     else:
         resource.generation_status = ProgressStatus.done
+        write_resource_to_json = write_synthetic_dataset_to_json
     now = get_current_utc_time()
     job_progress = read_job_progress_from_json(resource_dir)
     job_progress.status = ProgressStatus.done
@@ -147,19 +152,23 @@ def _mark_done(resource: Generator | SyntheticDataset, resource_dir: Path):
         step.start_date = step.start_date or now
         step.end_date = step.end_date or now
         step.progress.value = step.progress.max
+    write_resource_to_json(resource_dir, resource)
     write_job_progress_to_json(resource_dir, job_progress)
 
 
 def _mark_failed(resource: Generator | SyntheticDataset, resource_dir: Path):
     if isinstance(resource, Generator):
         resource.training_status = ProgressStatus.failed
+        write_resource_to_json = write_generator_to_json
     else:
         resource.generation_status = ProgressStatus.failed
+        write_resource_to_json = write_synthetic_dataset_to_json
     job_progress = read_job_progress_from_json(resource_dir)
     job_progress.status = ProgressStatus.failed
     for step in job_progress.steps:
         if step.status != ProgressStatus.done:
             step.status = ProgressStatus.failed
+    write_resource_to_json(resource_dir, resource)
     write_job_progress_to_json(resource_dir, job_progress)
 
 
@@ -607,7 +616,6 @@ def execute_training_job(generator_id: str, home_dir: Path):
     finally:
         execution.clear_job_workspace()
         execution.clear_file_upload_connectors()
-        write_generator_to_json(generator_dir, generator)
 
     try:
         _probe_random_samples(home_dir=home_dir, generator=generator)
@@ -652,7 +660,6 @@ def execute_generation_job(synthetic_dataset_id: str, home_dir: Path):
     finally:
         execution.clear_job_workspace()
         execution.clear_file_upload_connectors()
-        write_synthetic_dataset_to_json(synthetic_dataset_dir, synthetic_dataset)
 
 
 def execute_probing_job(synthetic_dataset_id: str, home_dir: Path) -> list[Probe]:
