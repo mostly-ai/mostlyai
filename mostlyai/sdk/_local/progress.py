@@ -18,7 +18,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from mostlyai.sdk._local.storage import read_job_progress_from_json
+from mostlyai.sdk._local.storage import read_job_progress_from_json, write_job_progress_to_json
 from mostlyai.sdk.domain import ProgressStatus, StepCode
 
 
@@ -117,9 +117,8 @@ class LocalProgressCallback:
         self.job_progress.progress.max = len(self.job_progress.steps)  # of steps
         if self.job_progress.start_date is None:
             self.job_progress.start_date = now
-        if self.job_progress.progress.value >= self.job_progress.progress.max:
-            self.job_progress.end_date = now
-            self.job_progress.status = ProgressStatus.done
+        # NOTE: do not set job status to DONE here, that should happen as a very last thing
+        # in order for _job_wait not to finish polling prematurely
 
         # send progress if we are DONE, or if we have a message to pass,
         # or if enough time has passed since last progress update
@@ -131,8 +130,6 @@ class LocalProgressCallback:
             or (completed is not None and elapsed_enough_time)
             or (increase_by > 0 and elapsed_enough_time)
         ):
-            # TODO: either update both resource and job_progress, or none of them
-            # write_job_progress_to_json(self.resource_path, self.job_progress)
-            pass
+            write_job_progress_to_json(self.resource_path, self.job_progress)
 
         return {}
