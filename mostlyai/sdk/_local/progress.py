@@ -117,8 +117,8 @@ class LocalProgressCallback:
         self.job_progress.progress.max = len(self.job_progress.steps)  # of steps
         if self.job_progress.start_date is None:
             self.job_progress.start_date = now
-        # NOTE: do not set job status to DONE here, that should happen as a very last thing
-        # in order for _job_wait not to finish polling prematurely
+        # NOTE: do not set job status to DONE here, that should happen as the very last thing
+        # in order for `job_wait` not to finish polling prematurely
 
         # send progress if we are DONE, or if we have a message to pass,
         # or if enough time has passed since last progress update
