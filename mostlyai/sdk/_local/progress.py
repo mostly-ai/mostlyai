@@ -13,14 +13,13 @@
 # limitations under the License.
 
 import datetime
-import json
 import math
 from pathlib import Path
 
 from pydantic import BaseModel
 
-from mostlyai.sdk._local.storage import write_to_json
-from mostlyai.sdk.domain import JobProgress, ProgressStatus, StepCode
+from mostlyai.sdk._local.storage import read_job_progress_from_json
+from mostlyai.sdk.domain import ProgressStatus, StepCode
 
 
 def get_current_utc_time() -> datetime.datetime:
@@ -43,8 +42,7 @@ class LocalProgressCallback:
         self._last_send_progress_time = None
         self._total = None
 
-        self.progress_file = self.resource_path / "job_progress.json"
-        self.job_progress = JobProgress(**json.loads(self.progress_file.read_text()))
+        self.job_progress = read_job_progress_from_json(self.resource_path)
 
     def _check_elapsed_interval(self):
         now = get_current_utc_time()
@@ -133,6 +131,8 @@ class LocalProgressCallback:
             or (completed is not None and elapsed_enough_time)
             or (increase_by > 0 and elapsed_enough_time)
         ):
-            write_to_json(self.progress_file, self.job_progress)
+            # TODO: either update both resource and job_progress, or none of them
+            # write_job_progress_to_json(self.resource_path, self.job_progress)
+            pass
 
         return {}
