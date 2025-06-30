@@ -35,6 +35,8 @@ s3_config = {
 @pytest.fixture(scope="module")
 def mostly(tmp_path_factory, request):
     if request.param == "client":
+        if os.getenv("E2E_CLIENT_S3_BUCKET") is None:
+            pytest.skip("Client mode test requires extra env vars")
         yield MostlyAI(quiet=True)
     else:
         yield MostlyAI(local=True, local_dir=tmp_path_factory.mktemp("mostlyai"), quiet=True)
