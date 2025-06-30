@@ -45,7 +45,7 @@ def mostly(tmp_path_factory, request):
         ("local", {"a": "AUTO", "b": "AUTO"}),
         ("local", {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"}),
         ("client", {"a": "AUTO", "b": "AUTO"}),
-        ("client", {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"}),  # TODO: uncomment this after probing issue is fixed
+        ("client", {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"}),
     ],
     ids=[
         "AUTO encoding types (local mode)",
