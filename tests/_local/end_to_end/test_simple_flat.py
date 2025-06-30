@@ -28,15 +28,12 @@ load_dotenv()
 s3_config = {
     "access_key": os.getenv("E2E_CLIENT_S3_ACCESS_KEY", "test-access-key"),
     "secret_key": os.getenv("E2E_CLIENT_S3_SECRET_KEY", "test-secret-key"),
-    "bucket": os.getenv("E2E_CLIENT_S3_BUCKET", "test-bucket"),
+    "bucket": os.getenv("E2E_CLIENT_S3_BUCKET", "testbucketuser-bucket"),
 }
-
 
 @pytest.fixture(scope="module")
 def mostly(tmp_path_factory, request):
     if request.param == "client":
-        if os.getenv("E2E_CLIENT_S3_BUCKET") is None:
-            pytest.skip("Client mode test requires extra env vars")
         yield MostlyAI(quiet=True)
     else:
         yield MostlyAI(local=True, local_dir=tmp_path_factory.mktemp("mostlyai"), quiet=True)
@@ -48,13 +45,13 @@ def mostly(tmp_path_factory, request):
         ("local", {"a": "AUTO", "b": "AUTO"}),
         ("local", {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"}),
         ("client", {"a": "AUTO", "b": "AUTO"}),
-        # ("client", {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"}),  # TODO: uncomment this after probing issue is fixed
+        ("client", {"a": "LANGUAGE_CATEGORICAL", "b": "LANGUAGE_NUMERIC"}),  # TODO: uncomment this after probing issue is fixed
     ],
     ids=[
         "AUTO encoding types (local mode)",
         "LANGUAGE-only encoding types (local mode)",
         "AUTO encoding types (client mode)",
-        # "LANGUAGE-only encoding types (client mode)",
+        "LANGUAGE-only encoding types (client mode)",
     ],
     indirect=["mostly"],
 )
