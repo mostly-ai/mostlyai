@@ -31,6 +31,7 @@ s3_config = {
     "bucket": os.getenv("E2E_CLIENT_S3_BUCKET", "testbucketuser-bucket"),
 }
 
+
 @pytest.fixture(scope="module")
 def mostly(tmp_path_factory, request):
     if request.param == "client":
