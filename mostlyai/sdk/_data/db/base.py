@@ -739,6 +739,7 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
             self.update_dbschema(None)
             return sorted(list(set(self.all_schemas())))
         else:
+            prefix = prefix.rstrip(".")  # remove trailing dot if present
             # List the tables of the provided schema named {prefix}
             self.update_dbschema(prefix)
             locations = [".".join([prefix, loc]) for loc in self.get_object_list()]
