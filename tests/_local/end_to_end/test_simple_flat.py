@@ -28,7 +28,7 @@ load_dotenv()
 s3_config = {
     "access_key": os.getenv("E2E_CLIENT_S3_ACCESS_KEY", "test-access-key"),
     "secret_key": os.getenv("E2E_CLIENT_S3_SECRET_KEY", "test-secret-key"),
-    "bucket": os.getenv("E2E_CLIENT_S3_BUCKET", "testbucketuser-bucket"),
+    "bucket": os.getenv("E2E_CLIENT_S3_BUCKET", "test-bucket"),
 }
 
 
