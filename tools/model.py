@@ -669,6 +669,8 @@ class SyntheticTableConfiguration:
             values.sampling_temperature = 1.0
         if values.sampling_top_p is None:
             values.sampling_top_p = 1.0
+        if values.no_of_simulations is None:
+            values.no_of_simulations = 1
         return values
 
     # @model_validator(mode="after")
