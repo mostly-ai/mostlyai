@@ -33,6 +33,8 @@ def execute_step_pull_training_data(
 ) -> tuple[list[str], int]:
     schema = _create_training_schema(generator=generator, connectors=connectors)
 
+    # TODO: ensure special column name `_simulation_index` is not already part of the list of original columns (raise exception if so)
+
     # fetch total rows
     tgt_table_total_rows = schema.tables[target_table_name].row_count
     # fetch columns

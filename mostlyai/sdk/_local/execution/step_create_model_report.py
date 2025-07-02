@@ -73,6 +73,7 @@ def create_report(
     # only consider non-key tgt columns for QA
     tgt_fks = [fk.column for fk in (tgt_table.foreign_keys or [])]
     tgt_columns = [c.name for c in tgt_table.columns if c not in tgt_fks and c.name != tgt_table.primary_key]
+    # TODO: from tgt_columns, remove special _simulation_index column (which gets added when no_of_simulations > 1)
     # calculate sample size
     tgt_stats = workspace.tgt_stats.read()
     sample_size = qa_sample_size_heuristic(tgt_stats=tgt_stats, model_type=model_type)
@@ -99,6 +100,7 @@ def create_report(
                 for c in ctx_table.columns
                 if c.name not in ctx_fks and c.name != ctx_primary_key
             ]
+            # TODO: from ctx_columns, remove special _simulation_index column (which gets added when no_of_simulations > 1)
         else:  # TABULAR model for flat table
             ctx_table_name = None
             ctx_primary_key = None
@@ -125,6 +127,8 @@ def create_report(
                 for c in ctx_table.columns
                 if c.name not in ctx_fks and c.name != ctx_primary_key
             ]
+            # TODO: from ctx_columns, remove special _simulation_index column (which gets added when no_of_simulations > 1)
+
         # consider TABULAR tgt columns a context
         ctx_columns += [f"{target_table_name}{TABLE_COLUMN_INFIX}{c}" for c in tgt_columns]
 

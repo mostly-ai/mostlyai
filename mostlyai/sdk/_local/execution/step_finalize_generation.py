@@ -214,6 +214,7 @@ def finalize_table_generation(
     * handle non-context keys
     * handle reference keys
     * keep only needed columns, and in the right order
+    * TODO: ensure special column _simulation_index is not excluded from the output
     * export to PARQUET, and optionally also to CSV (without col prefixes)
     """
 
@@ -255,6 +256,8 @@ def finalize_table_generation(
         tgt_cols = (
             cols if (cols := generated_data_schema.tables[target_table_name].columns) is not None else tgt_data.columns
         )
+        # TODO: ensure special column _simulation_index is not excluded from the output (where target is a subject table).
+        # Target table with context might not have the _simulation_index column and might rely on it from the context.
         drop_cols = [c for c in tgt_cols if c not in tgt_data]
         if drop_cols:
             _LOG.info(f"remove columns from final output: {', '.join(drop_cols)}")
