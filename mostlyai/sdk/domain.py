@@ -2672,7 +2672,7 @@ class SourceTableConfig(CustomBaseModel):
         keys = [fk.column for fk in values.foreign_keys or []]
         if values.primary_key:
             keys.append(values.primary_key)
-        model_columns = [c for c in columns if c.name not in keys]
+        model_columns = [c for c in columns]
         if model_columns:
             enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
             has_tabular_model = any(not enc_type.startswith(ModelType.language) for enc_type in enc_types)
