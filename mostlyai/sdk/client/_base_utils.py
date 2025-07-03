@@ -72,7 +72,7 @@ def convert_to_df(data: str, format: Literal["parquet", "jsonl"] = "parquet") ->
     return df
 
 
-def read_table_from_path(path: str | Path) -> (str, pd.DataFrame):
+def read_table_from_path(path: str | Path) -> tuple[str, pd.DataFrame]:
     # read data from file
     fn = str(path)
     if fn.lower().endswith((".pqt", ".parquet")):
