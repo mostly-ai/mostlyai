@@ -267,7 +267,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
     def _export_to_file(
         self,
         generator_id: str,
-    ) -> (bytes, str | None):
+    ) -> tuple[bytes, str | None]:
         response = self.request(
             verb=GET,
             path=[generator_id, "export-to-file"],
@@ -318,7 +318,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         source_table_id: str,
         model_type: ModelType = ModelType.tabular,
         short_lived_file_token: str | None = None,
-    ) -> (str, str | None):
+    ) -> tuple[str, str | None]:
         response = self.request(
             verb=GET,
             path=[generator_id, "tables", source_table_id, "report"],
@@ -348,7 +348,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         generator = self.get(generator_id)
         return generator
 
-    def _training_logs(self, generator_id: str, short_lived_file_token: str | None = None) -> (bytes, str):
+    def _training_logs(self, generator_id: str, short_lived_file_token: str | None = None) -> tuple[bytes, str]:
         response = self.request(
             verb=GET,
             path=[generator_id, "training", "logs"],
