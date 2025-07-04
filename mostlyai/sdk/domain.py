@@ -2670,8 +2670,8 @@ class SourceTableConfig(CustomBaseModel):
         # Check if the table has a tabular and/or a language model
         columns = values.columns or []
         keys = [fk.column for fk in values.foreign_keys or []]
-        # if values.primary_key:
-        #     keys.append(values.primary_key)
+        if values.primary_key:
+            keys.append(values.primary_key)
         model_columns = [c for c in columns if c.name not in keys]
         if model_columns:
             enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
@@ -2680,11 +2680,9 @@ class SourceTableConfig(CustomBaseModel):
         else:
             has_tabular_model = True
             has_language_model = False
-        if values.foreign_keys:
-            # Always train tabular model for linked tables to model sequences
-            for fk in values.foreign_keys:
-                if fk.is_context:
-                    has_tabular_model = True
+        # Always train tabular model for tables with a primary key or linked tables to model sequences
+        if values.primary_key or (values.foreign_keys and any(fk.is_context for fk in values.foreign_keys)):
+            has_tabular_model = True
         # Remove model configurations that are not applicable for the model type
         if values.tabular_model_configuration and not has_tabular_model:
             values.tabular_model_configuration = None
