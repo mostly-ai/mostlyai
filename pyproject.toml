@@ -1,6 +1,6 @@
 [project]
 name = "mostlyai"
-version = "4.8.1"
+version = "4.8.2"
 description = "Synthetic Data SDK"
 authors = [{ name = "MOSTLY AI", email = "dev@mostly.ai" }]
 requires-python = ">=3.10,<3.14"
@@ -49,7 +49,7 @@ dependencies = [
 local = [
     # "mostlyai-engine @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
-    "mostlyai-engine==1.4.6",  # for release
+    "mostlyai-engine==1.4.7",  # for release
     "mostlyai-qa==1.9.8",  # for release
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
@@ -75,7 +75,7 @@ local = [
 local-gpu = [
     # "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
-    "mostlyai-engine[gpu]==1.4.6",  # for release
+    "mostlyai-engine[gpu]==1.4.7",  # for release
     "mostlyai-qa==1.9.8",  # for release
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",

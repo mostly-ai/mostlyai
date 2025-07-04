@@ -213,7 +213,7 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         synthetic_dataset_id: str,
         ds_format: SyntheticDatasetFormat = SyntheticDatasetFormat.parquet,
         short_lived_file_token: str | None = None,
-    ) -> (bytes, str | None):
+    ) -> tuple[bytes, str | None]:
         response = self.request(
             verb=GET,
             path=[synthetic_dataset_id, "download"],
@@ -261,7 +261,7 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         model_type: ModelType = ModelType.tabular,
         report_type: SyntheticDatasetReportType = SyntheticDatasetReportType.model,
         short_lived_file_token: str | None = None,
-    ) -> (str, str | None):
+    ) -> tuple[str, str | None]:
         response = self.request(
             verb=GET,
             path=[synthetic_dataset_id, "tables", synthetic_table_id, "report"],
@@ -300,7 +300,9 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         synthetic_dataset = self.get(synthetic_dataset_id)
         return synthetic_dataset
 
-    def _generation_logs(self, synthetic_dataset_id: str, short_lived_file_token: str | None = None) -> (bytes, str):
+    def _generation_logs(
+        self, synthetic_dataset_id: str, short_lived_file_token: str | None = None
+    ) -> tuple[bytes, str]:
         response = self.request(
             verb=GET,
             path=[synthetic_dataset_id, "generation", "logs"],
