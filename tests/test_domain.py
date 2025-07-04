@@ -82,6 +82,19 @@ def test_source_table_config_add_model_configuration():
     s = SourceTableConfig(**{"name": "tbl1", "primary_key": "id", "columns": [{"name": "id"}]})
     assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
 
+    # PK + language column (id: pk, name: lang_text)
+    s = SourceTableConfig(
+        **{
+            "name": "tbl1",
+            "primary_key": "id",
+            "columns": [
+                {"name": "id", "model_encoding_type": ModelEncodingType.tabular_categorical},
+                {"name": "name", "model_encoding_type": ModelEncodingType.language_text},
+            ],
+        }
+    )
+    assert_model_configuration(s, has_tabular_model=True, has_language_model=True)
+
     # PK + FK columns
     s = SourceTableConfig(
         **{
