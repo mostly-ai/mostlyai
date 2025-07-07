@@ -84,7 +84,7 @@ df = mostly.probe(g, size=1000)
 df
 ```
 
-Generate synthetic sampels based on fixed column values:
+Generate synthetic samples based on fixed column values:
 
 ```python
 # create 10k records of 24y male respondents
