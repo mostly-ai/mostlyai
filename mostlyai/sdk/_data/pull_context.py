@@ -19,7 +19,7 @@ from typing import Any
 
 from mostlyai.sdk._data.base import Schema
 from mostlyai.sdk._data.progress_callback import ProgressCallbackWrapper
-from mostlyai.sdk._data.pull_utils import handle_workspace_dir, prepare_schema, pull_split
+from mostlyai.sdk._data.pull_utils import handle_workspace_dir, pull_split
 from mostlyai.sdk.domain import ModelType
 
 _LOG = logging.getLogger(__name__)
@@ -38,7 +38,6 @@ def pull_context(
     model_type = ModelType(model_type)
     if tgt not in schema.tables:
         raise ValueError(f"table '{tgt}' not defined in schema")
-    prepare_schema(schema)
     # gather context_tables
     context_tables = schema.get_context_tables(tgt)
     _LOG.info(f"context_tables (size: {len(context_tables)}): {context_tables}")

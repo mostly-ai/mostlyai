@@ -300,28 +300,28 @@ class TestSchema:
             tables={
                 "A": TheSimplestDataTable(df=pd.DataFrame(columns=["id"]), primary_key="id", foreign_keys=[]),
                 "A1": TheSimplestDataTable(
-                    df=pd.DataFrame(columns=["a_id"]),
-                    primary_key="a_id",
+                    df=pd.DataFrame(columns=["a_id", "a1_id"]),
+                    primary_key="a1_id",
                     foreign_keys=[ForeignKey(column="a_id", referenced_table="A", is_context=True)],
                 ),
                 "A2": TheSimplestDataTable(
-                    df=pd.DataFrame(columns=["a_id"]),
-                    primary_key="a_id",
+                    df=pd.DataFrame(columns=["a_id", "a2_id"]),
+                    primary_key="a2_id",
                     foreign_keys=[ForeignKey(column="a_id", referenced_table="A", is_context=True)],
                 ),
                 "A21": TheSimplestDataTable(
-                    df=pd.DataFrame(columns=["a2_id"]),
-                    primary_key="a2_id",
+                    df=pd.DataFrame(columns=["a2_id", "a21_id"]),
+                    primary_key="a21_id",
                     foreign_keys=[ForeignKey(column="a2_id", referenced_table="A2", is_context=True)],
                 ),
                 "A22": TheSimplestDataTable(
-                    df=pd.DataFrame(columns=["a2_id"]),
-                    primary_key="a2_id",
+                    df=pd.DataFrame(columns=["a2_id", "a22_id"]),
+                    primary_key="a22_id",
                     foreign_keys=[ForeignKey(column="a2_id", referenced_table="A2", is_context=True)],
                 ),
                 "A3": TheSimplestDataTable(
-                    df=pd.DataFrame(columns=["a_id"]),
-                    primary_key="a_id",
+                    df=pd.DataFrame(columns=["a_id", "a3_id"]),
+                    primary_key="a3_id",
                     foreign_keys=[ForeignKey(column="a_id", referenced_table="A", is_context=True)],
                 ),
             }

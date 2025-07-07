@@ -1507,16 +1507,11 @@ class TestLanguageText:
         }
         # checked pulled meta data
         tgt_enctypes = read_json(tmp_path / "OriginalData" / "tgt-meta" / "encoding-types.json")
+        assert set(tgt_enctypes.keys()) == {"int", "cat"}
         tgt_keys = read_json(tmp_path / "OriginalData" / "tgt-meta" / "keys.json")
         if has_pk:
-            assert set(tgt_enctypes.keys()) == {"int", "cat"}
             assert tgt_keys == {"primary_key": "id"}
         else:
-            assert set(tgt_enctypes.keys()) == {
-                "id",
-                "int",
-                "cat",
-            }
             assert tgt_keys == {}
 
     @pytest.mark.parametrize("has_pk", [True, False])
@@ -1573,7 +1568,6 @@ class TestLanguageText:
                 "table.csv::cat",
             }
             assert ctx_enctypes == {
-                "table.csv::id": ModelEncodingType.tabular_numeric_auto,
                 "table.csv::int": ModelEncodingType.tabular_numeric_auto,
                 "table.csv::cat": ModelEncodingType.tabular_categorical,
             }
@@ -1665,16 +1659,11 @@ class TestLanguageText:
         assert len(tgt_data) == 3
         assert set(tgt_data.columns) == {"id", "ctx_id", "int", "cat"}
         tgt_enctypes = read_json(tmp_path / "OriginalData" / "tgt-meta" / "encoding-types.json")
+        assert set(tgt_enctypes.keys()) == {"int", "cat"}
         tgt_keys = read_json(tmp_path / "OriginalData" / "tgt-meta" / "keys.json")
         if has_pk:
-            assert set(tgt_enctypes.keys()) == {"int", "cat"}
             assert tgt_keys == {"primary_key": "id", "context_key": "ctx_id"}
         else:
-            assert set(tgt_enctypes.keys()) == {
-                "id",
-                "int",
-                "cat",
-            }
             assert tgt_keys == {"context_key": "ctx_id"}
 
         # ctx
@@ -1719,8 +1708,6 @@ class TestLanguageText:
         assert ctx_keys == {"primary_key": f"tgt::{pk}", "root_key": "ctx::id"}
         ctx_enctypes = read_json(tmp_path / "OriginalData" / "ctx-meta" / "encoding-types.json")
         ctx_enctypes_expected = {"ctx::int", "ctx::str", "tgt::int", "tgt::cat"}
-        if not has_pk:
-            ctx_enctypes_expected |= {"tgt::id"}
         assert set(ctx_enctypes.keys()) == ctx_enctypes_expected
 
     @pytest.mark.parametrize("has_pk", [True, False])
