@@ -258,7 +258,7 @@ class Schema:
         relations = [rel for rel in relations if isinstance(rel, ContextRelation)]
         return relations
 
-    def update_key_encoding_types(self) -> None:
+    def _update_key_encoding_types(self) -> None:
         for tbl_name, tbl_table in self.tables.items():
             if tbl_table.primary_key is not None:
                 if tbl_table.primary_key in tbl_table.encoding_types:
@@ -268,7 +268,7 @@ class Schema:
                     del tbl_table.encoding_types[rel.child.column]
             self.tables[tbl_name] = tbl_table
 
-    def resolve_auto_encoding_types(self) -> None:
+    def _resolve_auto_encoding_types(self) -> None:
         for tbl_name, tbl_table in self.tables.items():
             for col_name, encoding_type in tbl_table.encoding_types.items():
                 if encoding_type == ModelEncodingType.auto:
@@ -279,7 +279,7 @@ class Schema:
                         f"{promoted_enctype.value} for {tbl_name}.{col_name}"
                     )
 
-    def remove_cascading_keys_relations(self):
+    def _remove_cascading_keys_relations(self):
         tables_with_cascading_keys = set()
         for table_name, table in self.tables.items():
             primary_key = table.primary_key
@@ -296,6 +296,11 @@ class Schema:
 
         if tables_with_cascading_keys:
             _LOG.info(f"Removed cascading keys relations for tables: {tables_with_cascading_keys}")
+
+    def preprocess_schema_before_pull(self):
+        self._remove_cascading_keys_relations()
+        self._update_key_encoding_types()
+        self._resolve_auto_encoding_types()
 
     @property
     @functools.cache
