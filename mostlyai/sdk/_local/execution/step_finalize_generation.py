@@ -453,5 +453,9 @@ def create_generation_schema(
         ]
         tables[table.name] = data_table
     schema = Schema(tables=tables)
+    for table_name, table in schema.tables.items():
+        _LOG.info(f"table `{table_name}` {table.encoding_types = }")
     schema.update_key_encoding_types()
+    for table_name, table in schema.tables.items():
+        _LOG.info(f"table `{table_name}` {table.encoding_types = }")
     return schema
