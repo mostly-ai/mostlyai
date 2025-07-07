@@ -452,4 +452,6 @@ def create_generation_schema(
             for fk in table.foreign_keys or []
         ]
         tables[table.name] = data_table
-    return Schema(tables=tables)
+    schema = Schema(tables=tables)
+    schema.update_key_encoding_types()
+    return schema
