@@ -153,9 +153,7 @@ class FileDataTable(DataTable, abc.ABC):
     def _get_dtypes(self):
         assert not self.is_output
         dtypes = self.fetch_dtypes()
-        if dtypes:
-            return {c: (self.dtype_class())(wrapped=dtypes[c]) for c in self.columns}
-        return dtypes
+        return {c: (self.dtype_class())(wrapped=dtypes[c]) for c in self.columns}
 
     def _lazy_fetch(self, item: str) -> None:
         if item == "name":

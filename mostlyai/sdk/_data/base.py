@@ -129,11 +129,6 @@ class NonContextRelation(DataRelation):
 class Schema:
     tables: dict[str, "DataTable"] = field(default_factory=dict)
 
-    def __post_init__(self):
-        self._remove_cascading_keys_relations()
-        self._remove_key_encoding_types()
-        self._resolve_auto_encoding_types()
-
     def __hash__(self):
         return hash(
             frozenset(self.tables.keys()),
@@ -263,30 +258,28 @@ class Schema:
         relations = [rel for rel in relations if isinstance(rel, ContextRelation)]
         return relations
 
-    def _remove_key_encoding_types(self) -> None:
+    def update_key_encoding_types(self) -> None:
         for tbl_name, tbl_table in self.tables.items():
-            if tbl_table.encoding_types:
-                if tbl_table.primary_key is not None:
-                    if tbl_table.primary_key in tbl_table.encoding_types:
-                        del tbl_table.encoding_types[tbl_table.primary_key]
-                for rel in self.get_relations_to_table(tbl_name):
-                    if rel.child.column in tbl_table.encoding_types:
-                        del tbl_table.encoding_types[rel.child.column]
-                self.tables[tbl_name] = tbl_table
+            if tbl_table.primary_key is not None:
+                if tbl_table.primary_key in tbl_table.encoding_types:
+                    del tbl_table.encoding_types[tbl_table.primary_key]
+            for rel in self.get_relations_to_table(tbl_name):
+                if rel.child.column in tbl_table.encoding_types:
+                    del tbl_table.encoding_types[rel.child.column]
+            self.tables[tbl_name] = tbl_table
 
-    def _resolve_auto_encoding_types(self) -> None:
+    def resolve_auto_encoding_types(self) -> None:
         for tbl_name, tbl_table in self.tables.items():
-            if tbl_table.encoding_types:
-                for col_name, encoding_type in tbl_table.encoding_types.items():
-                    if encoding_type == ModelEncodingType.auto:
-                        promoted_enctype = V_DTYPE_ENCODING_TYPE_MAP[type(tbl_table.dtypes[col_name].to_virtual())]
-                        tbl_table.encoding_types[col_name] = promoted_enctype
-                        _LOG.info(
-                            f"promoted encoding type {ModelEncodingType.auto.value} to "
-                            f"{promoted_enctype.value} for {tbl_name}.{col_name}"
-                        )
+            for col_name, encoding_type in tbl_table.encoding_types.items():
+                if encoding_type == ModelEncodingType.auto:
+                    promoted_enctype = V_DTYPE_ENCODING_TYPE_MAP[type(tbl_table.dtypes[col_name].to_virtual())]
+                    tbl_table.encoding_types[col_name] = promoted_enctype
+                    _LOG.info(
+                        f"promoted encoding type {ModelEncodingType.auto.value} to "
+                        f"{promoted_enctype.value} for {tbl_name}.{col_name}"
+                    )
 
-    def _remove_cascading_keys_relations(self):
+    def remove_cascading_keys_relations(self):
         tables_with_cascading_keys = set()
         for table_name, table in self.tables.items():
             primary_key = table.primary_key
