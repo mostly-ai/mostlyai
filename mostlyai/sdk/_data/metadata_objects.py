@@ -36,6 +36,8 @@ class SslCertificates(BaseModel):
 class AwsS3FileContainerParameters(BaseModel):
     access_key: Nullable[str] = Field(None, alias="accessKey")
     secret_key: Nullable[str] = Field(None, alias="secretKey")
+    role_arn: Nullable[str] = Field(None, alias="roleArn")
+    external_id: Nullable[str] = Field(None, alias="externalId")
     endpoint_url: Nullable[str] = Field(None, alias="endpointUrl")
     # SSL
     ssl_enabled: Nullable[bool] = Field(False, alias="sslEnabled")
