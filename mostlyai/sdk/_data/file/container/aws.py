@@ -59,12 +59,17 @@ class AwsS3FileContainer(BucketBasedContainer):
         # SSL
         self.ssl_enabled = ssl_enabled
         self.ca_certificate = ca_certificate
-        if do_decrypt_secret:
-            if self.role_arn and self.external_id:
+        if self.role_arn and self.external_id:
+            if not os.getenv("MOSTLY_EXTERNAL_IAM_ROLE"):
+                raise MostlyDataException(
+                    "IAM role authentication is disabled because `MOSTLY_EXTERNAL_IAM_ROLE` is not set. Use access key and secret key instead."
+                )
+            if do_decrypt_secret:
                 self.decrypt_secret(secret_attr_name="external_id")
-                self._assume_role()
-            else:
-                self.session_token = None
+            self._assume_role()
+        else:
+            self.session_token = None
+            if do_decrypt_secret:
                 self.decrypt_secret()  # decrypt with the default SECRET_ATTR_NAME
         self.ca_cert_content = self.decrypt(self.ca_certificate) if self.ssl_enabled and self.ca_certificate else None
         self.region_name = None
@@ -168,22 +173,31 @@ class AwsS3FileContainer(BucketBasedContainer):
                 raise MostlyDataException(f"Error has occurred: {str(e)}")
 
     def _assume_role(self) -> None:
-        if self.role_arn:
-            sts_client = boto3.client(
-                "sts",
-                endpoint_url=self.endpoint_url,
-                verify=self.ssl_verify,
-            )
-            assume_role_kwargs = {
-                "RoleArn": self.role_arn,
-                "RoleSessionName": self.ROLE_SESSION_NAME,
-            }
-            if self.external_id:
-                assume_role_kwargs["ExternalId"] = self.external_id
-            credentials = sts_client.assume_role(**assume_role_kwargs)["Credentials"]
-            self.access_key = credentials["AccessKeyId"]
-            self.secret_key = credentials["SecretAccessKey"]
-            self.session_token = credentials["SessionToken"]
+        # 1. assume Mostly's external IAM role
+        sts_client = boto3.client("sts")
+        external_assumed_role_creds = sts_client.assume_role(
+            RoleArn=os.environ["MOSTLY_EXTERNAL_IAM_ROLE"],
+            RoleSessionName=os.getenv("HOSTNAME", "mostlyai"),
+        )["Credentials"]
+        external_assumed_role_access_key = external_assumed_role_creds["AccessKeyId"]
+        external_assumed_role_secret_key = external_assumed_role_creds["SecretAccessKey"]
+        external_assumed_role_session_token = external_assumed_role_creds["SessionToken"]
+
+        # 2. On behalf of the external IAM role, assume the user's role
+        sts_client = boto3.client(
+            "sts",
+            aws_access_key_id=external_assumed_role_access_key,
+            aws_secret_access_key=external_assumed_role_secret_key,
+            aws_session_token=external_assumed_role_session_token,
+        )
+        user_role_creds = sts_client.assume_role(
+            RoleArn=self.role_arn,
+            RoleSessionName=self.ROLE_SESSION_NAME,
+            ExternalId=self.external_id,
+        )["Credentials"]
+        self.access_key = user_role_creds["AccessKeyId"]
+        self.secret_key = user_role_creds["SecretAccessKey"]
+        self.session_token = user_role_creds["SessionToken"]
 
     def _init_duckdb(self, con: duckdb.DuckDBPyConnection) -> None:
         # fallback to con.register_filesystem (instead of DuckDB's httpfs + aws) if:
