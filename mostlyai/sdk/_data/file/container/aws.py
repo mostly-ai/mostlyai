@@ -83,11 +83,15 @@ class AwsS3FileContainer(BucketBasedContainer):
             if do_decrypt_secret:
                 self.decrypt_secret()  # decrypt with the default SECRET_ATTR_NAME
         else:
-            _LOG.info("No credentials or IAM role provided. Using anonymous access.")
-            self.no_sign_request = True
-            # when no_sign_request=True, the credential-related arguments should be ignored by boto3/s3fs/cloudpathlib
-            # but to be extra safe, we explicitly assign dummy values to ensure that they won't pick up the credentials from the environment
-            self.access_key = self.secret_key = self.session_token = "anonymous"
+            if os.getenv("MOSTLY_EXTERNAL_IAM_ROLE"):
+                _LOG.info("No credentials or IAM role provided. Using MOSTLY_EXTERNAL_IAM_ROLE.")
+                self.access_key, self.secret_key, self.session_token = self._assume_external_role()
+            else:
+                _LOG.info("No credentials or IAM role provided. Using anonymous access.")
+                # when no_sign_request=True, the credential-related arguments should be ignored by boto3/s3fs/cloudpathlib
+                # but to be extra safe, we explicitly assign dummy values to ensure that they won't pick up the credentials from the environment
+                self.no_sign_request = True
+                self.access_key = self.secret_key = self.session_token = "anonymous"
 
         # 2. resolve region
         if self.endpoint_url and ".amazonaws.com" in self.endpoint_url:
