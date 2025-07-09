@@ -3546,7 +3546,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.4.6"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-sidx-stop-lk#cba30f795bd0c6eb8893cbd3855ceae5adeafc43" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-sidx-stop-lk#41772d41ad390a8cc1be3af8e48393d59e027b12" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
