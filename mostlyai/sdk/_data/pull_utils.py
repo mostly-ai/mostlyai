@@ -642,7 +642,7 @@ def remake_schema_after_pull_fetch(tgt: str, schema: Schema, workspace_dir: Path
             fs_table.encoding_types = table.encoding_types
             tables[table_name] = fs_table
     schema = Schema(tables=tables)
-    prepare_schema(schema)
+    schema.preprocess_schema_before_pull()
     return schema
 
 
@@ -1052,12 +1052,3 @@ def pull_split(
         )
         _LOG.info(f"meta exported in {time.time() - t0:.2f}s")
     _LOG.info(f"BYE FROM PULL_SPLIT (total time: {time.time() - t00:.2f}s)")
-
-
-def prepare_schema(schema: Schema):
-    # update schema's relations to exclude unsupported cascading keys
-    schema.remove_cascading_keys_relations()
-    # update encoding_types for key columns, based on provided Schema
-    schema.update_key_encoding_types()
-    # resolve AUTO encoding types
-    schema.resolve_auto_encoding_types()
