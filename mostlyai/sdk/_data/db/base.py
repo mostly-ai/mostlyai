@@ -1042,7 +1042,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
         assert not self.is_output
         primary_key_constraint = self._sa_table.primary_key
         primary_key = next(iter(primary_key_constraint.columns), None)
-        return primary_key.name if primary_key else None
+        return primary_key.name if primary_key is not None else None
 
     def _get_dtypes(self) -> dict[str, WrappedDType]:
         assert not self.is_output
