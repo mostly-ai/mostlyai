@@ -600,7 +600,7 @@ class SourceTableConfig:
         if values.columns:
             column_names = {col.name for col in values.columns}
             pk = values.primary_key
-            if pk is not None and pk not in column_names:
+            if pk and pk not in column_names:
                 raise ValueError(f"Primary key column '{pk}' does not exist in the table's columns.")
             for fk in values.foreign_keys or []:
                 if fk.column not in column_names:
@@ -612,7 +612,7 @@ class SourceTableConfig:
     def validate_pk_and_fks_are_not_overlapping(cls, values):
         primary_key = values.primary_key
         foreign_keys = [fk.column for fk in values.foreign_keys or []]
-        if primary_key is not None and primary_key in foreign_keys:
+        if primary_key and primary_key in foreign_keys:
             raise ValueError(f"Column '{primary_key}' is both a primary key and a foreign key.")
         return values
 

@@ -448,7 +448,7 @@ def fetch_table_data(
     )
     n_fetched_rows = 0
     for idx, chunk_df in enumerate(iterator):
-        if deduplicate_pks and primary_key is not None and primary_key.column in chunk_df.columns:
+        if deduplicate_pks and primary_key and primary_key.column in chunk_df.columns:
             # consider only the first occurrence of each primary key
             if not chunk_df[primary_key.column].is_unique:
                 drop_idx = chunk_df[primary_key.column].duplicated()
@@ -568,7 +568,7 @@ def fetch_target_table(
             key_fraction_df[FRACTION] = keys[MAX_TGT_ROWS_PER_CTX_KEY] / schema.tables[tgt].row_count
             key_fraction_df = key_fraction_df.rename(columns={tgt_context_key.ref_name(): tgt_context_key.column})
             key_fraction_df = key_fraction_df.drop(columns=[MAX_TGT_ROWS_PER_CTX_KEY])
-    elif tgt_primary_key is not None:
+    elif tgt_primary_key:
         # flat setup with primary key
         # sample target table by target primary key
         # use provided keys to filter and order the target table (max_sample_size=None, do_shuffle=False)

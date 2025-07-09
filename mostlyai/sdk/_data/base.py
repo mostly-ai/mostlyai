@@ -189,7 +189,7 @@ class Schema:
 
     def get_primary_key(self, table_name: str) -> DataIdentifier | None:
         primary_key = None
-        if self.tables[table_name].primary_key is not None:
+        if self.tables[table_name].primary_key:
             # first, check primary key on table
             primary_key = DataIdentifier(table_name, self.tables[table_name].primary_key)
         elif context_relations := self.get_child_context_relations(table_name):
@@ -260,7 +260,7 @@ class Schema:
 
     def _update_key_encoding_types(self) -> None:
         for tbl_name, tbl_table in self.tables.items():
-            if tbl_table.primary_key is not None:
+            if tbl_table.primary_key:
                 if tbl_table.primary_key in tbl_table.encoding_types:
                     del tbl_table.encoding_types[tbl_table.primary_key]
             for rel in self.get_relations_to_table(tbl_name):
