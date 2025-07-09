@@ -19,9 +19,11 @@ import tempfile
 from typing import Any
 from urllib.parse import urlparse
 
-import boto3 as boto3
+import boto3
 import duckdb
 import s3fs
+from botocore import UNSIGNED
+from botocore.config import Config as BotoConfig
 from cloudpathlib.s3 import S3Client, S3Path
 
 from mostlyai.sdk._data.exceptions import MostlyDataException
@@ -44,6 +46,7 @@ class AwsS3FileContainer(BucketBasedContainer):
         secret_key: str | None = None,
         role_arn: str | None = None,
         external_id: str | None = None,
+        region: str | None = None,
         endpoint_url: str | None = None,
         do_decrypt_secret: bool | None = True,
         ssl_enabled: bool | None = None,
@@ -60,6 +63,7 @@ class AwsS3FileContainer(BucketBasedContainer):
         # SSL
         self.ssl_enabled = ssl_enabled
         self.ca_certificate = ca_certificate
+        self.no_sign_request = False
         if self.role_arn or self.external_id:
             if not os.getenv("MOSTLY_EXTERNAL_IAM_ROLE"):
                 raise MostlyDataException(
@@ -76,16 +80,17 @@ class AwsS3FileContainer(BucketBasedContainer):
             if do_decrypt_secret:
                 self.decrypt_secret()  # decrypt with the default SECRET_ATTR_NAME
         else:
-            _LOG.info("No credentials nor IAM role provided. Using default role for accessing public buckets.")
+            _LOG.info("No credentials or IAM role provided. Using anonymous access.")
             self.access_key, self.secret_key, self.session_token = self._assume_external_role()
+            self.no_sign_request = True
 
         self.ca_cert_content = self.decrypt(self.ca_certificate) if self.ssl_enabled and self.ca_certificate else None
-        self.region_name = None
+        self.region = region
         # extract region from endpoint URL if it's an AWS endpoint
         if self.endpoint_url and ".amazonaws.com" in self.endpoint_url:
             match = re.search(r"s3[.-](.+?)\.amazonaws\.com", self.endpoint_url)
             if match:
-                self.region_name = match.group(1)
+                self.region = match.group(1)
         boto_session = boto3.Session(
             aws_access_key_id=self.access_key,
             aws_secret_access_key=self.secret_key,
@@ -97,6 +102,7 @@ class AwsS3FileContainer(BucketBasedContainer):
             aws_access_key_id=self.access_key,
             aws_secret_access_key=self.secret_key,
             aws_session_token=self.session_token,
+            no_sign_request=self.no_sign_request,
         )
 
         with tempfile.NamedTemporaryFile(delete=False) as ca_cert_file:
@@ -108,8 +114,8 @@ class AwsS3FileContainer(BucketBasedContainer):
             else:
                 self.ssl_verify = None
             client_kwargs = {"verify": self.ssl_verify}
-            if self.region_name:
-                client_kwargs["region_name"] = self.region_name
+            if self.region:
+                client_kwargs["region_name"] = self.region
             self.fs = s3fs.S3FileSystem(
                 endpoint_url=self.endpoint_url,
                 secret=self.secret_key,
@@ -117,9 +123,14 @@ class AwsS3FileContainer(BucketBasedContainer):
                 token=self.session_token,
                 client_kwargs=client_kwargs,
                 cache_regions=True,
+                anon=self.no_sign_request,
             )
-            self._boto_resource = boto_session.resource("s3", endpoint_url=self.endpoint_url, verify=self.ssl_verify)
-            self._boto_client = boto_session.client("s3", endpoint_url=self.endpoint_url, verify=self.ssl_verify)
+            # S3FileSystem use `anon` parameter instead of client_kwargs["config"] for anonymous access
+            # so we only have to add this key value after initializing S3FileSystem
+            if self.no_sign_request:
+                client_kwargs["config"] = BotoConfig(signature_version=UNSIGNED)
+            self._boto_resource = boto_session.resource("s3", endpoint_url=self.endpoint_url, **client_kwargs)
+            self._boto_client = boto_session.client("s3", endpoint_url=self.endpoint_url, **client_kwargs)
         # patch CloudPath to use the same boto3 resource/client
         self._client.s3 = self._boto_resource
         self._client.client = self._boto_client
@@ -178,29 +189,27 @@ class AwsS3FileContainer(BucketBasedContainer):
             else:
                 raise MostlyDataException(f"Error has occurred: {str(e)}")
 
-    def _assume_external_role(self) -> None:
+    def _assume_external_role(self) -> tuple[str, str, str]:
         sts_client = boto3.client("sts")
-        ext_assumed_role_creds = sts_client.assume_role(
+        ext_role_creds = sts_client.assume_role(
             RoleArn=os.environ["MOSTLY_EXTERNAL_IAM_ROLE"],
             RoleSessionName=os.getenv("HOSTNAME", "mostlyai"),
         )["Credentials"]
         return (
-            ext_assumed_role_creds["AccessKeyId"],
-            ext_assumed_role_creds["SecretAccessKey"],
-            ext_assumed_role_creds["SessionToken"],
+            ext_role_creds["AccessKeyId"],
+            ext_role_creds["SecretAccessKey"],
+            ext_role_creds["SessionToken"],
         )
 
     def _assume_user_role(self) -> None:
         # 1. Assume Mostly's external IAM role
-        ext_assumed_role_access_key, ext_assumed_role_secret_key, ext_assumed_role_session_token = (
-            self._assume_external_role()
-        )
+        ext_role_access_key, ext_role_secret_key, ext_role_session_token = self._assume_external_role()
         # 2. On behalf of the external IAM role, assume the user's role
         sts_client = boto3.client(
             "sts",
-            aws_access_key_id=ext_assumed_role_access_key,
-            aws_secret_access_key=ext_assumed_role_secret_key,
-            aws_session_token=ext_assumed_role_session_token,
+            aws_access_key_id=ext_role_access_key,
+            aws_secret_access_key=ext_role_secret_key,
+            aws_session_token=ext_role_session_token,
         )
         user_role_creds = sts_client.assume_role(
             RoleArn=self.role_arn,
@@ -218,7 +227,7 @@ class AwsS3FileContainer(BucketBasedContainer):
         # 3. CA certificate is being used
         if (
             not self.endpoint_url
-            or (self.endpoint_url and ".amazonaws.com" in self.endpoint_url and not self.region_name)
+            or (self.endpoint_url and ".amazonaws.com" in self.endpoint_url and not self.region)
             or (self.ssl_enabled and self.ssl_verify)
         ):
             con.register_filesystem(self.fs)
@@ -234,7 +243,7 @@ class AwsS3FileContainer(BucketBasedContainer):
             "USE_SSL": bool(self.ssl_enabled),
         }
 
-        if self.region_name:
-            secret_params["REGION"] = self.region_name
+        if self.region:
+            secret_params["REGION"] = self.region
 
         self._create_duckdb_secret(con, secret_params)

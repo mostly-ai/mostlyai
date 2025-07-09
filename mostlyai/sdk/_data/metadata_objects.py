@@ -38,6 +38,7 @@ class AwsS3FileContainerParameters(BaseModel):
     secret_key: Nullable[str] = Field(None, alias="secretKey")
     role_arn: Nullable[str] = Field(None, alias="roleArn")
     external_id: Nullable[str] = Field(None, alias="externalId")
+    region: Nullable[str] = Field(None, alias="region")
     endpoint_url: Nullable[str] = Field(None, alias="endpointUrl")
     # SSL
     ssl_enabled: Nullable[bool] = Field(False, alias="sslEnabled")
