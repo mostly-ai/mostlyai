@@ -60,10 +60,13 @@ class AwsS3FileContainer(BucketBasedContainer):
         self.session_token = None
         self.role_arn = role_arn
         self.external_id = external_id
-        # SSL
+        self.region = region
         self.ssl_enabled = ssl_enabled
         self.ca_certificate = ca_certificate
+        self.ssl_verify = None
         self.no_sign_request = False
+
+        # 1. resolve the authentication details
         if self.role_arn or self.external_id:
             if not os.getenv("MOSTLY_EXTERNAL_IAM_ROLE"):
                 raise MostlyDataException(
@@ -81,16 +84,32 @@ class AwsS3FileContainer(BucketBasedContainer):
                 self.decrypt_secret()  # decrypt with the default SECRET_ATTR_NAME
         else:
             _LOG.info("No credentials or IAM role provided. Using anonymous access.")
-            self.access_key, self.secret_key, self.session_token = self._assume_external_role()
             self.no_sign_request = True
+            # when no_sign_request=True, the credential-related arguments should be ignored by boto3/s3fs/cloudpathlib
+            # but to be extra safe, we explicitly assign dummy values to ensure that they won't pick up the credentials from the environment
+            self.access_key = self.secret_key = self.session_token = "anonymous"
 
-        self.ca_cert_content = self.decrypt(self.ca_certificate) if self.ssl_enabled and self.ca_certificate else None
-        self.region = region
-        # extract region from endpoint URL if it's an AWS endpoint
+        # 2. resolve region
         if self.endpoint_url and ".amazonaws.com" in self.endpoint_url:
             match = re.search(r"s3[.-](.+?)\.amazonaws\.com", self.endpoint_url)
             if match:
-                self.region = match.group(1)
+                region_from_endpoint_url = match.group(1)
+                if self.region and self.region != region_from_endpoint_url:
+                    raise MostlyDataException(
+                        "The region extracted from endpoint URL does not match the provided region."
+                    )
+                self.region = region_from_endpoint_url
+
+        # 3. resolve the SSL details
+        self.ca_cert_content = self.decrypt(self.ca_certificate) if self.ssl_enabled and self.ca_certificate else None
+        if self.ca_cert_content:
+            with tempfile.NamedTemporaryFile(delete=False) as ca_cert_file:
+                ca_cert_file.write(self.ca_cert_content.encode())
+                ca_cert_file.flush()
+                os.chmod(ca_cert_file.name, 0o600)
+                self.ssl_verify = ca_cert_file.name
+
+        # 4. initialize sessions and clients
         boto_session = boto3.Session(
             aws_access_key_id=self.access_key,
             aws_secret_access_key=self.secret_key,
@@ -105,35 +124,28 @@ class AwsS3FileContainer(BucketBasedContainer):
             no_sign_request=self.no_sign_request,
         )
 
-        with tempfile.NamedTemporaryFile(delete=False) as ca_cert_file:
-            if self.ca_cert_content:
-                ca_cert_file.write(self.ca_cert_content.encode())
-                ca_cert_file.flush()
-                os.chmod(ca_cert_file.name, 0o600)
-                self.ssl_verify = ca_cert_file.name
-            else:
-                self.ssl_verify = None
-            client_kwargs = {"verify": self.ssl_verify}
-            if self.region:
-                client_kwargs["region_name"] = self.region
-            self.fs = s3fs.S3FileSystem(
-                endpoint_url=self.endpoint_url,
-                secret=self.secret_key,
-                key=self.access_key,
-                token=self.session_token,
-                client_kwargs=client_kwargs,
-                cache_regions=True,
-                anon=self.no_sign_request,
-            )
-            # S3FileSystem use `anon` parameter instead of client_kwargs["config"] for anonymous access
-            # so we only have to add this key value after initializing S3FileSystem
-            if self.no_sign_request:
-                client_kwargs["config"] = BotoConfig(signature_version=UNSIGNED)
-            self._boto_resource = boto_session.resource("s3", endpoint_url=self.endpoint_url, **client_kwargs)
-            self._boto_client = boto_session.client("s3", endpoint_url=self.endpoint_url, **client_kwargs)
+        s3fs_client_kwargs = {"verify": self.ssl_verify}
+        s3fs_client_kwargs |= {"region_name": self.region} if self.region else {}
+        # s3fs use `anon` parameter for no-sign request
+        self.fs = s3fs.S3FileSystem(
+            endpoint_url=self.endpoint_url,
+            secret=self.secret_key,
+            key=self.access_key,
+            token=self.session_token,
+            client_kwargs=s3fs_client_kwargs,
+            cache_regions=True,
+            anon=self.no_sign_request,
+        )
+        # NOTE: this seems to be required for S3FileSystem to behave properly
+        self.fs.connect(refresh=True)
+
+        # boto3 uses `config` in client kwargs for no-sign request
+        boto_client_kwargs = s3fs_client_kwargs.copy()
+        boto_client_kwargs |= {"config": BotoConfig(signature_version=UNSIGNED)} if self.no_sign_request else {}
+
         # patch CloudPath to use the same boto3 resource/client
-        self._client.s3 = self._boto_resource
-        self._client.client = self._boto_client
+        self._client.s3 = boto_session.resource("s3", endpoint_url=self.endpoint_url, **boto_client_kwargs)
+        self._client.client = boto_session.client("s3", endpoint_url=self.endpoint_url, **boto_client_kwargs)
 
     def __del__(self):
         if self.ssl_verify and os.path.exists(self.ssl_verify):
@@ -149,7 +161,7 @@ class AwsS3FileContainer(BucketBasedContainer):
 
     @property
     def transport_params(self) -> dict | None:
-        return dict(client=self._boto_client)
+        return dict(client=self._client.client)
 
     @property
     def file_system(self) -> Any:
@@ -166,17 +178,18 @@ class AwsS3FileContainer(BucketBasedContainer):
                 _LOG.info(f"Testing ls on `{self.bucket_name}` for authenticity.")
                 return self.fs.ls(self.bucket_name or "") is not None
             else:
-                # Use STS to get caller identity
-                # It is more reliable, in the case of a limited access (e.g. if not allowed to query bucket names)
-                sts_client = boto3.client(
-                    "sts",
-                    aws_access_key_id=self.access_key,
-                    aws_secret_access_key=self.secret_key,
-                    aws_session_token=self.session_token,
-                    endpoint_url=self.endpoint_url,
-                    verify=self.ssl_verify,
-                )
-                sts_client.get_caller_identity()
+                if not self.no_sign_request:
+                    # Use STS to get caller identity
+                    # It is more reliable, in the case of a limited access (e.g. if not allowed to query bucket names)
+                    sts_client = boto3.client(
+                        "sts",
+                        aws_access_key_id=self.access_key,
+                        aws_secret_access_key=self.secret_key,
+                        aws_session_token=self.session_token,
+                        endpoint_url=self.endpoint_url,
+                        verify=self.ssl_verify,
+                    )
+                    sts_client.get_caller_identity()
                 return True
         except Exception as e:
             error_message = str(e).lower()
