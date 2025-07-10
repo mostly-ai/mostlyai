@@ -368,6 +368,38 @@ class Routes:
             dataset_dir = self.home_dir / "datasets" / id
             shutil.rmtree(dataset_dir, ignore_errors=True)
 
+        @self.router.get("/datasets/{id}/file")
+        async def download_dataset_file(id: str, filepath: str) -> FileResponse:
+            dataset_dir = self.home_dir / "datasets" / id
+            filename = Path(filepath).name
+            return StreamingResponse(
+                open(dataset_dir / filepath, "rb"),
+                media_type="application/octet-stream",
+                headers={"Content-Disposition": f"attachment; filename={filename}"},
+            )
+
+        @self.router.post("/datasets/{id}/file")
+        async def upload_dataset_file(id: str, file: UploadFile = File(...)) -> None:
+            dataset_dir = self.home_dir / "datasets" / id
+            dataset = read_dataset_from_json(dataset_dir)
+            try:
+                file_content = await file.read()
+                with open(dataset_dir / file.filename, "wb") as f:
+                    f.write(file_content)
+                dataset.files.append(file.filename)
+                write_dataset_to_json(dataset_dir, dataset)
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error uploading file `{file.filename}`: {e}")
+
+        @self.router.delete("/datasets/{id}/file")
+        async def delete_dataset_file(id: str, filepath: str) -> None:
+            dataset_dir = self.home_dir / "datasets" / id
+            dataset = read_dataset_from_json(dataset_dir)
+            if os.path.exists(dataset_dir / filepath):
+                os.remove(dataset_dir / filepath)
+            dataset.files = [f for f in dataset.files if f != filepath]
+            write_dataset_to_json(dataset_dir, dataset)
+
         ## GENERATORS
 
         @self.router.get("/generators")

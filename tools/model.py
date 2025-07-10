@@ -1230,6 +1230,13 @@ class Dataset:
                 values["id"] = str(uuid.uuid4())
         return values
 
+    @field_validator("files", mode="after")
+    @classmethod
+    def initialize_file_list(cls, values):
+        if values is None:
+            values = []
+        return values
+
     def update(
         self,
         name: str | None = None,
