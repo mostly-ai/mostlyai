@@ -29,7 +29,7 @@ from starlette.background import BackgroundTask
 from mostlyai import sdk
 from mostlyai.sdk._data.conversions import create_container_from_connector
 from mostlyai.sdk._data.file.utils import read_data_table_from_path
-from mostlyai.sdk._local import connectors, datasets, generators, synthetic_datasets
+from mostlyai.sdk._local import connectors, generators, synthetic_datasets
 from mostlyai.sdk._local.execution.jobs import execute_probing_job
 from mostlyai.sdk._local.generators import create_generator as create_generator_model
 from mostlyai.sdk._local.storage import (
@@ -342,7 +342,9 @@ class Routes:
 
         @self.router.post("/datasets", response_model=Dataset)
         async def create_dataset(config: DatasetConfig = Body(...)) -> Dataset:
-            dataset = datasets.create_dataset(self.home_dir, config)
+            dataset = Dataset(**config.model_dump())
+            dataset_dir = self.home_dir / "datasets" / dataset.id
+            write_dataset_to_json(dataset_dir, dataset)
             return dataset
 
         @self.router.get("/datasets/{id}", response_model=Dataset)
