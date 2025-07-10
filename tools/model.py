@@ -1260,3 +1260,44 @@ class Dataset:
         Delete the dataset.
         """
         return self.client._delete(dataset_id=self.id)
+
+    def download_file(
+        self,
+        dataset_file_path: str | Path,
+        output_file_path: str | Path | None = None,
+    ) -> Path:
+        """
+        Download the dataset file.
+
+        Args:
+            file_path (str | Path | None): The file path to save the dataset file.
+
+        Returns:
+            Path: The path to the saved file.
+        """
+        bytes, filename = self.client._download_file(dataset_id=self.id, file_path=str(dataset_file_path))
+        output_file_path = Path(output_file_path or ".")
+        if output_file_path.is_dir():
+            output_file_path = output_file_path / filename
+        output_file_path.write_bytes(bytes)
+        return output_file_path
+
+    def upload_file(
+        self,
+        file_path: str | Path,
+    ) -> None:
+        """
+        Upload the dataset file.
+        """
+        self.client._upload_file(dataset_id=self.id, file_path=str(file_path))
+        self.reload()
+
+    def delete_file(
+        self,
+        file_path: str | Path,
+    ) -> None:
+        """
+        Delete the dataset file.
+        """
+        self.client._delete_file(dataset_id=self.id, file_path=str(file_path))
+        self.reload()

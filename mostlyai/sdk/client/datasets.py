@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import rich
@@ -179,3 +181,56 @@ class _MostlyDatasetsClient(_MostlyBaseClient):
     def _config(self, dataset_id: str) -> DatasetConfig:
         response = self.request(verb=GET, path=[dataset_id, "config"], response_type=DatasetConfig)
         return response
+
+    def _download_file(
+        self,
+        dataset_id: str,
+        file_path: str,
+    ) -> tuple[bytes, str | None]:
+        response = self.request(
+            verb=GET,
+            path=[dataset_id, "file"],
+            params={"filepath": file_path},
+            headers={
+                "Accept": "application/json, text/plain, */*",
+            },
+            raw_response=True,
+        )
+        content_bytes = response.content
+        # Check if 'Content-Disposition' header is present
+        if "Content-Disposition" in response.headers:
+            content_disposition = response.headers["Content-Disposition"]
+            filename = re.findall(r"filename(?:=|\*=UTF-8'')(.+)", content_disposition)[0]
+        else:
+            filename = Path(file_path).name
+        return content_bytes, filename
+
+    def _upload_file(
+        self,
+        dataset_id: str,
+        file_path: str | Path,
+    ) -> None:
+        with open(file_path, "rb") as f:
+            _ = self.request(
+                verb=POST,
+                path=[dataset_id, "file"],
+                headers={
+                    "Accept": "application/json, text/plain, */*",
+                },
+                files={"file": f},
+            )
+            rich.print(f"Uploaded file `{file_path}` to Dataset [dodger_blue2]{dataset_id}[/]")
+
+    def _delete_file(
+        self,
+        dataset_id: str,
+        file_path: str | Path,
+    ) -> None:
+        _ = self.request(
+            verb=DELETE,
+            path=[dataset_id, "file"],
+            params={
+                "filepath": file_path,
+            },
+        )
+        rich.print(f"Deleted file `{file_path}` from Dataset [dodger_blue2]{dataset_id}[/]")
