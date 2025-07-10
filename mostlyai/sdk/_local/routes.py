@@ -302,11 +302,6 @@ class Routes:
             offset: int = 0,
             limit: int = 50,
             searchTerm: str | None = None,
-            ownerId: str | list[str] | None = None,
-            visibility: str | list[str] | None = None,
-            createdFrom: str | None = None,
-            createdTo: str | None = None,
-            sortBy: str | list[str] | None = None,
         ) -> JSONResponse:
             dataset_dirs = [p for p in (self.home_dir / "datasets").glob("*") if p.is_dir()]
             dataset_list_items = []
@@ -314,18 +309,6 @@ class Routes:
                 dataset = read_dataset_from_json(dataset_dir)
                 dataset_string = " ".join([dataset.name or "", dataset.description or ""]).lower()
                 if searchTerm and searchTerm.lower() not in dataset_string:
-                    continue
-                if (
-                    ownerId
-                    and dataset.metadata
-                    and dataset.metadata.owner_id not in ([ownerId] if isinstance(ownerId, str) else ownerId)
-                ):
-                    continue
-                if (
-                    visibility
-                    and dataset.metadata
-                    and dataset.metadata.visibility not in ([visibility] if isinstance(visibility, str) else visibility)
-                ):
                     continue
                 # use model_construct to skip validation and warnings of extra fields
                 dataset_list_items.append(DatasetListItem.model_construct(**dataset.model_dump()))
