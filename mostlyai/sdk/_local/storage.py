@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from mostlyai.sdk.domain import (
     Connector,
+    Dataset,
     Generator,
     JobProgress,
     ModelType,
@@ -80,6 +81,17 @@ def write_connector_to_json(connector_dir: Path, connector: Connector) -> None:
     json_file = connector_dir / "connector.json"
     connector_dir.mkdir(parents=True, exist_ok=True)
     write_to_json(json_file, connector)
+
+
+def read_dataset_from_json(dataset_dir: Path) -> Dataset:
+    json_file = dataset_dir / "dataset.json"
+    return Dataset(**json.loads(json_file.read_text()))
+
+
+def write_dataset_to_json(dataset_dir: Path, dataset: Dataset) -> None:
+    json_file = dataset_dir / "dataset.json"
+    dataset_dir.mkdir(parents=True, exist_ok=True)
+    write_to_json(json_file, dataset)
 
 
 def read_job_progress_from_json(resource_dir: Path) -> JobProgress:

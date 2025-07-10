@@ -25,6 +25,8 @@ from mostlyai.sdk.client.base import CustomBaseModel
 from mostlyai.sdk.domain import (
     ConnectorAccessType,
     ConnectorPatchConfig,
+    DatasetConnector,
+    DatasetPatchConfig,
     Generator,
     GeneratorConfig,
     GeneratorPatchConfig,
@@ -1215,3 +1217,46 @@ class SyntheticDatasetListItem:
 
             return delegated_method
         return object.__getattribute__(self, item)
+
+
+class Dataset:
+    OPEN_URL_PARTS: ClassVar[list] = ["d", "datasets"]
+
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
+        return values
+
+    def update(
+        self,
+        name: str | None = None,
+        description: str | None = None,
+        connectors: list[DatasetConnector] | None = None,
+    ) -> None:
+        """
+        Update a dataset with specific parameters.
+
+        Args:
+            name (str | None): The name of the connector.
+            description (str | None): The description of the connector.
+            connectors (list[DatasetConnector] | None): The connectors of the dataset.
+        """
+        patch_config = DatasetPatchConfig(
+            name=name,
+            description=description,
+            connectors=connectors,
+        )
+        self.client._update(
+            dataset_id=self.id,
+            config=patch_config,
+        )
+        self.reload()
+
+    def delete(self) -> None:
+        """
+        Delete the dataset.
+        """
+        return self.client._delete(dataset_id=self.id)
