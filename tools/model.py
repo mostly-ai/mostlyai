@@ -25,6 +25,8 @@ from mostlyai.sdk.client.base import CustomBaseModel
 from mostlyai.sdk.domain import (
     ConnectorAccessType,
     ConnectorPatchConfig,
+    DatasetConnector,
+    DatasetPatchConfig,
     Generator,
     GeneratorConfig,
     GeneratorPatchConfig,
@@ -1215,3 +1217,94 @@ class SyntheticDatasetListItem:
 
             return delegated_method
         return object.__getattribute__(self, item)
+
+
+class Dataset:
+    OPEN_URL_PARTS: ClassVar[list] = ["d", "datasets"]
+
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
+        return values
+
+    @field_validator("files", mode="after")
+    @classmethod
+    def initialize_file_list(cls, values):
+        if values is None:
+            values = []
+        return values
+
+    def update(
+        self,
+        name: str | None = None,
+        description: str | None = None,
+        connectors: list[DatasetConnector] | None = None,
+    ) -> None:
+        """
+        Update a dataset with specific parameters.
+
+        Args:
+            name (str | None): The name of the connector.
+            description (str | None): The description of the connector.
+            connectors (list[DatasetConnector] | None): The connectors of the dataset.
+        """
+        patch_config = DatasetPatchConfig(
+            name=name,
+            description=description,
+            connectors=connectors,
+        )
+        self.client._update(
+            dataset_id=self.id,
+            config=patch_config,
+        )
+        self.reload()
+
+    def delete(self) -> None:
+        """
+        Delete the dataset.
+        """
+        return self.client._delete(dataset_id=self.id)
+
+    def download_file(
+        self,
+        dataset_file_path: str | Path,
+        output_file_path: str | Path | None = None,
+    ) -> Path:
+        """
+        Download the dataset file.
+
+        Args:
+            file_path (str | Path | None): The file path to save the dataset file.
+
+        Returns:
+            Path: The path to the saved file.
+        """
+        bytes, filename = self.client._download_file(dataset_id=self.id, file_path=str(dataset_file_path))
+        output_file_path = Path(output_file_path or ".")
+        if output_file_path.is_dir():
+            output_file_path = output_file_path / filename
+        output_file_path.write_bytes(bytes)
+        return output_file_path
+
+    def upload_file(
+        self,
+        file_path: str | Path,
+    ) -> None:
+        """
+        Upload the dataset file.
+        """
+        self.client._upload_file(dataset_id=self.id, file_path=str(file_path))
+        self.reload()
+
+    def delete_file(
+        self,
+        file_path: str | Path,
+    ) -> None:
+        """
+        Delete the dataset file.
+        """
+        self.client._delete_file(dataset_id=self.id, file_path=str(file_path))
+        self.reload()
