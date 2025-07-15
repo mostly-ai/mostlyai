@@ -60,7 +60,6 @@ def pull(
         _LOG.info(f"tgt: {tgt}")
         _LOG.info(f"model_type: {model_type}")
         _LOG.info(f"max_sample_size: {max_sample_size}")
-        _LOG.info(f"{schema.tables[tgt].primary_key = }")
 
         # initialize progress counter
         tbl_count_rows = 0

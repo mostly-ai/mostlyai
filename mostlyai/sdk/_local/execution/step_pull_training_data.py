@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 from collections.abc import Callable
 from pathlib import Path
 
@@ -21,8 +20,6 @@ from mostlyai.sdk._data.base import ForeignKey, Schema
 from mostlyai.sdk._data.conversions import create_container_from_connector
 from mostlyai.sdk._data.file.utils import make_data_table_from_container
 from mostlyai.sdk.domain import Connector, Generator, ModelType
-
-_LOG = logging.getLogger(__name__)
 
 
 def execute_step_pull_training_data(
@@ -35,8 +32,6 @@ def execute_step_pull_training_data(
     update_progress: Callable,
 ) -> tuple[list[str], int]:
     schema = _create_training_schema(generator=generator, connectors=connectors)
-    _LOG.info(f"execute_step_pull_training_data: {generator = }")
-    _LOG.info(f"execute_step_pull_training_data: {schema.tables[target_table_name].primary_key = }")
 
     # fetch total rows
     tgt_table_total_rows = schema.tables[target_table_name].row_count
@@ -72,7 +67,7 @@ def _create_training_schema(generator: Generator, connectors: list[Connector]) -
         container = create_container_from_connector(connector)
         container.set_location(table.location)
         # create DataTable
-        data_table = make_data_table_from_container(container)
+        data_table = make_data_table_from_container(container, lazy_fetch_primary_key=False)
         data_table.name = table.name
         data_table.primary_key = table.primary_key
         if table.columns:

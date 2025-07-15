@@ -876,6 +876,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
 
     def __init__(self, *args, **kwargs):
         self.is_view = kwargs.get("is_view", False)
+        self.lazy_fetch_primary_key = kwargs.get("lazy_fetch_primary_key", True)
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
@@ -1065,7 +1066,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
         if item == "columns":
             self.columns = [c.name for c in self._sa_table.columns]
         elif item == "primary_key":
-            self.primary_key = self._get_primary_key()
+            self.primary_key = self._get_primary_key() if self.lazy_fetch_primary_key else None
         elif item == "dtypes":
             self.dtypes = self._get_dtypes()
         else:
