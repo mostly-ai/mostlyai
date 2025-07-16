@@ -18,8 +18,8 @@ import rich
 
 from mostlyai.sdk.client.base import (
     GET,
-    POST,
     PATCH,
+    POST,
     _MostlyBaseClient,
 )
 from mostlyai.sdk.domain import (
