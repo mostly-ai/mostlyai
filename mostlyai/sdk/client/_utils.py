@@ -295,7 +295,8 @@ def job_wait(
                 ProgressStatus.failed,
                 ProgressStatus.canceled,
             ):
-                live.refresh()
+                if progress_bar:
+                    live.refresh()
                 time.sleep(1)  # give the system a moment to update the status
                 return
     except KeyboardInterrupt:
