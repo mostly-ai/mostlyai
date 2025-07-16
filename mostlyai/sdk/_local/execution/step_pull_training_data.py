@@ -67,7 +67,7 @@ def _create_training_schema(generator: Generator, connectors: list[Connector]) -
         container = create_container_from_connector(connector)
         container.set_location(table.location)
         # create DataTable
-        data_table = make_data_table_from_container(container)
+        data_table = make_data_table_from_container(container, lazy_fetch_primary_key=False)
         data_table.name = table.name
         data_table.primary_key = table.primary_key
         if table.columns:

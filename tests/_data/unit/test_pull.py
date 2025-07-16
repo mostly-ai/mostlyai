@@ -2120,7 +2120,15 @@ class TestPullEmptySequences:
 
 
 class TestPullWithDB:
-    def test_excluded_primary_key(self, tmp_path):
+    @pytest.mark.parametrize(
+        "columns,lazy_fetch_primary_key,expected_keys",
+        [
+            (["id", "username", "email"], True, {"primary_key": "id"}),
+            (["id", "username", "email"], False, {}),
+            (["username", "email"], True, {}),
+        ],
+    )
+    def test_excluded_primary_key(self, tmp_path, columns, lazy_fetch_primary_key, expected_keys):
         db_path = tmp_path / "database.db"
         with sqlite3.connect(str(db_path)) as conn:
             cursor = conn.cursor()
@@ -2137,14 +2145,18 @@ class TestPullWithDB:
             "users": SqliteTable(
                 name="users",
                 container=SqliteContainer(dbname=str(db_path)),
-                primary_key=None,  # we specifically exclude the existing primary key in this test
-                columns=["username", "email"],
+                primary_key=None,
+                columns=columns,
+                lazy_fetch_primary_key=lazy_fetch_primary_key,
             ),
         }
         schema = Schema(tables=tables)
 
         pull(tgt="users", schema=schema, workspace_dir=tmp_path)
 
+        keys = read_json(tmp_path / "OriginalData" / "tgt-meta" / "keys.json")
+        assert keys == expected_keys
+
         df = pd.read_parquet(tmp_path / "OriginalData" / "tgt-data")
         assert len(df) == 2
-        assert set(df.columns) == {"username", "email"}
+        assert set(df.columns) == set(columns)
