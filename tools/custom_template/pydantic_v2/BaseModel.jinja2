@@ -1411,4 +1411,5 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
             description=description,
         )
         self.client._update(artifact_id=self.id, config=patch_config)
+        self.reload()
 {%- endif %}

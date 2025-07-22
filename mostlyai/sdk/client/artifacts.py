@@ -14,53 +14,19 @@
 
 from typing import Any
 
-import rich
-
 from mostlyai.sdk.client.base import (
     GET,
     PATCH,
-    POST,
     _MostlyBaseClient,
 )
 from mostlyai.sdk.domain import (
     Artifact,
-    ArtifactConfig,
     ArtifactPatchConfig,
 )
 
 
 class _MostlyArtifactsClient(_MostlyBaseClient):
     SECTION = ["artifacts"]
-
-    def create(self, config: ArtifactConfig | dict[str, Any]) -> Artifact:
-        """
-        Create a shareable artifact from an assistant message.
-
-        Args:
-            config (ArtifactConfig | dict[str, Any]): Configuration for the artifact (assistant_message_id required).
-
-        Returns:
-            The created Artifact object.
-
-        Example for creating an artifact:
-            ```python
-            from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI()
-            art = mostly.artifacts.create(
-                config=ArtifactConfig(
-                    assistant_message_id="INSERT_YOUR_ASSISTANT_MESSAGE_ID",
-                )
-            )
-            ```
-        """
-        artifact = self.request(
-            verb=POST,
-            path=[],
-            json=config,
-            response_type=Artifact,
-        )
-        rich.print(f"created artifact [dodger_blue2]{artifact.id}[/]")
-        return artifact
 
     def get(self, artifact_id: str) -> Artifact:
         """
