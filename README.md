@@ -314,10 +314,10 @@ Next, transfer the printed directory to the air-gapped environment's cache direc
 Please consider citing our project if you find it useful:
 
 ```bibtex
-@software{mostlyai,
+@misc{mostlyai,
     author = {{MOSTLY AI}},
     title = {{MOSTLY AI SDK}},
-    url = {https://github.com/mostly-ai/mostlyai},
+    howpublished = {\url{https://github.com/mostly-ai/mostlyai}},
     year = {2025}
 }
 ```
