@@ -28,6 +28,7 @@ from mostlyai.sdk.client._utils import (
     harmonize_sd_config,
     validate_base_url,
 )
+from mostlyai.sdk.client.artifacts import _MostlyArtifactsClient
 from mostlyai.sdk.client.base import DEFAULT_BASE_URL, GET, _MostlyBaseClient
 from mostlyai.sdk.client.connectors import _MostlyConnectorsClient
 from mostlyai.sdk.client.datasets import _MostlyDatasetsClient
@@ -220,6 +221,7 @@ class MostlyAI(_MostlyBaseClient):
         self.connectors = _MostlyConnectorsClient(**client_kwargs)
         self.generators = _MostlyGeneratorsClient(**client_kwargs)
         self.datasets = _MostlyDatasetsClient(**client_kwargs)
+        self.artifacts = _MostlyArtifactsClient(**client_kwargs)
         self.synthetic_datasets = _MostlySyntheticDatasetsClient(**client_kwargs)
         self.synthetic_probes = _MostlySyntheticProbesClient(**client_kwargs)
         if mode == "LOCAL":

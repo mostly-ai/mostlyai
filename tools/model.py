@@ -1339,3 +1339,4 @@ class Artifact:
             description=description,
         )
         self.client._update(artifact_id=self.id, config=patch_config)
+        self.reload()
