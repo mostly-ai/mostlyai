@@ -75,7 +75,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             visibility: Filter by visibility (e.g., PUBLIC, PRIVATE or UNLISTED).
             created_from: Filter by creation date, not older than this date. Format: YYYY-MM-DD.
             created_to: Filter by creation date, not younger than this date. Format: YYYY-MM-DD.
-            sort_by: Sort by field. Either RECENCY, NO_OF_LIKES or NO_OF_SYNTHETIC_DATASETS.
+            sort_by: Sort by field. Either NO_OF_THREADS, NO_OF_LIKES, RECENCY, or NO_OF_SYNTHETIC_DATASETS.
 
         Returns:
             Iterator[GeneratorListItem]: An iterator over generator list items.
