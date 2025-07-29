@@ -3327,7 +3327,7 @@ wheels = [
 
 [[package]]
 name = "mostlyai"
-version = "4.8.2"
+version = "5.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
@@ -3476,8 +3476,8 @@ requires-dist = [
     { name = "joblib", marker = "extra == 'local'", specifier = ">=1.4.2" },
     { name = "joblib", marker = "extra == 'local-gpu'", specifier = ">=1.4.2" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
-    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.4.8" },
-    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.4.8" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=sequence-continuation" },
+    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=sequence-continuation" },
     { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.9.8" },
     { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.9.8" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
@@ -3554,7 +3554,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.4.8"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=sequence-continuation#d621864ac85e0c5b3dd67f8394e4e517d4de5a14" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
@@ -3574,10 +3574,6 @@ dependencies = [
     { name = "torchvision" },
     { name = "transformers" },
     { name = "xgrammar" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/da/07/e1cf2d8a47c58891a0e4dc2f8bffab81253ef06698548a282b6d49b5eb9b/mostlyai_engine-1.4.8.tar.gz", hash = "sha256:d42437b1e275ceccd06762f2dd20f1e8540e34b31e4b1199930ff9cc58d2e69c", size = 113408 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/76/e6/f133023f5df57479c4db4cb68601afad780c3d2d2fc3f9e832c139d822f0/mostlyai_engine-1.4.8-py3-none-any.whl", hash = "sha256:d50fb132ee3e6004503045399773078e423b97a89b6bd4611546715be458ad4e", size = 152763 },
 ]
 
 [package.optional-dependencies]
