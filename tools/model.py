@@ -23,6 +23,7 @@ from pydantic import Field, field_validator, model_validator
 from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from mostlyai.sdk.client.base import CustomBaseModel
 from mostlyai.sdk.domain import (
+    ArtifactPatchConfig,
     ConnectorAccessType,
     ConnectorPatchConfig,
     DatasetConnector,
@@ -1307,4 +1308,35 @@ class Dataset:
         Delete the dataset file.
         """
         self.client._delete_file(dataset_id=self.id, file_path=str(file_path))
+        self.reload()
+
+
+class Artifact:
+    OPEN_URL_PARTS: ClassVar[list] = ["d", "artifacts"]
+
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
+        return values
+
+    def update(
+        self,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> None:
+        """
+        Update the artifact.
+
+        Args:
+            name (str | None): The name of the artifact.
+            description (str | None): The description of the artifact.
+        """
+        patch_config = ArtifactPatchConfig(
+            name=name,
+            description=description,
+        )
+        self.client._update(artifact_id=self.id, config=patch_config)
         self.reload()
