@@ -3656,7 +3656,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.4.8"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=sequence-continuation#cc9032a291425d13372777ad9d5ea2bc45e56979" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=sequence-continuation#7d7ea8768e6cbe0712018d0db2ea86bccaa17f11" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
