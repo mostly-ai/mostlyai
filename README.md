@@ -133,7 +133,7 @@ Tabular models within the SDK are built on TabularARGN ([arXiv:2501.12012](https
 
 The default language model is a basic, non-pre-trained LSTM (`LSTMFromScratch-3m`), particularly effective for textual data with limited scope (short lengths, narrow variety) and sufficient training samples.
 
-Alternatively, any pre-trained SLM available via the Hugging Face Hub, that supports the [AutoModelForCausalLM](https://huggingface.co/docs/transformers/main/en/model_doc/auto#transformers.AutoModelForCausalLM) class), can be selected to be then fine-tuned on the provided training data. These models start out already with a general world knowledge, and then adapt to the training data for generating high-fidelity synthetic samples even in sparse data domains. The final performance will once again largely depend on the chosen model configurations.
+Alternatively, any pre-trained language model, that is available via the [Hugging Face Hub](https://huggingface.co/) and that supports the [AutoModelForCausalLM](https://huggingface.co/docs/transformers/main/en/model_doc/auto#transformers.AutoModelForCausalLM) class, can be selected to be then fine-tuned on the provided training data. These models start out already with a general world knowledge, and then adapt to the training data for generating high-fidelity synthetic samples even in sparse data domains. The final performance will once again largely depend on the chosen model configurations.
 
 In either case, a modern GPU is highly recommended when working with language models.
 
