@@ -7,7 +7,7 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai)](https://pypi.org/project/mostlyai/)
 [![GitHub stars](https://img.shields.io/github/stars/mostly-ai/mostlyai?style=social)](https://github.com/mostly-ai/mostlyai/stargazers)
 
-[Documentation](https://mostly-ai.github.io/mostlyai/) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/) | [Free Cloud Service](https://app.mostly.ai/)
+[Documentation](https://mostly-ai.github.io/mostlyai/) | [Technical White Paper](https://arxiv.org/abs/2508.00718) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/) | [Free Cloud Service](https://app.mostly.ai/)
 
 The **Synthetic Data SDK** is a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
 
@@ -315,9 +315,12 @@ Please consider citing our project if you find it useful:
 
 ```bibtex
 @misc{mostlyai,
-    author = {{MOSTLY AI}},
-    title = {{MOSTLY AI SDK}},
-    howpublished = {\url{https://github.com/mostly-ai/mostlyai}},
-    year = {2025}
+      title={Democratizing Tabular Data Access with an Open-Source Synthetic-Data SDK},
+      author={Ivona Krchova and Mariana Vargas Vieyra and Mario Scriminaci and Andrey Sidorenko},
+      year={2025},
+      eprint={2508.00718},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2508.00718},
 }
 ```
