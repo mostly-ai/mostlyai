@@ -164,6 +164,58 @@ c.open()
 c.delete()
 ```
 
+## Datasets
+
+Datasets can be used to train generators or create artifacts and may be created with or without a corresponding connector. Datasets are only available in `client` mode.
+
+```python
+# create a new dataset
+ds = mostly.datasets.create(config: dict | DatasetConfig)
+
+# retrieve a dataset by id
+ds = mostly.datasets.get(dataset_id: str)
+
+# list datasets (iterator with optional filters)
+for ds in mostly.datasets.list(
+    offset: int = 0,
+    limit: int | None = None,
+    search_term: str | None = None,
+    owner_id: str | list[str] | None = None,
+    visibility: str | list[str] | None = None,     # e.g., PUBLIC, PRIVATE, UNLISTED
+    created_from: str | None = None,               # YYYY-MM-DD
+    created_to: str | None = None,                 # YYYY-MM-DD
+    sort_by: str | list[str] | None = None,        # NO_OF_THREADS | NO_OF_LIKES | RECENCY
+):
+    print(ds.id, ds.name)
+
+# fetch the dataset's config (read-only view of config)
+cfg = mostly.datasets._config(dataset_id: str)
+
+# update an existing dataset (partial patch)
+ds = mostly.datasets._update(dataset_id: str, config: dict | DatasetPatchConfig)
+
+# delete a dataset
+mostly.datasets._delete(dataset_id: str)
+
+# download a file from a dataset
+content_bytes, filename = mostly.datasets._download_file(
+    dataset_id: str,
+    file_path: str,                                 # path inside the dataset
+)
+
+# upload a file to a dataset
+mostly.datasets._upload_file(
+    dataset_id: str,
+    file_path: str | Path,                          # local path to file
+)
+
+# delete a file from a dataset
+mostly.datasets._delete_file(
+    dataset_id: str,
+    file_path: str | Path,                          # path inside the dataset
+)
+```
+
 ## Miscellaneous
 
 ```python
