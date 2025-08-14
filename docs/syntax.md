@@ -188,9 +188,6 @@ for ds in mostly.datasets.list(
 ):
     print(ds.id, ds.name)
 
-# fetch the dataset's config (read-only view of config)
-cfg = mostly.datasets._config(dataset_id: str)
-
 # update an existing dataset (partial patch)
 ds = mostly.datasets._update(dataset_id: str, config: dict | DatasetPatchConfig)
 
