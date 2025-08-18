@@ -48,7 +48,6 @@ jobs:
           DOCKER_BUILD_RECORD_UPLOAD: 'false'
         with:
           platforms: ${{ env.PLATFORMS }}
-          build-args: GIT_COMMIT_SHA=${{ steps.buildconfig.outputs.commitsha }}
           outputs: type=registry,compression=zstd,force-compression=true,oci-mediatypes=true,compression-level=9
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
