@@ -42,6 +42,6 @@ jobs:
         github.ref == 'refs/heads/main' ||
         startsWith(github.ref, 'refs/tags/')
       )
-    needs: [pre-commit-check, run-test-cpu, run-tests-gpu]
+    needs: [pre-commit-check, run-tests-cpu, run-tests-gpu]
     secrets: inherit
     uses: ./.github/workflows/build-docker-image.yaml
