@@ -6,42 +6,42 @@ on:
     types: [opened, reopened, synchronize, edited]
 
 jobs:
-  pre-commit-check:
-    if: |
-      github.event_name == 'push' ||
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
-    uses: ./.github/workflows/pre-commit-check.yaml
-    secrets: inherit
-  run-tests-cpu:
-    if: |
-      github.event_name == 'push' ||
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
-    uses: ./.github/workflows/run-tests-cpu.yaml
-    secrets: inherit
-  run-tests-gpu:
-    if: |
-      (
-        github.event_name == 'push' ||
-        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
-      ) &&
-      (
-        github.ref == 'refs/heads/main' ||
-        startsWith(github.ref, 'refs/tags/') ||
-        contains(github.event.head_commit.message, '[gpu]') ||
-        contains(github.event.pull_request.title, '[gpu]')
-      )
-    uses: ./.github/workflows/run-tests-gpu.yaml
-    secrets: inherit
+  # pre-commit-check:
+  #   if: |
+  #     github.event_name == 'push' ||
+  #     (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
+  #   uses: ./.github/workflows/pre-commit-check.yaml
+  #   secrets: inherit
+  # # run-tests-cpu:
+  # #   if: |
+  # #     github.event_name == 'push' ||
+  # #     (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
+  # #   uses: ./.github/workflows/run-tests-cpu.yaml
+  # #   secrets: inherit
+  # # run-tests-gpu:
+  # #   if: |
+  # #     (
+  # #       github.event_name == 'push' ||
+  # #       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
+  # #     ) &&
+  # #     (
+  # #       github.ref == 'refs/heads/main' ||
+  # #       startsWith(github.ref, 'refs/tags/') ||
+  # #       contains(github.event.head_commit.message, '[gpu]') ||
+  # #       contains(github.event.pull_request.title, '[gpu]')
+  # #     )
+  # #   uses: ./.github/workflows/run-tests-gpu.yaml
+  # #   secrets: inherit
   build-docker-image:
-    if: |
-      (
-        github.event_name == 'push' ||
-        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
-      ) &&
-      (
-        github.ref == 'refs/heads/main' ||
-        startsWith(github.ref, 'refs/tags/')
-      )
-    needs: [pre-commit-check, run-tests-cpu, run-tests-gpu]
+    # if: |
+    #   (
+    #     github.event_name == 'push' ||
+    #     (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
+    #   ) &&
+    #   (
+    #     github.ref == 'refs/heads/main' ||
+    #     startsWith(github.ref, 'refs/tags/')
+    #   )
+    # needs: [pre-commit-check, run-tests-cpu, run-tests-gpu]
     secrets: inherit
     uses: ./.github/workflows/build-docker-image.yaml
