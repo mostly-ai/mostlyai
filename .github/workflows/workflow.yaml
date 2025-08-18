@@ -31,7 +31,7 @@ jobs:
         contains(github.event.pull_request.title, '[gpu]')
       )
     uses: ./.github/workflows/run-tests-gpu.yaml
-  #   secrets: inherit
+    secrets: inherit
   build-docker-image:
     if: |
       (
