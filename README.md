@@ -7,7 +7,7 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai)](https://pypi.org/project/mostlyai/)
 [![GitHub stars](https://img.shields.io/github/stars/mostly-ai/mostlyai?style=social)](https://github.com/mostly-ai/mostlyai/stargazers)
 
-[Documentation](https://mostly-ai.github.io/mostlyai/) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/) | [Free Cloud Service](https://app.mostly.ai/)
+[Documentation](https://mostly-ai.github.io/mostlyai/) | [Technical White Paper](https://arxiv.org/abs/2508.00718) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/) | [Free Cloud Service](https://app.mostly.ai/)
 
 The **Synthetic Data SDK** is a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
 
@@ -245,13 +245,13 @@ As an alternative, you can also build a Docker image, which provides you with an
 
   - **Pull from official repository**
 
-    `docker pull --platform=linux/amd64 quay.io/mostlyai/sdk`
+    `docker pull --platform=linux/amd64 ghcr.io/mostly-ai/sdk`
 
   - **(Optional) Build your own image**
 
     If your environment is capable of executing Makefile (see [here](https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L47-L73)), then execute `make docker-build`.
 
-    Otherwise, use `docker buildx build . --platform=linux/amd64 -t quay.io/mostlyai/sdk` instead.
+    Otherwise, use `docker buildx build . --platform=linux/amd64 -t ghcr.io/mostly-ai/sdk` instead.
 
 </details>
 
@@ -263,7 +263,7 @@ As an alternative, you can also build a Docker image, which provides you with an
 
   If your environment is capable of executing Makefile, then execute `make docker-run`. Or `make docker-run HOST_PORT=8080` to forward to a host port of your choice. One could also mount the `local_dir` via `make docker-run HOST_LOCAL_DIR=/path/to/host/folder` to make the generators and synthetic datasets directly accessible from the host.
 
-  Otherwise, use `docker run --platform=linux/amd64 -p 8080:8080 quay.io/mostlyai/sdk` instead. Optionally, you can use the `-v` flag to mount a [volume](https://docs.docker.com/engine/storage/volumes/#syntax) for passing files between the host and the container.
+  Otherwise, use `docker run --platform=linux/amd64 -p 8080:8080 ghcr.io/mostly-ai/sdk` instead. Optionally, you can use the `-v` flag to mount a [volume](https://docs.docker.com/engine/storage/volumes/#syntax) for passing files between the host and the container.
 
 </details>
 
@@ -315,9 +315,12 @@ Please consider citing our project if you find it useful:
 
 ```bibtex
 @misc{mostlyai,
-    author = {{MOSTLY AI}},
-    title = {{MOSTLY AI SDK}},
-    howpublished = {\url{https://github.com/mostly-ai/mostlyai}},
-    year = {2025}
+      title={Democratizing Tabular Data Access with an Open-Source Synthetic-Data SDK},
+      author={Ivona Krchova and Mariana Vargas Vieyra and Mario Scriminaci and Andrey Sidorenko},
+      year={2025},
+      eprint={2508.00718},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2508.00718},
 }
 ```
