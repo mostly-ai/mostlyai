@@ -1,4 +1,4 @@
-name: "mostlyai CI"
+name: 'mostlyai CI'
 
 on:
   push:
@@ -32,3 +32,16 @@ jobs:
       )
     uses: ./.github/workflows/run-tests-gpu.yaml
     secrets: inherit
+  build-docker-image:
+    if: |
+      (
+        github.event_name == 'push' ||
+        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
+      ) &&
+      (
+        github.ref == 'refs/heads/main' ||
+        startsWith(github.ref, 'refs/tags/')
+      )
+    needs: [pre-commit-check, run-tests-cpu, run-tests-gpu]
+    secrets: inherit
+    uses: ./.github/workflows/build-docker-image.yaml

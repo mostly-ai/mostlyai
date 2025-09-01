@@ -664,8 +664,8 @@ class MostlyAI(_MostlyBaseClient):
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
             sd = mostly.generate(
+                generator=g,
                 config={
-                    'generator': g,
                     'tables': [
                         {
                             'name': 'data',

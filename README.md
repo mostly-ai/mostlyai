@@ -247,7 +247,7 @@ As an alternative, you can also build a Docker image, which provides you with an
   <li><strong>Pull from official repository</strong></li>
   </ul>
 
-  <code>docker pull --platform=linux/amd64 quay.io/mostlyai/sdk</code>
+  <code>docker pull --platform=linux/amd64 ghcr.io/mostly-ai/sdk</code>
 
   <ul>
   <li><strong>Pull from official repository</strong></li>
@@ -255,7 +255,7 @@ As an alternative, you can also build a Docker image, which provides you with an
 
   If your environment is capable of executing Makefile (see <a href="https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L47-L73">here</a>), then execute <code>make docker-build</code>.
 
-  Otherwise, use <code>docker buildx build . --platform=linux/amd64 -t quay.io/mostlyai/sdk</code> instead.
+  Otherwise, use <code>docker buildx build . --platform=linux/amd64 -t ghcr.io/mostly-ai/sdk</code> instead.
 
 </details>
 
@@ -267,7 +267,7 @@ As an alternative, you can also build a Docker image, which provides you with an
 
   <p>If your environment is capable of executing Makefile, then execute <code>make docker-run</code>. Or <code>make docker-run HOST_PORT=8080</code> to forward to a host port of your choice. One could also mount the <code>local_dir</code> via <code>make docker-run HOST_LOCAL_DIR=/path/to/host/folder</code> to make the generators and synthetic datasets directly accessible from the host.</p>
 
-  <p>Otherwise, use <code>docker run --platform=linux/amd64 -p 8080:8080 quay.io/mostlyai/sdk</code> instead. Optionally, you can use the <code>-v</code> flag to mount a <a href="https://docs.docker.com/engine/storage/volumes/#syntax">volume</a> for passing files between the host and the container.</p>
+  <p>Otherwise, use <code>docker run --platform=linux/amd64 -p 8080:8080 ghcr.io/mostly-ai/sdk</code> instead. Optionally, you can use the <code>-v</code> flag to mount a <a href="https://docs.docker.com/engine/storage/volumes/#syntax">volume</a> for passing files between the host and the container.</p>
 
 </details>
 
