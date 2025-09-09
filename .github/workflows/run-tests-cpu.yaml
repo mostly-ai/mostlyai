@@ -7,39 +7,35 @@ env:
   FORCE_COLOR: "1"
 
 jobs:
-  run-test-cpu:
+  run-test-cpu-local:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
-      - name: Setup | Checkout
+      - &setup_checkout
+        name: Setup | Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           submodules: "true"
 
-      - name: Setup | uv
+      - &setup_uv
+        name: Setup | uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: false
           python-version: "3.10"
 
-      - name: Setup | Dependencies
+      - &setup_deps
+        name: Setup | Dependencies
         run: |
           uv sync --frozen --only-group dev
           uv pip install --index-strategy unsafe-first-match torch==2.7.0+cpu torchvision==0.22.0+cpu ".[local]" --extra-index-url https://download.pytorch.org/whl/cpu
 
-      - name: Test | End-to-End Tests
-        env:
-          MOSTLY_API_KEY: ${{ secrets.E2E_CLIENT_MOSTLY_API_KEY }}
-          MOSTLY_BASE_URL: ${{ secrets.E2E_CLIENT_MOSTLY_BASE_URL }}
-          E2E_CLIENT_S3_ACCESS_KEY: ${{ secrets.E2E_CLIENT_S3_ACCESS_KEY }}
-          E2E_CLIENT_S3_SECRET_KEY: ${{ secrets.E2E_CLIENT_S3_SECRET_KEY }}
-          E2E_CLIENT_S3_BUCKET: ${{ secrets.E2E_CLIENT_S3_BUCKET }}
-        # both local and client mode e2e tests will be run
+      - name: Test | End-to-End (Local mode only)
         run: |
-          uv run --no-sync pytest -vv tests/_local/end_to_end
+          uv run --no-sync pytest -vv tests/_local/end_to_end -k 'not (client and mode)'
 
       - name: Test | Unit Tests
         run: |
@@ -47,3 +43,23 @@ jobs:
           uv run --no-sync pytest -vv tests/_data/unit
           uv run --no-sync pytest -vv tests/_local/unit
           uv run --no-sync pytest -vv tests/test_domain.py
+
+  run-test-cpu-client:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - *setup_checkout
+      - *setup_uv
+      - *setup_deps
+
+      - name: Test | End-to-End (Client mode only)
+        env:
+          MOSTLY_API_KEY: ${{ secrets.E2E_CLIENT_MOSTLY_API_KEY }}
+          MOSTLY_BASE_URL: ${{ secrets.E2E_CLIENT_MOSTLY_BASE_URL }}
+          E2E_CLIENT_S3_ACCESS_KEY: ${{ secrets.E2E_CLIENT_S3_ACCESS_KEY }}
+          E2E_CLIENT_S3_SECRET_KEY: ${{ secrets.E2E_CLIENT_S3_SECRET_KEY }}
+          E2E_CLIENT_S3_BUCKET: ${{ secrets.E2E_CLIENT_S3_BUCKET }}
+        run: |
+          uv run --no-sync pytest -vv tests/_local/end_to_end -k 'client and mode'
