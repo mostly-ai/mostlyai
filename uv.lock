@@ -3659,7 +3659,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.5.2"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=no-slen#afcb751bf5eb5be239bd4791d7523ba7bc359d3e" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=no-slen#3de192ce87774b7ab9c04f9fab77aea7dd6ac41f" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
