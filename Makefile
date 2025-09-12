@@ -15,7 +15,8 @@ gen-public-model: ## build pydantic models for public api
 	datamodel-codegen --url $(PUBLIC_API_FULL_URL) $(COMMON_OPTIONS)
 	#datamodel-codegen --input ../mostly-app-v2/public-api/public-api.yaml $(COMMON_OPTIONS)
 	python tools/postproc_domain.py
-	uv run --no-sync pre-commit run --all-files
+	# run pre-commit hooks to add license and lint the generated code; ignore the exit code to avoid confusion
+	uv run --no-sync pre-commit run --all-files > /dev/null 2>&1 || true
 
 # Common options for both targets
 COMMON_OPTIONS = \
