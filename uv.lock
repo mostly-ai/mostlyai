@@ -3432,7 +3432,7 @@ wheels = [
 
 [[package]]
 name = "mostlyai"
-version = "5.1.1"
+version = "5.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
@@ -3581,8 +3581,8 @@ requires-dist = [
     { name = "joblib", marker = "extra == 'local'", specifier = ">=1.4.2" },
     { name = "joblib", marker = "extra == 'local-gpu'", specifier = ">=1.4.2" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
-    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.5.2" },
-    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.5.2" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=fix-ctxseq-value-protection" },
+    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=fix-ctxseq-value-protection" },
     { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.9.8" },
     { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.9.8" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
@@ -3659,7 +3659,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.5.2"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=fix-ctxseq-value-protection#7558be9fefe1566b348077639541e7b151abbf78" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
@@ -3679,10 +3679,6 @@ dependencies = [
     { name = "torchvision" },
     { name = "transformers" },
     { name = "xgrammar" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/4a/e0/5636ec83d88516ddd6545a9fb3361dd6a98c5b23aa581bd39b528e34e1f1/mostlyai_engine-1.5.2.tar.gz", hash = "sha256:a16a1400e3c7a23cb66f90d64a2657506bff20921bd063575cec135d4dff0325", size = 115006, upload-time = "2025-09-05T13:54:16.876Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/bc/cd228a9ded272d33a32ca11ea9a82eccd79f1a6f8d43274402794220d875/mostlyai_engine-1.5.2-py3-none-any.whl", hash = "sha256:ce1e85ee9ffc4ff400cedcca83c82f99cd4cb88166076ae54d4d518c4c460672", size = 154416, upload-time = "2025-09-05T13:54:15.77Z" },
 ]
 
 [package.optional-dependencies]
