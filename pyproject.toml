@@ -47,16 +47,16 @@ dependencies = [
 
 [project.optional-dependencies]
 local = [
-    # "mostlyai-engine @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
+    "mostlyai-engine @ git+https://github.com/mostly-ai/mostlyai-engine.git@bump_vllm_0.10.2",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
-    "mostlyai-engine==1.5.3",  # for release
+    # "mostlyai-engine==1.5.3",  # for release
     "mostlyai-qa==1.9.8",  # for release
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch>=2.7.0,<2.7.1",
-    "torchaudio>=2.7.0,<2.7.1",
-    "torchvision>=0.22.0,<0.22.1",
+    "torch>=2.8.0,<2.8.1",
+    "torchaudio>=2.8.0,<2.8.1",
+    "torchvision>=0.23.0,<0.23.1",
     "joblib>=1.4.2",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
@@ -73,16 +73,16 @@ local = [
     "adlfs>=2023.4.0",
 ]
 local-gpu = [
-    # "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
+    "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@bump_vllm_0.10.2",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
-    "mostlyai-engine[gpu]==1.5.3",  # for release
+    # "mostlyai-engine[gpu]==1.5.3",  # for release
     "mostlyai-qa==1.9.8",  # for release
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
     "python-multipart>=0.0.20",
-    "torch>=2.7.0,<2.7.1",
-    "torchaudio>=2.7.0,<2.7.1",
-    "torchvision>=0.22.0,<0.22.1",
+    "torch>=2.8.0,<2.8.1",
+    "torchaudio>=2.8.0,<2.8.1",
+    "torchvision>=0.23.0,<0.23.1",
     "joblib>=1.4.2",
     "sqlalchemy>=2.0.0",
     "sshtunnel>=0.4.0,<0.5",
