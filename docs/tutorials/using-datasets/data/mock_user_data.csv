@@ -1,0 +1,1001 @@
+user_id,first_name,last_name,email,gender,date_of_birth,country,city,signup_date,last_login,account_status,subscription_type,referral_source,num_logins,avg_session_minutes
+u_10001,Liam,Anderson,liam.anderson@example.com,male,1988-04-12,United States,Denver,2020-06-15,2023-11-20,active,premium,organic,312,18.7
+u_10002,Emma,Martinez,emma.martinez@example.com,female,1993-09-02,Canada,Toronto,2019-02-28,2023-09-12,active,basic,friend,145,9.2
+u_10003,Noah,Khan,noah.khan@example.com,male,2000-01-15,United Kingdom,London,2021-11-03,2023-08-25,active,free,ad,92,6.8
+u_10004,Olivia,Chen,olivia.chen@example.com,female,1997-07-22,Australia,Sydney,2020-03-19,2023-12-05,active,premium,organic,260,22.1
+u_10005,Ava,Dubois,ava.dubois@example.com,female,1984-02-28,France,Paris,2018-07-07,2023-03-11,active,basic,other,510,14.5
+u_10006,James,Silva,james.silva@example.com,male,1979-12-03,Brazil,Sao Paulo,2018-05-22,2023-04-29,inactive,free,organic,0,0.0
+u_10007,Sophia,Martins,sophia.martins@example.com,female,1995-10-09,Italy,Rome,2022-01-14,2023-12-28,active,premium,friend,210,17.4
+u_10008,Ethan,O'Connor,ethan.oconnor@example.com,male,1998-06-30,Ireland,Dublin,2021-09-09,2023-10-02,active,basic,ad,180,12.3
+u_10009,Isabella, Rossi,isabella.rossi@example.com,female,2002-03-16,Italy,Milan,2020-12-01,2023-07-22,active,free,organic,110,8.9
+u_10010,Benjamin,Schmidt,benjamin.schmidt@example.com,male,1986-08-28,Germany,Berlin,2019-08-26,2023-11-14,suspended,premium,other,75,11.0
+u_10011,Mia,Kobayashi,mia.kobayashi@example.com,female,1999-05-05,Japan,Tokyo,2023-01-17,2023-12-01,active,premium,organic,60,16.2
+u_10012,Lucas,Nguyen,lucas.nguyen@example.com,male,1991-07-21,Vietnam,Hanoi,2019-04-03,2023-02-18,inactive,basic,friend,40,7.5
+u_10013,Charlotte,Dubois,charlotte.dubois@example.com,female,1987-11-30,Canada,Montreal,2018-11-28,2023-05-07,active,basic,ad,300,13.6
+u_10014,Mateo,Garcia,mateo.garcia@example.com,male,1994-02-14,Spain,Madrid,2020-10-10,2023-08-30,active,free,organic,150,9.8
+u_10015,Amelia,Brown,amelia.brown@example.com,female,1992-12-07,United States,Austin,2018-04-12,2023-06-25,active,premium,other,420,19.3
+u_10016,Henry,Ivanov,henry.ivanov@example.com,male,1983-09-19,Russia,Moscow,2019-03-21,2023-12-22,inactive,basic,friend,28,5.6
+u_10017,Grace,Petrov,grace.petrov@example.com,female,2001-04-04,Russia,Saint Petersburg,2022-07-07,2023-04-18,active,free,organic,70,6.1
+u_10018,Daniel,Ng,daniel.ng@example.com,male,1996-01-26,Singapore,Singapore,2020-05-05,2023-09-09,active,premium,ad,190,14.0
+u_10019,Ella,Olsen,ella.olsen@example.com,female,1998-08-18,Norway,Oslo,2021-02-20,2023-03-03,suspended,basic,other,12,3.2
+u_10020,Lucas,Garza,lucas.garza@example.com,male,1989-03-11,Mexico,Mexico City,2018-09-09,2023-10-31,active,premium,organic,360,21.0
+u8437d1f6,Liam,Keller,liam.keller1978@example.com,male,1978-03-22,Canada,Vancouver,2020-08-15,2023-11-02,active,premium,organic,312,18.4
+u9b2f1a0e,Mira,Patel,mira.patel1989@example.com,female,1989-06-11,India,Mumbai,2019-02-20,2023-07-19,active,basic,friend,158,9.6
+u5e7c3d9a,Aiden,Ng,aiden.ng1995@example.com,non-binary,1995-11-04,Singapore,Singapore,2021-04-07,2023-09-12,active,premium,ad,240,22.8
+u2c4b9f7e,Julia,Romanov,julia.romanov1982@example.com,female,1982-02-19,Russia,Saint Petersburg,2018-11-30,2023-04-28,active,free,organic,420,14.2
+u6a9d4e3b,Noah,Garcia,noah.garcia1990@example.com,male,1990-07-15,Spain,Madrid,2020-01-12,2023-12-01,active,premium,other,280,19.1
+u1f3e8b2c,Sophie,Dubois,sophie.dubois1975@example.com,female,1975-09-30,France,Lyon,2018-06-21,2023-10-15,inactive,basic,friend,95,7.8
+u7d4a1c9e,Ethan,Kim,ethan.kim1987@example.com,male,1987-04-02,South Korea,Seoul,2022-03-09,2023-06-05,active,basic,organic,188,12.5
+u4b2e7f6a,Aria,Hernandez,aria.hernandez1993@example.com,female,1993-08-21,United States,Austin,2020-09-18,2023-08-26,suspended,free,ad,64,6.3
+u3f6a9b1d,Lucas,Silva,lucas.silva1984@example.com,male,1984-12-05,Brazil,Rio de Janeiro,2018-04-02,2023-02-20,active,premium,organic,520,25.7
+u8e1b4f7c,Chloe,Laurent,chloe.laurent1998@example.com,female,1998-05-14,Canada,Montreal,2021-12-11,2023-03-03,active,free,friend,132,11.2
+u0d2a7c1f,Mateo,Costa,mateo.costa1981@example.com,male,1981-01-22,Portugal,Lisbon,2020-05-04,2023-05-29,inactive,basic,other,72,8.0
+u9a5e6b3d,Nina,Kovacs,nina.kovacs1992@example.com,female,1992-09-09, Hungary,Budapest,2019-07-22,2023-12-22,active,premium,organic,310,17.4
+u5f1d2a8c,Kai,Sato,kai.sato1989@example.com,non-binary,1989-03-03,Japan,Tokyo,2021-02-14,2023-01-09,active,premium,ad,260,20.2
+u2e9c6d4f,Olivia,Brown,olivia.brown1996@example.com,female,1996-10-10,Australia,Sydney,2020-10-02,2023-07-07,active,free,organic,210,10.7
+u1a7b3e5f,Henry,O'Connor,henry.oconnor1980@example.com,male,1980-06-18,Ireland,Dublin,2018-01-23,2023-04-04,active,basic,friend,140,9.9
+u4c6d8e2a,Emma,Schmidt,emma.schmidt1979@example.com,female,1979-11-11,Germany,Berlin,2019-09-01,2023-11-11,active,premium,organic,360,21.5
+u7f2e8b4c,Julian,Rossi,julian.rossi1986@example.com,male,1986-04-28,Italy,Rome,2022-06-22,2023-04-27,active,basic,other,190,12.0
+u3a9d7f2b,Grace,Nguyen,grace.nguyen1994@example.com,female,1994-08-26,Vietnam,Ho Chi Minh City,2020-03-27,2023-12-15,active,basic,organic,270,13.3
+u6b8c1e4d,Daniel,Park,daniel.park1983@example.com,male,1983-12-12,South Korea,Busan,2018-07-30,2023-09-14,inactive,free,friend,88,6.7
+u1d4e5f6a,Zoe,Müller,zoe.muller1997@example.com,female,1997-02-02,Germany,Munich,2021-05-19,2023-08-08,active,premium,organic,330,18.9
+u0f9a2c3b,William,Davis,william.davis1988@example.com,male,1988-09-09,United States,Seattle,2019-03-15,2023-06-14,suspended,basic,ad,52,5.4
+U1001,Ava,Hughes,ava.hughes@example.com,female,1989-04-12,United States,Seattle,2020-06-15,2023-11-22,active,premium,organic,312,22.5
+U1002,Liam,Murphy,liam.murphy@example.com,male,1995-09-02,Canada,Vancouver,2019-03-08,2023-12-01,active,basic,friend,178,15.2
+U1003,Emma,Klein,emma.klein@example.com,female,1982-01-25,Germany,Berlin,2021-08-21,2023-07-14,active,premium,ad,465,28.9
+U1004,Noah,Singh,noah.singh@example.com,male,1990-05-30,India,Mumbai,2020-11-02,2023-10-29,active,free,organic,95,12.4
+U1005,Olivia,Perez,olivia.perez@example.com,female,1998-07-14,Spain,Madrid,2022-02-18,2023-08-11,inactive,basic,other,40,9.7
+U1006,James,Kim,james.kim@example.com,male,1979-12-03,South Korea,Seoul,2018-04-09,2023-03-27,suspended,free,friend,210,18.1
+U1007,Sophia,Nguyen,sophia.nguyen@example.com,female,1993-10-22,Vietnam,Hanoi,2020-09-12,2023-12-18,active,premium,organic,310,25.3
+U1008,Lucas,Davis,lucas.davis@example.com,male,1987-02-11,United Kingdom,London,2019-01-25,2023-06-04,active,basic,ad,260,14.6
+U1009,Mia,Rossi,mia.rossi@example.com,female,2001-08-19,Italy,Florence,2021-05-30,2023-04-15,active,premium,friend,120,19.2
+U1010,Oliver,Silva,oliver.silva@example.com,male,1984-03-07,Brazil,Sao Paulo,2018-07-07,2023-09-20,active,premium,organic,520,30.1
+U1011,Charlotte,Brown,charlotte.brown@example.com,female,1996-12-29,Australia,Sydney,2019-12-13,2023-11-30,active,basic,other,140,11.8
+U1012,Henry,Martinez,henry.martinez@example.com,male,1981-06-18,Mexico,Mexico City,2020-04-04,2023-02-08,inactive,free,organic,60,7.3
+U1013,Amelia,Schmidt,amelia.schmidt@example.com,female,1975-09-09,Germany,Hamburg,2018-08-22,2023-05-25,active,premium,ad,410,26.7
+U1014,Ethan,Kovačić,ethan.kovacic@example.com,male,1999-11-02,Croatia,Zagreb,2022-03-15,2023-12-10,active,basic,friend,88,13.1
+U1015,Isabella,Novak,isabella.novak@example.com,female,1992-04-06,Czechia,Prague,2020-10-07,2023-07-07,active,premium,organic,390,24.5
+U1016,Mason,Lee,mason.lee@example.com,male,1988-01-14,Singapore,Singapore,2019-06-21,2023-08-29,active,basic,other,170,16.4
+U1017,Grace,Patel,grace.patel@example.com,female,1997-03-28,United States,New York,2021-04-02,2023-09-14,active,premium,organic,330,21.7
+U1018,Alexander,Clark,alexander.clark@example.com,male,1983-07-21,Canada,Toronto,2019-10-11,2023-04-24,inactive,free,ad,70,8.9
+U1019,Ella,Santos,ella.santos@example.com,female,2003-02-28,Spain,Barcelona,2022-12-01,2023-12-25,active,free,friend,60,10.2
+U1020,Daniel,White,daniel.white@example.com,male,1967-08-13,United States,Austin,2018-02-27,2023-03-18,active,premium,organic,540,32.6
+u_9Qp7VtXh2L,Ava,Morris,ava.morris@example.com,female,1989-04-12,Canada,Toronto,2020-05-14,2023-08-22,active,premium,organic,312,18.6
+u_Vn5rQpGk8,Liam,Chen,liam.chen@example.org,male,1994-11-03,United States,Seattle,2019-09-09,2023-11-02,active,basic,friend,184,12.4
+u7xYq3ZpDl,Noah,Patel,noah.patel@example.net,male,1982-02-20,United Kingdom,London,2021-03-21,2023-05-16,active,premium,ad,420,24.1
+u6TqV8rJ2m,Sophia,Khan,sophia.khan@example.co,female,1990-07-07,India,Mumbai,2018-12-02,2023-10-10,active,free,organic,98,9.8
+uQ2wZp4Yt9,Mason,Rossi,mason.rossi@example.it,male,1978-09-15,Italy,Milan,2020-02-28,2023-06-25,inactive,basic,other,0,0.0
+u3VnB7pLw6,Emma,Dubois,emma.dubois@example.fr,female,1998-01-22,France,Paris,2022-07-11,2023-12-01,active,premium,organic,260,17.2
+u9xL2vQkWp,Lucas,Silva,lucas.silva@example.br,male,1985-04-04,Brazil,São Paulo,2019-08-19,2023-03-18,suspended,free,friend,45,6.5
+u1RxG2pH7j,Olivia,Nielsen,olivia.nielsen@example.dk,female,1992-06-30,Denmark,Copenhagen,2021-01-22,2023-04-14,active,basic,ad,150,11.9
+uZ7kVq4Bw3,Ethan,Müller,ethan.muller@example.de,male,1987-12-12,Germany,Berlin,2020-10-05,2023-09-03,active,premium,organic,310,19.4
+u5QxJp9Wg6,Isabella,Costa,isabella.costa@example.pt,female,1996-03-17,Portugal,Lisbon,2018-04-30,2023-07-21,active,basic,other,210,14.7
+uHg3F0qD8m,James,O'Neill,james.oneill@example.ie,male,1983-08-28,Ireland,Dublin,2020-06-18,2023-11-29,active,premium,friend,275,16.3
+u3JkQpV4bD,Amelia,Brown,amelia.brown@example.au,female,2001-05-05,Australia,Sydney,2021-09-09,2023-02-08,inactive,free,organic,12,5.1
+uPx7LrV2qZ,Henry,Schmidt,henry.schmidt@example.de,male,1999-10-10,Germany,Munich,2022-03-03,2023-08-16,active,basic,ad,120,10.2
+u1YxQ2vLpS,Chloe,Martins,chloe.martins@example.br,female,1995-12-01,Argentina,Buenos Aires,2019-12-12,2023-05-22,active,premium,organic,360,22.5
+uW2qP3tZk5,Oliver,Kim,oliver.kim@example.kr,male,1988-03-25,South Korea,Seoul,2018-08-08,2023-10-18,active,premium,friend,390,25.7
+u5VbQ1nWg7,Mia,Singh,mia.singh@example.in,female,1993-09-09,India,Delhi,2020-12-01,2023-12-15,active,basic,organic,220,13.1
+u2CqR9tBm4,Mateo,Garcia,mateo.garcia@example.mx,male,1986-07-07,Mexico,Mexico City,2019-04-25,2023-08-09,active,basic,other,170,11.5
+uX7pJ3qNv8,Grace,Wilson,grace.wilson@example.co.nz,female,1991-02-14,New Zealand,Auckland,2021-04-04,2023-03-12,active,premium,organic,305,20.4
+u9WqZ4tPk2,Benjamin,Lee,benjamin.lee@example.sg,male,1984-05-05,Singapore,Singapore,2020-01-15,2023-09-25,active,basic,ad,260,12.9
+u0LtYpJwQ6,Ella,Kowalski,ella.kowalski@example.pl,female,1997-08-08,Poland,Warsaw,2022-05-20,2023-07-19,active,free,friend,95,8.7
+u_9qv7x2b8,Mila,Keller,mila.keller@example.com,female,1989-07-14,Canada,Vancouver,2020-03-11,2023-10-05,active,premium,organic,312,22.4
+u_4p2jz9m1,Jon,Park,jon.park@example.com,male,1996-02-28,United States,Seattle,2019-11-22,2023-06-18,active,basic,friend,210,14.7
+u_q7x1n6l,Asha,Singh,asha.singh@example.com,female,1983-05-02,India,Mumbai,2021-07-04,2023-08-12,active,premium,ad,485,28.9
+u_8m2k4v9t,Leo,Martinez,leo.martinez@example.com,male,1978-11-19,Spain,Madrid,2018-04-18,2023-12-22,inactive,free,organic,102,9.5
+u_x5r2q3b7,Nora,O'Connell,nora.oconnell@example.com,female,1992-09-30,Ireland,Dublin,2020-09-09,2023-04-30,active,premium,other,389,21.1
+u_7f2t9w1k,Kai,Chen,kai.chen@example.com,non-binary,1999-04-15,Singapore,Singapore,2022-02-28,2023-07-14,active,basic,organic,180,16.3
+u_5n8r3d0p,Sofia,Silva,sofia.silva@example.com,female,1985-12-01,Brazil,Sao Paulo,2019-05-07,2023-09-08,suspended,premium,friend,260,19.8
+u_b6t1m8qz,Ethan,Brown,ethan.brown@example.com,male,1991-03-22,Australia,Sydney,2020-01-15,2023-12-05,active,free,ad,150,12.0
+u_j1k3p4lq,Amara,Ndi,amara.ndi@example.com,female,2002-08-09,Kenya,Nairobi,2023-03-20,2023-12-01,active,basic,organic,95,11.6
+u_f9x4t2r,Oli,Kowalski,oli.kowalski@example.com,male,1987-01-11,Poland,Krakow,2021-06-30,2023-02-28,inactive,free,other,60,7.8
+u_s4t8p7e,Chloe,Martin,chloe.martin@example.com,female,1994-07-27,France,Lyon,2018-08-12,2023-10-01,active,premium,organic,420,25.2
+u_d7w6b3a,Hassan,Ali,hassan.ali@example.com,male,1980-02-16,United Arab Emirates,Dubai,2019-02-03,2023-05-22,active,basic,ad,275,18.4
+u_v2k5n1z,Yuki,Takahashi,yuki.takahashi@example.com,non-binary,1997-10-03,Japan,Tokyo,2020-12-12,2023-11-30,active,premium,organic,310,20.7
+u_3t0p6f8r,Mika,Nakamura,mika.nakamura@example.com,female,1990-05-05,Japan,Osaka,2021-04-25,2023-03-19,inactive,basic,friend,120,9.4
+u_2q8v4c7l,Arthur,Dubois,arthur.dubois@example.com,male,1975-09-09,France,Marseille,2018-03-03,2023-06-22,active,premium,organic,510,30.5
+u_w9l3t6p,Grace,Ng,grace.ng@example.com,female,1988-03-18,Singapore,Singapore,2020-10-28,2023-08-14,active,basic,other,230,17.2
+u_m2k7b1t,Daniel,Meyer,daniel.meyer@example.com,male,1982-06-24,Germany,Berlin,2018-09-09,2023-05-30,active,premium,organic,460,26.1
+u_h7r5n4q,Fatima,Al-Farsi,fatima.alfarsi@example.com,female,1995-12-12,Qatar,Doha,2020-02-02,2023-07-07,active,premium,ad,340,22.7
+u_p3m9l2q,Jonah,Schmidt,jonah.schmidt@example.com,male,1993-01-01,Germany,Munich,2022-05-14,2023-12-23,active,basic,friend,275,15.9
+u_c1k8r4p,Zara,Khan,zara.khan@example.com,female,2000-08-08,Pakistan,Karachi,2021-09-09,2023-04-01,active,free,organic,140,10.2
+u_7l4p3qz,Ravi,Patel,ravi.patel@example.com,male,1989-04-04,India,Delhi,2020-07-07,2023-09-09,inactive,basic,other,80,8.5
+u_4801,Avery,Knight,avery.knight84@example.com,non-binary,1992-05-17,Canada,Toronto,2020-06-12,2023-11-21,active,premium,organic,312,21.5
+u_5402,Mila,Rossi,mila.rossi92@example.org,female,1988-02-04,Italy,Milan,2019-04-23,2023-09-02,active,basic,friend,145,12.8
+u_7803,Jonah,Lee,jonah.lee73@example.net,male,1995-12-11,United States,Seattle,2021-01-15,2023-12-07,active,premium,ad,401,37.2
+u_9024,Sofia,Silva,sofia.silva66@example.com,female,1983-07-29,Spain,Madrid,2018-10-02,2023-08-19,inactive,free,organic,78,9.4
+u_1125,Kai,Ng,kai.ng44@example.com,non-binary,2001-03-15,Singapore,Singapore,2022-11-30,2023-05-16,active,basic,other,210,14.1
+u_2236,Emily,Chen,emily.chen58@example.com,female,1990-09-02,Australia,Sydney,2017-07-08,2023-04-04,active,premium,friend,510,25.7
+u_3347,Noah,Patel,noah.patel77@example.co,male,1998-04-20,India,Mumbai,2020-02-19,2023-10-11,active,basic,organic,260,18.3
+u_4458,Lena,Dubois,lena.dubois31@example.fr,female,1985-06-14,France,Paris,2018-12-05,2023-03-22,suspended,free,ad,95,7.6
+u_5569,Mateo,Gonzalez,mateo.gonzalez12@example.mx,male,1993-01-28,Mexico,Mexico City,2021-05-14,2023-06-29,active,premium,organic,320,22.9
+u_6670,Hannah,Schmidt,hannah.schmidt64@example.de,female,1999-10-03,Germany,Berlin,2020-09-09,2023-12-01,active,basic,friend,180,13.2
+u_7781,Arin,Kaur,arin.kaur28@example.co.in,non-binary,1987-08-28,India,Bengaluru,2019-02-28,2023-07-15,inactive,free,other,60,5.4
+u_8892,Olivia,Brown,olivia.brown29@example.com,female,1981-11-19,United Kingdom,London,2018-03-21,2023-04-17,active,premium,organic,430,29.1
+u_9903,Ethan,Kim,ethan.kim53@example.com,male,1996-02-05,South Korea,Seoul,2022-08-03,2023-12-25,active,basic,ad,260,16.7
+u_1014,Zara,Nasser,zara.nasser91@example.com,female,1991-05-22,United Arab Emirates,Dubai,2020-01-12,2023-02-23,active,premium,friend,335,24.6
+u_1125b,Omar,Abdi,omar.abdi77@example.no,male,1989-03-10,Norway,Oslo,2019-07-07,2023-05-01,active,basic,organic,150,11.9
+u_1236,Iris,Garcia,iris.garcia44@example.es,female,1994-09-09,Spain,Barcelona,2021-03-03,2023-08-29,active,premium,organic,420,26.4
+u_1347,Liam,O'Neill,liam.oneill52@example.ie,male,1982-12-31,Ireland,Dublin,2018-06-20,2023-10-08,inactive,free,other,88,8.7
+u_1458,Priya,Srinivasan,priya.srinivasan14@example.in,female,1997-04-18,India,Chennai,2023-01-18,2023-11-15,active,basic,organic,95,9.2
+u_1569,Lucas,Müller,lucas.mueller70@example.de,male,1990-06-30,Germany,Munich,2020-04-04,2023-12-18,active,premium,ad,390,27.3
+u_1670,Ana,Paredes,ana.paredes23@example.cl,female,1986-01-12,Chile,Santiago,2019-09-09,2023-03-14,suspended,basic,friend,70,6.5
+u_1781,Daniel,Popov,daniel.popov88@example.ru,male,1984-08-27,Russia,Moscow,2018-05-26,2023-12-30,active,free,organic,260,12.0
+u_1892,Grace,Nguyen,grace.nguyen55@example.com,female,1992-07-07,Vietnam,Ho Chi Minh City,2021-10-10,2023-09-28,active,premium,other,310,21.0
+U10001,James,Carter,james.carter@example.com,male,1985-04-12,United States,New York,2020-03-15,2023-07-22,active,premium,organic,312,23.7
+U10002,Ava,Nguyen,ava.nguyen@example.com,female,1992-11-06,Canada,Vancouver,2019-11-02,2023-11-30,active,basic,friend,189,12.4
+U10003,Daniel,Martinez,daniel.martinez@example.com,male,1980-02-19,Mexico,Monterrey,2018-05-21,2023-09-18,inactive,free,ad,95,8.6
+U10004,Sophia,Kovač,sophia.kovac@example.com,female,1999-07-14,Serbia,Belgrade,2021-08-10,2023-10-05,active,premium,organic,257,32.1
+U10005,Liam,O'Connor,liam.oconnor@example.com,male,1988-03-29,Ireland,Dublin,2020-01-30,2023-12-01,active,basic,other,420,17.9
+U10006,Emma,Dubois,emma.dubois@example.com,female,1995-09-02,France,Lyon,2018-12-12,2023-07-08,suspended,free,organic,120,6.8
+U10007,Noah,Kim,noah.kim@example.com,male,1990-01-21,South Korea,Seoul,2022-04-18,2023-05-14,active,premium,friend,310,25.3
+U10008,Olivia,Silva,olivia.silva@example.com,female,1976-06-30,Brazil,Sao Paulo,2019-07-07,2023-08-09,inactive,basic,ad,150,9.4
+U10009,Benjamin,Schmidt,benjamin.schmidt@example.com,male,1983-12-05,Germany,Berlin,2020-02-28,2023-03-22,active,premium,organic,280,28.6
+U10010,Chloe,Ng,chloe.ng@example.com,female,1997-08-16,Singapore,Singapore,2021-09-09,2023-06-25,active,basic,other,210,14.2
+U10011,Lucas,Rossi,lucas.rossi@example.com,male,1982-05-25,Italy,Milan,2018-10-15,2023-04-17,inactive,free,friend,72,5.9
+U10012,Mia,Patel,mia.patel@example.com,female,1994-03-03,India,Mumbai,2020-06-23,2023-12-10,active,premium,organic,360,26.7
+U10013,Henry,Brown,henry.brown@example.com,male,1979-11-11,United States,Chicago,2019-02-02,2023-09-02,active,basic,ad,260,19.1
+U10014,Ella,Martin,ella.martin@example.com,female,2001-10-28,Australia,Sydney,2020-08-08,2023-01-19,active,free,organic,95,7.8
+U10015,Alexander,Iverson,alexander.iverson@example.com,non-binary,1998-02-14,Sweden,Stockholm,2021-04-04,2023-10-11,active,premium,other,330,21.4
+U10016,Grace,Lefevre,grace.lefevre@example.com,female,1987-09-09,Belgium,Brussels,2018-03-19,2023-12-28,active,premium,organic,415,29.9
+U10017,Ethan,Garcia,ethan.garcia@example.com,male,1991-01-07,Spain,Madrid,2020-12-12,2023-11-16,active,basic,friend,205,13.5
+U10018,Zoe,Khan,zoe.khan@example.com,female,1996-05-23,Pakistan,Karachi,2021-05-18,2023-08-04,suspended,free,other,60,4.2
+U10019,Michael,Vega,michael.vega@example.com,male,1989-12-02,Argentina,Buenos Aires,2019-09-09,2023-03-25,active,premium,organic,345,27.8
+U10020,Sophie,Kimura,sophie.kimura@example.com,female,2003-04-18,Japan,Tokyo,2022-01-01,2023-02-14,active,basic,ad,140,9.3
+u_1a9d5b7f,Aria,Nguyen,aria.nguyen@example.com,female,1987-04-12,United States,San Francisco,2020-11-03,2023-08-14,active,premium,organic,289,22.5
+u_2b4e6c1d,Liam,Patel,liam.patel@example.org,male,1994-09-23,Canada,Toronto,2019-07-19,2023-12-02,active,basic,ad,156,18.2
+u_3f0a9e2c,Mira,Kovacs,mira.kovacs@example.net,female,2000-02-15,Hungary,Budapest,2021-03-28,2023-09-09,active,free,friend,92,9.8
+u_4d7c1f8a,Jon,Silva,jon.silva@example.com,male,1982-11-02,Brazil,Rio de Janeiro,2018-05-14,2023-05-21,inactive,premium,organic,420,33.1
+u_5e3b2a9c,Sophie,Martin,sophie.martin@example.co,female,1999-07-08,France,Lyon,2020-01-22,2023-12-28,active,premium,other,220,15.6
+u_6a8d4e3f,Noah,Williams,noah.williams@example.com,male,1989-03-30,United Kingdom,London,2022-08-07,2023-07-30,suspended,basic,ad,67,12.4
+u_7c2f9b1e,Ava,Schmidt,ava.schmidt@example.de,female,1995-12-01,Germany,Berlin,2018-12-12,2023-04-17,active,basic,organic,310,20.1
+u_8e5d3c7a,Kai,Kim,kai.kim@example.kr,non-binary,1997-06-24,South Korea,Seoul,2021-06-03,2023-10-12,active,free,friend,134,14.9
+u_9f1a6d4b,Emma,Brown,emma.brown@example.com,female,1981-08-19,Australia,Sydney,2019-04-05,2023-11-21,active,premium,organic,480,28.7
+u_10b4e2a9,Mateo,Rossi,mateo.rossi@example.it,male,1993-05-14,Italy,Milan,2020-09-10,2023-08-02,active,premium,other,230,19.4
+u_11d8f7c2,Lena,Novak,lena.novak@example.cz,female,1990-01-29,Czechia,Prague,2022-02-20,2023-03-15,inactive,free,ad,45,8.2
+u_12a9c3b6,Oliver,Santos,oliver.santos@example.com,male,1984-10-07,Spain,Madrid,2021-11-11,2023-12-19,active,basic,organic,190,16.7
+u_13f5b8d1,Grace,Lee,grace.lee@example.com,female,1998-03-03,Singapore,Singapore,2020-03-27,2023-10-05,active,premium,friend,270,21.3
+u_14g2d1a5,Daniel,Olsen,daniel.olsen@example.no,male,1986-02-16,Norway,Oslo,2018-07-24,2023-06-08,active,basic,other,110,13.5
+u_15h7e3c4,Zoey,Dubois,zoey.dubois@example.fr,female,2003-09-12,France, Marseille,2023-01-15,2023-12-06,active,free,organic,25,7.4
+u_16j4k8b2,Alex,Davis,alex.davis@example.com,non-binary,1992-04-25,USA,New York,2019-10-02,2023-07-14,active,premium,ad,340,25.9
+u_17m2l5e9,Iris,Müller,iris.mueller@example.de,female,1988-11-05,Germany,Hamburg,2020-05-18,2023-09-01,active,basic,organic,205,17.1
+u_18n9c7f3,Ethan,Clark,ethan.clark@example.com,male,1996-07-21,New Zealand,Auckland,2021-04-26,2023-05-24,inactive,free,friend,66,10.3
+u_19p6t4g1,Nina,Ivanova,nina.ivanova@example.ru,female,1991-06-02,Russia,Moscow,2019-09-09,2023-12-29,active,premium,organic,410,26.4
+u_20q3w1h8,Jonah,Keller,jonah.keller@example.at,male,1983-03-09,Austria,Vienna,2018-03-01,2023-04-20,active,basic,other,120,14.0
+u_1,Alex,Nguyen,alex.nguyen@example.com,male,1985-07-14,United States,San Francisco,2019-04-22,2023-11-08,active,premium,organic,312,16.4
+u_2,Priya,Sharma,priya.sharma@example.co,female,1992-03-02,Canada,Toronto,2020-09-11,2023-07-19,active,basic,friend,145,9.8
+u_3,Diego,Martinez,diego.martinez@example.es,male,1980-12-22,Spain,Madrid,2018-02-15,2023-12-02,active,premium,ad,480,22.1
+u_4,Emily,Chen,emily.chen@example.com,female,1999-08-30,Australia,Sydney,2021-01-07,2023-03-18,inactive,free,organic,0,0.0
+u_5,Liam,O'Connor,liam.oconnor@example.ie,male,1987-05-16,Ireland,Dublin,2020-06-24,2023-10-29,active,basic,other,210,11.2
+u_6,Sophie,Dubois,sophie.dubois@example.fr,female,1975-11-03,France,Lyon,2019-08-03,2023-05-12,suspended,premium,friend,78,14.7
+u_7,Kenji,Tanaka,kenji.tanaka@example.jp,male,1983-02-27,Japan,Osaka,2022-03-19,2023-12-15,active,basic,organic,260,8.9
+u_8,Amina,Khalil,amina.khalil@example.com,female,1995-09-12,Germany,Berlin,2020-12-01,2023-06-07,active,free,other,95,7.4
+u_9,Oliver,Petrov,oliver.petrov@example.ru,male,1989-04-19,Russia,Moscow,2018-11-11,2023-04-25,inactive,basic,ad,120,6.5
+u_10,Isabella,Rossi,isabella.rossi@example.it,female,1993-06-25,Italy,Rome,2021-07-13,2023-08-21,active,premium,organic,310,18.3
+u_11,Noah,Kim,noah.kim@example.com,male,2000-01-10,South Korea,Seoul,2022-05-05,2023-11-03,active,free,friend,60,5.6
+u_12,Chloe,Martin,chloe.martin@example.ca,female,1997-10-02,Canada,Vancouver,2019-09-09,2023-02-14,active,basic,organic,180,12.1
+u_13,Hassan,Ali,hassan.ali@example.com,male,1981-03-08,United Arab Emirates,Dubai,2020-04-17,2023-09-28,active,premium,ad,390,21.0
+u_14,Emma,Nielsen,emma.nielsen@example.dk,female,1990-12-30,Denmark,Copenhagen,2018-07-21,2023-12-01,active,premium,organic,412,19.5
+u_15,Lucas,Santos,lucas.santos@example.br,male,1996-08-14,Brazil,Sao Paulo,2021-02-28,2023-10-12,active,basic,friend,230,10.2
+u_16,Grace,Williams,grace.williams@example.co.uk,female,1988-05-05,United Kingdom,London,2020-03-30,2023-01-22,inactive,free,organic,0,0.0
+u_17,Mateo,Ferrari,mateo.ferrari@example.it,male,1983-09-09,Italy,Milan,2019-11-02,2023-07-03,active,premium,ad,260,13.7
+u_18,Olivia,Silva,olivia.silva@example.br,female,1991-02-20,Portugal,Lisbon,2022-08-18,2023-11-28,active,basic,organic,150,9.3
+u_19,Ethan,Blair,ethan.blair@example.com,male,1994-04-04,New Zealand,Auckland,2018-01-25,2023-03-14,suspended,free,other,22,4.1
+u_20,Ava,Khan,ava.khan@example.pk,female,2002-06-18,Pakistan,Karachi,2023-04-05,2023-12-20,active,free,friend,34,6.2
+u1001,Daniel,Nguyen,daniel.nguyen@example.com,male,1985-04-12,United States,Seattle,2020-06-15,2023-11-28,active,premium,organic,312,25.4
+u1002,Aisha,Khan,aisha.khan@example.co.uk,female,1992-09-03,United Kingdom,London,2019-02-20,2023-12-02,active,basic,friend,142,18.7
+u1003,Miguel,Rodriguez,miguel.rodriguez@example.es,male,1980-07-19,Spain,Madrid,2021-08-10,2023-10-14,inactive,free,ad,58,9.3
+u1004,Sophia,Dubois,sophia.dubois@example.fr,female,1999-11-02,France,Paris,2020-11-28,2023-12-09,active,premium,organic,235,32.1
+u1005,Yuki,Tanaka,yuki.tanaka@example.jp,non-binary,1995-03-15,Japan,Tokyo,2018-07-03,2023-08-16,active,basic,other,390,22.5
+u1006,Liam,O'Reilly,liam.oreilly@example.ie,male,1988-05-27,Ireland,Dublin,2022-01-19,2023-12-21,active,free,friend,210,15.2
+u1007,Emma,Schmidt,emma.schmidt@example.de,female,1983-02-08,Germany,Berlin,2019-05-11,2023-10-30,suspended,basic,ad,90,12.8
+u1008,Alex,Novak,alex.novak@example.cz,non-binary,2001-12-22,Czechia,Prague,2023-03-22,2023-12-05,active,premium,organic,65,28.9
+u1009,Isabella, Rossi,isabella.rossi@example.it,female,1990-06-30,Italy,Milan,2020-09-07,2023-12-04,active,premium,organic,410,35.0
+u1010,Noah,Silva,noah.silva@example.br,male,1997-04-04,Brazil,Sao Paulo,2021-12-01,2023-11-24,inactive,free,friend,120,14.1
+u1011,Chloe,Ng,chloe.ng@example.com,female,1993-08-18,Singapore,Singapore,2018-04-28,2023-10-12,active,basic,organic,275,19.6
+u1012,Oliver,Müller,oliver.muller@example.de,male,1989-01-16,Germany,Hamburg,2018-12-09,2023-09-18,active,premium,other,520,24.2
+u1013,Ava,Kowalski,ava.kowalski@example.pl,female,1996-03-23,Poland,Warsaw,2022-07-14,2023-12-07,active,basic,ad,190,17.3
+u1014,Mateo,Costa,mateo.costa@example.pt,male,1982-10-05,Portugal,Lisbon,2020-02-25,2023-11-29,active,premium,organic,310,26.1
+u1015,Grace,Lee,grace.lee@example.com,female,1987-07-14,Australia,Sydney,2019-08-03,2023-12-18,active,premium,organic,460,21.7
+u1016,Ethan,Kim,ethan.kim@example.co.kr,male,1994-11-11,South Korea,Seoul,2021-05-09,2023-12-03,active,basic,friend,230,16.4
+u1017,Sophia,Brown,sophia.brown@example.com,female,1998-02-02,Canada,Toronto,2020-03-17,2023-11-11,active,free,organic,150,13.2
+u1018,Mason,Gonzalez,mason.gonzalez@example.mx,male,1986-09-26,Mexico,Mexico City,2019-06-06,2023-12-21,active,premium,ad,390,27.8
+u1019,Ella,Ivanova,ella.ivanova@example.bg,female,1991-12-12,Bulgaria,Sofia,2022-09-09,2023-08-08,inactive,basic,other,75,10.5
+u1020,Lucas,Pereira,lucas.pereira@example.com,male,1995-05-20,Portugal,Porto,2020-10-10,2023-12-20,active,premium,organic,520,29.9
+u_1a9f8c,Mia,Rossi,mia.rossi@example.com,female,1992-04-15,Italy,Milan,2020-05-18,2023-11-02,active,premium,organic,214,22.5
+u_b7d3e2,Jonah,Klein,jonah.klein@example.org,male,1985-09-02,Germany,Berlin,2019-08-03,2023-07-29,active,basic,ad,156,13.8
+u_c5e1t9,Ava,Nakamura,ava.nakamura@example.jp,female,1999-12-21,Japan,Tokyo,2021-02-14,2023-12-11,active,premium,friend,341,28.4
+u_d4r6p3,Lucas,Costa,lucas.costa@example.br,male,1988-03-07,Brazil,Sao Paulo,2018-09-30,2023-04-18,inactive,free,other,82,9.2
+u_e7q2x8,Olivia,Dubois,olivia.dubois@example.fr,female,1996-07-29,France,Lyon,2020-01-22,2023-10-05,active,premium,organic,260,19.7
+u_f3m9k1,Noah,Patel,noah.patel@example.in,male,1993-11-11,India,Mumbai,2022-06-17,2023-08-22,active,basic,friend,198,14.4
+u_g2v5h6,Emma,Ng,emma.ng@example.sg,female,2001-02-08,Singapore,Singapore,2020-03-09,2023-03-30,active,free,organic,120,7.6
+u_h8t4z7,Mateo,Garcia,mateo.garcia@example.es,male,1990-05-19,Spain,Madrid,2019-12-01,2023-06-14,suspended,basic,ad,90,11.1
+u_i1p8n4,Chloe,Martin,chloe.martin@example.ca,female,1994-08-03,Canada,Toronto,2021-07-07,2023-02-28,active,premium,friend,310,25.0
+u_j2s6l9,Ethan,Schmidt,ethan.schmidt@example.de,male,1987-01-15,Germany,Munich,2020-10-20,2023-09-10,active,basic,organic,210,16.3
+u_k5w3q2,Sofia,Ivanova,sofia.ivanova@example.bg,female,1998-04-27,Bulgaria,Sofia,2018-04-14,2023-12-20,inactive,free,other,60,8.5
+u_l9e7t5,James,O'Connor,james.oconnor@example.ie,male,1982-09-05,Ireland,Dublin,2021-11-12,2023-04-02,active,premium,friend,275,21.2
+u_m4a1u6,Hannah,Kim,hannah.kim@example.co.kr,female,1995-03-16,South Korea,Seoul,2022-05-25,2023-05-29,active,basic,organic,150,12.0
+u_n8x2y3,Lucas,Silva,lucas.silva@example.pt,male,1991-06-30,Portugal,Lisbon,2019-02-28,2023-10-01,active,premium,ad,305,18.9
+u_o7p9q8,Ella,Hernandez,ella.hernandez@example.mx,female,1997-12-12,Mexico,Mexico City,2020-09-15,2023-08-15,active,premium,organic,230,20.6
+u_p6t4r1,Aaron,Brown,aaron.brown@example.au,male,1989-04-09,Australia,Sydney,2018-07-02,2023-01-09,inactive,basic,other,40,6.8
+u_q3v7d0,Zoe,Liu,zoe.liu@example.cn,female,1993-10-18,China,Beijing,2021-04-25,2023-03-12,active,free,organic,190,9.9
+u_r2w8m5,Victor,Petrov,victor.petrov@example.ru,male,1984-02-28,Russia,Moscow,2020-02-02,2023-07-25,active,premium,friend,275,22.0
+u_s1j2n3,Grace,Nguyen,grace.nguyen@example.vn,female,1990-08-31,Vietnam,Hanoi,2019-06-19,2023-12-08,active,basic,organic,140,14.7
+u_t6y8b4,Oliver,Santos,oliver.santos@example.co,male,1986-01-22,Colombia,Bogota,2020-04-11,2023-05-03,active,free,ad,170,10.3
+u_u5k2c9,Lily,Dubois,lily.dubois@example.be,female,1994-02-02,Belgium,Brussels,2018-12-25,2023-09-18,active,premium,organic,320,26.1
+u_v9q7e2,Henry,Schwartz,henry.schwartz@example.at,male,1983-07-14,Austria,Vienna,2021-03-08,2023-11-22,active,premium,friend,290,24.3
+u_1,Liam,Patel,liam.patel@example.com,male,1985-04-12,United States,San Francisco,2019-08-23,2023-11-02,active,premium,organic,312,23.5
+u_2,Ava,Nguyen,ava.nguyen@example.com,female,1992-07-19,Canada,Vancouver,2020-03-14,2023-09-18,active,basic,friend,189,17.2
+u_3,Mason,Kim,mason.kim@example.com,male,1980-02-03,South Korea,Seoul,2018-11-30,2023-12-04,active,premium,ad,452,34.8
+u_4,Sophia,Garcia,sophia.garcia@example.com,female,1999-05-21,Spain,Madrid,2021-05-07,2023-05-12,inactive,free,organic,76,12.4
+u_5,Noah,Silva,noah.silva@example.com,male,2001-10-13,Brazil,Sao Paulo,2022-01-25,2023-03-29,active,basic,other,210,18.9
+u_6,Isabella,Rossi,isabella.rossi@example.com,female,1988-12-05,Italy,Rome,2019-09-02,2023-10-11,active,premium,friend,368,22.1
+u_7,Ethan,Ng,ethan.ng@example.com,non-binary,1995-03-17,Singapore,Singapore,2020-12-19,2023-07-26,active,basic,organic,145,14.7
+u_8,Olivia,Dubois,olivia.dubois@example.com,female,1997-08-30,France,Paris,2021-04-29,2023-08-01,suspended,free,ad,90,9.5
+u_9,Lucas,Khan,lucas.khan@example.com,male,1983-11-02,United Kingdom,London,2018-02-17,2023-12-15,active,premium,organic,501,28.4
+u_10,Emma,Lee,emma.lee@example.com,female,1989-01-25,Australia,Sydney,2020-06-10,2023-02-14,active,basic,friend,260,19.0
+u_11,James,Brown,james.brown@example.com,male,1978-09-09,United States,New York,2018-11-04,2023-04-22,active,premium,organic,640,27.3
+u_12,Mia,Wong,mia.wong@example.com,female,1994-06-16,Canada,Toronto,2020-09-13,2023-11-09,inactive,free,other,102,8.9
+u_13,Benjamin,Martin,benjamin.martin@example.com,male,1982-04-28,Germany,Berlin,2019-03-21,2023-04-05,active,premium,ad,420,21.7
+u_14,Grace,Schmidt,grace.schmidt@example.com,female,1990-02-14,Germany,Munich,2020-12-05,2023-12-30,active,basic,organic,310,16.3
+u_15,Henry,Chen,henry.chen@example.com,male,1975-07-07,China,Beijing,2021-01-22,2023-05-09,active,premium,friend,390,25.6
+u_16,Chloe,Kimura,chloe.kimura@example.com,female,1998-09-09,Japan,Tokyo,2019-07-15,2023-10-25,active,free,organic,128,11.2
+u_17,Daniel,Ali,daniel.ali@example.com,male,1991-12-01,United Arab Emirates,Dubai,2022-04-08,2023-03-18,active,basic,other,212,15.8
+u_18,Ella,Nikolova,ella.nikolova@example.com,female,1987-03-03,Bulgaria,Sofia,2018-08-27,2023-07-14,inactive,free,ad,66,7.4
+u_19,Aaron,Petrov,aaron.petrov@example.com,male,1986-05-20,Russia,Moscow,2020-10-02,2023-06-16,active,premium,organic,410,26.9
+u_20,Zoe,Ivanova,zoe.ivanova@example.com,female,1993-01-11,Russia,Saint Petersburg,2023-01-12,2023-12-31,active,basic,friend,88,12.0
+u1023,Alex,Nguyen,alex.nguyen@example.com,male,1988-04-12,United States,San Francisco,2020-06-15,2023-11-22,active,premium,organic,210,42.5
+u1047,Priya,Khan,priya.khan@example.org,female,1994-09-02,India,Mumbai,2019-09-07,2023-12-08,active,basic,friend,150,31.2
+u1078,Liam,O’Neill,liam.oneill@example.co.uk,male,1982-07-19,United Kingdom,London,2018-03-22,2023-08-14,inactive,free,ad,64,17.8
+u1102,Mika,Sato,mika.sato@example.jp,female,1999-12-05,Japan,Tokyo,2021-02-11,2023-03-19,active,premium,organic,320,58.4
+u1135,Carlos,Gonzalez,carlos.gonzalez@example.es,male,1976-05-28,Spain,Madrid,2020-10-30,2023-10-02,suspended,basic,other,92,22.1
+u1169,Aisha,Ali,aisha.ali@example.ae,female,1987-03-14,United Arab Emirates,Dubai,2022-01-18,2023-06-25,active,basic,organic,128,29.7
+u1183,Jon,Mendez,jon.mendez@example.mx,male,1992-11-03,Mexico,Mexico City,2018-08-09,2023-04-12,active,free,friend,72,15.6
+u1210,Sophie,Dubois,sophie.dubois@example.fr,female,1996-02-21,France,Paris,2020-12-01,2023-09-17,inactive,premium,ad,205,44.3
+u1234,Kai,Wang,kai.wang@example.cn,non-binary,2001-06-30,China,Beijing,2021-07-14,2023-12-02,active,premium,organic,410,62.0
+u1267,Emma,Schmidt,emma.schmidt@example.de,female,1985-09-09,Germany,Berlin,2019-04-07,2023-05-28,active,basic,organic,190,35.8
+u1291,Daniel,Silva,daniel.silva@example.br,male,1990-01-15,Brazil,Rio de Janeiro,2020-05-25,2023-07-04,active,free,friend,110,26.4
+u1316,Grace,Kim,grace.kim@example.kr,female,1993-08-07,South Korea,Seoul,2018-11-30,2023-02-21,suspended,basic,other,77,19.9
+u1340,Oliver,Brown,oliver.brown@example.ca,male,1979-03-22,Canada,Toronto,2019-07-19,2023-05-12,active,premium,organic,260,51.3
+u1363,Nina,Popescu,nina.popescu@example.ro,female,1997-04-04,Romania,Bucharest,2020-03-29,2023-08-03,inactive,free,ad,55,13.7
+u1398,Tom,Smith,tom.smith@example.co.nz,male,1980-12-12,New Zealand,Auckland,2018-02-13,2023-12-18,active,premium,organic,360,66.5
+u1421,Chloe,Martin,chloe.martin@example.ie,female,1995-07-28,Ireland,Dublin,2021-10-05,2023-03-09,active,basic,friend,140,28.0
+u1445,Ahmed,Hassan,ahmed.hassan@example.eg,male,1983-05-17,Egypt,Cairo,2022-04-22,2023-11-01,active,free,other,88,21.4
+u1470,Isabella,Rossi,isabella.rossi@example.it,female,1998-10-10,Italy,Milan,2020-08-26,2023-12-10,active,premium,organic,270,52.1
+u1494,Nikolai,Petrov,nikolai.petrov@example.ru,male,1986-02-02,Russia,Moscow,2019-01-15,2023-09-09,inactive,basic,ad,101,24.6
+u1518,Zoë,Dubois,zoe.dubois@example.be,female,1991-06-06,Belgium,Brussels,2021-01-22,2023-12-25,active,premium,organic,310,59.2
+u1542,Hiro,Tanaka,hiro.tanaka@example.jp,male,1984-09-09,Japan,Osaka,2019-06-18,2023-07-29,active,basic,friend,165,28.9
+u1565,Ana,Costa,ana.costa@example.pt,female,1990-03-03,Portugal,Lisbon,2022-03-03,2023-08-14,active,free,organic,98,20.3
+u1001,Liam,Anderson,liam.anderson@example.com,male,1986-04-12,United States,New York,2019-03-22,2023-11-14,active,premium,organic,214,34.7
+u1002,Sophia,Martin,sophia.martin@example.com,female,1992-09-05,Canada,Toronto,2020-07-11,2023-09-02,active,basic,friend,128,18.4
+u1003,Noah,Garcia,noah.garcia@example.com,male,1978-02-20,Spain,Madrid,2018-05-30,2023-06-28,inactive,free,ad,52,9.2
+u1004,Emma,Rodriguez,emma.rodriguez@example.com,female,1983-12-15,Argentina,Buenos Aires,2021-11-02,2023-08-17,active,premium,organic,310,45.1
+u1005,Olivia,Hernandez,olivia.hernandez@example.com,female,1998-06-28,Mexico,Mexico City,2022-02-19,2023-12-03,active,basic,other,96,22.0
+u1006,James,Clark,james.clark@example.com,male,1989-01-09,United Kingdom,London,2020-09-14,2023-03-28,suspended,free,ad,73,15.3
+u1007,Ava,Lewis,ava.lewis@example.com,female,1995-03-22,Australia,Sydney,2019-04-07,2023-10-02,active,premium,organic,172,29.6
+u1008,Benjamin,Walker,benjamin.walker@example.com,male,1981-08-30,Germany,Berlin,2018-12-01,2023-02-19,active,basic,friend,145,16.8
+u1009,Mia,Young,mia.young@example.com,female,2000-11-07,France,Paris,2020-06-21,2023-05-26,active,free,organic,60,12.5
+u1010,Lucas,White,lucas.white@example.com,male,1993-04-14,Italy,Rome,2021-08-30,2023-07-31,inactive,basic,other,40,10.2
+u1011,Isabella,Lopez,isabella.lopez@example.com,female,1997-02-02,Spain,Barcelona,2019-01-25,2023-04-14,active,premium,organic,260,38.9
+u1012,Henry,Young,henry.young@example.com,male,1984-05-18,Canada,Vancouver,2020-10-08,2023-11-21,active,premium,friend,210,27.2
+u1013,Amelia,King,amelia.king@example.com,female,1990-09-09,United States,Seattle,2018-03-03,2023-12-12,active,basic,organic,190,21.7
+u1014,Mateo,Scott,mateo.scott@example.com,male,1996-07-21,Argentina,Cordoba,2022-05-15,2023-08-25,inactive,free,ad,64,14.0
+u1015,Grace,Adams,grace.adams@example.com,female,1987-12-02,United States,Chicago,2020-01-22,2023-09-18,active,premium,other,255,33.1
+u1016,Wyatt,Baker,wyatt.baker@example.com,male,1991-03-03,Australia,Melbourne,2019-07-09,2023-05-09,active,basic,organic,110,19.5
+u1017,Chloe,Gonzalez,chloe.gonzalez@example.com,female,1994-10-28, Mexico,Monterrey,2021-03-17,2023-12-29,active,premium,friend,198,28.3
+u1018,Daniel,Parker,daniel.parker@example.com,male,1988-06-06,New Zealand,Auckland,2018-09-21,2023-10-04,inactive,free,other,30,7.8
+u1019,Ella,Carter,ella.carter@example.com,female,1999-01-15,United States,Austin,2020-04-04,2023-03-15,active,basic,organic,140,24.6
+u1020,Caleb,Mitchell,caleb.mitchell@example.com,male,1985-08-28,France,Lyon,2019-11-11,2023-12-01,active,premium,organic,260,36.4
+u_9f3a1c7d,Liam,Ng,liam.ng@example.org,male,1987-04-12,Singapore,Singapore,2019-07-21,2023-11-08,active,premium,organic,312,23.7
+u_f2b6e9a1,Mira,Khatri,mira.khatri@example.com,female,1993-09-03,India,Mumbai,2020-02-14,2023-09-18,active,basic,friend,145,12.5
+u_7c4e1b3a,Jon,O'Neil,jon.oneil@example.co.uk,male,1980-02-22,Ireland,Dublin,2018-11-30,2023-12-02,active,premium,ad,520,32.1
+u_3d6a8f2b,Ava,Silva,ava.silva@example.com,female,1998-01-15,Brazil,Sao Paulo,2021-05-19,2023-08-25,inactive,free,organic,68,9.8
+u_e4a9b7c2,Kai,Wang,kai.wang@example.cn,non-binary,1990-07-07,China,Beijing,2022-03-03,2023-10-11,active,basic,other,210,14.2
+u_2b1d5c9e,Sara,Rossi,sara.rossi@example.it,female,1985-12-28,Italy,Milan,2019-04-08,2023-06-15,active,premium,friend,390,19.5
+u_6a3f4e2d,Noah,Kim,noah.kim@example.kr,male,1992-03-09,South Korea,Seoul,2020-09-12,2023-12-20,active,basic,organic,260,11.0
+u_1e7d3a6b,Emma,Dubois,emma.dubois@example.fr,female,1995-05-22,France,Paris,2018-06-25,2023-07-19,active,premium,ad,420,25.3
+u_8c2f1a7e,Mason,Garcia,mason.garcia@example.mx,male,1989-08-14,Mexico,Monterrey,2018-12-02,2023-02-28,suspended,free,other,90,7.6
+u_5d9b2f3c,Chloe,Martin,chloe.martin@example.ca,female,1997-10-04,Canada,Toronto,2021-01-22,2023-03-17,active,basic,organic,180,13.9
+u_4a6e8b2d,Leo,Silva,leo.silva@example.br,male,1983-06-30,Portugal,Lisbon,2019-09-09,2023-11-30,inactive,free,friend,50,6.1
+u_9b1a7d6e,Isabella,Costa,isabella.costa@example.pt,female,1991-11-11, Portugal,Porto,2020-04-14,2023-04-22,active,premium,organic,260,17.8
+u_a7f3c2e1,Ethan,Brown,ethan.brown@example.co,male,1986-02-02,USA,New York,2018-08-07,2023-12-05,active,premium,ad,710,28.4
+u_d3e5f1a9,Nora,Schmidt,nora.schmidt@example.de,female,1994-04-18,Germany,Berlin,2021-07-30,2023-05-12,active,basic,other,132,10.2
+u_2d8b6a5f,Oliver,Liu,oliver.liu@example.cn,male,1981-09-09,China,Shanghai,2020-10-01,2023-06-08,inactive,free,organic,40,5.4
+u_7e2a9c4f,Grace,Peterson,grace.peterson@example.nu,female,1996-03-03,Norway,Oslo,2022-02-16,2023-11-02,active,basic,friend,210,12.7
+u_5f4d3b2a,Henry,Kowalski,henry.kowalski@example.pl,male,1988-12-12,Poland,Warsaw,2019-03-03,2023-09-09,active,premium,organic,390,21.0
+u_3f6a1e8b,Zoey,Hernandez,zoey.hernandez@example.es,female,1999-01-20,Spain,Madrid,2021-08-21,2023-12-01,active,premium,ad,310,18.6
+u_1c9b2a7d,Milo,Bianchi,milo.bianchi@example.it,male,1990-05-05,Italy,Florence,2020-05-05,2023-07-17,inactive,basic,other,95,9.1
+u_8d1f6c3e,Aria,Yamaguchi,aria.yamaguchi@example.jp,female,1993-08-08,Japan,Tokyo,2019-01-01,2023-08-29,active,premium,organic,480,26.3
+u_0a3e9f2b,Caleb,Nakamura,caleb.nakamura@example.jp,male,1984-06-26,Japan,Osaka,2018-10-10,2023-12-08,active,basic,friend,260,14.5
+u_6e1c4a2f,Sophie,Dubois,sophie.dubois@example.be,female,1987-07-07,Belgium,Brussels,2020-11-11,2023-03-09,suspended,free,organic,22,4.2
+u1001,Liam,O'Connor,liam.oconnor@example.com,male,1988-04-12,Ireland,Dublin,2020-05-14,2023-09-18,active,premium,organic,312,23.7
+u1002,Emma,Silva,emma.silva@example.com,female,1992-11-03,Brazil,Sao Paulo,2019-03-22,2023-11-02,active,basic,friend,189,12.4
+u1003,Noah,Khan,noah.khan@example.com,male,1985-07-19,Canada,Toronto,2018-07-30,2023-04-15,inactive,free,ad,74,9.8
+u1004,Sophia,Dubois,sophia.dubois@example.com,female,1999-02-28,France,Lyon,2021-01-08,2023-12-01,active,premium,organic,256,18.2
+u1005,Ava,Rossi,ava.rossi@example.com,female,2001-06-14,Italy,Milan,2022-09-17,2023-08-22,active,basic,other,142,14.6
+u1006,Oliver,Smith,oliver.smith@example.com,male,1980-03-05,United States,New York,2018-02-12,2023-10-27,suspended,premium,ad,402,27.5
+u1007,Mia,Lee,mia.lee@example.com,female,1996-09-21,South Korea,Seoul,2020-12-03,2023-11-22,active,free,organic,98,11.1
+u1008,James,Ng,james.ng@example.com,male,1979-01-30,Singapore,Singapore,2019-04-25,2023-05-09,inactive,basic,friend,66,7.9
+u1009,Isabella,Martinez,isabella.martinez@example.com,female,1990-08-08,Spain,Madrid,2020-06-11,2023-03-30,active,premium,organic,310,19.4
+u1010,Lucas,Schmidt,lucas.schmidt@example.com,male,1983-12-02,Germany,Berlin,2018-10-20,2023-07-19,active,basic,other,210,15.0
+u1011,Amelia,Kowalski,amelia.kowalski@example.com,female,1994-04-16,Poland,Krakow,2021-08-09,2023-12-07,active,premium,friend,270,16.8
+u1012,Henry,Garcia,henry.garcia@example.com,male,1976-05-22,Spain,Barcelona,2019-09-14,2023-02-18,inactive,free,ad,55,6.4
+u1013,Ella,Silva,ella.silva@example.com,female,2003-03-30,Portugal,Lisbon,2023-02-26,2023-12-28,active,premium,organic,60,20.2
+u1014,Gabriel,Brown,gabriel.brown@example.com,male,1989-10-12,Australia,Sydney,2020-11-03,2023-06-01,active,premium,other,330,22.9
+u1015,Charlotte,Lee,charlotte.lee@example.com,female,1997-07-07,Canada,Vancouver,2022-04-18,2023-03-04,active,basic,organic,150,13.5
+u1016,Benjamin,Wilson,benjamin.wilson@example.com,male,1982-02-25,New Zealand,Auckland,2021-05-29,2023-08-28,active,free,friend,88,9.2
+u1017,Grace,Nguyen,grace.nguyen@example.com,female,1993-12-15,Vietnam,Ho Chi Minh City,2018-03-07,2023-11-12,suspended,basic,ad,120,14.1
+u1018,Daniel,Hernandez,daniel.hernandez@example.com,male,1998-09-09,Mexico,Mexico City,2020-01-21,2023-10-09,active,premium,organic,260,17.7
+u1019,Scarlett,Patel,scarlett.patel@example.com,female,1995-05-25,India,Mumbai,2021-07-13,2023-12-18,active,premium,friend,295,21.0
+u1020,Ethan,Olsen,ethan.olsen@example.com,male,1987-08-08,Norway,Oslo,2019-06-06,2023-04-02,inactive,basic,organic,80,10.3
+u_9f4d2a7b,Mina,Kapoor,mina.kapoor@example.com,female,1987-04-12,India,Mumbai,2020-05-14,2023-11-21,active,premium,organic,312,23.7
+u_c7f2e1d0,Jon,Petrov,jon.petrov@example.com,male,1992-09-05,Russia,Moscow,2019-03-22,2023-10-02,active,basic,friend,168,14.6
+u_8a3b6f1e,Aiko,Tanaka,aiko.tanaka@example.jp,female,1985-01-29,Japan,Osaka,2021-07-11,2023-12-01,active,premium,organic,254,19.2
+u_5d1b3e9a,Carlos,Rodriguez,carlos.rodriguez@example.mx,male,1979-06-18,Mexico,Guadalajara,2018-09-03,2023-06-28,inactive,free,ad,88,12.4
+u_b2e4a7c1,Emma,Schmidt,emma.schmidt@example.de,female,1999-02-14,Germany,Munich,2020-01-25,2023-04-15,active,premium,organic,410,26.1
+u_4f8a2d3c,Liam,O'Connor,liam.oconnor@example.ie,male,1994-07-03,Ireland,Dublin,2022-08-30,2023-12-28,active,basic,friend,199,15.8
+u_1e9b6d4f,Sophie,Dubois,sophie.dubois@example.fr,female,1988-12-22,France,Lyon,2019-11-17,2023-09-19,suspended,basic,other,62,9.5
+u_7a3c9e2b,Noah,Kim,noah.kim@example.kr,male,2002-03-09,South Korea,Seoul,2023-04-02,2023-12-08,active,free,organic,54,7.8
+u_d6f5b7a1,Olivia,Martinez,olivia.martinez@example.es,female,1996-10-28,Spain,Madrid,2020-06-14,2023-08-22,active,premium,ad,312,21.3
+u_3e7f1c9a,Mateo,Silva,mateo.silva@example.br,male,1983-05-16,Brazil,Sao Paulo,2018-02-09,2023-11-02,inactive,basic,friend,120,10.9
+u_2c9d8e4f,Grace,Ng,grace.ng@example.com,female,1990-01-03,Singapore,Singapore,2019-12-05,2023-05-17,active,basic,organic,231,18.4
+u_6b1d3a9e,Ethan,Williams,ethan.williams@example.co.uk,male,1997-08-21,United Kingdom,London,2021-03-20,2023-10-25,active,premium,organic,287,22.7
+u_9a5e7f2b,Ava,Ivanova,ava.ivanova@example.ru,female,1995-04-07,Russia,Saint Petersburg,2020-04-18,2023-07-31,active,premium,other,340,25.1
+u_7e2a4c1b,Kai,Chen,kai.chen@example.cn,male,1998-11-02,China,Shanghai,2019-09-09,2023-12-03,active,premium,organic,389,27.4
+u_5f3e2a9d,Isabella,Rossi,isabella.rossi@example.it,female,1991-06-25,Italy,Milan,2020-02-21,2023-03-12,active,free,friend,151,12.1
+u_4d7f8c2a,Daniel,Popescu,daniel.popescu@example.ro,male,1984-09-13, Romania,Bucharest,2018-07-07,2023-02-28,inactive,basic,ad,76,8.9
+u_1a3b6f9c,Chloe,Nguyen,chloe.nguyen@example.vn,female,2000-12-19,Vietnam,Hanoi,2022-01-16,2023-04-09,active,free,organic,98,9.2
+u_8c5d9e2f,Lucas,Pereira,lucas.pereira@example.pt,male,1989-03-08,Portugal,Lisbon,2019-07-22,2023-11-15,active,premium,other,270,20.5
+u_2f4b1d7e,Hannah,Kowalski,hannah.kowalski@example.pl,female,1993-09-27,Poland,Warsaw,2021-05-06,2023-10-30,active,basic,organic,174,13.7
+u_3d6e8a1c,Oliver,Liu,oliver.liu@example.tw,male,1996-02-11,Taiwan,Taipei,2020-10-01,2023-08-14,active,premium,friend,296,21.9
+U10001,Liam,Hughes,liam.hughes@example.com,male,1987-04-12,Canada,Toronto,2019-05-14,2023-11-20,active,premium,organic,312,34.7
+U10002,Olivia,Nguyen,olivia.nguyen@example.com,female,1994-09-02,United States,Seattle,2020-08-22,2023-03-18,active,basic,friend,145,22.5
+U10003,Ava,Kumar,ava.kumar@example.com,female,1981-01-29,India,Bangalore,2018-03-11,2023-08-05,active,free,other,78,15.2
+U10004,Noah,Silva,noah.silva@example.com,male,1979-07-24,Brazil,Sao Paulo,2021-01-30,2023-12-02,inactive,premium,ad,0,0.0
+U10005,Emma,Garcia,emma.garcia@example.com,female,1999-12-10,Spain,Madrid,2020-06-19,2023-07-14,active,premium,organic,210,28.9
+U10006,Mason,Brown,mason.brown@example.com,male,1992-02-03,United Kingdom,London,2019-11-04,2023-05-29,active,basic,friend,260,26.4
+U10007,Sophia,Wang,sophia.wang@example.com,female,1985-06-17,China,Shanghai,2018-09-07,2023-10-10,active,premium,organic,390,45.1
+U10008,James,Laurent,james.laurent@example.com,male,1990-03-25,France,Paris,2022-02-21,2023-04-12,suspended,basic,ad,54,12.8
+U10009,Isabella,Novak,isabella.novak@example.com,female,2001-08-08,Germany,Berlin,2021-10-14,2023-09-09,active,free,other,98,19.3
+U10010,Lucas,O’Connor,lucas.oconnor@example.com,male,1988-05-05,Ireland,Dublin,2019-03-28,2023-11-28,active,premium,organic,310,33.6
+U10011,Amelia,Ivanova,amelia.ivanova@example.com,female,1996-11-21,Russia,Moscow,2020-12-01,2023-12-01,inactive,basic,friend,120,24.0
+U10012,Ethan,Kim,ethan.kim@example.com,male,1993-04-14,South Korea,Seoul,2018-04-18,2023-02-22,active,basic,organic,210,21.7
+U10013,Chloe,Rossi,chloe.rossi@example.com,female,1998-09-30,Italy,Rome,2021-07-09,2023-06-15,active,premium,ad,180,27.3
+U10014,Benjamin,Schmidt,benjamin.schmidt@example.com,male,1983-02-12,Germany,Munich,2020-01-22,2023-08-30,inactive,free,organic,12,5.6
+U10015,Mila,Nagy,mila.nagy@example.com,female,1995-07-07,Hungary,Budapest,2019-10-11,2023-03-07,active,premium,other,260,29.1
+U10016,Henry,Souza,henry.souza@example.com,male,1989-12-19,Mexico,Mexico City,2019-06-05,2023-12-11,active,basic,friend,190,22.0
+U10017,Grace,Patel,grace.patel@example.com,female,1997-03-03,India,Mumbai,2020-09-17,2023-07-28,active,basic,organic,220,25.4
+U10018,Daniel,Zhao,daniel.zhao@example.com,male,1986-01-01,China,Beijing,2019-05-25,2023-11-18,active,free,ad,150,14.9
+U10019,Ella,Martin,ella.martin@example.com,female,2003-08-22,Australia,Sydney,2022-04-02,2023-04-11,active,premium,organic,90,16.2
+U10020,Caleb,Ivan,caleb.ivan@example.com,male,1991-10-10,Canada,Vancouver,2021-12-07,2023-01-30,active,premium,friend,340,38.5
+u_1,Mia,Kovacs,mia.kovacs@example.com,female,1984-03-12,United States,San Francisco,2020-05-14,2023-11-06,active,premium,organic,312,22.5
+u_2,Liam,Nguyen,liam.nguyen@example.com,male,1990-08-22,Canada,Toronto,2019-02-28,2023-12-01,active,basic,friend,128,15.8
+u_3,Ava,Schmidt,ava.schmidt@example.com,female,1995-11-05,Germany,Berlin,2021-07-18,2023-07-22,inactive,free,organic,54,9.6
+u_4,Noah,Silva,noah.silva@example.com,male,1988-02-14,Brazil,Sao Paulo,2018-03-02,2023-03-15,active,premium,ad,410,34.2
+u_5,Emma,Dubois,emma.dubois@example.com,female,1982-06-29,France,Lyon,2020-10-07,2023-08-19,suspended,basic,other,76,12.4
+u_6,Oliver,Larsson,oliver.larsson@example.com,male,2000-01-17,Sweden,Stockholm,2022-04-11,2023-12-10,active,free,organic,210,18.1
+u_7,Sophia,Costa,sophia.costa@example.com,female,1993-09-03,Portugal,Lisbon,2019-09-30,2023-04-28,active,premium,friend,289,21.9
+u_8,Ethan,O'Neil,ethan.oneil@example.com,male,1986-12-12,Ireland,Dublin,2020-01-20,2023-10-12,inactive,basic,other,92,14.7
+u_9,Isabella,Rossi,isabella.rossi@example.com,female,1998-04-28,Italy,Milan,2021-06-05,2023-06-18,active,premium,organic,367,26.3
+u_10,James,Kim,james.kim@example.com,male,1979-10-09,South Korea,Seoul,2018-08-22,2023-09-30,active,free,ad,640,28.4
+u_11,Chloe,Baker,chloe.baker@example.com,female,1992-02-20,Australia,Melbourne,2020-11-13,2023-05-14,active,basic,friend,154,17.2
+u_12,Lucas,Ng,lucas.ng@example.com,male,1989-07-07,Singapore,Singapore,2021-03-19,2023-12-03,active,premium,organic,310,19.9
+u_13,Mila,Kaur,mila.kaur@example.com,female,1996-05-15,India,Mumbai,2019-12-01,2023-02-23,inactive,free,other,63,8.3
+u_14,Benjamin,Schmidt,benjamin.schmidt@example.com,male,1983-03-03,Germany,Hamburg,2018-07-25,2023-01-11,active,premium,organic,520,31.1
+u_15,Grace,Ivanova,grace.ivanova@example.com,female,1991-08-08,Russia,Moscow,2022-05-05,2023-10-30,active,premium,ad,270,22.0
+u_16,Daniel,Popov,daniel.popov@example.com,male,1985-11-28,Russia,Saint Petersburg,2020-09-14,2023-04-01,inactive,basic,friend,110,13.2
+u_17,Olivia,Nguyet,olivia.nguyet@example.com,female,1999-01-01,Vietnam,Hanoi,2023-01-02,2023-12-22,active,free,other,48,7.5
+u_18,Henry,Petrov,henry.petrov@example.com,male,1975-04-18,Ukraine,Kyiv,2018-12-17,2023-03-05,suspended,basic,organic,95,11.0
+u_19,Sofia,Garcia,sofia.garcia@example.com,female,1994-09-09,Spain,Madrid,2021-08-08,2023-07-01,active,premium,friend,333,24.7
+u_20,Noah,Lee,noah.lee@example.com,non-binary,2002-05-25,New Zealand,Auckland,2022-11-22,2023-11-27,active,free,organic,190,16.4
+u3829e7f0-9c5d-4a2b-87f3-1a9b3c2d6a71,Liam,Patel,liam.patel82@example.com,male,1992-04-16,United States,San Diego,2020-06-14,2023-11-22,active,premium,organic,312,14.5
+u5d8b2a3f-1c6e-4a2b-9f3e-8b9f3e9a1a4d,Ava,Kim,ava.kim@example.org,female,1988-09-02,Canada,Toronto,2019-03-22,2023-12-02,active,basic,friend,210,9.8
+u7f1a6c2e-9b3d-4a1f-8c2e-5f2b3a9c1e7f,Noah,Garcia,noah.garcia@example.net,male,1999-12-11,United States,Austin,2021-08-05,2023-06-18,active,premium,ad,455,12.3
+u9e3d2f7a-4b6c-4e9a-8d9f-2a7b6c9e8f1a,Sophia,Nguyen,sophia.nguyen@example.com,female,1995-07-29,Australia,Melbourne,2018-10-10,2023-03-11,inactive,free,organic,120,7.2
+u1a2b3c4-d5e6-7f89-0a1b-2c3d4e5f6a7b,Olivia,Chen,olivia.chen@example.co,female,1983-02-14,New Zealand,Auckland,2020-01-19,2023-07-25,active,premium,other,289,11.1
+u4d5e6f7g-8h9i-0j1k-2l3m-4n5o6p7q8r9s,James,Smith,james.smith@example.co.uk,male,1980-05-03,United Kingdom,London,2018-02-07,2023-09-30,suspended,basic,friend,640,13.4
+u8f9e0d1c-2b3a-4f5d-6e7f-8a9b0c1d2e3f,Emma,Lopez,emma.lopez@example.es,female,1990-11-21,Spain,Madrid,2020-04-28,2023-08-15,active,premium,organic,410,15.6
+u2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e,Lucas,Silva,lucas.silva@example.com,male,1997-03-30,Brazil,Sao Paulo,2021-12-12,2023-05-04,active,free,ad,95,6.8
+u3f4a5b6-c7d8-9e0f-1a2b-3c4d5e6f7g8h,Mia,Patel,mia.patel@example.com,female,1993-08-08,India,Mumbai,2019-09-01,2023-04-20,active,basic,other,180,8.9
+u5f6e7d8-c9b0-1a2b-3c4d-5e6f7a8b9c0d,Ethan,Kumar,ethan.kumar@example.in,male,2001-06-17,Singapore,Singapore,2022-02-14,2023-12-30,active,free,friend,60,4.5
+u6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c,Chloe,Dubois,chloe.dubois@example.fr,female,1986-01-25,France,Paris,2018-07-21,2023-10-02,inactive,premium,organic,230,10.2
+u7d8e9f0-a1b2-3c4d-5e6f-7g8h9i0j1k2l,Daniel,Okafor,daniel.okafor@example.ng,male,1994-03-12,Nigeria,Lagos,2020-05-09,2023-01-15,active,premium,ad,520,14.1
+u8e9f0a1-b2c3-4d5e-6f7a-8b9c0d1e2f3g,Grace,Kobayashi,grace.kobayashi@example.jp,female,1998-10-10,Japan,Tokyo,2021-03-03,2023-02-28,active,basic,other,140,9.3
+u9b0c1d2-e3f4-5a6b-7c8d-9e0f1a2b3c4d,Henry,Santos,henry.santos@example.co,male,1987-12-19,Portugal,Lisbon,2018-11-11,2023-11-10,active,premium,organic,370,12.9
+u0d1e2f3-g4h5-6i7j-8k9l-0m1n2o3p4q5r,Charlotte,Rossi,charlotte.rossi@example.it,female,1990-04-04,Italy,Rome,2019-05-15,2023-08-22,active,premium,friend,330,13.5
+u1f2g3h4-i5j6-7k8l-9m0n-1o2p3q4r5s6t,Amelia,Ivanova,amelia.ivanova@example.bg,female,1996-02-28,Bulgaria,Sofia,2022-04-07,2023-09-18,active,basic,organic,150,7.7
+u_1d4f9b2a,Liam,Keller,liam.keller@example.com,male,1986-04-12,United States,Denver,2020-05-14,2023-11-22,active,premium,organic,312,18.4
+u_2b7e6a9d,Emma,Rossi,emma.rossi@example.org,female,1992-09-03,Canada,Toronto,2019-09-18,2023-08-09,active,basic,friend,146,9.7
+u_3c1e5f0a,Noah,Chen,noah.chen@example.net,male,1989-01-22,Australia,Sydney,2021-02-02,2023-04-15,active,premium,ad,410,22.1
+u_4a9d3e7c,Olivia,Martinez,olivia.martinez@example.com,female,1997-07-19,Spain,Madrid,2018-12-03,2023-12-03,active,free,organic,92,6.3
+u_5f2c8b1e,Aiden,Patel,aiden.patel@example.co,male,2000-05-28,India,Mumbai,2020-03-21,2023-10-20,active,basic,other,210,12.5
+u_6d3a7f2b,Sophia,Nguyen,sophia.nguyen@example.vn,female,1995-11-02,Vietnam,Ho Chi Minh City,2022-07-11,2023-07-28,inactive,free,organic,60,5.8
+u_7e1b4c9d,James,Kim,james.kim@example.kr,male,1983-02-17,South Korea,Seoul,2018-04-04,2023-03-15,active,premium,friend,520,28.9
+u_8f6a2d0e,Mia,Garcia,mia.garcia@example.mx,female,1998-08-30,Mexico,Mexico City,2021-01-25,2023-05-19,suspended,basic,ad,78,7.2
+u_9b5e3a1f,Ethan,Smith,ethan.smith@example.uk,male,1980-12-12,United Kingdom,London,2019-06-07,2023-12-01,active,premium,organic,301,19.3
+u_10d9f6c3,Isabella,Rossi,isabella.rossi@example.it,female,1993-03-14,Italy,Rome,2020-10-30,2023-02-14,active,basic,friend,128,11.4
+u_11a7e2b9,Lucas,Garcia,lucas.garcia@example.ar,male,1985-06-25,Argentina,Buenos Aires,2021-08-08,2023-09-28,inactive,free,other,40,4.2
+u_12c4b8f5,Charlotte,Dubois,charlotte.dubois@example.fr,female,1999-10-09,France,Paris,2022-11-15,2023-06-01,active,premium,organic,260,14.7
+u_13e2a9c1,Henry,Schmidt,henry.schmidt@example.de,male,1977-01-04,Germany,Berlin,2018-09-22,2023-04-09,active,basic,ad,190,10.9
+u_14f3b2a6,Amelia,Kowalski,amelia.kowalski@example.pl,female,1991-04-27,Poland,Warsaw,2019-03-05,2023-08-16,active,free,friend,135,9.1
+u_15g8d1e4,Oliver,Nakamura,oliver.nakamura@example.jp,male,1988-12-02,Japan,Tokyo,2020-12-12,2023-03-30,active,premium,organic,470,21.6
+u_16h0f7c2,Grace,Lee,grace.lee@example.cn,female,1996-07-19,China,Shanghai,2021-05-25,2023-11-11,active,basic,other,210,12.0
+u_17i9a3d8,Benjamin,Brown,benjamin.brown@example.ca,male,1982-02-08,Canada,Vancouver,2018-02-28,2023-07-07,active,premium,organic,355,16.8
+u_18j6e9f2,Chloe,Taylor,chloe.taylor@example.co.uk,female,1994-05-16,United Kingdom,Manchester,2020-08-19,2023-12-20,active,basic,ad,190,10.2
+u_19k4d5g7,Michael,Aziz,michael.aziz@example.com,male,1987-03-03,United Arab Emirates,Dubai,2019-01-09,2023-05-25,active,premium,friend,260,13.9
+u_20l2c8h1,Sofia,Silva,sofia.silva@example.br,female,1990-09-25,Brazil,Sao Paulo,2022-04-04,2023-09-01,inactive,free,organic,45,5.5
+u_7Hq9xLz4,Maya,Santos,maya.santos@example.com,female,1987-04-12,Spain,Valencia,2020-05-14,2023-11-08,active,premium,organic,312,26.5
+u_K2b9QxF1,Liam,Nguyen,liam.nguyen@example.org,male,1995-09-22,Canada,Toronto,2019-02-03,2023-12-02,active,basic,friend,210,18.2
+u_Wx5Qp0r,Ava,Khan,ava.khan@example.net,female,2000-01-15,Pakistan,Karachi,2021-07-26,2023-08-19,active,premium,ad,145,22.7
+u_3Vj9BqL,Noah,Silva,noah.silva@example.com,male,1982-12-02,Brazil,Sao Paulo,2018-11-03,2023-10-29,inactive,free,organic,88,12.4
+u_x1Z0QmE,Emma,Dubois,emma.dubois@example.fr,female,1998-06-30,France,Lyon,2020-01-20,2023-04-27,active,basic,other,260,19.6
+u_Rq8Lz0n,Oliver,Brown,oliver.brown@example.co.uk,male,1976-03-18,United Kingdom,London,2019-06-15,2023-12-15,active,premium,friend,480,29.1
+u_Y7wQ9pB,Sophia,Martin,sophia.martin@example.ca,female,1993-02-07,Canada,Vancouver,2018-03-09,2023-03-17,active,premium,organic,390,24.3
+u_2pF6LxJ,Ethan,Garcia,ethan.garcia@example.mx,male,1999-11-11,Mexico,Mexico City,2021-09-12,2023-07-26,suspended,basic,ad,120,16.8
+u_9Lh4QvK,Isabella,Patel,isabella.patel@example.in,female,1991-08-08,India,Mumbai,2022-02-28,2023-05-02,active,free,other,95,9.7
+u_6Bq1XcT,James,Lee,james.lee@example.com,male,1984-05-23,South Korea,Seoul,2020-12-01,2023-11-20,active,basic,friend,260,17.2
+u_f4P9NwQ,Olivia,Kaur,olivia.kaur@example.com,female,1996-04-14,Singapore,Singapore,2018-08-11,2023-09-14,active,premium,organic,320,21.5
+u_Jq7Tz2,Lucas,Ng,lucas.ng@example.com,male,1989-10-02,Australia,Sydney,2019-01-22,2023-12-03,active,premium,ad,410,25.9
+u_Bf3Pz8,Mila,Sokolov,mila.sokolov@example.ru,female,1997-07-19,Russia,Moscow,2020-04-07,2023-10-12,active,basic,other,150,14.3
+u_Vx5Mp1,Henry,Schmidt,henry.schmidt@example.de,male,1980-01-05,Germany,Berlin,2018-09-30,2023-02-28,inactive,free,organic,60,7.8
+u_Qz8Rx6,Chloe,Dubar,chloe.dubar@example.be,female,2002-12-25,Belgium,Brussels,2021-05-03,2023-06-16,active,free,friend,180,12.1
+u_8Vn2LtP,Daniel,Ivanov,daniel.ivanov@example.ua,male,1985-09-09,Ukraine,Kyiv,2018-07-29,2023-10-28,active,basic,organic,230,18.9
+u_Er6XbQ,Grace,Liu,grace.liu@example.cn,female,1992-02-20,China,Beijing,2020-11-18,2023-12-22,active,premium,ad,520,34.2
+u_p9Qw3Z,Jacob,Kim,jacob.kim@example.co,male,1990-03-03,South Korea,Busan,2019-08-05,2023-04-04,suspended,free,friend,70,11.3
+u_s8NqV3,Ella,Rossi,ella.rossi@example.it,female,1994-06-06,Italy,Milan,2018-03-30,2023-09-08,active,basic,organic,190,13.7
+u_t4GqP9,Michael,O'Connor,michael.oconnor@example.ie,male,1981-12-12,Ireland,Dublin,2020-02-14,2023-12-09,active,premium,other,350,27.4
+u_Dd3Kz5,Zoe,Petrov,zoe.petrov@example.no,female,1996-10-10,Norway,Oslo,2020-06-21,2023-11-21,active,basic,ad,210,15.8
+u_1,Liam,Robinson,liam.robinson@example.com,male,1989-04-12,United States,Seattle,2020-07-15,2023-03-22,active,premium,organic,312,23.6
+u_2,Emma,Nguyen,emma.nguyen@example.com,female,1995-11-02,Canada,Vancouver,2019-10-04,2023-11-01,active,basic,friend,184,12.9
+u_3,Noah,Khan,noah.khan@example.com,male,1982-08-19,United Kingdom,London,2018-02-28,2023-04-05,inactive,free,ad,56,7.4
+u_4,Sophia,Silva,sophia.silva@example.com,female,2000-01-14,Brazil,Rio de Janeiro,2021-03-22,2023-12-12,active,premium,organic,270,18.2
+u_5,James,Martin,james.martin@example.com,male,1978-06-05,Australia,Melbourne,2020-09-09,2023-02-14,active,basic,other,410,25.7
+u_6,Ava,Brown,ava.brown@example.com,female,1999-07-22,New Zealand,Auckland,2022-05-17,2023-08-28,suspended,free,friend,92,9.1
+u_7,Lucas,Perez,lucas.perez@example.com,male,1988-03-30,Spain,Madrid,2019-12-31,2023-09-02,active,premium,organic,523,31.4
+u_8,Mia,Dubois,mia.dubois@example.com,female,1992-02-28,France,Paris,2020-01-18,2023-04-18,active,basic,ad,210,14.7
+u_9,Ethan,Schmidt,ethan.schmidt@example.com,male,1985-09-09,Germany,Berlin,2018-06-25,2023-07-30,inactive,free,organic,120,8.5
+u_10,Isabella, Rossi,isabella.rossi@example.com,female,1997-12-12,Italy,Milan,2021-07-07,2023-05-21,active,premium,friend,340,19.0
+u_11,Oliver,Chen,oliver.chen@example.com,male,1990-04-25,Singapore,Singapore,2020-02-02,2023-11-28,active,premium,organic,480,22.5
+u_12,Charlotte,Kim,charlotte.kim@example.com,female,1986-10-10,South Korea,Seoul,2019-08-08,2023-12-11,active,basic,other,260,15.3
+u_13,Henry,Park,henry.park@example.com,male,1975-05-05,Canada,Toronto,2018-09-14,2023-01-29,inactive,free,ad,64,6.7
+u_14,Grace,Lee,grace.lee@example.com,female,1993-03-18,United States,New York,2020-12-03,2023-10-07,active,premium,organic,390,21.8
+u_15,Daniel,Martinez,daniel.martinez@example.com,male,1981-08-08,Mexico,Mexico City,2021-04-04,2023-06-15,active,premium,friend,460,24.2
+u_16,Chloe,Ng,chloe.ng@example.com,female,1996-01-01,Hong Kong,Hong Kong,2022-03-09,2023-02-28,inactive,basic,other,150,11.4
+u_17,Michael,O'Connor,michael.oconnor@example.com,male,1979-07-07,Ireland,Dublin,2018-05-25,2023-08-19,active,free,organic,90,7.0
+u_18,Amelia,Singh,amelia.singh@example.com,female,1991-06-16,India,Mumbai,2020-11-11,2023-09-26,active,basic,ad,200,13.5
+u_19,Jack,Anderson,jack.anderson@example.com,male,1984-02-02,Norway,Oslo,2021-01-01,2023-07-04,suspended,basic,friend,132,9.9
+u_20,Ella,White,ella.white@example.com,female,1998-09-09,United States,Austin,2022-08-08,2023-12-30,active,premium,organic,410,26.1
+u_1e9b7a2d,Alex,Nguyen,alex.nguyen@example.com,male,1986-04-12,Canada,Toronto,2019-05-20,2023-11-08,active,premium,organic,312,21.5
+u_c4f1b7e9,Priya,Sharma,priya.sharma@example.co,female,1992-08-03,India,Mumbai,2020-07-14,2023-10-03,active,basic,friend,128,12.8
+u_9b2d6a4f,Liam,O'Connor,liam.oconnor@example.ie,male,1984-02-19,Ireland,Dublin,2018-03-28,2023-06-22,active,premium,ad,501,24.3
+u_7a3e9f2b,Emma,Kowalski,emma.kowalski@example.pl,female,1999-12-14,Poland,Warsaw,2021-11-02,2023-12-01,active,free,organic,76,9.6
+u_b2d4a8f1,Noah,Kim,noah.kim@example.kr,male,1988-06-05,South Korea,Seoul,2020-01-23,2023-03-15,inactive,basic,other,210,14.2
+u_e5f1a3c9,Sophie,Dubois,sophie.dubois@example.fr,female,1995-03-21,France,Lyon,2019-09-12,2023-04-11,active,premium,friend,340,19.1
+u_6d9e2b7a,Carlos,Silva,carlos.silva@example.br,male,1980-07-29,Brazil,Sao Paulo,2018-02-04,2023-08-30,active,basic,organic,410,16.7
+u_2a7d9e1f,Ava,Martins,ava.martins@example.pt,female,2001-10-02,Portugal,Lisbon,2022-04-18,2023-11-25,active,free,ad,45,8.2
+u_f3b8c6d2,Daniel,Schneider,daniel.schneider@example.de,male,1979-01-17,Germany,Berlin,2018-12-09,2023-07-19,active,premium,organic,610,28.4
+u_1b8f3a7c,Yuki,Tanaka,yuki.tanaka@example.jp,non-binary,1993-05-26,Japan,Tokyo,2020-09-01,2023-05-09,active,basic,other,290,15.9
+u_4e2a9b6c,Olivia,Brown,olivia.brown@example.au,female,1997-02-11,Australia,Melbourne,2021-03-07,2023-12-12,active,premium,organic,260,18.3
+u_9a4f6e2d,Mason,Singh,mason.singh@example.in,male,1989-09-03,India,Bengaluru,2019-06-30,2023-09-22,active,basic,friend,180,12.1
+u_3c7d8f9a,Isabella,Rossi,isabella.rossi@example.it,female,1996-04-18,Italy,Milan,2020-10-05,2023-07-04,active,premium,ad,420,20.7
+u_2f5e1a3d,Lucas,Lopez,lucas.lopez@example.es,male,1991-11-30,Spain,Madrid,2018-08-22,2023-02-28,inactive,free,organic,132,9.4
+u_7f1d3b2a,Mia,Ng,mia.ng@example.sg,female,2000-07-07,Singapore,Singapore,2022-01-15,2023-08-14,active,premium,other,88,11.2
+u_5a9d6e3f,Ethan,Clark,ethan.clark@example.ca,male,1983-12-22,Canada,Vancouver,2020-05-21,2023-03-09,active,basic,organic,260,13.5
+u_8d2b7c4e,Chloe,Davis,chloe.davis@example.co.uk,female,1994-09-09,United Kingdom,London,2019-02-28,2023-06-01,suspended,free,friend,60,7.8
+u_6f3a9b1c,Jonah,Petrov,jonah.petrov@example.ru,male,1987-03-15,Russia,Moscow,2018-04-16,2023-11-02,active,premium,organic,480,22.9
+u_1d2e7f9b,Grace,Kim,grace.kim@example.com,female,1998-01-28,USA,New York,2021-06-10,2023-12-18,active,premium,ad,515,25.3
+u_3e9a6c4d,Henry,Brown,henry.brown@example.nz,male,1982-05-05,New Zealand,Auckland,2020-09-25,2023-10-22,inactive,basic,organic,98,10.7
+u_4c7a2e9f,Zoey,Ishikawa,zoey.ishikawa@example.jp,female,1993-02-14,Japan,Osaka,2021-12-03,2023-08-03,active,free,other,150,9.9
+u_1d9f3a2c,Daniel,Nguyen,daniel.nguyen@example.com,male,1985-04-12,United States,Seattle,2019-06-14,2023-11-22,active,premium,organic,312,18.4
+u_2a7b5c1e,Aisha,Khan,aisha.khan@example.co.uk,female,1992-09-03,United Kingdom,Birmingham,2020-02-20,2023-12-01,active,basic,friend,145,12.7
+u_3c4d2e7f,Miguel,Rojas,miguel.rojas@example.mx,male,1980-01-19,Mexico,Monterrey,2018-11-05,2023-08-19,active,premium,ad,520,24.3
+u_4e6f8a9b,Sophie,Dubois,sophie.dubois@example.fr,female,1997-07-22,France,Lyon,2021-09-07,2023-11-15,active,free,organic,88,8.2
+u_5g7h1j2k,Chen,Wang,chen.wang@example.cn,male,1988-03-14,China,Shanghai,2020-05-30,2023-10-29,inactive,basic,other,210,14.5
+u_6i8j3k4l,Maria,Silva,maria.silva@example.br,female,1983-12-02,Brazil,Sao Paulo,2019-03-21,2023-09-27,active,premium,organic,410,19.6
+u_7k9l0m1n,Jon,Petrov,jon.petrov@example.ru,male,1975-05-28,Russia,Moscow,2018-01-15,2023-03-11,suspended,free,ad,60,7.5
+u_8m0n1o2p,Elena,Ionescu,elena.ionescu@example.ro,female,1990-08-09,Romania,Bucharest,2022-07-02,2023-12-07,active,basic,friend,250,11.9
+u_9n1o2p3q,David,Okafor,david.okafor@example.ng,male,1995-02-18,Nigeria,Lagos,2020-12-12,2023-05-18,active,premium,organic,300,16.1
+u_0o1p2q3r,Fatima,Almeida,fatima.almeida@example.pt,female,1989-04-25,Portugal,Lisbon,2019-04-09,2023-08-02,inactive,basic,other,102,9.8
+u_1p2q3r4s,Liam,O'Connor,liam.oconnor@example.ie,male,1993-11-11,Ireland,Dublin,2021-01-25,2023-04-14,active,free,ad,75,6.5
+u_2q3r4s5t,Hana,Kim,hana.kim@example.kr,female,1998-06-30,South Korea,Seoul,2020-08-18,2023-11-20,active,basic,organic,180,10.2
+u_3r4s5t6u,Zoë,Martins,zoe.martins@example.pt,female,1996-02-14,Portugal,Porto,2022-03-03,2023-12-12,active,premium,friend,260,13.4
+u_4s5t6u7v,Mateo,Costa,mateo.costa@example.es,male,1986-09-20,Spain,Madrid,2018-10-10,2023-07-09,inactive,free,organic,95,7.2
+u_5t6u7v8w,Ingrid,Svensson,ingrid.svensson@example.se,female,1981-03-17,Sweden,Stockholm,2021-06-22,2023-05-30,active,premium,organic,480,22.8
+u_6u7v8w9x,Omar,Hassan,omar.hassan@example.eg,male,1991-12-01,Egypt,Cairo,2020-09-09,2023-10-02,active,basic,ad,190,12.0
+u_7v8w9x0y,Grace,Ng,grace.ng@example.sg,female,1994-05-25,Singapore,Singapore,2019-07-17,2023-12-26,active,premium,friend,340,17.1
+u_8w9x0y1z,Jonas,Larsson,jonas.larsson@example.se,male,1982-10-08,Sweden,Gothenburg,2018-02-28,2023-03-21,suspended,basic,organic,210,9.6
+u_9x0y1z2a,Adele,Dubois,adele.dubois@example.be,female,1999-12-04,Belgium,Brussels,2021-11-11,2023-06-01,active,free,other,120,5.9
+u_0y1z2a3b,Kai,Schmidt,kai.schmidt@example.de,male,1987-07-07,Germany,Berlin,2019-05-05,2023-08-22,active,premium,organic,360,20.7
+u_1a9d7b2e,Mira,Khan,mira.khan@example.com,female,1987-04-12,Canada,Vancouver,2020-06-15,2023-11-02,active,premium,organic,312,24.6
+u_4f2c9e1b,Jon,Silva,jon.silva@example.com,male,1992-09-03,United States,Seattle,2019-02-20,2023-09-28,active,basic,ad,189,15.2
+u_7e3a4d6f,Aiko,Tanaka,aiko.tanaka@example.com,female,1981-07-22,Japan, Osaka,2018-11-05,2023-07-11,active,premium,friend,420,31.8
+u_9b1d6c3e,Liam,O'Connor,liam.oconnor@example.com,male,1989-12-02,Ireland,Dublin,2020-03-09,2023-12-01,active,free,organic,58,9.4
+u_2d8f7a1c,Sophia,Martinez,sophia.martinez@example.com,female,1995-05-17,Spain,Madrid,2021-08-22,2023-04-15,inactive,basic,other,122,12.7
+u_3e5a9b2c,Noah,García,noah.garcia@example.com,male,1998-02-10,Mexico,Monterrey,2022-01-30,2023-10-12,active,premium,friend,276,26.1
+u_6f1d3e8a,Emma,Dubois,emma.dubois@example.com,female,1990-10-28,France,Lyon,2019-07-14,2023-03-09,suspended,basic,organic,34,7.5
+u_8a7e2c1d,Kai,Ng,kai.ng@example.com,non-binary,2000-06-02,Singapore,Singapore,2021-05-25,2023-12-20,active,free,ad,210,14.9
+u_5b4d6c9e,Olivia,Smith,olivia.smith@example.com,female,1985-03-12,United Kingdom,London,2018-04-02,2023-06-18,active,premium,organic,410,28.3
+u_1c2e9f4b,Ethan,Müller,ethan.muller@example.com,male,1993-11-29,Germany,Berlin,2020-09-07,2023-08-25,active,basic,friend,256,18.6
+u_2f3a7b1d,Chloe,Dubois,chloe.dubois@example.com,female,1997-01-16,Canada,Montreal,2022-12-11,2023-05-04,inactive,free,other,0,0.0
+u_4a6b8c3e,Mateo,Rossi,mateo.rossi@example.com,male,1983-08-08,Italy,Rome,2018-07-19,2023-11-15,active,premium,organic,350,22.4
+u_7d9e2f1a,Zoe,Kowalski,zoe.kowalski@example.com,female,1991-04-04,Poland,Warsaw,2020-02-04,2023-04-26,active,basic,ad,145,11.2
+u_3b4a6e9f,Arjun,Singh,arjun.singh@example.com,male,1996-12-20,India,Mumbai,2021-03-30,2023-09-05,active,premium,organic,260,19.8
+u_9e5f1d2c,Sophie,Becker,sophie.becker@example.com,female,1989-09-14,Switzerland,Zurich,2019-01-22,2023-10-29,active,premium,friend,310,25.7
+u_6a3c5d7e,Lucas,Gonzalez,lucas.gonzalez@example.com,male,1994-07-07,Argentina,Buenos Aires,2021-10-18,2023-12-03,active,free,organic,90,8.9
+u_1f7e3a2b,Maya,Nakamura,maya.nakamura@example.com,female,1999-05-25,Japan,Nagoya,2020-08-30,2023-07-20,active,basic,other,172,13.5
+u_2e9d4f8a,Henry,Klein,henry.klein@example.com,male,1986-03-03,Netherlands,Amsterdam,2018-09-03,2023-12-25,active,premium,organic,520,29.1
+u_5f3a1b9e,Grace,Martin,grace.martin@example.com,female,1992-02-28,Australia,Sydney,2020-04-16,2023-02-14,inactive,basic,friend,78,10.3
+u_8c1a6f4d,Daniel,Rossi,daniel.rossi@example.com,male,1980-06-15,Italy,Milan,2019-05-12,2023-11-03,active,premium,organic,465,27.9
+u_4e7b2a3c,Emily,Lopez,emily.lopez@example.com,female,1996-10-05,Spain,Barcelona,2022-06-20,2023-03-09,active,free,ad,210,14.1
+u1029384756,Liam,Hernandez,liam.hernandez@example.org,male,1989-04-12,United States,Austin,2020-06-15,2023-11-21,active,premium,organic,312,23.5
+u2049582376,Ava,Kim,ava.kim@example.net,female,1995-09-30,Canada,Vancouver,2019-03-22,2023-07-05,active,basic,friend,148,12.8
+u3872109451,Noah,Patel,noah.patel@example.com,male,1982-01-17,India,Mumbai,2021-02-11,2023-12-03,active,free,ad,92,8.4
+u5739201845,Sophia,Garcia,sophia.garcia@example.org,female,2001-07-22,Spain,Madrid,2018-08-19,2023-08-14,active,premium,organic,520,31.2
+u6819273049,James,O'Neill,james.oneill@example.net,male,1978-03-05,Ireland,Dublin,2020-01-09,2023-04-02,suspended,basic,other,76,9.7
+u7491023850,Mia,Wang,mia.wang@example.org,female,1999-12-14,China,Shanghai,2022-05-07,2023-09-25,inactive,free,friend,24,6.1
+u8265047193,Ethan,Silva,ethan.silva@example.com,male,1987-02-28,Brazil,Rio de Janeiro,2018-12-02,2023-11-18,active,premium,organic,410,19.9
+u9701123048,Emily,Dubois,emily.dubois@example.net,female,1993-06-03,France,Paris,2019-10-13,2023-10-09,active,basic,ad,205,14.3
+u3019752846,Lucas,Khan,lucas.khan@example.org,male,1985-11-21,Pakistan,Karachi,2020-04-28,2023-06-01,active,basic,organic,260,11.7
+u4129785601,Isabella,Rossi,isabella.rossi@example.com,female,1997-05-09,Italy,Milan,2021-07-30,2023-12-28,active,premium,friend,390,22.5
+u5893021764,Oliver,Meyer,oliver.meyer@example.org,male,1990-08-16,Germany,Berlin,2018-03-14,2023-05-17,active,free,organic,133,7.9
+u6582037490,Grace,Novak,grace.novak@example.net,female,1992-04-02,Czechia,Prague,2020-09-25,2023-03-29,active,premium,other,275,16.1
+u7502938471,Henry,Liu,henry.liu@example.com,male,1983-01-27,Singapore,Singapore,2019-01-05,2023-12-05,active,basic,ad,188,12.0
+u8123049576,Aria,Fernandez,aria.fernandez@example.org,female,2004-09-19,Mexico,Mexico City,2020-11-12,2023-02-20,active,free,organic,102,9.2
+u9638201574,Benjamin,Lee,benjamin.lee@example.com,male,1988-06-06,South Korea,Seoul,2019-04-02,2023-08-01,active,premium,organic,470,25.4
+u1049572380,Chloe,Nguyen,chloe.nguyen@example.net,female,1996-12-01,Vietnam,Ho Chi Minh City,2021-05-20,2023-06-22,active,basic,friend,215,13.6
+u2190348756,Daniel,Clark,daniel.clark@example.org,male,1981-10-10,Australia,Sydney,2022-02-14,2023-10-31,active,premium,other,324,18.7
+u3049857210,Zoe,Singh,zoe.singh@example.com,female,2003-03-28,India,Delhi,2023-01-03,2023-12-15,active,free,organic,60,5.4
+u5102847391,Michael,Kowalski,michael.kowalski@example.org,male,1975-02-14,Poland,Warsaw,2018-07-07,2023-04-19,inactive,basic,ad,40,6.8
+u6174392075,Ella,Brown,ella.brown@example.com,female,1998-07-07,United States,Seattle,2021-12-01,2023-03-03,active,premium,organic,430,21.3
+u7281045982,Finn,Ramos,finn.ramos@example.org,male,1994-11-11,Portugal,Lisbon,2020-04-18,2023-07-29,active,basic,friend,190,14.0
+u_10001,Liam,O'Neal,liam.oneal@example.com,male,1988-04-12,United States,Austin,2020-08-15,2023-11-20,active,premium,organic,312,28.4
+u_10002,Emma,Martinez,emma.martinez@example.org,female,1995-07-22,Canada,Vancouver,2019-03-10,2023-12-02,active,basic,friend,145,12.7
+u_10003,Noah,Khan,noah.khan@example.net,male,1982-02-14,United Kingdom,London,2018-11-02,2023-07-18,active,free,ad,89,9.4
+u_10004,Sophia,Dubois,sophia.dubois@example.fr,female,1990-09-30,France,Paris,2021-05-26,2023-10-30,active,premium,organic,260,22.1
+u_10005,Mason,Brown,mason.brown@example.com,male,2000-01-17,Australia,Sydney,2022-04-08,2023-12-01,active,basic,other,60,15.0
+u_10006,Isabella,Silva,isabella.silva@example.br,female,1998-12-03,Brazil,Rio de Janeiro,2020-09-14,2023-06-21,active,premium,friend,410,30.5
+u_10007,Ethan,Schmidt,ethan.schmidt@example.de,male,1985-03-21,Germany,Berlin,2019-01-22,2023-04-28,inactive,basic,organic,210,17.8
+u_10008,Ava,Patel,ava.patel@example.in,female,1993-06-09,India,Mumbai,2020-06-30,2023-08-15,active,free,ad,98,8.2
+u_10009,Oliver,Ng,oliver.ng@example.sg,male,1991-10-02,Singapore,Singapore,2021-12-12,2023-09-22,active,premium,organic,320,26.3
+u_10010,Charlotte,Hernandez,charlotte.hernandez@example.mx,female,1987-05-25,Mexico,Mexico City,2018-07-07,2023-11-04,suspended,basic,friend,72,11.9
+u_10011,James,Kim,james.kim@example.co.kr,male,1979-08-14,South Korea,Seoul,2018-03-18,2023-03-12,active,premium,organic,520,35.2
+u_10012,Amelia,Rossi,amelia.rossi@example.it,female,1996-04-04,Italy,Rome,2020-02-20,2023-12-15,active,basic,other,132,14.6
+u_10013,Lucas,Meyer,lucas.meyer@example.ch,male,1999-11-11,Switzerland,Zurich,2022-10-01,2023-05-19,active,free,ad,48,6.4
+u_10014,Grace,Lee,grace.lee@example.com,female,1984-09-09,United States,Seattle,2019-09-09,2023-12-02,active,premium,organic,275,21.7
+u_10015,Daniel,Singh,daniel.singh@example.co,male,1989-01-01,Canada,Toronto,2021-04-16,2023-04-02,inactive,basic,friend,110,13.2
+u_10016,Chloe,Brown,chloe.brown@example.org,female,1992-07-07,New Zealand,Auckland,2019-12-25,2023-07-30,active,free,organic,190,9.8
+u_10017,Henry,Garcia,henry.garcia@example.es,male,1983-03-03,Spain,Madrid,2020-03-03,2023-11-28,active,premium,ad,260,28.9
+u_10018,Mia,Ivanova,mia.ivanova@example.ru,female,1997-02-20,Russia,Moscow,2021-08-19,2023-01-25,inactive,basic,other,55,7.5
+u_10019,Thomas,Dubois,thomas.dubois@example.be,male,1986-12-12,Belgium,Brussels,2018-06-06,2023-10-05,active,premium,organic,480,32.1
+u_10020,Ella,Nguyen,ella.nguyen@example.vn,female,1994-05-05,Vietnam,Ho Chi Minh City,2020-01-15,2023-09-12,active,basic,friend,210,16.3
+u1001,Alex,Nguyen,alex.nguyen@example.com,male,1985-04-12,Canada,Vancouver,2020-05-14,2023-11-22,active,premium,organic,312,28.7
+u1002,Priya,Sharma,priya.sharma@example.org,female,1992-08-19,India,Bengaluru,2019-07-03,2023-08-30,active,basic,friend,164,15.2
+u1003,Mason,Lee,mason.lee@example.net,male,1988-02-11,United States,Seattle,2018-03-22,2023-12-01,active,premium,ad,498,42.3
+u1004,Ana,Costa,ana.costa@example.com,female,1996-09-05,Brazil,Sao Paulo,2021-01-19,2023-04-15,inactive,free,organic,72,9.8
+u1005,Liam,O'Connor,liam.oconnor@example.ie,male,1980-01-22,Ireland,Dublin,2020-09-11,2023-10-10,active,basic,other,210,22.5
+u1006,Zoe,Kim,zoe.kim@example.kr,female,1999-12-30,South Korea,Seoul,2022-06-07,2023-09-12,active,free,organic,98,12.7
+u1007,Jon,Patel,jon.patel@example.co,male,1975-07-14,United Kingdom,London,2019-02-20,2023-07-29,suspended,basic,friend,88,10.4
+u1008,Emma,Garcia,emma.garcia@example.es,female,1987-03-03,Spain,Madrid,2018-11-28,2023-05-03,active,premium,ad,260,30.1
+u1009,Noah,Brown,noah.brown@example.com,male,1995-05-20,Australia,Sydney,2020-04-16,2023-12-12,active,premium,organic,340,25.9
+u1010,Ava,Dubois,ava.dubois@example.fr,female,1993-10-01,France,Paris,2021-08-30,2023-07-04,inactive,free,other,55,8.6
+u1011,Ethan,Khan,ethan.khan@example.pk,male,1982-06-18,Pakistan,Karachi,2020-12-05,2023-03-22,active,basic,organic,145,17.3
+u1012,Isabella,Rossi,isabella.rossi@example.it,female,1998-02-14,Italy,Milan,2023-01-15,2023-12-28,active,premium,friend,120,21.1
+u1013,Lucas,Schmidt,lucas.schmidt@example.de,male,1991-11-09,Germany,Berlin,2018-07-07,2023-02-18,suspended,free,ad,60,7.9
+u1014,Mia,Ng,mia.ng@example.sg,female,2002-09-09,Singapore,Singapore,2022-03-25,2023-06-25,active,basic,organic,80,13.4
+u1015,Oliver,Smith,oliver.smith@example.ca,male,1989-04-02,Canada,Toronto,2020-01-12,2023-11-05,active,premium,organic,410,35.2
+u1016,Chloe,Martinez,chloe.martinez@example.mx,female,1994-07-27,Mexico,Mexico City,2019-09-09,2023-04-08,inactive,free,other,25,5.2
+u1017,Daniel,Kobayashi,daniel.kobayashi@example.jp,male,1983-10-31,Japan,Tokyo,2021-05-20,2023-09-21,active,basic,ad,190,19.7
+u1018,Grace,Ng,grace.ng@example.com,female,1990-12-04,Singapore,Singapore,2020-06-02,2023-10-23,active,premium,friend,270,27.6
+u1019,Benjamin,Ali,benjamin.ali@example.co,male,1986-03-15,United Arab Emirates,Dubai,2018-08-18,2023-12-19,active,premium,organic,460,40.5
+u1020,Sofia,Ivanova,sofia.ivanova@example.bg,female,1997-06-06,Bulgaria,Sofia,2022-10-10,2023-08-08,active,basic,organic,135,18.0
+u_1a2b3c,Liam,Hughes,liam.hughes@example.com,male,1987-04-12,United States,Seattle,2019-03-22,2023-07-15,active,premium,organic,312,28.5
+u_2b3c4d,Ava,Kline,ava.kline@example.org,female,1994-11-02,Canada,Toronto,2020-08-11,2023-11-02,active,basic,friend,145,12.8
+u_3c4d5e,Noah,Santos,noah.santos@example.net,male,1979-06-23,United Kingdom,London,2018-05-17,2023-03-29,inactive,free,ad,88,9.4
+u_4d5e6f,Mia,Zhao,mia.zhao@example.com,female,2002-09-09,Australia,Sydney,2021-01-05,2023-12-18,active,premium,organic,210,34.1
+u_5e6f7g,Ethan,Kim,ethan.kim@example.co,male,1990-02-14,South Korea,Seoul,2019-07-22,2023-10-10,active,basic,other,260,15.7
+u_6f7g8h,Sophia,Martin,sophia.martin@example.com,female,1982-12-01,Germany,Berlin,2020-02-28,2023-04-01,suspended,free,friend,120,8.9
+u_7g8h9i,Lucas,Rossi,lucas.rossi@example.it,male,1998-05-30,Italy,Milan,2022-09-14,2023-09-20,active,premium,organic,310,26.3
+u_8h9i0j,Isabella,Dubois,isabella.dubois@example.fr,female,1996-03-21,France,Paris,2019-12-03,2023-08-07,active,basic,ad,190,14.6
+u_9i0j1k,Oliver,García,oliver.garcia@example.es,male,1989-08-08,Spain,Madrid,2020-04-18,2023-06-27,inactive,free,other,60,6.2
+u_0j1k2l,Amelia,Patel,amelia.patel@example.in,female,1992-01-25,India,Mumbai,2018-06-25,2023-05-14,active,premium,organic,520,42.7
+u_1k2l3m,James,Nguyen,james.nguyen@example.com,male,1985-07-07,Vietnam,Hanoi,2021-03-09,2023-12-01,active,basic,friend,275,18.2
+u_2l3m4n,Charlotte,Costa,charlotte.costa@example.pt,female,1999-10-12,Portugal,Lisbon,2018-11-30,2023-02-14,active,free,organic,95,7.8
+u_3m4n5o,Benjamin,Schmidt,benjamin.schmidt@example.de,male,1975-04-04,Germany,Hamburg,2020-05-03,2023-07-22,inactive,basic,ad,150,11.3
+u_4n5o6p,Ella,Kumar,ella.kumar@example.co,female,2000-09-09,Singapore,Singapore,2022-01-17,2023-11-05,active,premium,other,240,19.4
+u_5o6p7q,Henry,Ali,henry.ali@example.com,male,1981-02-02,United Arab Emirates,Dubai,2020-09-09,2023-03-03,active,basic,organic,330,21.0
+u_6p7q8r,Grace,Brown,grace.brown@example.com,female,1995-06-16,Australia,Melbourne,2021-04-04,2023-10-22,active,premium,friend,410,29.5
+u_7q8r9s,Daniel,Silva,daniel.silva@example.br,male,1988-12-31,Brazil,Sao Paulo,2019-08-19,2023-04-12,suspended,free,ad,70,5.5
+u_8r9s0t,Emma,Liu,emma.liu@example.cn,female,1993-03-03,China,Beijing,2020-12-12,2023-05-25,active,basic,organic,195,13.9
+u_9s0t1u,Mateo,Garcia,mateo.garcia@example.mx,male,1997-07-07,Mexico,Mexico City,2022-02-02,2023-09-17,active,premium,organic,260,22.1
+u_0t1u2v,Harper,Wilson,harper.wilson@example.uk,non-binary,1996-11-11,Ireland,Dublin,2018-03-21,2023-08-01,inactive,free,other,45,4.8
+u_1u2v3w,Alex,Peterson,alex.peterson@example.no,non-binary,1984-08-08,Norway,Oslo,2019-10-10,2023-12-28,active,basic,friend,230,17.6
+u_2v3w4x,Sophie,Nakamura,sophie.nakamura@example.jp,female,1991-05-05,Japan,Tokyo,2020-06-06,2023-01-15,active,premium,organic,520,38.2
+u_3w4x5y,Jacob,O'Brien,jacob.obrien@example.ie,male,1986-01-20,Ireland,Dublin,2018-09-09,2023-06-30,active,basic,ad,180,12.1
+u1e9q7l2,Avery,Chen,avery.chen@example.com,female,1989-03-14,United States,San Francisco,2020-06-15,2023-11-22,active,premium,organic,312,18.4
+u2b4t6r9,Liam,Patel,liam.patel@example.org,male,1995-07-02,Canada,Toronto,2019-02-11,2023-07-09,active,basic,friend,128,12.9
+u3s8k1d5,Nova,Kowalski,nova.kowalski@example.net,non-binary,2001-11-23,Poland,Warsaw,2021-09-20,2023-12-01,active,free,ad,54,6.7
+u4m2z7h3,Jon,Mbaye,jon.mbaye@example.co,male,1983-05-17,France,Lyon,2018-03-30,2023-04-18,inactive,premium,organic,210,24.1
+u5t9x4q8,Sora,Tanaka,sora.tanaka@example.jp,female,1998-02-28,Japan,Osaka,2020-08-02,2023-09-14,active,premium,other,410,15.3
+u6r3f0w1,Mateo,Silva,mateo.silva@example.br,male,1990-12-12,Brazil,Rio de Janeiro,2022-01-25,2023-05-06,active,basic,friend,92,9.8
+u7p6l2n4,Emma,Schmidt,emma.schmidt@example.de,female,1987-09-09,Germany,Berlin,2018-12-05,2023-10-22,suspended,basic,organic,73,7.4
+u8j1v5k9,Noah,Johnson,noah.johnson@example.com,male,2003-06-16,United States,Austin,2022-04-18,2023-03-07,active,free,organic,15,5.2
+u9d4q8x2,Iris,Nakamura,iris.nakamura@example.co.jp,female,1992-01-04,Japan,Kyoto,2019-07-21,2023-08-30,active,premium,ad,266,19.6
+u10e7w3t6,Leo,Dubois,leo.dubois@example.fr,male,1985-04-29,France,Marseille,2020-11-02,2023-12-18,active,premium,other,320,14.0
+u11k2q8r,Ari,Katz,ari.katz@example.co,non-binary,1999-10-14,Israel,Tel Aviv,2021-05-09,2023-04-12,active,basic,friend,140,11.1
+u12g6b0m,Grace,O’Connor,grace.oconnor@example.ie,female,1982-08-03,Ireland,Dublin,2018-01-20,2023-06-07,active,free,organic,60,4.9
+u13h9j2a,Kai,Ng,kai.ng@example.sg,male,1996-03-19,Singapore,Singapore,2019-09-14,2023-01-31,inactive,basic,ad,88,10.2
+u14y3p7c,Lena,Popov,lena.popov@example.ru,female,1988-05-25,Russia,Moscow,2020-10-05,2023-07-29,active,premium,organic,260,16.8
+u15v1q4y,Mohammed,Ali,mohammed.ali@example.sa,male,1991-02-10,Saudi Arabia,Riyadh,2020-02-14,2023-02-25,active,premium,other,190,13.2
+u16w8r5e,Isla,MacDonald,isla.macdonald@example.ca,female,1994-12-01,Canada,Vancouver,2018-07-07,2023-11-02,active,basic,friend,102,9.0
+u17t2f9b,Rafael,Costa,rafael.costa@example.pt,male,1986-09-09,Portugal,Lisbon,2021-03-18,2023-10-04,active,premium,organic,260,17.5
+u18q5e3v,Zara,Hussein,zara.hussein@example.eg,female,2000-06-12,Egypt,Cairo,2022-06-23,2023-12-05,active,basic,ad,180,12.1
+u19m7l1x,Omar,Rahman,omar.rahman@example.pk,male,1997-04-04,Pakistan,Lahore,2020-09-09,2023-03-16,inactive,free,organic,45,3.8
+u20n3s6t,Hana,Fischer,hana.fischer@example.ch,female,1983-11-11,Switzerland,Zurich,2018-04-04,2023-08-13,active,premium,friend,301,20.2
+u10001,Liam,Khan,liam.khan@example.com,male,1989-04-12,United States,Seattle,2019-05-20,2023-11-08,active,premium,organic,312,42.7
+u10002,Emma,Gonzalez,emma.gonzalez@example.org,female,1995-09-30,Canada,Toronto,2020-08-03,2023-07-21,active,basic,friend,184,28.4
+u10003,Noah,Singh,noah.singh@example.net,male,1982-01-16,United Kingdom,London,2018-12-11,2023-03-14,inactive,free,ad,72,15.2
+u10004,Ava,Mori,ava.mori@example.com,female,1990-06-24,Australia,Sydney,2021-04-22,2023-10-01,active,premium,organic,410,51.9
+u10005,Olivia,Schmidt,olivia.schmidt@example.com,female,1984-03-02,Germany,Berlin,2020-02-14,2023-08-18,active,basic,other,256,33.6
+u10006,Mateo,Silva,mateo.silva@example.org,male,1999-11-05,Spain,Madrid,2022-09-09,2023-05-03,active,free,organic,98,22.1
+u10007,Isabella,Ferrero,isabella.ferrero@example.net,female,1993-07-19,Italy,Milan,2019-07-30,2023-12-20,suspended,premium,friend,320,44.5
+u10008,James,O'Connor,james.oconnor@example.com,male,1987-02-28,Ireland,Dublin,2019-11-05,2023-02-13,active,basic,ad,156,29.0
+u10009,Sophia,Kowalski,sophia.kowalski@example.pl,female,1997-08-13,Poland,Warsaw,2021-03-12,2023-04-27,active,premium,organic,232,37.2
+u10010,Lucas,Nguyen,lucas.nguyen@example.vn,male,1992-10-01,Vietnam,Ho Chi Minh City,2020-01-26,2023-09-15,active,basic,other,210,26.8
+u10011,Mia,Patel,mia.patel@example.co.in,female,1998-12-22,India,Mumbai,2022-05-07,2023-06-30,inactive,free,friend,66,14.7
+u10012,Ethan,Brown,ethan.brown@example.com,male,1985-05-10,United States,Austin,2020-07-19,2023-01-04,active,premium,organic,480,62.3
+u10013,Chloe,Dubois,chloe.dubois@example.fr,female,1991-04-03,France,Paris,2019-09-17,2023-11-03,active,premium,ad,299,40.1
+u10014,Benjamin,Rossi,benjamin.rossi@example.it,male,1988-06-27,Italy,Naples,2020-06-25,2023-04-12,inactive,basic,organic,145,19.8
+u10015,Amelia,Topaz,amelia.topaz@example.co.uk,female,1981-09-09,United Kingdom,Manchester,2018-03-11,2023-12-07,active,free,other,89,12.6
+u10016,Henry,Kim,henry.kim@example.com,male,1994-11-21,South Korea,Seoul,2021-10-01,2023-09-29,active,premium,organic,260,34.7
+u10017,Grace,Lee,grace.lee@example.com,female,1996-02-14,South Korea,Busan,2019-03-22,2023-08-03,active,basic,friend,190,27.3
+u10018,Jack,Martin,jack.martin@example.com,male,1983-07-07,Canada,Vancouver,2018-01-19,2023-12-01,active,basic,organic,205,31.9
+u10019,Ella,Novak,ella.novak@example.cz,female,1990-01-25,Czechia,Prague,2022-02-14,2023-05-20,active,free,other,120,18.4
+u10020,Daniel,Santos,daniel.santos@example.br,male,1979-03-18,Brazil,Sao Paulo,2018-07-04,2023-10-29,active,premium,ad,510,60.2
+u_7xQ9vJd1Z,Ava,Nguyen,ava.nguyen@example.com,female,1986-04-12,United States,San Francisco,2020-05-14,2023-06-22,active,premium,organic,312,14.8
+u_E2r9Hkq4S,Liam,Patel,liam.patel@example.org,male,1992-11-03,Canada,Toronto,2019-09-30,2023-11-02,active,basic,friend,178,9.5
+u_Jq6zL3t9,Sophia,Kim,sophia.kim@example.co,female,1988-02-19,South Korea,Seoul,2021-01-22,2023-07-18,active,premium,ad,260,12.1
+u_9Wm2QeC4,Noah,Garcia,noah.garcia@example.net,male,1995-08-07,Mexico,Mexico City,2020-03-11,2023-04-15,active,free,organic,95,7.3
+u_R7xP2tQ6,Mia,Rossi,mia.rossi@example.it,female,1980-12-02,Italy,Milan,2018-07-06,2023-12-19,inactive,basic,other,44,5.6
+u_Zx1V3qL8,Lucas,Schmidt,lucas.schmidt@example.de,male,1983-05-28,Germany,Berlin,2021-11-09,2023-03-28,active,premium,organic,402,18.2
+u_B6kQw2Df,Hannah,Santos,hannah.santos@example.br,female,1999-09-14,Brazil,Sao Paulo,2022-02-17,2023-10-05,active,free,friend,210,11.4
+u_L3tP9rV2,James,O'Connor,james.oconnor@example.ie,male,1976-03-21,Ireland,Dublin,2018-12-25,2023-08-14,suspended,basic,ad,30,6.2
+u_Q9mV5gA7,Grace,Dubois,grace.dubois@example.fr,female,1991-01-30,France,Paris,2019-04-03,2023-01-20,active,premium,organic,330,15.0
+u_T9xF2bN5,Ethan,Khan,ethan.khan@example.in,male,1987-07-16,India,Mumbai,2020-08-28,2023-05-09,active,basic,other,155,8.9
+u_Yq4R7pD1,Emily,Lee,emily.lee@example.co.uk,female,1996-04-04,United Kingdom,London,2018-03-15,2023-12-02,active,premium,organic,480,20.3
+u_V7kN6tS3,Oliver,Brown,oliver.brown@example.com,male,1984-10-10,Australia,Sydney,2020-10-01,2023-09-25,active,premium,friend,290,13.7
+u_3xQwV8fR,Ella,Meyer,ella.meyer@example.de,female,2002-06-22,Germany,Hamburg,2022-06-14,2023-02-28,active,free,ad,120,9.1
+u_Rp6sJ9lX,Benjamin,Garza,benjamin.garza@example.mx,male,1990-09-09,Spain,Madrid,2019-05-25,2023-04-07,inactive,basic,organic,60,7.8
+u_Kq4zL2tM,Chloe,Ng,chloe.ng@example.sg,female,1993-12-05,Singapore,Singapore,2021-07-19,2023-09-12,active,premium,other,260,12.5
+u_w5R8tP1q,Mateo,Rojas,mateo.rojas@example.cl,male,1989-02-28,Chile,Santiago,2020-04-02,2023-03-11,active,basic,friend,155,7.2
+u_L9jQp4v2,Sophie,Martin,sophie.martin@example.be,female,1997-08-08,Belgium,Brussels,2019-11-07,2023-10-26,active,free,organic,210,10.2
+u_8sQwL2tV,Lucas,Silva,lucas.silva@example.pt,male,1994-03-03,Portugal,Lisbon,2021-01-12,2023-06-30,active,premium,ad,370,16.5
+u_p7N8eV3d,Zoe,Kumar,zoe.kumar@example.in,female,2001-12-17,India,Delhi,2023-02-20,2023-12-28,active,free,organic,80,6.7
+u_Qw1nZ6f,Daniel,Ito,daniel.ito@example.jp,male,1982-07-07,Japan,Tokyo,2020-09-03,2023-05-21,active,basic,other,230,9.9
+u_501,Liam,Valentine,liam.valentine@example.com,male,1987-04-12,United States,Seattle,2020-08-15,2023-10-02,active,premium,organic,312,34.2
+u_502,Emma,Kline,emma.kline@example.com,female,1992-11-03,Canada,Toronto,2019-05-21,2023-09-04,active,basic,friend,145,22.9
+u_503,Noah,Santos,noah.santos@example.com,male,1980-07-19,UK,London,2018-11-10,2023-12-18,active,premium,ad,478,41.5
+u_504,Olivia,Nguyen,olivia.nguyen@example.com,female,1998-02-28,Australia,Sydney,2021-03-09,2023-07-22,active,free,organic,89,16.3
+u_505,Ava,Patel,ava.patel@example.com,female,1995-09-14,India,Mumbai,2022-01-02,2023-03-15,active,basic,other,210,27.8
+u_506,James,Kim,james.kim@example.com,male,1989-06-22,South Korea,Seoul,2018-06-30,2023-11-28,active,premium,organic,370,39.1
+u_507,Isabella,Martinez,isabella.martinez@example.com,female,2000-12-05,Spain,Madrid,2020-09-14,2023-08-09,active,premium,friend,260,29.4
+u_508,Lucas,Rossi,lucas.rossi@example.com,male,1983-01-11,Italy,Milan,2019-04-07,2023-12-01,active,basic,ad,190,21.7
+u_509,Mia,Schmidt,mia.schmidt@example.com,female,1997-03-29,Germany,Berlin,2021-12-19,2023-05-30,inactive,free,organic,40,12.2
+u_510,Ethan,Clark,ethan.clark@example.com,male,1991-08-07,United States,Austin,2020-02-28,2023-04-12,active,premium,other,520,46.9
+u_511,Sophia,Davis,sophia.davis@example.com,female,1985-05-02,Canada,Vancouver,2018-10-04,2023-11-16,active,basic,organic,310,28.3
+u_512,Benjamin,Lopez,benjamin.lopez@example.org,male,1979-09-18,Spain,Barcelona,2019-07-21,2023-12-08,active,premium,friend,410,35.6
+u_513,Charlotte,Ng,charlotte.ng@example.com,female,1993-04-16,Singapore,Singapore,2020-05-28,2023-10-26,active,basic,ad,155,24.1
+u_514,Henry,Kaur,henry.kaur@example.com,male,1982-10-30,India,Delhi,2019-01-13,2023-02-14,suspended,basic,other,60,9.8
+u_515,Grace,O'Neill,grace.oneill@example.com,female,1999-06-21,Ireland,Dublin,2021-08-03,2023-07-20,active,premium,organic,275,33.0
+u_516,Daniel,Dubois,daniel.dubois@example.fr,male,1986-02-14,France,Paris,2022-03-17,2023-09-05,active,free,other,120,18.5
+u_517,Chloe,Miller,chloe.miller@example.com,female,1994-12-01,United States,New York,2020-12-28,2023-06-14,inactive,basic,friend,80,14.2
+u_518,Alexander,Petrov,alexander.petrov@example.ru,male,1988-03-05,Russia,Moscow,2018-09-11,2023-11-21,active,premium,ad,460,42.7
+u_519,Emily,Fischer,emily.fischer@example.de,female,1996-08-08,Germany,Munich,2020-04-02,2023-08-02,active,basic,organic,230,26.4
+u_520,Caleb,Riley,caleb.riley@example.com,male,2002-01-19,United States,Denver,2023-02-15,2023-12-28,active,free,organic,50,10.0
+u_521,Ella,Kim,ella.kim@example.com,female,1990-10-25,South Korea,Busan,2021-07-09,2023-04-28,active,premium,friend,320,37.2
+u_5f2d9a7b,Ava,Henderson,ava.henderson@example.com,female,1988-04-12,Canada,Toronto,2019-03-21,2023-11-02,active,premium,organic,312,26.7
+u_7b3e1c6d,Liam,Chen,liam.chen@example.com,male,1992-09-08,United States,San Francisco,2020-07-14,2023-05-17,active,basic,friend,189,14.5
+u_2d9f5b3a,Sophia,Kumar,sophia.kumar@example.com,female,1984-02-23,India,Bengaluru,2018-11-02,2023-09-28,active,premium,ad,540,32.1
+u_9a6e4f1c,Noah,Garcia,noah.garcia@example.com,male,1999-07-15,Spain,Madrid,2021-01-26,2023-12-04,active,free,organic,92,9.8
+u_1c8d2e7f,Emma,Schmidt,emma.schmidt@example.com,female,1978-12-03,Germany,Berlin,2018-04-09,2023-08-19,active,premium,other,410,22.4
+u_4e1a9b3c,Lucas,Silva,lucas.silva@example.com,male,1990-05-29,Brazil,Sao Paulo,2020-10-01,2023-10-21,active,basic,friend,260,18.9
+u_3f6a2d9b,Mia,Nguyen,mia.nguyen@example.com,female,2002-03-11,Vietnam,Ho Chi Minh City,2022-06-18,2023-04-15,active,free,organic,73,7.4
+u_6b7e1c4a,Elijah,Johnson,elijah.johnson@example.com,male,1986-08-02,United States,New York,2019-09-30,2023-12-20,active,premium,ad,620,29.2
+u_8c4f3a2b,Olivia,Brown,olivia.brown@example.com,female,1995-11-19,Canada,Vancouver,2021-02-12,2023-06-07,inactive,basic,friend,145,12.1
+u_5a9d6e3f,James,Petrov,james.petrov@example.com,male,1981-01-27,Russia,Moscow,2018-12-05,2023-03-22,active,premium,organic,480,25.6
+u_7d2f8a1c,Isabella,Martin,isabella.martin@example.com,female,1997-04-04,France,Paris,2020-03-18,2023-07-29,active,basic,other,210,16.3
+u_1f3b7e9a,Benjamin,Ochoa,benjamin.ochoa@example.com,male,1989-09-09,Mexico,Mexico City,2018-05-22,2023-02-14,suspended,free,ad,40,5.6
+u_2a4d6c1f,Grace,Lee,grace.lee@example.com,female,2000-06-30,South Korea,Seoul,2022-08-25,2023-01-02,active,premium,organic,340,21.7
+u_9e1b3d7a,Henry,Patel,henry.patel@example.com,male,1975-12-13,India,Mumbai,2019-07-07,2023-12-28,active,basic,friend,275,15.4
+u_3d9a7f2c,Chloe,Garza,chloe.garza@example.com,female,1993-10-22,Argentina,Buenos Aires,2021-11-11,2023-08-03,active,premium,organic,520,28.0
+u_6f2e4b9a,Daniel,Rossi,daniel.rossi@example.com,male,1983-02-16,Italy,Rome,2020-04-04,2023-09-09,active,basic,ad,260,17.2
+u_4b7e1d3f,Sofia,Kovacs,sofia.kovacs@example.com,female,1996-01-28,Hungary,Budapest,2019-06-18,2023-05-01,active,free,other,120,10.1
+u_5c2a9e7d,Jack,Ng,jack.ng@example.com,male,1998-03-03,Singapore,Singapore,2021-09-23,2023-10-13,active,premium,organic,410,23.8
+u_8a1d3f6e,Mason,Kaur,mason.kaur@example.com,male,1991-08-14,Canada,Calgary,2020-01-07,2023-02-27,inactive,basic,friend,60,6.2
+u_2f5b9a1c,Ella,Schwartz,ella.schwartz@example.com,female,1987-05-25,Israel,Tel Aviv,2018-12-03,2023-07-31,active,free,organic,260,12.8
+u_1a9e4d7b,Owen,Klein,owen.klein@example.com,male,1994-11-11,Germany,Hamburg,2021-05-14,2023-03-25,active,premium,ad,480,27.5
+u10001,Emma,Nguyen,emma.nguyen@example.com,female,1988-04-12,United States,San Francisco,2020-06-15,2023-11-02,active,premium,organic,312,24.7
+u10002,Liam,Patel,liam.patel@example.org,male,1992-09-30,Canada,Toronto,2019-02-23,2023-08-19,active,basic,friend,142,13.4
+u10003,Ava,Kim,ava.kim@example.net,female,1985-01-17,South Korea,Seoul,2021-07-08,2023-04-12,active,premium,ad,480,35.1
+u10004,Noah,Garcia,noah.garcia@example.com,male,1979-05-22,Mexico,Ciudad de Mexico,2018-11-02,2023-12-01,inactive,free,organic,76,9.8
+u10005,Sophia,Martin,sophia.martin@example.org,female,1999-12-03,United Kingdom,London,2020-03-19,2023-03-15,active,basic,other,210,18.2
+u10006,James,O'Connor,james.oconnor@example.com,male,1981-08-08,Ireland,Dublin,2018-05-28,2023-10-22,active,premium,friend,390,26.7
+u10007,Mia,Rossi,mia.rossi@example.it,female,1995-02-14,Italy,Milan,2022-01-12,2023-07-09,active,free,organic,98,12.3
+u10008,Ethan,Schmidt,ethan.schmidt@example.de,male,1990-06-25,Germany,Berlin,2020-09-30,2023-09-11,suspended,basic,ad,260,19.5
+u10009,Olivia,Dubois,olivia.dubois@example.fr,female,1987-03-03,France,Paris,2019-08-20,2023-11-29,active,premium,other,310,22.6
+u10010,Lucas,Martinez,lucas.martinez@example.es,male,1983-11-16,Spain,Madrid,2021-04-07,2023-12-07,active,basic,organic,155,15.8
+u10011,Charlotte,Brown,charlotte.brown@example.co.uk,female,1997-07-21,United Kingdom,Manchester,2020-12-01,2023-05-03,active,premium,friend,405,28.9
+u10012,Daniel,Silva,daniel.silva@example.br,male,1989-04-05,Brazil,Sao Paulo,2018-07-14,2023-06-08,inactive,free,organic,60,8.7
+u10013,Isabella,Ng,isabella.ng@example.com,female,2000-10-31,Singapore,Singapore,2022-02-22,2023-02-27,active,premium,ad,188,16.4
+u10014,Benjamin,Kumar,benjamin.kumar@example.in,male,1975-09-09,India,Bangalore,2018-03-05,2023-03-24,active,basic,other,225,17.2
+u10015,Grace,Lee,grace.lee@example.com,female,1984-12-12,South Korea,Busan,2019-01-18,2023-10-10,active,premium,organic,335,27.1
+u10016,Henry,Zhang,henry.zhang@example.cn,male,1993-05-29,China,Shanghai,2020-08-08,2023-12-03,active,basic,ad,210,14.6
+u10017,Chloe,Ng,chloe.ng@example.com,female,1998-03-07,Canada,Vancouver,2021-06-06,2023-05-28,active,free,friend,120,10.2
+u10018,Mason,Kobayashi,mason.kobayashi@example.jp,male,1991-07-19,Japan,Tokyo,2020-10-02,2023-08-14,active,premium,organic,455,31.4
+u10019,Emily,Johnson,emily.johnson@example.com,female,1968-02-02,United States,Austin,2018-01-10,2023-04-09,active,premium,other,510,42.3
+u10020,Oliver,Santos,oliver.santos@example.com,male,1982-11-11,Portugal,Lisbon,2019-05-25,2023-09-30,inactive,basic,organic,88,11.9
+u1001,Aiden,Keller,aiden.keller@example.com,male,1987-04-12,United States,Seattle,2020-03-15,2023-11-02,active,premium,organic,312,28.4
+u1002,Mia,Rodriguez,mia.rodriguez@example.org,female,1992-09-28,Canada,Toronto,2019-07-22,2023-09-18,active,basic,friend,167,16.7
+u1003,Kai,Ng,kai.ng@example.net,non-binary,1980-02-14,Singapore,Singapore,2018-11-05,2023-12-03,inactive,free,ad,42,8.2
+u1004,Lena,Petrov,lena.petrov@example.ru,female,1984-06-26,Russia,Moscow,2021-02-02,2023-08-25,active,premium,organic,284,35.1
+u1005,Omar,Ali,omar.ali@example.com,male,1979-12-08,Egypt,Cairo,2020-10-19,2023-05-12,suspended,basic,other,98,12.3
+u1006,Sophie,Dubois,sophie.dubois@example.fr,female,1995-03-21,France,Paris,2022-04-11,2023-12-29,active,free,friend,220,21.6
+u1007,Jonah,Schmidt,jonah.schmidt@example.de,male,1989-08-03,Germany,Berlin,2018-09-30,2023-03-03,active,premium,organic,410,44.2
+u1008,Priya,Sharma,priya.sharma@example.in,female,1990-01-17,India,Mumbai,2019-06-14,2023-07-19,inactive,basic,ad,132,14.9
+u1009,Lucas,Silva,lucas.silva@example.br,male,2000-07-22,Brazil,Rio de Janeiro,2021-05-23,2023-04-02,active,free,organic,289,19.5
+u1010,Emily,Chen,emily.chen@example.cn,female,1997-05-05,China,Shanghai,2020-01-08,2023-10-21,active,premium,other,360,29.8
+u1011,Mohammed,Al-Farsi,mohammed.alfarsi@example.om,male,1985-10-30,Oman,Muscat,2018-12-12,2023-02-14,inactive,basic,friend,76,9.7
+u1012,Ana,Gonzalez,ana.gonzalez@example.mx,female,1982-04-16,Mexico,Mexico City,2020-08-29,2023-06-05,active,premium,organic,512,52.4
+u1013,James,O'Connor,james.oconnor@example.ie,male,1976-11-11,Ireland,Dublin,2021-03-01,2023-11-28,active,basic,ad,190,18.1
+u1014,Grace,Kim,grace.kim@example.kr,female,1999-02-28,South Korea,Seoul,2022-07-07,2023-08-07,active,premium,organic,260,33.0
+u1015,Daniel,Peterson,daniel.peterson@example.no,male,1983-09-09,Norway,Oslo,2018-05-20,2023-04-28,active,free,other,145,11.4
+u1016,Nina,Ivanova,nina.ivanova@example.bg,female,1993-12-03,Bulgaria,Sofia,2020-12-02,2023-12-15,active,basic,friend,210,25.2
+u1017,Ethan,Brown,ethan.brown@example.au,male,1991-06-18,Australia,Sydney,2021-01-09,2023-01-03,suspended,premium,organic,88,13.5
+u1018,Chun,Lee,chun.lee@example.tw,non-binary,1994-03-25,Taiwan,Taipei,2019-09-17,2023-05-29,active,basic,ad,156,17.8
+u1019,Sara,Ndiaye,sara.ndiaye@example.sn,female,1988-07-07,Senegal,Dakar,2020-02-14,2023-09-30,active,premium,organic,325,27.3
+u1020,Victor,Muller,victor.muller@example.ch,male,1986-01-22,Switzerland,Zurich,2018-08-08,2023-07-10,active,free,friend,230,20.1
+u_100001,Lena,Nguyen,lena.nguyen@example.com,female,1987-04-12,Canada,Vancouver,2020-09-15,2023-11-20,active,premium,organic,214,34.5
+u_100002,Mateo,Rossi,mateo.rossi@example.net,male,1992-08-03,Italy,Milan,2019-05-22,2023-09-12,active,basic,ad,128,18.2
+u_100003,Aisha,Khan,aisha.khan@example.org,female,1980-11-30,United Arab Emirates,Dubai,2021-02-10,2023-12-05,active,premium,friend,342,52.7
+u_100004,Jon,Petrov,jon.petrov@example.ru,male,1998-06-17,Russia,Saint Petersburg,2018-11-03,2023-07-29,inactive,free,organic,0,0.0
+u_100005,Sophie,Dubois,sophie.dubois@example.fr,female,1995-02-26,France,Lyon,2020-01-08,2023-10-22,active,premium,other,276,41.1
+u_100006,Carlos,Mendez,carlos.mendez@example.com,male,1983-09-14,Spain,Madrid,2019-07-19,2023-08-07,active,basic,friend,198,23.4
+u_100007,Hannah,Schmidt,hannah.schmidt@example.de,female,1976-03-04,Germany,Berlin,2022-03-26,2023-12-01,suspended,free,organic,12,9.6
+u_100008,Arjun,Singh,arjun.singh@example.in,male,1990-12-21,India,Mumbai,2020-06-11,2023-04-15,active,premium,ad,310,46.2
+u_100009,Emma,Johnson,emma.johnson@example.com,female,2000-07-02,United States,New York,2018-10-30,2023-12-22,active,basic,organic,420,55.3
+u_100010,Noah,Kim,noah.kim@example.com,male,1996-01-15,South Korea,Seoul,2021-04-07,2023-11-11,active,premium,friend,265,39.8
+u_100011,Olivia,Brown,olivia.brown@example.net,female,1989-05-25,Australia,Sydney,2020-12-02,2023-08-19,inactive,basic,other,95,22.5
+u_100012,Liam,Garcia,liam.garcia@example.org,male,1993-09-09,Mexico,Mexico City,2019-09-09,2023-07-07,active,basic,organic,150,26.4
+u_100013,Chloe,O'Connor,chloe.oconnor@example.ie,female,1991-04-18,Ireland,Dublin,2022-05-14,2023-10-28,active,premium,ad,240,33.7
+u_100014,Lucas,Silva,lucas.silva@example.br,male,1985-02-28,Brazil,Sao Paulo,2020-08-04,2023-12-04,active,free,organic,102,17.2
+u_100015,Grace,Ng,grace.ng@example.com,female,1997-11-11,Singapore,Singapore,2021-01-21,2023-06-09,active,premium,friend,310,44.9
+u_100016,Daniel,Mori,daniel.mori@example.jp,male,1988-08-08,Japan,Tokyo,2018-02-14,2023-03-18,inactive,basic,other,60,12.4
+u_100017,Zoe,Anderson,zoe.anderson@example.co.uk,female,2002-03-30,United Kingdom,London,2023-03-03,2023-12-28,active,free,organic,25,8.1
+u_100018,Michael,Dubois,michael.dubois@example.ca,male,1979-06-22,Canada,Montreal,2018-07-07,2023-09-09,active,premium,ad,520,60.2
+u_100019,Sophia,Kobayashi,sophia.kobayashi@example.jp,female,1994-10-02,Japan,Osaka,2020-04-18,2023-05-25,active,basic,friend,190,27.5
+u_100020,Ethan,Martinez,ethan.martinez@example.mx,male,1999-01-12,Argentina,Buenos Aires,2021-11-30,2023-11-03,active,premium,organic,280,42.0
+u10001,Alex,Mendoza,alex.mendoza@example.com,male,1975-04-12,Canada,Vancouver,2019-05-21,2023-08-14,active,premium,organic,312,21.5
+u10002,Priya,Singh,priya.singh@example.co.uk,female,1988-11-02,United Kingdom,London,2020-11-03,2023-04-22,active,basic,friend,146,9.8
+u10003,Jon,Kim,jon.kim@example.com,male,1992-07-19,South Korea,Seoul,2021-02-14,2023-10-10,active,premium,ad,280,15.2
+u10004,Laura,Perez,laura.perez@example.es,female,1981-03-29,Spain,Madrid,2018-09-12,2023-12-01,inactive,free,organic,62,7.4
+u10005,Mohammed,Ali,mohammed.ali@example.com,non-binary,1997-01-15,United Arab Emirates,Dubai,2022-03-08,2023-09-18,active,basic,other,190,12.6
+u10006,Sophie,Dubois,sophie.dubois@example.fr,female,1985-06-22,France,Paris,2020-06-25,2023-07-30,active,premium,organic,410,22.1
+u10007,Daniel,Nguyen,daniel.nguyen@example.vn,male,1990-12-08,Vietnam,Ho Chi Minh City,2021-08-16,2023-03-11,active,basic,friend,230,14.3
+u10008,Amina,Osei,amina.osei@example.com,female,1995-04-03,Ghana,Accra,2019-01-20,2023-02-24,suspended,free,ad,88,8.9
+u10009,Lucas,Rossi,lucas.rossi@example.it,male,1989-09-10,Italy,Milan,2020-04-02,2023-11-02,active,premium,organic,329,19.7
+u10010,Emma,Schmidt,emma.schmidt@example.de,female,1993-02-27,Germany,Berlin,2018-12-14,2023-05-12,active,basic,other,120,10.4
+u10011,Carlos,Silva,carlos.silva@example.br,male,1982-05-05,Brazil,Rio de Janeiro,2019-07-09,2023-06-18,inactive,free,friend,54,6.2
+u10012,Nina,Petrov,nina.petrov@example.ru,female,1998-08-21,Russia,Moscow,2020-10-22,2023-04-28,active,premium,organic,260,16.8
+u10013,Owen,Clark,owen.clark@example.com,male,1979-03-03,Australia,Sydney,2017-03-30,2023-09-15,active,premium,ad,540,28.4
+u10014,Hannah,Kova,hannah.kova@example.hu,female,1991-12-12,Hungary,Budapest,2021-01-07,2023-12-09,active,basic,other,210,13.1
+u10015,Yuki,Tanaka,yuki.tanaka@example.jp,non-binary,1994-05-27,Japan,Tokyo,2019-08-19,2023-10-28,active,free,organic,95,7.9
+u10016,Grace,Wilson,grace.wilson@example.co,female,1987-01-04,New Zealand,Auckland,2022-02-11,2023-08-02,active,basic,friend,178,11.3
+u10017,Ahmed,El-Sayed,ahmed.elsayed@example.eg,male,1980-09-09,Egypt,Cairo,2018-05-14,2023-07-07,inactive,free,other,40,5.6
+u10018,Isla,Morris,isla.morris@example.co.nz,female,1996-03-18,New Zealand,Wellington,2020-09-09,2023-03-03,active,premium,organic,315,18.9
+u10019,Ethan,Brown,ethan.brown@example.com,male,1999-06-06,Canada,Toronto,2023-01-22,2023-12-20,active,basic,ad,90,9.2
+u10020,Ava,Lee,ava.lee@example.com,female,2000-01-31,United States,Seattle,2021-04-01,2023-05-01,active,premium,organic,360,20.5
+u1001,Lena,Hughes,lena.hughes@example.com,female,1987-04-12,Canada,Toronto,2020-06-15,2023-11-22,active,premium,organic,218,34.7
+u1002,Mateo,Rossi,mateo.rossi@example.org,male,1992-09-03,Italy,Milan,2019-03-22,2023-09-14,active,basic,friend,145,25.4
+u1003,Aisha,Khan,aisha.khan@example.net,female,1981-01-29,Pakistan,Lahore,2021-11-10,2023-12-03,active,premium,ad,302,40.2
+u1004,Noah,Kim,noah.kim@example.com,male,1978-07-07,South Korea,Seoul,2018-04-05,2023-06-18,suspended,free,organic,60,12.8
+u1005,Sofia,Silva,sofia.silva@example.com,female,1999-02-14,Spain,Madrid,2020-12-01,2023-04-09,inactive,basic,friend,90,19.5
+u1006,Daniel,Schmidt,daniel.schmidt@example.de,male,1965-05-23,Germany,Berlin,2017-08-30,2023-12-08,active,premium,other,410,52.1
+u1007,Emma,Dubois,emma.dubois@example.fr,female,1989-12-02,France,Lyon,2022-05-19,2023-10-27,active,basic,organic,128,22.9
+u1008,Lucas,Ng,lucas.ng@example.com,male,2002-03-18,Singapore,Singapore,2021-07-07,2023-11-15,active,free,ad,72,16.4
+u1009,Isabella,Bianchi,isabella.bianchi@example.it,female,1995-08-29,Italy,Naples,2020-01-25,2023-08-05,active,premium,organic,260,29.7
+u1010,Oliver,Müller,oliver.muller@example.de,male,1990-06-16,Austria,Vienna,2019-09-12,2023-05-30,inactive,basic,friend,110,18.1
+u1011,Chloe,Smith,chloe.smith@example.co.uk,female,1983-04-04,United Kingdom,Manchester,2018-02-26,2023-03-22,active,premium,organic,520,45.9
+u1012,Ethan,Garcia,ethan.garcia@example.com,male,1998-11-11,United States,New York,2020-09-01,2023-12-25,active,premium,ad,310,38.2
+u1013,Mia,Patel,mia.patel@example.org,female,1993-07-19,Canada,Vancouver,2021-04-09,2023-10-11,active,basic,other,190,24.6
+u1014,Jonas,Olsson,jonas.olsson@example.se,male,1986-01-30,Sweden,Stockholm,2019-01-21,2023-07-02,active,free,organic,65,11.7
+u1015,Zoe,Kowalski,zoe.kowalski@example.pl,female,2000-05-05,Poland,Warsaw,2023-02-14,2023-12-01,active,basic,friend,55,14.3
+u1016,Mohammed,Ali,mohammed.ali@example.sa,male,1975-10-10,Saudi Arabia,Riyadh,2018-08-08,2023-03-18,active,premium,organic,420,50.5
+u1017,Grace,Nguyen,grace.nguyen@example.vn,female,1991-02-22,Vietnam,Hanoi,2020-10-03,2023-09-28,inactive,free,other,88,13.2
+u1018,Aarav,Singh,aarav.singh@example.in,male,2003-12-01,India,Mumbai,2022-03-17,2023-12-11,active,free,ad,122,17.6
+u1019,Olivia,Fernandez,olivia.fernandez@example.mx,female,1996-09-09,Mexico,Mexico City,2021-06-25,2023-08-30,active,premium,organic,270,33.4
+u1020,Arjun,Patel,arjun.patel@example.co,male,1984-03-15,United States,Los Angeles,2019-05-14,2023-11-02,active,basic,friend,140,21.8
+u_9d4f1f2a,Liam,Hughes,liam.hughes@example.com,male,1987-04-12,United States,Austin,2020-05-14,2023-11-22,active,premium,organic,312,22.5
+u_3e7a1c6b,Emma,Garcia,emma.garcia@example.org,female,1994-09-03,Canada,Toronto,2019-08-30,2023-08-15,active,basic,friend,128,17.2
+u_bb4f9a1e,Noah,Kim,noah.kim@example.net,male,1982-02-21,South Korea,Seoul,2018-11-02,2023-04-07,active,premium,ad,560,28.9
+u_7a2d8e3c,Olivia,Miller,olivia.miller@example.com,female,2001-07-19,United Kingdom,London,2021-01-22,2023-12-02,active,free,organic,89,9.8
+u_f6e3b2a9,Mason,Rodriguez,mason.rodriguez@example.com,male,1990-12-05,United States,Denver,2020-03-09,2023-09-28,active,basic,other,240,14.6
+u_2c9d4f7a,Sophia,Bernard,sophia.bernard@example.fr,female,1989-06-14,France,Paris,2018-07-15,2023-10-11,inactive,premium,friend,410,19.3
+u_1a8e4f3c,James,Brown,james.brown@example.co.uk,male,1978-03-28,United Kingdom,Manchester,2019-02-08,2023-05-19,suspended,basic,organic,95,11.4
+u_5d7a2e9f,Ava,Davis,ava.davis@example.com,female,1997-10-02,Australia,Sydney,2020-12-01,2023-03-28,active,premium,ad,310,26.1
+u_c2b1e4d8,Benjamin,Martinez,benjamin.martinez@example.mx,male,2004-01-18,Mexico,Mexico City,2022-04-17,2023-07-13,active,free,organic,76,8.5
+u_8f1a7b2c,Isabella,Gonzalez,isabella.gonzalez@example.es,female,1992-05-29,Spain,Madrid,2021-09-03,2023-02-24,inactive,basic,friend,143,12.7
+u_4e9c1f6a,Lucas,Perez,lucas.perez@example.ar,male,1985-08-07,Argentina,Buenos Aires,2018-06-21,2023-06-18,active,premium,organic,520,31.4
+u_3d5a6b9f,Mia,Lopez,mia.lopez@example.co,female,1999-11-11,Chile,Santiago,2020-10-12,2023-11-29,active,basic,other,210,15.0
+u_7f2e1a0c,Ethan,Sullivan,ethan.sullivan@example.ie,male,1983-02-02,Ireland,Dublin,2019-01-27,2023-04-03,active,free,ad,150,10.2
+u_6a3d4f8b,Chloe,Nguyen,chloe.nguyen@example.com,female,1995-07-21,Vietnam,Ho Chi Minh City,2021-06-14,2023-12-21,active,premium,organic,460,24.7
+u_9b1c2d7e,Daniel,Kim,daniel.kim@example.kr,male,1986-09-30,South Korea,Busan,2020-02-09,2023-03-09,active,basic,friend,270,16.4
+u_2a7f3e6d,Grace,Park,grace.park@example.kr,female,1993-04-16,South Korea,Incheon,2018-05-21,2023-01-12,active,premium,organic,515,29.2
+u_1d8c5b7a,Henry,Singh,henry.singh@example.in,male,1991-03-03,India,Mumbai,2019-07-07,2023-05-30,inactive,free,other,60,7.8
+u_5b9a2c1e,Ella,Nielsen,ella.nielsen@example.dk,female,1988-12-25,Denmark,Copenhagen,2020-08-19,2023-07-22,active,premium,ad,350,21.9
+u_4a2e7d9c,Samuel,Liu,samuel.liu@example.com,male,1996-01-12,Singapore,Singapore,2022-03-04,2023-10-07,active,basic,organic,190,13.3
+u_0d3f8b2a,Zoe,Martin,zoe.martin@example.ca,female,2000-08-08,Canada,Vancouver,2021-04-28,2023-05-15,active,free,friend,102,9.1
+u_8a4d6f1e,Caleb,White,caleb.white@example.us,male,1980-10-10,United States,Portland,2017-09-13,2023-02-04,suspended,basic,organic,420,18.5
+u_2e6b3a9c,Layla,Brown,layla.brown@example.com,female,1998-06-25,New Zealand,Auckland,2022-11-11,2023-12-12,active,premium,ad,290,23.1
+u_1,Liam,Griffin,liam.griffin@example.com,male,1989-04-12,Canada,Toronto,2020-05-14,2023-08-22,active,premium,organic,312,25.7
+u_2,Emma,Kumar,emma.kumar@example.org,female,1995-11-03,India,Bengaluru,2019-09-30,2023-11-02,active,basic,friend,188,17.4
+u_3,Noah,Chen,noah.chen@example.com,male,1982-02-26,United States,San Francisco,2018-03-21,2023-04-18,active,premium,organic,420,34.2
+u_4,Ava,Silva,ava.silva@example.net,female,1999-07-15,Brazil,São Paulo,2021-01-11,2023-12-08,inactive,free,ad,72,9.8
+u_5,Mason,Dubois,mason.dubois@example.fr,male,1987-09-09,France,Paris,2020-07-22,2023-03-15,active,basic,other,260,21.3
+u_6,Sophia,Kwon,sophia.kwon@example.co.kr,female,1992-05-28,South Korea,Seoul,2019-04-18,2023-09-27,active,premium,organic,340,28.9
+u_7,Jacob,Müller,jacob.muller@example.de,male,1985-12-02,Germany,Munich,2020-10-05,2023-10-05,suspended,free,friend,120,12.5
+u_8,Isabella,Costa,isabella.costa@example.pt,female,1997-03-19,Portugal,Lisbon,2022-02-14,2023-12-19,active,basic,organic,98,14.1
+u_9,Ethan,Patel,ethan.patel@example.in,male,1990-08-08,India,Mumbai,2018-12-01,2023-05-07,active,premium,ad,510,42.6
+u_10,Olivia,Santos,olivia.santos@example.br,female,1993-01-22,Brazil,Rio de Janeiro,2019-06-30,2023-07-15,inactive,free,other,44,7.2
+u_11,Lucas,Ng,lucas.ng@example.sg,male,1986-06-17,Singapore,Singapore,2021-09-10,2023-06-25,active,basic,organic,210,19.0
+u_12,Chloe,O'Connor,chloe.oconnor@example.ie,female,1998-10-04,Ireland,Dublin,2022-08-03,2023-02-28,active,premium,friend,278,23.5
+u_13,Henry,Ivanov,henry.ivanov@example.ru,male,1983-03-30,Russia,Moscow,2020-11-20,2023-04-12,active,basic,other,310,16.8
+u_14,Grace,Lee,grace.lee@example.com,female,1994-02-14,Canada,Vancouver,2018-05-05,2023-12-01,active,premium,organic,375,29.2
+u_15,Daniel,Silva,daniel.silva@example.co,male,1989-09-09,Portugal,Porto,2021-04-22,2023-08-08,inactive,free,ad,60,8.7
+u_16,Mia,Rossi,mia.rossi@example.it,female,1996-07-07,Italy,Milan,2019-03-17,2023-11-30,active,basic,organic,190,15.9
+u_17,James,Brown,james.brown@example.com,male,1980-12-25,United States,New York,2018-01-22,2023-03-22,active,premium,friend,650,44.1
+u_18,Ella,Nguyen,ella.nguyen@example.vn,female,1991-05-05,Vietnam,Ho Chi Minh City,2020-10-10,2023-05-30,active,basic,organic,220,18.4
+u_19,Jack,Schmidt,jack.schmidt@example.de,male,1984-08-18,Germany,Hamburg,2019-12-12,2023-09-14,suspended,free,other,15,6.3
+u_20,Aria,Patel,aria.patel@example.co,female,1993-03-03,United States,Chicago,2020-06-16,2023-07-28,active,basic,organic,145,12.0
+u_4jK9xQ2p,Maya,Kovács,maya.kovacs@example.hu,female,1984-07-12,Hungary,Budapest,2020-03-15,2023-11-08,active,premium,organic,212,38.5
+u_Pq7V4t1,Liam,Nguyen,liam.nguyen@example.com,male,1992-02-28,United States,San Francisco,2019-08-22,2023-12-02,active,basic,ad,145,24.2
+u_2Z6hXbQ,Sophie,Dupont,sophie.dupont@example.fr,female,1988-11-03,France,Lyon,2021-05-10,2023-09-17,active,premium,friend,310,52.1
+u_Rt7mQw8,Kai,Müller,kai.mueller@example.de,non-binary,1996-04-19,Germany,Berlin,2020-12-01,2023-08-24,active,basic,organic,89,19.7
+u_V9nW3s2,Amina,Ali,amina.ali@example.co.uk,female,1985-09-14,United Kingdom,London,2018-07-07,2023-05-13,inactive,free,other,34,12.4
+u_T3qZ8p6,Jonas,Schmidt,jonas.schmidt@example.de,male,1979-03-22,Germany,Munich,2019-01-18,2023-03-28,active,premium,friend,512,61.3
+u_Y2mR4l9,Elena,Rossi,elena.rossi@example.it,female,1990-06-07,Italy,Milan,2020-06-30,2023-10-11,active,basic,organic,204,34.6
+u_Sk5J9d1,Mateo,Garcia,mateo.garcia@example.es,male,1994-12-02,Spain,Madrid,2022-02-14,2023-07-22,suspended,free,ad,72,18.9
+u_Ap8Q2t4,Hannah,Schwartz,hannah.schwartz@example.de,female,1983-01-29,Germany,Hamburg,2018-03-09,2023-12-20,active,premium,organic,420,47.8
+u_L7tW3k5,Noah,Brown,noah.brown@example.com,male,1998-10-16,Canada,Toronto,2021-04-25,2023-04-02,active,basic,friend,168,29.1
+u_8QwV6j7,Ava,Kumar,ava.kumar@example.in,female,1995-07-20,India,Mumbai,2019-09-13,2023-11-30,active,premium,organic,260,41.2
+u_Zx9P4c2,Oliver,Smith,oliver.smith@example.co.nz,male,1980-05-05,New Zealand,Auckland,2020-10-21,2023-06-29,active,basic,other,95,22.5
+u_Bn3Q6v8,Chloe,Ng,chloe.ng@example.com,female,1993-02-11,Singapore,Singapore,2022-08-08,2023-01-15,inactive,free,ad,12,9.4
+u_Gt5F2p1,Ethan,Patel,ethan.patel@example.co,male,1987-09-09,United States,New York,2019-12-01,2023-02-18,active,premium,organic,390,55.0
+u_yZ8W4m3,Zoë,Duarte,zoe.duarte@example.pt,female,1991-03-25,Portugal,Lisbon,2020-04-04,2023-07-09,active,premium,friend,240,44.7
+u_Qv6D1r2,Lucas,Silva,lucas.silva@example.br,male,1989-08-08,Brazil,Sao Paulo,2021-11-11,2023-05-01,active,basic,organic,150,27.3
+u_Xc2J5e9,Julia,Ivanova,julia.ivanova@example.ru,female,1997-12-19,Russia,Moscow,2018-02-20,2023-12-25,active,free,ad,60,14.8
+u_Mn4B7l6,Daniel,O'Connor,daniel.oconnor@example.ie,male,1982-04-14,Ireland,Dublin,2019-05-07,2023-03-02,inactive,basic,other,25,11.0
+u_Jk8L2f3,Isabella,Martinez,isabella.martinez@example.mx,female,1996-01-30,Mexico,Mexico City,2020-07-19,2023-09-09,active,premium,organic,275,48.0
+u_Rd1H9t4,Aaron,Koch,aaron.koch@example.de,male,1983-06-02,Germany,Cologne,2018-09-14,2023-10-05,active,basic,friend,188,33.2
+u_Vm3G7s9,Chad,Nguyen,chad.nguyen@example.vn,male,1999-04-21,Vietnam,Hanoi,2022-01-25,2023-04-17,active,free,organic,75,16.0
+u_Oc5P8d2,Priya,Sharma,priya.sharma@example.in,female,1986-08-18,India,Delhi,2020-03-03,2023-12-03,active,premium,organic,333,57.4
+u10001,Amina,Khan,amina.khan@example.com,female,1985-04-12,Pakistan,Lahore,2020-05-14,2023-11-02,active,premium,organic,128,32.7
+u10002,Liam,O'Connor,liam.oconnor@example.com,male,1992-09-03,Ireland,Dublin,2019-03-22,2023-10-18,active,basic,friend,210,25.4
+u10003,Mei,Chen,mei.chen@example.com,female,1980-01-28,China,Shanghai,2021-07-09,2023-09-30,active,premium,organic,389,44.1
+u10004,Jon,Müller,jon.mueller@example.com,male,1975-11-02,Germany,Berlin,2020-12-01,2023-12-01,inactive,free,ad,76,12.6
+u10005,Sophia,Garcia,sophia.garcia@example.com,female,1999-06-15,Spain,Madrid,2018-02-10,2023-03-18,active,premium,other,540,58.9
+u10006,Noah,Kim,noah.kim@example.com,male,1988-03-22,South Korea,Seoul,2020-08-21,2023-08-11,active,basic,organic,312,22.3
+u10007,Ava,Dubois,ava.dubois@example.com,female,1995-12-05,France,Paris,2022-01-15,2023-07-22,active,premium,friend,184,34.0
+u10008,Ethan,Patel,ethan.patel@example.com,male,1990-07-19,India,Mumbai,2019-06-03,2023-04-29,suspended,free,ad,98,9.8
+u10009,Zoe,Kovářová,zoe.kovarova@example.com,female,2003-02-18,Czechia,Prague,2021-11-28,2023-12-20,active,basic,organic,66,15.2
+u10010,Lucas,Silva,lucas.silva@example.com,male,1987-05-30,Brazil,Sao Paulo,2020-09-07,2023-06-14,active,premium,other,421,41.7
+u10011,Isabella,Rossi,isabella.rossi@example.com,female,1993-10-12,Italy,Rome,2018-04-20,2023-11-04,inactive,free,friend,140,18.5
+u10012,Mohamed,Hassan,mohamed.hassan@example.com,male,1982-08-08,Egypt,Cairo,2019-05-27,2023-05-05,active,basic,organic,260,27.9
+u10013,Emma,Schmidt,emma.schmidt@example.com,female,1997-03-03,Austria,Vienna,2022-03-18,2023-12-31,active,premium,organic,310,39.4
+u10014,Daniel,Nguyen,daniel.nguyen@example.com,male,1991-09-09,Vietnam,Hanoi,2018-10-04,2023-08-07,active,basic,ad,205,26.1
+u10015,Chloe,Brown,chloe.brown@example.com,female,2000-01-25,Canada,Toronto,2021-06-22,2023-12-10,active,premium,friend,355,45.2
+u10016,Mateo,Gonzalez,mateo.gonzalez@example.com,male,1996-04-14,Mexico,Mexico City,2020-02-11,2023-07-03,inactive,free,organic,120,14.7
+u10017,Sophie,Dubois,sophie.dubois@example.com,female,1998-08-08,Belgium,Brussels,2022-09-19,2023-03-12,active,basic,other,190,22.8
+u10018,Lucas,Martinez,lucas.martinez@example.com,male,1983-12-22,Argentina,Buenos Aires,2019-01-30,2023-02-14,active,premium,organic,480,52.6
+u10019,Grace,Lee,grace.lee@example.com,female,2005-04-04,Singapore,Singapore,2023-04-01,2023-12-22,active,free,ad,15,7.2
+u10020,Oliver,Santos,oliver.santos@example.com,male,1989-11-11,Portugal,Lisbon,2021-10-05,2023-10-04,active,basic,friend,267,29.5
+U1001,Aiden,Kaplan,a.kaplan91@example.com,male,1989-03-14,United States,Austin,2020-05-21,2023-11-17,active,premium,organic,312,23.4
+U1002,Grace,Nguyen,grace.nguyen54@example.org,female,1994-07-02,Canada,Vancouver,2019-08-03,2023-09-12,active,basic,friend,150,17.8
+U1003,Liam,Santos,liam.santos310@example.net,male,1982-11-28,Brazil,São Paulo,2018-02-14,2023-04-28,inactive,free,ad,42,9.6
+U1004,Mira,Patel,mira.patel77@example.co,female,1999-05-19,India,Mumbai,2021-12-01,2023-12-01,active,premium,organic,275,31.2
+U1005,Jon,O'Connor,jon.oconnor89@example.com,male,1978-01-05,Ireland,Dublin,2020-03-18,2023-03-09,suspended,basic,other,88,12.4
+U1006,Isabella,Rossi,isabella.rossi12@example.it,female,1991-09-22,Italy,Milan,2019-07-26,2023-10-19,active,premium,friend,210,25.7
+U1007,Noah,Kim,noah.kim44@example.kr,male,2000-04-30,South Korea,Seoul,2022-01-11,2023-08-22,active,free,organic,98,14.1
+U1008,Sophie,Dubois,sophie.dubois67@example.fr,female,1996-02-14,France,Lyon,2020-10-07,2023-06-03,active,basic,ad,180,19.3
+U1009,Arjun,Sharma,arjun.sharma23@example.in,non-binary,1985-12-01,India,Delhi,2018-06-15,2023-05-29,inactive,free,organic,65,11.0
+U1010,Emma,Hernandez,emma.hernandez92@example.es,female,1993-08-08,Spain,Madrid,2019-04-02,2023-12-03,active,premium,other,240,27.6
+U1011,Lucas,van der Meer,lucas.vandermeer11@example.nl,male,1987-03-21,Netherlands,Amsterdam,2021-09-19,2023-07-14,active,basic,friend,132,16.9
+U1012,Chloe,Ng,chloe.ng77@example.com,female,2002-11-30,Singapore,Singapore,2023-02-28,2023-11-23,active,free,organic,60,9.8
+U1013,Mateo,Silva,mateo.silva66@example.br,male,1997-07-07,Brazil,Rio de Janeiro,2018-12-12,2023-02-25,active,premium,ad,320,28.9
+U1014,Olivia,Meyer,olivia.meyer44@example.de,female,1984-05-17,Germany,Berlin,2020-06-30,2023-03-05,inactive,basic,organic,110,15.2
+U1015,Ethan,Brown,ethan.brown12@example.co.uk,male,1990-10-03,United Kingdom,London,2021-05-15,2023-12-18,active,premium,friend,260,22.1
+U1016,Nina,Petrov,nina.petrov88@example.bg,female,1995-09-09,Bulgaria,Sofia,2019-01-25,2023-04-12,active,basic,other,145,18.5
+U1017,Kai,Wang,kai.wang14@example.cn,non-binary,2001-06-26,China,Shanghai,2022-08-08,2023-10-10,active,free,organic,75,13.3
+U1018,Zoe,Ivanova,zoe.ivanova33@example.bg,female,1998-12-12,Russia,Moscow,2020-03-04,2023-06-28,active,premium,ad,190,24.7
+U1019,Henry,Singh,henry.singh55@example.sg,male,1986-02-02,Singapore,Singapore,2018-09-09,2023-05-07,suspended,basic,organic,55,10.4
+U1020,Ava,Kim,ava.kim21@example.au,female,1992-04-04,Australia,Sydney,2021-11-11,2023-12-22,active,premium,friend,295,26.5
+u10001,Alex,Rivera,alex.rivera74@example.com,male,1985-04-12,USA,San Diego,2020-06-15,2023-09-08,active,basic,organic,214,18.5
+u10002,Priya,Nair,priya.nair92@example.co,female,1992-11-30,India,Bengaluru,2019-02-28,2023-12-07,active,premium,friend,367,26.2
+u10003,Chen,Wang,chen.wang67@example.cn,male,1980-07-19,China,Shanghai,2018-11-20,2023-04-14,active,free,organic,128,12.4
+u10004,Elena,Silva,elena.silva56@example.es,female,1990-03-04,Spain,Madrid,2021-09-05,2023-10-22,inactive,basic,ad,82,9.8
+u10005,Mika,Koskinen,mika.koskinen09@example.fi,non-binary,1988-01-22,Finland,Helsinki,2020-03-18,2023-07-19,active,premium,other,540,34.7
+u10006,Sofia,Martinez,sofia.martinez34@example.mx,female,1995-08-09,Mexico,Guadalajara,2022-01-10,2023-11-02,active,premium,organic,290,21.1
+u10007,Liam,O'Connor,liam.oconnor18@example.ie,male,1982-05-28,Ireland,Dublin,2018-04-22,2023-06-12,suspended,basic,friend,64,7.5
+u10008,Aiko,Tanaka,aiko.tanaka77@example.jp,female,1999-12-03,Japan,Tokyo,2020-12-01,2023-12-26,active,free,ad,150,11.9
+u10009,Daniel,Schmidt,daniel.schmidt54@example.de,male,1991-06-14,Germany,Berlin,2019-07-14,2023-03-29,active,basic,organic,210,17.3
+u10010,Grace,Kim,grace.kim02@example.co.kr,female,1986-02-27,South Korea,Seoul,2019-05-07,2023-05-31,inactive,free,other,0,0.0
+u10011,Mohammed,Ali,mohammed.ali65@example.sa,male,1984-09-09,Saudi Arabia,Riyadh,2020-08-16,2023-08-09,active,premium,organic,420,22.6
+u10012,Emma,Brown,emma.brown11@example.uk,female,1997-10-02,United Kingdom,London,2021-02-03,2023-09-01,active,basic,friend,310,19.2
+u10013,André,Souza,andre.souza88@example.br,male,1978-04-15,Brazil,Sao Paulo,2018-07-29,2023-04-02,suspended,premium,ad,95,8.7
+u10014,Fatima,Al-Yami,fatima.al-yami33@example.sa,female,1993-03-21,United Arab Emirates,Dubai,2022-09-11,2023-12-10,active,premium,organic,260,24.0
+u10015,Oliver,Nielsen,oliver.nielsen77@example.no,male,1990-01-09,Norway,Oslo,2020-04-05,2023-06-28,active,basic,other,180,16.5
+u10016,Chloe,Dubois,chloe.dubois54@example.fr,female,1994-07-17,France,Paris,2019-10-21,2023-07-15,inactive,free,organic,40,6.3
+u10017,Nikolai,Popov,nikolai.popov22@example.ru,male,1987-05-05,Russia,Moscow,2017-03-14,2023-02-08,active,premium,friend,480,28.9
+u10018,Olivia,Martin,olivia.martin68@example.ca,female,1996-12-25,Canada,Toronto,2021-08-26,2023-12-02,active,premium,organic,420,23.7
+u10019,Jon,Kim,jon.kim34@example.com,male,1989-09-03,USA,New York,2019-06-11,2023-10-21,active,basic,ad,260,15.4
+u10020,Sara,Gonzalez,sara.gonzalez77@example.mx,female,1993-04-18,Mexico,Cancun,2020-01-15,2023-11-29,active,free,organic,88,9.0
+u1001,Liam,Anderson,liam.anderson@example.com,male,1989-04-14,United States,Seattle,2020-06-12,2023-09-18,active,premium,organic,312,22.5
+u1002,Sophia,Martinez,sophia.martinez@example.com,female,1995-11-02,Canada,Toronto,2019-03-28,2023-12-01,active,basic,friend,178,15.2
+u1003,Noah,Kim,noah.kim@example.com,male,1982-07-19,South Korea,Seoul,2018-01-15,2023-03-22,active,free,ad,92,9.8
+u1004,Emma,Williams,emma.williams@example.com,female,1998-02-25,United Kingdom,London,2021-11-07,2023-08-03,inactive,premium,organic,54,26.1
+u1005,Oliver,Patel,oliver.patel@example.com,male,1980-09-30,India,Mumbai,2020-02-19,2023-07-14,active,basic,friend,230,18.4
+u1006,Ava,Garcia,ava.garcia@example.com,female,1992-05-14,Spain,Madrid,2018-09-03,2023-11-26,active,premium,other,410,21.7
+u1007,Lucas,Brown,lucas.brown@example.com,male,1987-12-03,Australia,Sydney,2022-04-21,2023-10-30,active,free,organic,120,12.3
+u1008,Mia,Davis,mia.davis@example.com,female,1999-08-27,Germany,Berlin,2020-12-02,2023-04-09,suspended,basic,ad,67,14.0
+u1009,James,Clark,james.clark@example.com,male,1976-03-21,United States,New York,2018-05-16,2023-01-28,active,premium,organic,560,32.4
+u1010,Isabella,Rodriguez,isabella.rodriguez@example.com,female,2001-01-05,Mexico,Mexico City,2021-07-29,2023-05-07,active,basic,friend,145,17.8
+u1011,Ethan,Lopez,ethan.lopez@example.com,male,1984-10-10,Brazil,Sao Paulo,2019-08-11,2023-12-12,active,premium,organic,260,19.6
+u1012,Amelia,Gonzalez,amelia.gonzalez@example.com,female,1993-04-02,Argentina,Buenos Aires,2020-01-25,2023-03-18,inactive,free,other,40,8.5
+u1013,Henry,Martin,henry.martin@example.com,male,1979-06-16,France,Paris,2018-03-30,2023-02-14,active,basic,ad,210,16.9
+u1014,Ella,Hernandez,ella.hernandez@example.com,female,1996-09-09,Italy,Milan,2021-08-19,2023-07-25,active,premium,organic,320,23.1
+u1015,Alexander,Santos,alexander.santos@example.com,male,1983-02-28,Portugal,Lisbon,2022-02-02,2023-09-14,active,premium,friend,390,20.2
+u1016,Grace,Kim,grace.kim@example.com,non-binary,1990-12-12,South Korea,Busan,2020-10-10,2023-12-09,active,basic,organic,210,15.7
+u1017,Benjamin,Ng,benjamin.ng@example.com,male,1994-03-07,Singapore,Singapore,2019-04-04,2023-11-02,active,basic,ad,150,13.6
+u1018,Chloe,Wright,chloe.wright@example.com,female,2000-06-22,New Zealand,Auckland,2021-05-13,2023-10-07,active,free,organic,88,10.4
+u1019,Daniel,Young,daniel.young@example.com,male,1988-01-01,Canada,Vancouver,2018-12-21,2023-06-18,inactive,free,other,60,7.9
+u1020,Victoria,Lopez,victoria.lopez@example.com,female,1991-09-28,Spain,Barcelona,2020-07-07,2023-08-15,active,premium,organic,260,21.0
+u1072,Liam,Nguyen,liam.nguyen74@example.com,male,1986-04-12,United States,Seattle,2019-05-20,2023-08-14,active,premium,organic,312,18.5
+u2046,Ava,Kim,ava.kim33@example.org,female,1992-11-03,Canada,Toronto,2020-11-02,2023-11-02,active,basic,friend,198,12.9
+u3098,Noah,Singh,noah.singh58@example.net,male,1980-07-19,India,Mumbai,2018-07-28,2023-04-22,active,premium,ad,450,25.2
+u4102,Emma,Garcia,emma.garcia10@example.com,female,1998-02-28,Spain,Madrid,2021-01-15,2023-12-12,active,free,organic,76,8.4
+u5126,Olivia,Brown,olivia.brown72@example.co.uk,female,1979-09-09,United Kingdom,London,2019-03-03,2023-10-01,inactive,basic,other,120,14.6
+u6150,James,Miller,james.miller45@example.com,male,1966-12-22,Australia,Sydney,2018-12-10,2023-05-18,suspended,premium,friend,210,19.1
+u7164,Sophia,Davis,sophia.davis92@example.org,female,2000-05-14,Germany,Berlin,2020-06-07,2023-09-03,active,basic,organic,260,11.7
+u8188,Lucas,Hernandez,lucas.hernandez63@example.com,male,1995-03-30,Mexico,Mexico City,2021-09-21,2023-07-29,active,premium,ad,340,22.4
+u9202,Mia,Lopez,mia.lopez21@example.net,female,1987-08-08,Argentina,Buenos Aires,2019-04-11,2023-03-25,active,free,other,145,9.2
+u1026,Ethan,Wilson,ethan.wilson77@example.com,male,1983-01-22,United States,New York,2020-02-20,2023-02-14,active,basic,organic,310,16.8
+u1120,Charlotte,Anderson,charlotte.anderson54@example.org,female,1991-10-02,Canada,Vancouver,2022-03-25,2023-01-18,active,premium,friend,270,21.3
+u1214,Henry,Thomas,henry.thomas12@example.co,male,1969-04-16,United States,Chicago,2018-08-14,2023-06-07,inactive,free,organic,50,6.5
+u1318,Amelia,Martinez,amelia.martinez89@example.org,female,1996-06-21,Spain,Barcelona,2020-10-10,2023-04-29,active,basic,ad,190,12.1
+u1422,Daniel,Brown,daniel.brown44@example.com,male,1989-12-04,Canada,Montreal,2021-12-01,2023-11-20,active,premium,organic,410,26.7
+u1510,Isabella,Clark,isabella.clark37@example.net,female,2003-02-17,Australia,Melbourne,2022-04-05,2023-08-28,active,free,friend,90,7.8
+u1614,Benjamin,Lewis,benjamin.lewis66@example.com,male,1981-09-09,United Kingdom,Manchester,2018-05-16,2023-03-05,active,premium,other,520,29.9
+u1718,Grace,Walker,grace.walker55@example.org,female,1975-07-07,Ireland,Dublin,2019-08-24,2023-12-01,active,basic,organic,260,13.0
+u1822,Jack,Young,jack.young29@example.com,male,1999-01-25,New Zealand,Auckland,2021-01-30,2023-11-08,active,premium,ad,330,17.2
+u1910,Ella,Scott,ella.scott08@example.net,female,1994-03-03,France,Paris,2020-07-07,2023-10-12,active,basic,other,215,14.3
+u2014,Lucas,King,lucas.king77@example.com,male,1988-08-18,Italy,Rome,2019-09-09,2023-04-04,active,free,organic,125,9.9
+u2108,Chloe,Wright,chloe.wright66@example.org,female,2002-12-12,Netherlands,Amsterdam,2023-01-02,2023-12-28,active,basic,friend,60,6.2
+u2212,Michael,Lopez,michael.lopez54@example.net,male,1973-10-10,Portugal,Lisbon,2018-03-18,2023-05-25,inactive,premium,ad,180,15.5
+u2318,Sophie,Sanchez,sophie.sanchez21@example.com,female,1990-06-06,Spain,Seville,2021-06-30,2023-07-07,active,premium,organic,360,20.1
+u_1001,Ava,Keller,ava.keller@example.com,female,1989-04-12,United States,Seattle,2020-06-15,2023-11-02,active,premium,organic,312,22.5
+u_1002,Liam,Nguyen,liam.nguyen@example.com,male,1995-09-03,Canada,Vancouver,2019-03-22,2023-09-18,active,basic,ad,145,18.2
+u_1003,Sophia,Miller,sophia.miller@example.com,female,1982-01-28,Germany,Berlin,2021-11-10,2023-12-05,active,premium,friend,480,27.9
+u_1004,Noah,Schmidt,noah.schmidt@example.com,male,1978-07-19,Germany,Munich,2018-07-02,2023-04-12,inactive,free,organic,60,12.4
+u_1005,Emma,Davis,emma.davis@example.com,female,1999-02-14,United Kingdom,London,2020-01-30,2023-11-28,active,premium,friend,260,19.8
+u_1006,James,Brown,james.brown@example.com,male,1986-05-07,United States,New York,2022-05-21,2023-12-01,active,basic,organic,310,15.6
+u_1007,Isabella,Conti,isabella.conti@example.com,female,1970-12-02,Italy,Rome,2019-09-14,2023-08-22,suspended,free,ad,90,9.7
+u_1008,Lucas,Silva,lucas.silva@example.com,male,1992-03-20,Brazil,Sao Paulo,2020-10-05,2023-12-10,active,premium,organic,410,24.1
+u_1009,Mia,Rossi,mia.rossi@example.com,female,2001-08-18,Italy,Milan,2021-04-28,2023-07-31,active,basic,friend,190,14.3
+u_1010,Oliver,Garcia,oliver.garcia@example.com,male,1984-11-11,Spain,Madrid,2020-02-12,2023-05-22,inactive,free,other,75,8.9
+u_1011,Amelia,Khan,amelia.khan@example.com,female,1997-06-25,India,Mumbai,2018-12-01,2023-04-14,active,premium,organic,520,28.4
+u_1012,Ethan,Lee,ethan.lee@example.com,male,1989-02-02,South Korea,Seoul,2020-08-09,2023-03-27,active,basic,ad,330,16.1
+u_1013,Chloe,Martin,chloe.martin@example.com,female,1994-10-10,France,Paris,2019-06-18,2023-12-16,active,premium,other,290,21.2
+u_1014,Benjamin,Dubois,benjamin.dubois@example.com,male,1981-01-22,France,Lyon,2021-03-04,2023-09-09,inactive,free,organic,40,7.8
+u_1015,Layla,Ng,layla.ng@example.com,female,1990-04-04,Singapore,Singapore,2022-07-07,2023-10-15,active,basic,friend,230,17.5
+u_1016,Mateo,Hernandez,mateo.hernandez@example.com,male,1996-09-09,Mexico,Mexico City,2020-05-25,2023-08-01,active,premium,organic,450,26.7
+u_1017,Sofia,Martinez,sofia.martinez@example.com,female,1987-12-31,Argentina,Buenos Aires,2018-11-26,2023-12-23,active,premium,ad,380,23.4
+u_1018,Henry,O'Connor,henry.oconnor@example.com,male,1975-03-16,Ireland,Dublin,2019-01-19,2023-02-28,inactive,basic,other,110,11.2
