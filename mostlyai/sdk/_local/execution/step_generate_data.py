@@ -70,7 +70,7 @@ def execute_step_generate_data(
     else:
         model_config = tgt_g_table.tabular_model_configuration
 
-    # handle sample size / seed (only applies to subject tables)
+    # handle sample size / seed
     is_subject = not (any(fk.is_context for fk in (tgt_g_table.foreign_keys or [])))
     if is_subject:
         if sample_seed is None and config.sample_size is not None:
@@ -78,7 +78,7 @@ def execute_step_generate_data(
         else:
             sample_size = None
     else:
-        sample_size = sample_seed = None
+        sample_size = None
 
     # ensure disallowed arguments are set to None
     if model_type == ModelType.language:

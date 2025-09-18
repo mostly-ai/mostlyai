@@ -15,7 +15,8 @@ gen-public-model: ## build pydantic models for public api
 	datamodel-codegen --url $(PUBLIC_API_FULL_URL) $(COMMON_OPTIONS)
 	#datamodel-codegen --input ../mostly-app-v2/public-api/public-api.yaml $(COMMON_OPTIONS)
 	python tools/postproc_domain.py
-	uv run --no-sync pre-commit run --all-files
+	# run pre-commit hooks to add license and lint the generated code; ignore the exit code to avoid confusion
+	uv run --no-sync pre-commit run --all-files > /dev/null 2>&1 || true
 
 # Common options for both targets
 COMMON_OPTIONS = \
@@ -46,7 +47,7 @@ HOST_LOCAL_DIR ?=
 
 .PHONY: docker-build
 docker-build: ## Build the docker image
-	docker buildx build . --platform=linux/amd64 -t quay.io/mostlyai/sdk
+	docker buildx build . --platform=linux/amd64 -t ghcr.io/mostly-ai/sdk
 
 .PHONY: docker-run
 docker-run: ## Start the docker container
@@ -56,7 +57,7 @@ docker-run: ## Start the docker container
 	@if [ -z "$(HOST_LOCAL_DIR)" ]; then \
             docker run --platform=linux/amd64 -it -p $(HOST_PORT):8080 \
             -v ~/.cache/huggingface:/home/nonroot/.cache/huggingface \
-            quay.io/mostlyai/sdk ; \
+            ghcr.io/mostly-ai/sdk ; \
         else \
             if [ ! -d $(HOST_LOCAL_DIR) ]; then \
                 echo "Failed to mount local_dir: $(HOST_LOCAL_DIR) does not exist"; \
@@ -68,7 +69,7 @@ docker-run: ## Start the docker container
               -v $$REAL_PATH:/home/nonroot/mostlyai \
               -v ~/.cache/huggingface:/home/nonroot/.cache/huggingface \
               -v /opt/app-root/src/mostlyai/.venv \
-              quay.io/mostlyai/sdk ; \
+              ghcr.io/mostly-ai/sdk ; \
         fi;
 
 # Default files to update
