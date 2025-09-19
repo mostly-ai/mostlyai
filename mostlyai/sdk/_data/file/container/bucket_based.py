@@ -84,13 +84,6 @@ class BucketBasedContainer(FileContainer, abc.ABC):
         location = self.normalize_bucket_location(location)
         return super().set_location(location)
 
-    def strip_slash(self, path: str):
-        if path is None:
-            return None
-        if path.startswith("/"):
-            path = path[1:]
-        return path
-
     def list_locations(self, prefix: str | None) -> list[str]:
         """
         List the available locations of a given prefix.
@@ -107,13 +100,16 @@ class BucketBasedContainer(FileContainer, abc.ABC):
         locations = []
         try:
             protocol = self.path_prefix
-            if not prefix or prefix == "/":
-                prefix = "/"
-            elif not prefix.startswith(protocol):
-                prefix = protocol + prefix
-            if self.file_system.exists(prefix):
-                # Strip redundant slashes if any
-                prefix = prefix.rstrip("/") + "/" if self.file_system.isdir(prefix) else prefix.rstrip("/")
+            prefix = prefix or ""
+            # strip ending slashes that are not part of the protocol
+            prefix = protocol + prefix.removeprefix(protocol).rstrip("/")
+            # NOTE: with gcsfs >= 2025.5.0, GCSFileSystem's exists() and isdir() do not work properly for root prefix
+            # so we need to ensure that those functions are not called in this case
+            is_root = prefix == protocol
+            if is_root or self.file_system.exists(prefix):
+                if not is_root:
+                    # only add ending slash for directories
+                    prefix = prefix + "/" if self.file_system.isdir(prefix) else prefix
                 # Directories come first
                 locations = sorted(
                     self.file_system.ls(prefix, detail=True),
