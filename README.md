@@ -22,7 +22,7 @@ The SDK allows you to programmatically create, browse and manage 4 key resources
 1. **Generators** - Train a synthetic data generator on your existing tabular or language data assets
 2. **Synthetic Datasets** - Use a generator to create any number of synthetic samples to your needs
 3. **Connectors** - Connect to any data source within your organization, for reading and writing data
-4. **Datasets** - Create a dataset using a local file or remote location and share it with others
+4. **Datasets** - Create a dataset with instructions and optional connectors and files for Assistant (CLIENT mode only)
 
 | Intent                                        | Primitive                         | API Reference                                                                                                 |
 |-----------------------------------------------|-----------------------------------|---------------------------------------------------------------------------------------------------------------|
