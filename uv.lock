@@ -3424,7 +3424,7 @@ wheels = [
 
 [[package]]
 name = "mostlyai"
-version = "5.2.2"
+version = "5.2.3"
 source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
@@ -3573,8 +3573,8 @@ requires-dist = [
     { name = "joblib", marker = "extra == 'local'", specifier = ">=1.4.2" },
     { name = "joblib", marker = "extra == 'local-gpu'", specifier = ">=1.4.2" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
-    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.5.5" },
-    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.5.5" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=dplstm-flat" },
+    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=dplstm-flat" },
     { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.9.8" },
     { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.9.8" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
@@ -3651,7 +3651,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.5.5"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=dplstm-flat#44a4f36e737b9f7a1dbcdde89a02fc1c73efbf37" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
@@ -3671,10 +3671,6 @@ dependencies = [
     { name = "torchvision" },
     { name = "transformers" },
     { name = "xgrammar" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/70/ca/09f383cc9c470ce82c0da1c44c06188dae3cd42a718fc5f2b605321dee5f/mostlyai_engine-1.5.5.tar.gz", hash = "sha256:f45963019fb0d15e64dc73b578523f2812eea1bf27eb59487f148604a642cd1e", size = 115537, upload-time = "2025-09-18T09:00:23.343Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/4c/782c0e07b01cfe6614d6bf29e03c3f9dc4953010676c6a53623800abbb3c/mostlyai_engine-1.5.5-py3-none-any.whl", hash = "sha256:3062e26ee121b5e4ba45fe284e3293dac7338630fbe5e33647f6d90113d68a83", size = 154888, upload-time = "2025-09-18T09:00:22.081Z" },
 ]
 
 [package.optional-dependencies]
