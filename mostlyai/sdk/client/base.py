@@ -95,7 +95,6 @@ class _MostlyBaseClient:
         response_type: type = dict,
         raw_response: bool = False,
         is_api_call: bool = True,
-        do_json_camel_case: bool = True,
         do_response_dict_snake_case: bool = True,
         do_include_client: bool = True,
         extra_key_values: dict | None = None,
@@ -110,7 +109,6 @@ class _MostlyBaseClient:
             response_type (type | None): Type to cast the response into. Defaults to dict.
             raw_response (bool): Whether to return the raw response object. Defaults to False.
             is_api_call (bool): If False, skips prefixing API_SECTION and SECTION. Defaults to True.
-            do_json_camel_case (bool): Convert the provided JSON to camelCase. Defaults to True.
             do_response_dict_snake_case (bool): Convert the response dictionary to snake_case. Defaults to True.
             do_include_client (bool): Include the client property in the returned object. Defaults to True.
             extra_key_values (dict | None): Additional key-value pairs to include in the response object.
@@ -133,13 +131,14 @@ class _MostlyBaseClient:
         if (request_size := _get_total_size(kwargs)) > MAX_REQUEST_SIZE:
             warnings.warn(f"The overall {request_size=} exceeds {MAX_REQUEST_SIZE}.", UserWarning)
 
-        if "json" in kwargs and do_json_camel_case:
+        if "json" in kwargs:
             if isinstance(kwargs["json"], BaseModel):
                 kwargs["json"] = kwargs["json"].model_dump()
-            kwargs["json"] = map_snake_to_camel_case(kwargs["json"])
-        if "params" in kwargs and do_json_camel_case:
-            if isinstance(kwargs["params"], BaseModel):
-                kwargs["params"] = kwargs["params"].model_dump()
+            else:
+                raise ValueError("argument `json` must have been converted to a pydantic model")
+        if "params" in kwargs:
+            # params should have been a dict with camelCase keys
+            # but just in case, we do a best effort conversion
             kwargs["params"] = map_snake_to_camel_case(kwargs["params"])
 
         try:

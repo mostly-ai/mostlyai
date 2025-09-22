@@ -36,6 +36,7 @@ from mostlyai.sdk.client.base import (
 )
 from mostlyai.sdk.domain import (
     Generator,
+    GeneratorCloneConfig,
     GeneratorConfig,
     GeneratorListItem,
     GeneratorPatchConfig,
@@ -190,6 +191,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
                 if table.get("columns"):
                     # convert `columns` to list[dict], if provided as list[str]
                     table["columns"] = [{"name": col} if isinstance(col, str) else col for col in table["columns"]]
+        config = GeneratorConfig(*config)
         generator = self.request(verb=POST, path=[], json=config, response_type=Generator)
         gid = generator.id
         if self.local:
@@ -303,7 +305,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         response = self.request(
             verb=POST,
             path=[generator_id, "clone"],
-            json={"trainingStatus": training_status.upper()},
+            json=GeneratorCloneConfig(trainingStatus=training_status.upper()),
             response_type=Generator,
         )
         return response

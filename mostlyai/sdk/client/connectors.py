@@ -34,6 +34,8 @@ from mostlyai.sdk.domain import (
     ConnectorConfig,
     ConnectorListItem,
     ConnectorPatchConfig,
+    ConnectorQueryConfig,
+    ConnectorReadDataConfig,
     IfExists,
 )
 
@@ -137,11 +139,12 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         Returns:
             The created connector object.
         """
+        config = ConnectorConfig(*config)
         connector = self.request(
             verb=POST,
             path=[],
             json=config,
-            params={"test_connection": test_connection},
+            params={"testConnection": test_connection},
             response_type=Connector,
         )
         cid = connector.id
@@ -163,7 +166,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             verb=PATCH,
             path=[connector_id],
             json=config,
-            params={"test_connection": test_connection},
+            params={"testConnection": test_connection},
             response_type=Connector,
         )
         return response
@@ -189,7 +192,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         response = self.request(
             verb=POST,
             path=[connector_id, "read-data"],
-            json={"location": location, "limit": limit, "shuffle": shuffle},
+            json=ConnectorReadDataConfig(location=location, limit=limit, shuffle=shuffle),
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/octet-stream, application/json",
@@ -239,7 +242,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         response = self.request(
             verb=POST,
             path=[connector_id, "query"],
-            json={"sql": sql},
+            json=ConnectorQueryConfig(sql=sql),
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/octet-stream, application/json",

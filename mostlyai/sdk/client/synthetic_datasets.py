@@ -165,6 +165,7 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             # status: DONE
             ```
         """
+        config = SyntheticDatasetConfig(*config)
         synthetic_dataset = self.request(
             verb=POST,
             path=[],
@@ -335,6 +336,7 @@ class _MostlySyntheticProbesClient(_MostlyBaseClient):
         Returns:
             A dictionary mapping probe names to pandas DataFrames.
         """
+        config = SyntheticProbeConfig(*config)
         dicts = self.request(
             verb=POST,
             path=[],

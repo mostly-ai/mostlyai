@@ -162,6 +162,7 @@ class _MostlyDatasetsClient(_MostlyBaseClient):
             ds.upload_file("path/to/file_2.txt")
             ```
         """
+        config = DatasetConfig(*config)
         dataset = self.request(
             verb=POST,
             path=[],
