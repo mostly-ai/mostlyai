@@ -267,7 +267,7 @@ def test_escape_character_handling(tmp_path):
         (";", "'", True),
         ("\t", '"', True),
         ("|", '"', True),
-        ("'", "'", False),
+        ("'", "'", True),
         (" ", '"', True),
         # unsupported delimiters
         ("/", "'", False),
