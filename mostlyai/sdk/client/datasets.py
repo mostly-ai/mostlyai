@@ -162,7 +162,7 @@ class _MostlyDatasetsClient(_MostlyBaseClient):
             ds.upload_file("path/to/file_2.txt")
             ```
         """
-        config = DatasetConfig(*config)
+        config = DatasetConfig.model_validate(config)
         dataset = self.request(
             verb=POST,
             path=[],
@@ -179,12 +179,13 @@ class _MostlyDatasetsClient(_MostlyBaseClient):
     def _update(
         self,
         dataset_id: str,
-        config: DatasetPatchConfig | dict[str, Any],
+        config: DatasetPatchConfig,
     ) -> Dataset:
         response = self.request(
             verb=PATCH,
             path=[dataset_id],
             json=config,
+            exclude_none_in_json=True,
             response_type=Dataset,
         )
         return response

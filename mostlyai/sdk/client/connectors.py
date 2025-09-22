@@ -32,6 +32,7 @@ from mostlyai.sdk.client.base import (
 from mostlyai.sdk.domain import (
     Connector,
     ConnectorConfig,
+    ConnectorDeleteDataConfig,
     ConnectorListItem,
     ConnectorPatchConfig,
     ConnectorQueryConfig,
@@ -139,7 +140,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         Returns:
             The created connector object.
         """
-        config = ConnectorConfig(*config)
+        config = ConnectorConfig.model_validate(config)
         connector = self.request(
             verb=POST,
             path=[],
@@ -159,7 +160,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
     def _update(
         self,
         connector_id: str,
-        config: ConnectorPatchConfig | dict[str, Any],
+        config: ConnectorPatchConfig,
         test_connection: bool | None = True,
     ) -> Connector:
         response = self.request(
@@ -167,6 +168,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             path=[connector_id],
             json=config,
             params={"testConnection": test_connection},
+            exclude_none_in_json=True,
             response_type=Connector,
         )
         return response
@@ -215,27 +217,18 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
                 "file": ("data.parquet", buffer, "application/octet-stream"),
             }
 
-        config_data = {
-            "location": location,
-            "ifExists": if_exists.upper(),
-        }
-
         self.request(
             verb="POST",
             path=[connector_id, "write-data"],
             files=files,
-            data=config_data,
+            data={"location": location, "ifExists": if_exists.upper()},
         )
 
     def _delete_data(self, connector_id: str, location: str) -> None:
-        config_data = {
-            "location": location,
-        }
-
         self.request(
             verb="POST",
             path=[connector_id, "delete-data"],
-            json=config_data,
+            json=ConnectorDeleteDataConfig(location=location),
         )
 
     def _query(self, connector_id: str, sql: str) -> pd.DataFrame:

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
 
 from mostlyai.sdk.client.base import (
     GET,
@@ -53,12 +52,13 @@ class _MostlyArtifactsClient(_MostlyBaseClient):
     def _update(
         self,
         artifact_id: str,
-        config: ArtifactPatchConfig | dict[str, Any],
+        config: ArtifactPatchConfig,
     ) -> Artifact:
         response = self.request(
             verb=PATCH,
             path=[artifact_id],
             json=config,
+            exclude_none_in_json=True,
             response_type=Artifact,
         )
         return response
