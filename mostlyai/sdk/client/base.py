@@ -135,7 +135,9 @@ class _MostlyBaseClient:
 
         if "json" in kwargs:
             if isinstance(kwargs["json"], BaseModel):
-                kwargs["json"] = kwargs["json"].model_dump(by_alias=True, exclude_none=exclude_none_in_json)
+                kwargs["json"] = kwargs["json"].model_dump(
+                    mode="json", by_alias=True, exclude_none=exclude_none_in_json
+                )
             else:
                 raise ValueError("argument `json` must have been converted to a pydantic model")
         if "params" in kwargs:

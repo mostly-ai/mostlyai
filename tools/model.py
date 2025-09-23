@@ -198,7 +198,7 @@ class Connector:
             c.write_data(df, 's3://my_bucket/path/to/file.csv')  # write data to 'file.csv' in 'my_bucket' for a S3 storage connector
             ```
         """
-        self.client._write_data(connector_id=self.id, data=data, location=location, if_exists=if_exists)
+        self.client._write_data(connector_id=self.id, data=data, location=location, if_exists=if_exists.upper())
 
     def delete_data(self, location: str) -> None:
         """
