@@ -110,6 +110,7 @@ class _MostlyBaseClient:
             response_type (type | None): Type to cast the response into. Defaults to dict.
             raw_response (bool): Whether to return the raw response object. Defaults to False.
             is_api_call (bool): If False, skips prefixing API_SECTION and SECTION. Defaults to True.
+            exclude_none_in_json (bool): Whether to exclude fields with value None when dumping the json. Defaults to False.
             do_response_dict_snake_case (bool): Convert the response dictionary to snake_case. Defaults to True.
             do_include_client (bool): Include the client property in the returned object. Defaults to True.
             extra_key_values (dict | None): Additional key-value pairs to include in the response object.
