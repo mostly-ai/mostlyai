@@ -35,7 +35,6 @@ from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 
-from mostlyai.sdk.client._naming_conventions import map_camel_to_snake_case
 from mostlyai.sdk.client.exceptions import APIError
 from mostlyai.sdk.domain import (
     Generator,
@@ -332,7 +331,6 @@ def harmonize_sd_config(
     if config is None:
         config = config_type()
     elif isinstance(config, dict):
-        config = map_camel_to_snake_case(config)
         config = config_type(**config)
 
     size = size if size is not None else {}

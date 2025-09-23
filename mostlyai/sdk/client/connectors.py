@@ -32,8 +32,12 @@ from mostlyai.sdk.client.base import (
 from mostlyai.sdk.domain import (
     Connector,
     ConnectorConfig,
+    ConnectorDeleteDataConfig,
     ConnectorListItem,
     ConnectorPatchConfig,
+    ConnectorQueryConfig,
+    ConnectorReadDataConfig,
+    ConnectorWriteDataConfig,
     IfExists,
 )
 
@@ -137,11 +141,12 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         Returns:
             The created connector object.
         """
+        config = ConnectorConfig.model_validate(config)
         connector = self.request(
             verb=POST,
             path=[],
             json=config,
-            params={"test_connection": test_connection},
+            params={"testConnection": test_connection},
             response_type=Connector,
         )
         cid = connector.id
@@ -156,14 +161,15 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
     def _update(
         self,
         connector_id: str,
-        config: ConnectorPatchConfig | dict[str, Any],
+        config: ConnectorPatchConfig,
         test_connection: bool | None = True,
     ) -> Connector:
         response = self.request(
             verb=PATCH,
             path=[connector_id],
             json=config,
-            params={"test_connection": test_connection},
+            params={"testConnection": test_connection},
+            exclude_none_in_json=True,
             response_type=Connector,
         )
         return response
@@ -189,7 +195,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         response = self.request(
             verb=POST,
             path=[connector_id, "read-data"],
-            json={"location": location, "limit": limit, "shuffle": shuffle},
+            json=ConnectorReadDataConfig(location=location, limit=limit, shuffle=shuffle),
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/octet-stream, application/json",
@@ -211,35 +217,29 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             files = {
                 "file": ("data.parquet", buffer, "application/octet-stream"),
             }
-
-        config_data = {
-            "location": location,
-            "ifExists": if_exists.upper(),
-        }
-
+        non_file_config = ConnectorWriteDataConfig(file=b"", location=location, if_exists=if_exists).model_dump(
+            mode="json", by_alias=True
+        )
+        non_file_config.pop("file")
         self.request(
             verb="POST",
             path=[connector_id, "write-data"],
             files=files,
-            data=config_data,
+            data=non_file_config,
         )
 
     def _delete_data(self, connector_id: str, location: str) -> None:
-        config_data = {
-            "location": location,
-        }
-
         self.request(
             verb="POST",
             path=[connector_id, "delete-data"],
-            json=config_data,
+            json=ConnectorDeleteDataConfig(location=location),
         )
 
     def _query(self, connector_id: str, sql: str) -> pd.DataFrame:
         response = self.request(
             verb=POST,
             path=[connector_id, "query"],
-            json={"sql": sql},
+            json=ConnectorQueryConfig(sql=sql),
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/octet-stream, application/json",

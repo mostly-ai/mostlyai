@@ -51,6 +51,8 @@ class Connector:
         if isinstance(values, dict):
             if "id" not in values:
                 values["id"] = str(uuid.uuid4())
+            if values.get("name") is None:
+                values["name"] = "New connector"
         return values
 
     def update(
@@ -85,7 +87,7 @@ class Connector:
         )
         self.client._update(
             connector_id=self.id,
-            config=patch_config.model_dump(exclude_none=True),
+            config=patch_config,
             test_connection=test_connection,
         )
         self.reload()
@@ -196,7 +198,7 @@ class Connector:
             c.write_data(df, 's3://my_bucket/path/to/file.csv')  # write data to 'file.csv' in 'my_bucket' for a S3 storage connector
             ```
         """
-        self.client._write_data(connector_id=self.id, data=data, location=location, if_exists=if_exists)
+        self.client._write_data(connector_id=self.id, data=data, location=location, if_exists=if_exists.upper())
 
     def delete_data(self, location: str) -> None:
         """
@@ -248,6 +250,8 @@ class Generator:
         if isinstance(values, dict):
             if "id" not in values:
                 values["id"] = str(uuid.uuid4())
+            if values.get("name") is None:
+                values["name"] = "New generator"
             if "training_status" not in values:
                 values["training_status"] = ProgressStatus.new
         return values
@@ -272,7 +276,7 @@ class Generator:
             name=name,
             description=description,
         )
-        self.client._update(generator_id=self.id, config=patch_config.model_dump(exclude_none=True))
+        self.client._update(generator_id=self.id, config=patch_config)
         self.reload()
 
     def delete(self) -> None:
@@ -704,6 +708,8 @@ class SyntheticDataset:
         if isinstance(values, dict):
             if "id" not in values:
                 values["id"] = str(uuid.uuid4())
+            if values.get("name") is None:
+                values["name"] = "New synthetic dataset"
             if "generation_status" not in values:
                 values["generation_status"] = ProgressStatus.new
         return values
@@ -733,7 +739,7 @@ class SyntheticDataset:
         )
         self.client._update(
             synthetic_dataset_id=self.id,
-            config=patch_config.model_dump(exclude_none=True),
+            config=patch_config,
         )
         self.reload()
 
@@ -1231,6 +1237,8 @@ class Dataset:
         if isinstance(values, dict):
             if "id" not in values:
                 values["id"] = str(uuid.uuid4())
+            if values.get("name") is None:
+                values["name"] = "New dataset"
         return values
 
     @field_validator("files", mode="after")
