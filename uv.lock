@@ -3700,7 +3700,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.5.2"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=bump_vllm_0.10.2#1da2602f08286edd582025f3ea19e47871096c9c" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=bump_vllm_0.10.2#87539302ce5333faeed19948206749304bd96edf" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
