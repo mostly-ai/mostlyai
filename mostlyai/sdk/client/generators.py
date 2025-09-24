@@ -17,7 +17,6 @@ import re
 import tempfile
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
 from urllib.parse import urlparse
 
 import pandas as pd
@@ -36,6 +35,7 @@ from mostlyai.sdk.client.base import (
 )
 from mostlyai.sdk.domain import (
     Generator,
+    GeneratorCloneConfig,
     GeneratorConfig,
     GeneratorListItem,
     GeneratorPatchConfig,
@@ -170,8 +170,8 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             # status: DONE
             ```
         """
-        if isinstance(config, dict) and config.get("tables"):
-            for table in config["tables"]:
+        if isinstance(config, dict):
+            for table in config.get("tables", []):
                 # convert `data` to base64-encoded Parquet files
                 if table.get("data") is not None:
                     if isinstance(table["data"], (str, Path)):
@@ -190,6 +190,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
                 if table.get("columns"):
                     # convert `columns` to list[dict], if provided as list[str]
                     table["columns"] = [{"name": col} if isinstance(col, str) else col for col in table["columns"]]
+            config = GeneratorConfig.model_validate(config)
         generator = self.request(verb=POST, path=[], json=config, response_type=Generator)
         gid = generator.id
         if self.local:
@@ -286,11 +287,12 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             filename = f"generator-{generator_id[:8]}.zip"
         return content_bytes, filename
 
-    def _update(self, generator_id: str, config: GeneratorPatchConfig | dict[str, Any]) -> Generator:
+    def _update(self, generator_id: str, config: GeneratorPatchConfig) -> Generator:
         response = self.request(
             verb=PATCH,
             path=[generator_id],
             json=config,
+            exclude_none_in_json=True,
             response_type=Generator,
         )
         return response
@@ -303,7 +305,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         response = self.request(
             verb=POST,
             path=[generator_id, "clone"],
-            json={"trainingStatus": training_status.upper()},
+            json=GeneratorCloneConfig(training_status=training_status.upper()),
             response_type=Generator,
         )
         return response
