@@ -19,6 +19,7 @@ from typing import Literal
 
 import pandas as pd
 
+from _AI_SMART_SELECT.smart_select import ParentChildMatcher, load_model
 from mostlyai.sdk._data.base import ForeignKey, NonContextRelation, Schema
 from mostlyai.sdk._data.dtype import is_timestamp_dtype
 from mostlyai.sdk._data.file.base import LocalFileContainer
@@ -34,6 +35,55 @@ from mostlyai.sdk._local.storage import get_model_label
 from mostlyai.sdk.domain import Generator, ModelType, SyntheticDataset
 
 _LOG = logging.getLogger(__name__)
+
+
+def execute_apply_smart_select_2(
+    model: ParentChildMatcher,
+    tgt_data: pd.DataFrame,
+    non_ctx_data: pd.DataFrame,
+    tgt_primary_key: str,
+    tgt_non_context_key: str,
+    non_ctx_primary_key: str,
+) -> pd.DataFrame:
+    print("ABC!")
+    return tgt_data
+
+
+def execute_apply_smart_select(job_workspace_dir: Path, delivery_dir: Path, schema: Schema):
+    for table_name in schema.tables:
+        tgt_data = schema.tables[table_name].read_data()
+
+        non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == table_name]
+        if not non_ctx_relations:
+            break
+        assert len(non_ctx_relations) == 1
+        non_ctx_relation = non_ctx_relations[0]
+
+        non_ctx_table_name = non_ctx_relation.parent.table
+        non_ctx_data = schema.tables[non_ctx_table_name].read_data()
+
+        tgt_primary_key = schema.tables[table_name].primary_key
+        tgt_non_context_key = non_ctx_relation.child.column
+        non_ctx_primary_key = non_ctx_relation.parent.column
+
+        smart_select_workspace_dir = job_workspace_dir / table_name / "smart_select"
+        model = load_model(smart_select_workspace_dir)
+
+        tgt_data = execute_apply_smart_select_2(
+            model,
+            tgt_data,
+            non_ctx_data,
+            tgt_primary_key,
+            tgt_non_context_key,
+            non_ctx_primary_key,
+            smart_select_workspace_dir,
+        )
+
+        table_parquet_dir = delivery_dir / table_name / "parquet"
+        table_parquet_dir.mkdir(parents=True, exist_ok=True)
+        for f in table_parquet_dir.glob("*.parquet"):
+            f.unlink()
+        tgt_data.to_parquet(table_parquet_dir / f"{table_name}.parquet")
 
 
 def execute_step_finalize_generation(
@@ -78,6 +128,8 @@ def execute_step_finalize_generation(
                 export_csv=export_csv,
             )
             progress.update(advance=1)
+
+        execute_apply_smart_select()
 
         _LOG.info("export random samples")
         export_random_samples(
