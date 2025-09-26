@@ -17,7 +17,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from _AI_SMART_SELECT.smart_select import (
+from mostlyai.sdk import _data as data
+from mostlyai.sdk._data.base import ForeignKey, Schema
+from mostlyai.sdk._data.conversions import create_container_from_connector
+from mostlyai.sdk._data.file.utils import make_data_table_from_container
+from mostlyai.sdk._data.smart_select import (
     ParentChildMatcher,
     encode_df,
     load_model,
@@ -26,10 +30,6 @@ from _AI_SMART_SELECT.smart_select import (
     store_model,
     train,
 )
-from mostlyai.sdk import _data as data
-from mostlyai.sdk._data.base import ForeignKey, Schema
-from mostlyai.sdk._data.conversions import create_container_from_connector
-from mostlyai.sdk._data.file.utils import make_data_table_from_container
 from mostlyai.sdk.domain import Connector, Generator, ModelType
 
 
@@ -134,17 +134,17 @@ class SmartSelect:
         model = load_model(smart_select_workspace_dir)
 
         # 2nd training: hard negative sampling
-        parent_vecs, child_vecs, labels = prepare_training_data(
-            df_parent_encoded=non_ctx_encoded_data,
-            df_child_encoded=tgt_encoded_data,
-            parent_primary_key=non_ctx_primary_key,
-            child_foreign_key=tgt_non_context_key,
-            n_children=1_000,
-            n_false_parents=1,
-            negative_sampling_strategy="hard",
-            model=model,
-        )
-        train(model, parent_vecs, child_vecs, labels, do_plot_losses=False)
+        # parent_vecs, child_vecs, labels = prepare_training_data(
+        #     df_parent_encoded=non_ctx_encoded_data,
+        #     df_child_encoded=tgt_encoded_data,
+        #     parent_primary_key=non_ctx_primary_key,
+        #     child_foreign_key=tgt_non_context_key,
+        #     n_children=1_000,
+        #     n_false_parents=1,
+        #     negative_sampling_strategy="hard",
+        #     model=model,
+        # )
+        # train(model, parent_vecs, child_vecs, labels, do_plot_losses=False)
 
         # store model
         store_model(model, smart_select_workspace_dir)
