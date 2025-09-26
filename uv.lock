@@ -3475,7 +3475,7 @@ wheels = [
 
 [[package]]
 name = "mostlyai"
-version = "5.2.1"
+version = "5.2.5"
 source = { editable = "." }
 dependencies = [
     { name = "duckdb" },

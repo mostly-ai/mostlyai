@@ -19,7 +19,7 @@ import pytest
 import respx
 from httpx import NetworkError, Response
 
-from mostlyai.sdk.client.base import DEFAULT_BASE_URL, Paginator, _MostlyBaseClient
+from mostlyai.sdk.client.base import DEFAULT_BASE_URL, CustomBaseModel, Paginator, _MostlyBaseClient
 from mostlyai.sdk.client.exceptions import APIError, APIStatusError
 
 
@@ -79,7 +79,7 @@ class TestMostlyBaseClient:
 
     @respx.mock
     def test_client_post_request(self, mostly_base_client):
-        test_data = {"name": "Test"}
+        test_data = CustomBaseModel(name="Test")
         respx.post("https://app.mostly.ai/api/v2/create").mock(return_value=Response(201, json={"success": True}))
 
         response = mostly_base_client.request("create", "POST", json=test_data)
