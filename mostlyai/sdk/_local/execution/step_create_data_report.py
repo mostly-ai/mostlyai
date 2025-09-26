@@ -12,11 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from collections.abc import Callable
+from contextlib import contextmanager
 from pathlib import Path
 
 from mostlyai.sdk._local.execution.step_create_model_report import create_report
 from mostlyai.sdk.domain import Generator, ModelType, StepCode
+
+
+@contextmanager
+def hf_hub_offline():
+    original_value = os.environ.get("HF_HUB_OFFLINE")
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    try:
+        yield
+    finally:
+        if original_value is None:
+            os.environ.pop("HF_HUB_OFFLINE", None)
+        else:
+            os.environ["HF_HUB_OFFLINE"] = original_value
 
 
 def execute_step_create_data_report(
@@ -28,15 +43,15 @@ def execute_step_create_data_report(
     report_credits: str = "",
     update_progress: Callable,
 ):
-    # create model report and return metrics
-    create_report(
-        step_code=StepCode.create_data_report_tabular
-        if model_type == ModelType.tabular
-        else StepCode.create_data_report_language,
-        generator=generator,
-        workspace_dir=workspace_dir,
-        model_type=model_type,
-        target_table_name=target_table_name,
-        report_credits=report_credits,
-        update_progress=update_progress,
-    )
+    with hf_hub_offline():
+        create_report(
+            step_code=StepCode.create_data_report_tabular
+            if model_type == ModelType.tabular
+            else StepCode.create_data_report_language,
+            generator=generator,
+            workspace_dir=workspace_dir,
+            model_type=model_type,
+            target_table_name=target_table_name,
+            report_credits=report_credits,
+            update_progress=update_progress,
+        )
