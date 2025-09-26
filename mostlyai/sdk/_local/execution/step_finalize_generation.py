@@ -19,7 +19,7 @@ from typing import Literal
 
 import pandas as pd
 
-from _AI_SMART_SELECT.smart_select import ParentChildMatcher, load_model
+from _AI_SMART_SELECT.smart_select import encode_df, infer_best_non_ctx, load_model
 from mostlyai.sdk._data.base import ForeignKey, NonContextRelation, Schema
 from mostlyai.sdk._data.dtype import is_timestamp_dtype
 from mostlyai.sdk._data.file.base import LocalFileContainer
@@ -38,52 +38,70 @@ _LOG = logging.getLogger(__name__)
 
 
 def execute_apply_smart_select_2(
-    model: ParentChildMatcher,
+    *,
+    smart_select_workspace_dir: Path,
     tgt_data: pd.DataFrame,
     non_ctx_data: pd.DataFrame,
-    tgt_primary_key: str,
     tgt_non_context_key: str,
     non_ctx_primary_key: str,
 ) -> pd.DataFrame:
-    print("ABC!")
+    tgt_pre_training_dir = smart_select_workspace_dir / "pre_training[tgt]"
+    non_ctx_pre_training_dir = smart_select_workspace_dir / "pre_training[non_ctx]"
+    tgt_encoded = encode_df(
+        df=tgt_data,
+        pre_training_dir=tgt_pre_training_dir,
+        drop_primary_key=True,
+        drop_foreign_key=True,
+    )
+    non_ctx_encoded = encode_df(
+        df=non_ctx_data,
+        pre_training_dir=non_ctx_pre_training_dir,
+        drop_primary_key=True,
+    )
+    model = load_model(smart_select_workspace_dir)
+    best_non_ctx_indices = infer_best_non_ctx(
+        model=model,
+        tgt_encoded=tgt_encoded,
+        non_ctx_encoded=non_ctx_encoded,
+    )
+    best_non_ctx_ids = non_ctx_data.iloc[best_non_ctx_indices][non_ctx_primary_key].values
+    tgt_data[tgt_non_context_key] = best_non_ctx_ids
     return tgt_data
 
 
 def execute_apply_smart_select(job_workspace_dir: Path, delivery_dir: Path, schema: Schema):
     for table_name in schema.tables:
-        tgt_data = schema.tables[table_name].read_data()
-
         non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == table_name]
         if not non_ctx_relations:
-            break
+            continue
         assert len(non_ctx_relations) == 1
         non_ctx_relation = non_ctx_relations[0]
 
-        non_ctx_table_name = non_ctx_relation.parent.table
-        non_ctx_data = schema.tables[non_ctx_table_name].read_data()
+        tgt_data_path = delivery_dir / table_name / "parquet"
+        tgt_data = pd.read_parquet(tgt_data_path)
 
-        tgt_primary_key = schema.tables[table_name].primary_key
+        non_ctx_table_name = non_ctx_relation.parent.table
+        non_ctx_data_path = delivery_dir / non_ctx_table_name / "parquet"
+        non_ctx_data = pd.read_parquet(non_ctx_data_path)
+
         tgt_non_context_key = non_ctx_relation.child.column
         non_ctx_primary_key = non_ctx_relation.parent.column
 
-        smart_select_workspace_dir = job_workspace_dir / table_name / "smart_select"
-        model = load_model(smart_select_workspace_dir)
+        model_label = get_model_label(table_name, ModelType.tabular, path_safe=True)
+        smart_select_workspace_dir = job_workspace_dir / model_label / "SmartSelectModelStore"
 
         tgt_data = execute_apply_smart_select_2(
-            model,
-            tgt_data,
-            non_ctx_data,
-            tgt_primary_key,
-            tgt_non_context_key,
-            non_ctx_primary_key,
-            smart_select_workspace_dir,
+            smart_select_workspace_dir=smart_select_workspace_dir,
+            tgt_data=tgt_data,
+            non_ctx_data=non_ctx_data,
+            tgt_non_context_key=tgt_non_context_key,
+            non_ctx_primary_key=non_ctx_primary_key,
         )
 
-        table_parquet_dir = delivery_dir / table_name / "parquet"
-        table_parquet_dir.mkdir(parents=True, exist_ok=True)
-        for f in table_parquet_dir.glob("*.parquet"):
+        tgt_data_path.mkdir(parents=True, exist_ok=True)
+        for f in tgt_data_path.glob("*.parquet"):
             f.unlink()
-        tgt_data.to_parquet(table_parquet_dir / f"{table_name}.parquet")
+        tgt_data.to_parquet(tgt_data_path / f"{table_name}.parquet")
 
 
 def execute_step_finalize_generation(
@@ -129,7 +147,11 @@ def execute_step_finalize_generation(
             )
             progress.update(advance=1)
 
-        execute_apply_smart_select()
+        execute_apply_smart_select(
+            job_workspace_dir=job_workspace_dir,
+            delivery_dir=delivery_dir,
+            schema=schema,
+        )
 
         _LOG.info("export random samples")
         export_random_samples(

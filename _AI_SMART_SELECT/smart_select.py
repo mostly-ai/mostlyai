@@ -368,3 +368,26 @@ def load_model(smart_select_workspace_dir: Path) -> ParentChildMatcher:
     model_state_path = smart_select_workspace_dir / "model_weights.pt"
     model.load_state_dict(torch.load(model_state_path))
     return model
+
+
+def infer_best_non_ctx(
+    *,
+    model: ParentChildMatcher,
+    tgt_encoded: pd.DataFrame,
+    non_ctx_encoded: pd.DataFrame,
+) -> torch.Tensor:
+    t0 = time.time()
+    tgt_vecs = torch.tensor(tgt_encoded.values.astype(np.float32))
+    non_ctx_vecs = torch.tensor(non_ctx_encoded.values.astype(np.float32))
+    n_tgt = tgt_vecs.shape[0]
+    n_non_ctx = non_ctx_vecs.shape[0]
+    tgt_vecs_expanded = tgt_vecs.repeat_interleave(n_non_ctx, dim=0)
+    non_ctx_vecs_expanded = non_ctx_vecs.repeat(n_tgt, 1)
+    model.eval()
+    with torch.no_grad():
+        scores = model(non_ctx_vecs_expanded, tgt_vecs_expanded).squeeze()
+        score_matrix = scores.view(n_tgt, n_non_ctx)
+        best_non_ctx_indices = torch.argmax(score_matrix, dim=1).cpu().numpy()
+        t1 = time.time()
+    print(f"infer_best_non_ctx() | time: {t1 - t0:.2f}s")
+    return best_non_ctx_indices

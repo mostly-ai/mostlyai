@@ -53,7 +53,7 @@ class SmartSelect:
         tgt_non_context_key = non_ctx_relation.child.column
         non_ctx_primary_key = non_ctx_relation.parent.column
 
-        smart_select_workspace_dir = workspace_dir / "smart_select"
+        smart_select_workspace_dir = workspace_dir / "SmartSelectModelStore"
         self.execute_train_smart_select_model_2(
             tgt_data=tgt_data,
             non_ctx_data=non_ctx_data,

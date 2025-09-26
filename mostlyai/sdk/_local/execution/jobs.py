@@ -85,13 +85,16 @@ def _set_random_state(random_state: int | None = None):
 
 
 def _move_training_artefacts(generator_dir: Path, job_workspace_dir: Path):
-    for dir in ["Logs", "ModelStore", "ModelQAReports", "ModelQAStatistics"]:
+    for dir in ["Logs", "ModelStore", "SmartSelectModelStore", "ModelQAReports", "ModelQAStatistics"]:
         shutil.rmtree(generator_dir / dir, ignore_errors=True)
         (generator_dir / dir).mkdir()
     for path in job_workspace_dir.absolute().rglob("*"):
         if path.is_dir() and path.name == "ModelStore":
             model_label = path.parent.name
             path.rename(generator_dir / "ModelStore" / model_label)
+        if path.is_dir() and path.name == "SmartSelectModelStore":
+            model_label = path.parent.name
+            path.rename(generator_dir / "SmartSelectModelStore" / model_label)
         if path.is_file() and path.parent.name == "ModelQAReports":
             path.rename(generator_dir / "ModelQAReports" / path.name)
         if path.is_dir() and path.name == "ModelQAStatistics":
@@ -176,6 +179,14 @@ def _copy_model(generator_dir: Path, model_label: str, workspace_dir: Path) -> b
     model_path = generator_dir / "ModelStore" / model_label
     if model_path.exists():
         shutil.copytree(model_path, workspace_dir / "ModelStore")
+        return True
+    return False
+
+
+def _copy_smart_select_model(generator_dir: Path, model_label: str, workspace_dir: Path) -> bool:
+    model_path = generator_dir / "SmartSelectModelStore" / model_label
+    if model_path.exists():
+        shutil.copytree(model_path, workspace_dir / "SmartSelectModelStore")
         return True
     return False
 
@@ -460,6 +471,9 @@ class Execution:
             if step.step_code in {StepCode.generate_data_tabular, StepCode.generate_data_language}:
                 # step: GENERATE_DATA
                 _copy_model(generator_dir=generator_dir, model_label=model_label_path, workspace_dir=workspace_dir)
+                _copy_smart_select_model(
+                    generator_dir=generator_dir, model_label=model_label_path, workspace_dir=workspace_dir
+                )
 
                 visited_tables.add(step.target_table_name)
 
