@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from collections.abc import Callable
-from contextlib import contextmanager
 from pathlib import Path
 
 from mostlyai.sdk._local.execution.step_create_model_report import create_report
@@ -30,6 +28,7 @@ def execute_step_create_data_report(
     report_credits: str = "",
     update_progress: Callable,
 ):
+    # create model report and return metrics
     create_report(
         step_code=StepCode.create_data_report_tabular
         if model_type == ModelType.tabular
