@@ -16,7 +16,6 @@ import copy
 import json
 import time
 from pathlib import Path
-from typing import Literal
 
 import joblib
 import matplotlib.pyplot as plt
@@ -136,122 +135,67 @@ def encode_df(
 
 
 def prepare_training_data(
-    df_parent_encoded: pd.DataFrame,
-    df_child_encoded: pd.DataFrame,
-    parent_primary_key: str,
-    child_foreign_key: str,
-    n_children: int | None = None,
-    n_false_parents: int = 1,
-    negative_sampling_strategy: Literal["random", "hard"] = "random",
-    model: ParentChildMatcher | None = None,
+    df_parents_encoded: pd.DataFrame,
+    df_children_encoded: pd.DataFrame,
+    parents_primary_key: str,
+    children_foreign_key: str,
+    sample_size: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Prepare training data for a parent-child matching model.
+    For each child, one positive pair and one negative pair will be sampled.
+    If sample_size is not provided, all children will be sampled.
+    Negative pairs are sampled randomly.
+
+    Args:
+        df_parents_encoded: Encoded parent data
+        df_children_encoded: Encoded child data
+        parents_primary_key: Primary key of parents
+        children_foreign_key: Foreign key of children
+        sample_size: Number of children to sample.
+    """
+
     t0 = time.time()
-    if n_children is None:
-        n_children = len(df_child_encoded)
+    if sample_size is None:
+        sample_size = len(df_children_encoded)
 
-    # Build parent feature matrix and key->row mapping
-    parent_keys = df_parent_encoded[parent_primary_key].to_numpy()
-    parent_X = df_parent_encoded.drop(columns=[parent_primary_key]).to_numpy(dtype=np.float32)
-    num_parents = parent_X.shape[0]
-    parent_index_by_key = pd.Series(np.arange(num_parents), index=parent_keys)
+    parent_keys = df_parents_encoded[parents_primary_key].to_numpy()
+    parents_X = df_parents_encoded.drop(columns=[parents_primary_key]).to_numpy(dtype=np.float32)
+    n_parents = parents_X.shape[0]
+    parent_index_by_key = pd.Series(np.arange(n_parents), index=parent_keys)
 
-    # Build child feature matrix and foreign keys
-    child_keys = df_child_encoded[child_foreign_key].to_numpy()
-    child_X_full = df_child_encoded.drop(columns=[child_foreign_key]).to_numpy(dtype=np.float32)
-    num_children_total = child_X_full.shape[0]
+    child_keys = df_children_encoded[children_foreign_key].to_numpy()
+    children_X = df_children_encoded.drop(columns=[children_foreign_key]).to_numpy(dtype=np.float32)
+    n_children = children_X.shape[0]
 
-    # Sample children without replacement
-    n_children = min(int(n_children), num_children_total)
+    # sample children without replacement
+    sample_size = min(int(sample_size), n_children)
     rng = np.random.default_rng()
-    sampled_child_indices = rng.choice(num_children_total, size=n_children, replace=False)
-    child_X = child_X_full[sampled_child_indices]
-    sampled_child_keys = child_keys[sampled_child_indices]
+    sampled_child_indices = rng.choice(n_children, size=sample_size, replace=False)
+    children_X = children_X[sampled_child_indices]
+    child_keys = child_keys[sampled_child_indices]
 
-    # Map each sampled child to its true parent row index
-    true_parent_pos = parent_index_by_key.loc[sampled_child_keys].to_numpy()
+    # map each sampled child to its true parent row index
+    true_parent_pos = parent_index_by_key.loc[child_keys].to_numpy()
     if np.any(pd.isna(true_parent_pos)):
         raise ValueError("Some child foreign keys do not match any parent primary key")
-    true_parent_pos = true_parent_pos.astype(np.int64, copy=False)
 
-    # Positive pairs
-    pos_parent = parent_X[true_parent_pos]
-    pos_child = child_X
-    pos_labels = np.ones(n_children, dtype=np.float32)
+    # positive pairs
+    pos_parents = parents_X[true_parent_pos]
+    pos_labels = np.ones(sample_size, dtype=np.float32)
 
-    # Prepare negatives
-    if negative_sampling_strategy == "random":
-        # Vectorized random negative sampling excluding true parent index
-        if n_false_parents <= 0:
-            neg_parent = np.empty((0, parent_X.shape[1]), dtype=np.float32)
-            neg_child = np.empty((0, child_X.shape[1]), dtype=np.float32)
-            neg_labels = np.empty((0,), dtype=np.float32)
-        else:
-            neg_indices = rng.integers(0, num_parents, size=(n_children, n_false_parents))
-            # Resample any collisions with true parent indices
-            mask = neg_indices == true_parent_pos[:, None]
-            while mask.any():
-                neg_indices[mask] = rng.integers(0, num_parents, size=mask.sum())
-                mask = neg_indices == true_parent_pos[:, None]
-            neg_parent = parent_X[neg_indices.reshape(-1)]
-            neg_child = np.repeat(child_X, repeats=n_false_parents, axis=0)
-            neg_labels = np.zeros(n_children * n_false_parents, dtype=np.float32)
-    else:
-        # Batched hard negatives: pick the k lowest-similarity parents per child (excluding the true parent)
-        assert model is not None, "Model must be provided for hard negative sampling"
-        model.eval()
-        hard_k = max(1, int(n_false_parents))
+    # negative pairs; resample any collisions with true parent indices
+    neg_indices = rng.integers(0, n_parents, size=sample_size)
+    mask = neg_indices == true_parent_pos
+    while mask.any():
+        neg_indices[mask] = rng.integers(0, n_parents, size=mask.sum())
+        mask = neg_indices == true_parent_pos
+    neg_parents = parents_X[neg_indices]
+    neg_labels = np.zeros(sample_size, dtype=np.float32)
 
-        # Torch tensors
-        parent_tensor = torch.tensor(parent_X, dtype=torch.float32)
-        # Chunk over parents to keep memory bounded
-        parent_chunk_size = 4096
-
-        neg_indices_list: list[np.ndarray] = []
-        with torch.inference_mode():
-            for i in range(n_children):
-                child_vec = torch.tensor(child_X[i], dtype=torch.float32).unsqueeze(0)
-                # Accumulate similarities for all parents
-                sims = np.empty(num_parents, dtype=np.float32)
-                start = 0
-                while start < num_parents:
-                    end = min(start + parent_chunk_size, num_parents)
-                    parent_batch = parent_tensor[start:end]
-                    child_batch = child_vec.expand(end - start, -1)
-                    scores = model(parent_batch, child_batch).squeeze(1).cpu().numpy().astype(np.float32, copy=False)
-                    sims[start:end] = scores
-                    start = end
-                # Exclude true parent
-                sims[true_parent_pos[i]] = np.inf
-
-                # Prefer those below threshold if enough exist; else take global minima
-                threshold = 0.1
-                below = np.flatnonzero(sims < threshold)
-                if below.size >= hard_k:
-                    # Choose the smallest scores among those below threshold
-                    if below.size == hard_k:
-                        chosen = below
-                    else:
-                        part = np.argpartition(sims[below], kth=hard_k - 1)[:hard_k]
-                        chosen = below[part]
-                else:
-                    # Take the k global minima
-                    if num_parents - 1 == hard_k:
-                        # All except the true parent
-                        chosen = np.setdiff1d(
-                            np.arange(num_parents), np.array([true_parent_pos[i]]), assume_unique=True
-                        )
-                    else:
-                        chosen = np.argpartition(sims, kth=hard_k - 1)[:hard_k]
-                neg_indices_list.append(chosen.astype(np.int64, copy=False))
-
-        neg_indices = np.stack(neg_indices_list, axis=0)
-        neg_parent = parent_X[neg_indices.reshape(-1)]
-        neg_child = np.repeat(child_X, repeats=hard_k, axis=0)
-        neg_labels = np.zeros(n_children * hard_k, dtype=np.float32)
-
-    # Concatenate positives and negatives
-    parent_vecs = np.vstack([pos_parent, neg_parent]).astype(np.float32, copy=False)
-    child_vecs = np.vstack([pos_child, neg_child]).astype(np.float32, copy=False)
+    # concatenate positives and negatives
+    parent_vecs = np.vstack([pos_parents, neg_parents]).astype(np.float32, copy=False)
+    child_vecs = np.vstack([children_X, children_X]).astype(np.float32, copy=False)
     labels = np.concatenate([pos_labels, neg_labels]).astype(np.float32, copy=False)
 
     t1 = time.time()
