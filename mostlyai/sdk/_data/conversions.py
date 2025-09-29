@@ -26,6 +26,7 @@ _LOG = logging.getLogger(__name__)
 CONNECTOR_TYPE_CONTAINER_CLASS_MAP = {
     ConnectorType.mysql: "mostlyai.sdk._data.db.mysql.MysqlContainer",
     ConnectorType.postgres: "mostlyai.sdk._data.db.postgresql.PostgresqlContainer",
+    ConnectorType.redshift: "mostlyai.sdk._data.db.redshift.RedshiftContainer",
     ConnectorType.mssql: "mostlyai.sdk._data.db.mssql.MssqlContainer",
     ConnectorType.oracle: "mostlyai.sdk._data.db.oracle.OracleContainer",
     ConnectorType.mariadb: "mostlyai.sdk._data.db.mysql.MariadbContainer",
@@ -43,6 +44,7 @@ CONNECTOR_TYPE_CONTAINER_CLASS_MAP = {
 CONNECTOR_TYPE_CONTAINER_PARAMS_CLASS_MAP = {
     ConnectorType.mysql: "mostlyai.sdk._data.metadata_objects.SqlAlchemyContainerParameters",
     ConnectorType.postgres: "mostlyai.sdk._data.metadata_objects.SqlAlchemyContainerParameters",
+    ConnectorType.redshift: "mostlyai.sdk._data.metadata_objects.SqlAlchemyContainerParameters",
     ConnectorType.mssql: "mostlyai.sdk._data.metadata_objects.SqlAlchemyContainerParameters",
     ConnectorType.oracle: "mostlyai.sdk._data.metadata_objects.OracleContainerParameters",
     ConnectorType.mariadb: "mostlyai.sdk._data.metadata_objects.SqlAlchemyContainerParameters",

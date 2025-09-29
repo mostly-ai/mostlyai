@@ -264,6 +264,7 @@ class ConnectorType(str, Enum):
     - `MYSQL`: MySQL database
     - `POSTGRES`: PostgreSQL database
     - `MSSQL`: Microsoft SQL Server database
+    - `REDSHIFT`: Amazon Redshift data warehouse
     - `ORACLE`: Oracle database
     - `MARIADB`: MariaDB database
     - `SNOWFLAKE`: Snowflake cloud data platform
@@ -283,6 +284,7 @@ class ConnectorType(str, Enum):
     mssql = "MSSQL"
     oracle = "ORACLE"
     mariadb = "MARIADB"
+    redshift = "REDSHIFT"
     snowflake = "SNOWFLAKE"
     bigquery = "BIGQUERY"
     hive = "HIVE"
