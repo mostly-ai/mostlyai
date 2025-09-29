@@ -56,15 +56,22 @@ def pre_training(
     *,
     df: pd.DataFrame,
     primary_key: str | None = None,
-    foreign_key: str | None = None,
+    parent_key: str | None = None,
+    data_columns: list[str] | None = None,
     pre_training_dir: Path,
 ) -> None:
     t0 = time.time()
 
     pre_training_dir.mkdir(parents=True, exist_ok=True)
 
-    key_columns = [col for col in (primary_key, foreign_key) if col is not None]
-    data_columns = df.columns.difference(key_columns)
+    key_columns = []
+    if primary_key is not None:
+        key_columns.append(primary_key)
+    if parent_key is not None:
+        key_columns.append(parent_key)
+
+    data_columns = data_columns or list(df.columns)
+    data_columns = list(set(data_columns).difference(key_columns).intersection(df.columns))
     num_columns = df.select_dtypes(include="number").columns.intersection(data_columns)
     cat_columns = df.columns.difference(num_columns).intersection(data_columns)
 
@@ -88,7 +95,8 @@ def pre_training(
     # store pre-training metadata as JSON
     pre_training_meta = {
         "primary_key": primary_key,
-        "foreign_key": foreign_key,
+        "parent_key": parent_key,
+        "data_columns": data_columns,
     }
     pre_training_meta_path = pre_training_dir / "pre_training_meta.json"
     pre_training_meta_path.write_text(json.dumps(pre_training_meta, indent=4))
@@ -98,14 +106,14 @@ def pre_training(
 
 
 def encode_df(
-    *, df: pd.DataFrame, pre_training_dir: Path, drop_primary_key: bool = False, drop_foreign_key: bool = False
+    *, df: pd.DataFrame, pre_training_dir: Path, include_primary_key: bool = True, include_parent_key: bool = True
 ) -> pd.DataFrame:
     t0 = time.time()
 
     pre_training_meta_path = pre_training_dir / "pre_training_meta.json"
     pre_training_meta = json.loads(pre_training_meta_path.read_text())
     primary_key = pre_training_meta["primary_key"]
-    foreign_key = pre_training_meta["foreign_key"]
+    parent_key = pre_training_meta["parent_key"]
 
     # encode numeric columns
     num_encoder_path = pre_training_dir / "num_encoder.pkl"
@@ -123,8 +131,8 @@ def encode_df(
     # concatenate keys and encoded columns
     data = [num_encoded, cat_encoded]
     features = num_features + cat_features
-    for key, drop_key in [(primary_key, drop_primary_key), (foreign_key, drop_foreign_key)]:
-        if key is not None and not drop_key:
+    for key, include_key in [(primary_key, include_primary_key), (parent_key, include_parent_key)]:
+        if key is not None and include_key:
             data.insert(0, df[[key]])
             features.insert(0, key)
     data = np.concatenate(data, axis=1)
@@ -137,7 +145,7 @@ def encode_df(
 def prepare_training_data(
     df_parents_encoded: pd.DataFrame,
     df_children_encoded: pd.DataFrame,
-    parents_primary_key: str,
+    parent_primary_key: str,
     children_foreign_key: str,
     sample_size: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -159,8 +167,8 @@ def prepare_training_data(
     if sample_size is None:
         sample_size = len(df_children_encoded)
 
-    parent_keys = df_parents_encoded[parents_primary_key].to_numpy()
-    parents_X = df_parents_encoded.drop(columns=[parents_primary_key]).to_numpy(dtype=np.float32)
+    parent_keys = df_parents_encoded[parent_primary_key].to_numpy()
+    parents_X = df_parents_encoded.drop(columns=[parent_primary_key]).to_numpy(dtype=np.float32)
     n_parents = parents_X.shape[0]
     parent_index_by_key = pd.Series(np.arange(n_parents), index=parent_keys)
 
@@ -204,6 +212,7 @@ def prepare_training_data(
 
 
 def train(
+    *,
     model: ParentChildMatcher,
     parent_vecs: np.ndarray,
     child_vecs: np.ndarray,
@@ -286,7 +295,7 @@ def train(
         plt.show()
 
 
-def store_model(model: ParentChildMatcher, smart_select_workspace_dir: Path) -> None:
+def store_model(*, model: ParentChildMatcher, smart_select_workspace_dir: Path) -> None:
     smart_select_workspace_dir.mkdir(parents=True, exist_ok=True)
     model_config = {
         "parent_dim": model.parent_dim,
@@ -300,7 +309,7 @@ def store_model(model: ParentChildMatcher, smart_select_workspace_dir: Path) -> 
     torch.save(model.state_dict(), model_state_path)
 
 
-def load_model(smart_select_workspace_dir: Path) -> ParentChildMatcher:
+def load_model(*, smart_select_workspace_dir: Path) -> ParentChildMatcher:
     model_config_path = smart_select_workspace_dir / "model_config.json"
     model_config = json.loads(model_config_path.read_text())
     model = ParentChildMatcher(
@@ -314,24 +323,24 @@ def load_model(smart_select_workspace_dir: Path) -> ParentChildMatcher:
     return model
 
 
-def infer_best_non_ctx(
+def infer_best_parent(
     *,
     model: ParentChildMatcher,
     tgt_encoded: pd.DataFrame,
-    non_ctx_encoded: pd.DataFrame,
+    parent_encoded: pd.DataFrame,
 ) -> torch.Tensor:
     t0 = time.time()
     tgt_vecs = torch.tensor(tgt_encoded.values.astype(np.float32))
-    non_ctx_vecs = torch.tensor(non_ctx_encoded.values.astype(np.float32))
+    parent_vecs = torch.tensor(parent_encoded.values.astype(np.float32))
     n_tgt = tgt_vecs.shape[0]
-    n_non_ctx = non_ctx_vecs.shape[0]
-    tgt_vecs_expanded = tgt_vecs.repeat_interleave(n_non_ctx, dim=0)
-    non_ctx_vecs_expanded = non_ctx_vecs.repeat(n_tgt, 1)
+    n_parent = parent_vecs.shape[0]
+    tgt_vecs_expanded = tgt_vecs.repeat_interleave(n_parent, dim=0)
+    parent_vecs_expanded = parent_vecs.repeat(n_tgt, 1)
     model.eval()
     with torch.no_grad():
-        scores = model(non_ctx_vecs_expanded, tgt_vecs_expanded).squeeze()
-        score_matrix = scores.view(n_tgt, n_non_ctx)
-        best_non_ctx_indices = torch.argmax(score_matrix, dim=1).cpu().numpy()
+        scores = model(parent_vecs_expanded, tgt_vecs_expanded).squeeze()
+        score_matrix = scores.view(n_tgt, n_parent)
+        best_parent_indices = torch.argmax(score_matrix, dim=1).cpu().numpy()
         t1 = time.time()
-    print(f"infer_best_non_ctx() | time: {t1 - t0:.2f}s")
-    return best_non_ctx_indices
+    print(f"infer_best_parent() | time: {t1 - t0:.2f}s")
+    return best_parent_indices

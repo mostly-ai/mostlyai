@@ -26,7 +26,7 @@ from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.non_context import postproc_non_context
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
-from mostlyai.sdk._data.smart_select import encode_df, infer_best_non_ctx, load_model
+from mostlyai.sdk._data.smart_select import encode_df, infer_best_parent, load_model
 from mostlyai.sdk._data.util.common import (
     IS_NULL,
     NON_CONTEXT_COLUMN_INFIX,
@@ -37,71 +37,73 @@ from mostlyai.sdk.domain import Generator, ModelType, SyntheticDataset
 _LOG = logging.getLogger(__name__)
 
 
-def execute_apply_smart_select_2(
+def execute_match_non_context_relation(
     *,
     smart_select_workspace_dir: Path,
     tgt_data: pd.DataFrame,
-    non_ctx_data: pd.DataFrame,
-    tgt_non_context_key: str,
-    non_ctx_primary_key: str,
+    parent_data: pd.DataFrame,
+    tgt_parent_key: str,
+    parent_primary_key: str,
+    parent_table_name: str,
 ) -> pd.DataFrame:
-    tgt_pre_training_dir = smart_select_workspace_dir / "pre_training[tgt]"
-    non_ctx_pre_training_dir = smart_select_workspace_dir / "pre_training[non_ctx]"
+    tgt_pre_training_dir = smart_select_workspace_dir / f"pre_training[{tgt_parent_key}]"
+    parent_pre_training_dir = smart_select_workspace_dir / f"pre_training[{parent_table_name}]"
     tgt_encoded = encode_df(
         df=tgt_data,
         pre_training_dir=tgt_pre_training_dir,
-        drop_primary_key=True,
-        drop_foreign_key=True,
+        include_primary_key=False,
+        include_parent_key=False,
     )
-    non_ctx_encoded = encode_df(
-        df=non_ctx_data,
-        pre_training_dir=non_ctx_pre_training_dir,
-        drop_primary_key=True,
+    parent_encoded = encode_df(
+        df=parent_data,
+        pre_training_dir=parent_pre_training_dir,
+        include_primary_key=False,
     )
-    model = load_model(smart_select_workspace_dir)
-    best_non_ctx_indices = infer_best_non_ctx(
+    model = load_model(smart_select_workspace_dir=smart_select_workspace_dir)
+    best_parent_indices = infer_best_parent(
         model=model,
         tgt_encoded=tgt_encoded,
-        non_ctx_encoded=non_ctx_encoded,
+        parent_encoded=parent_encoded,
     )
-    best_non_ctx_ids = non_ctx_data.iloc[best_non_ctx_indices][non_ctx_primary_key].values
-    tgt_data[tgt_non_context_key] = best_non_ctx_ids
+    best_parent_ids = parent_data.iloc[best_parent_indices][parent_primary_key].values
+    tgt_data[tgt_parent_key] = best_parent_ids
     return tgt_data
 
 
-def execute_apply_smart_select(job_workspace_dir: Path, delivery_dir: Path, schema: Schema):
+def execute_match_non_context_relations(job_workspace_dir: Path, delivery_dir: Path, schema: Schema):
     for table_name in schema.tables:
         non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == table_name]
         if not non_ctx_relations:
+            # no non-context relations for this table, so no parent-child matching to do
             continue
-        assert len(non_ctx_relations) == 1
-        non_ctx_relation = non_ctx_relations[0]
 
-        tgt_data_path = delivery_dir / table_name / "parquet"
-        tgt_data = pd.read_parquet(tgt_data_path)
+        for non_ctx_relation in non_ctx_relations:
+            tgt_data_path = delivery_dir / table_name / "parquet"
+            tgt_data = pd.read_parquet(tgt_data_path)
 
-        non_ctx_table_name = non_ctx_relation.parent.table
-        non_ctx_data_path = delivery_dir / non_ctx_table_name / "parquet"
-        non_ctx_data = pd.read_parquet(non_ctx_data_path)
+            parent_table_name = non_ctx_relation.parent.table
+            parent_data_path = delivery_dir / parent_table_name / "parquet"
+            parent_data = pd.read_parquet(parent_data_path)
 
-        tgt_non_context_key = non_ctx_relation.child.column
-        non_ctx_primary_key = non_ctx_relation.parent.column
+            tgt_parent_key = non_ctx_relation.child.column
+            parent_primary_key = non_ctx_relation.parent.column
 
-        model_label = get_model_label(table_name, ModelType.tabular, path_safe=True)
-        smart_select_workspace_dir = job_workspace_dir / model_label / "SmartSelectModelStore"
+            model_label = get_model_label(table_name, ModelType.tabular, path_safe=True)
+            smart_select_workspace_dir = job_workspace_dir / model_label / "SmartSelectModelStore"
 
-        tgt_data = execute_apply_smart_select_2(
-            smart_select_workspace_dir=smart_select_workspace_dir,
-            tgt_data=tgt_data,
-            non_ctx_data=non_ctx_data,
-            tgt_non_context_key=tgt_non_context_key,
-            non_ctx_primary_key=non_ctx_primary_key,
-        )
+            tgt_data = execute_match_non_context_relation(
+                smart_select_workspace_dir=smart_select_workspace_dir,
+                tgt_data=tgt_data,
+                parent_data=parent_data,
+                tgt_parent_key=tgt_parent_key,
+                parent_primary_key=parent_primary_key,
+                parent_table_name=parent_table_name,
+            )
 
-        tgt_data_path.mkdir(parents=True, exist_ok=True)
-        for f in tgt_data_path.glob("*.parquet"):
-            f.unlink()
-        tgt_data.to_parquet(tgt_data_path / f"{table_name}.parquet")
+            tgt_data_path.mkdir(parents=True, exist_ok=True)
+            for f in tgt_data_path.glob("*.parquet"):
+                f.unlink()
+            tgt_data.to_parquet(tgt_data_path / f"{table_name}.parquet")
 
 
 def execute_step_finalize_generation(
@@ -147,7 +149,8 @@ def execute_step_finalize_generation(
             )
             progress.update(advance=1)
 
-        execute_apply_smart_select(
+        # handle parent-child matching (for non-context relations)
+        execute_match_non_context_relations(
             job_workspace_dir=job_workspace_dir,
             delivery_dir=delivery_dir,
             schema=schema,
