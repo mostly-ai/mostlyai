@@ -124,7 +124,6 @@ class SmartSelect:
             parents_primary_key=non_ctx_primary_key,
             children_foreign_key=tgt_non_context_key,
             sample_size=1_000,
-            n_negative_pairs=1,
         )
 
         # train model
@@ -133,19 +132,6 @@ class SmartSelect:
         # store / load model
         store_model(model, smart_select_workspace_dir)
         model = load_model(smart_select_workspace_dir)
-
-        # 2nd training: hard negative sampling
-        # parent_vecs, child_vecs, labels = prepare_training_data(
-        #     df_parent_encoded=non_ctx_encoded_data,
-        #     df_child_encoded=tgt_encoded_data,
-        #     parent_primary_key=non_ctx_primary_key,
-        #     child_foreign_key=tgt_non_context_key,
-        #     n_children=1_000,
-        #     n_false_parents=1,
-        #     negative_sampling_strategy="hard",
-        #     model=model,
-        # )
-        # train(model, parent_vecs, child_vecs, labels, do_plot_losses=False)
 
         # store model
         store_model(model, smart_select_workspace_dir)
