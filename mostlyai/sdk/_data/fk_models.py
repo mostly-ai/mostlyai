@@ -143,10 +143,10 @@ def encode_df(
 
 
 def prepare_training_data(
-    df_parents_encoded: pd.DataFrame,
-    df_children_encoded: pd.DataFrame,
+    parent_encoded_data: pd.DataFrame,
+    tgt_encoded_data: pd.DataFrame,
     parent_primary_key: str,
-    children_foreign_key: str,
+    tgt_parent_key: str,
     sample_size: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -165,15 +165,15 @@ def prepare_training_data(
 
     t0 = time.time()
     if sample_size is None:
-        sample_size = len(df_children_encoded)
+        sample_size = len(tgt_encoded_data)
 
-    parent_keys = df_parents_encoded[parent_primary_key].to_numpy()
-    parents_X = df_parents_encoded.drop(columns=[parent_primary_key]).to_numpy(dtype=np.float32)
+    parent_keys = parent_encoded_data[parent_primary_key].to_numpy()
+    parents_X = parent_encoded_data.drop(columns=[parent_primary_key]).to_numpy(dtype=np.float32)
     n_parents = parents_X.shape[0]
     parent_index_by_key = pd.Series(np.arange(n_parents), index=parent_keys)
 
-    child_keys = df_children_encoded[children_foreign_key].to_numpy()
-    children_X = df_children_encoded.drop(columns=[children_foreign_key]).to_numpy(dtype=np.float32)
+    child_keys = tgt_encoded_data[tgt_parent_key].to_numpy()
+    children_X = tgt_encoded_data.drop(columns=[tgt_parent_key]).to_numpy(dtype=np.float32)
     n_children = children_X.shape[0]
 
     # sample children without replacement
@@ -215,7 +215,7 @@ def train(
     *,
     model: ParentChildMatcher,
     parent_vecs: np.ndarray,
-    child_vecs: np.ndarray,
+    tgt_vecs: np.ndarray,
     labels: np.ndarray,
     do_plot_losses: bool = True,
 ) -> None:
@@ -225,7 +225,7 @@ def train(
     max_epochs = 1000
 
     X_parent = torch.tensor(parent_vecs, dtype=torch.float32)
-    X_child = torch.tensor(child_vecs, dtype=torch.float32)
+    X_child = torch.tensor(tgt_vecs, dtype=torch.float32)
     y = torch.tensor(labels, dtype=torch.float32).unsqueeze(1)
 
     dataset = TensorDataset(X_parent, X_child, y)

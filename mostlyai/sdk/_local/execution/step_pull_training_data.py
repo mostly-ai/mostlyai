@@ -21,7 +21,7 @@ from mostlyai.sdk import _data as data
 from mostlyai.sdk._data.base import ForeignKey, Schema
 from mostlyai.sdk._data.conversions import create_container_from_connector
 from mostlyai.sdk._data.file.utils import make_data_table_from_container
-from mostlyai.sdk._data.smart_select import (
+from mostlyai.sdk._data.fk_models import (
     ParentChildMatcher,
     encode_df,
     pre_training,
@@ -143,11 +143,11 @@ def execute_train_child_parent_matcher(
     )
 
     # create positive and negative pairs for training
-    parent_vecs, child_vecs, labels = prepare_training_data(
-        df_parents_encoded=parent_encoded_data,
-        df_children_encoded=tgt_encoded_data,
+    parent_vecs, tgt_vecs, labels = prepare_training_data(
+        parent_encoded_data=parent_encoded_data,
+        tgt_encoded_data=tgt_encoded_data,
         parent_primary_key=parent_primary_key,
-        children_foreign_key=tgt_parent_key,
+        tgt_parent_key=tgt_parent_key,
         sample_size=1_000,
     )
 
@@ -155,7 +155,7 @@ def execute_train_child_parent_matcher(
     train(
         model=model,
         parent_vecs=parent_vecs,
-        child_vecs=child_vecs,
+        tgt_vecs=tgt_vecs,
         labels=labels,
         do_plot_losses=False,
     )
