@@ -341,7 +341,7 @@ class Generator:
         If display is True, the report is rendered inline via IPython display and no file is downloaded.
         Otherwise, the report is downloaded and saved to file_path (or a default location if None).
 
-        A synthetic dataset must have at least 100 rows to generate a QA report with it.
+        Note that reports are not available for generators that were trained with less than 100 samples or had `enable_model_report` set to `False`.
 
         Args:
             file_path (str | Path | None): The file path to save the zipped reports (ignored if display=True).
@@ -809,6 +809,8 @@ class SyntheticDataset:
 
         If display is True, the report is rendered inline via IPython display and no file is downloaded.
         Otherwise, the report is downloaded and saved to file_path (or a default location if None).
+
+        Note that reports are not available for synthetic datasets that generated less than 100 samples or had `enable_data_report` set to `False`.
 
         Args:
             file_path (str | Path | None): The file path to save the zipped reports (ignored if display=True).
