@@ -323,7 +323,7 @@ def load_model(*, smart_select_workspace_dir: Path) -> ParentChildMatcher:
     return model
 
 
-def infer_best_parent(
+def build_parent_child_probabilities(
     *,
     model: ParentChildMatcher,
     tgt_encoded: pd.DataFrame,
@@ -338,9 +338,16 @@ def infer_best_parent(
     parent_vecs_expanded = parent_vecs.repeat(n_tgt, 1)
     model.eval()
     with torch.no_grad():
-        scores = model(parent_vecs_expanded, tgt_vecs_expanded).squeeze()
-        score_matrix = scores.view(n_tgt, n_parent)
-        best_parent_indices = torch.argmax(score_matrix, dim=1).cpu().numpy()
+        probs = model(parent_vecs_expanded, tgt_vecs_expanded).squeeze()
+        prob_matrix = probs.view(n_tgt, n_parent)
         t1 = time.time()
-    print(f"infer_best_parent() | time: {t1 - t0:.2f}s")
+    print(f"build_parent_child_probabilities() | time: {t1 - t0:.2f}s")
+    return prob_matrix
+
+
+def sample_best_parents(
+    *,
+    prob_matrix: torch.Tensor,
+) -> np.ndarray:
+    best_parent_indices = torch.argmax(prob_matrix, dim=1).cpu().numpy()
     return best_parent_indices

@@ -24,7 +24,7 @@ from mostlyai.sdk._data.dtype import is_timestamp_dtype
 from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
-from mostlyai.sdk._data.fk_models import encode_df, infer_best_parent, load_model
+from mostlyai.sdk._data.fk_models import build_parent_child_probabilities, encode_df, load_model, sample_best_parents
 from mostlyai.sdk._data.non_context import postproc_non_context
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._data.util.common import (
@@ -60,11 +60,12 @@ def execute_match_non_context_relation(
         include_primary_key=False,
     )
     model = load_model(smart_select_workspace_dir=smart_select_workspace_dir)
-    best_parent_indices = infer_best_parent(
+    prob_matrix = build_parent_child_probabilities(
         model=model,
         tgt_encoded=tgt_encoded,
         parent_encoded=parent_encoded,
     )
+    best_parent_indices = sample_best_parents(prob_matrix=prob_matrix)
     best_parent_ids = parent_data.iloc[best_parent_indices][parent_primary_key].values
     tgt_data[tgt_parent_key] = best_parent_ids
     return tgt_data
