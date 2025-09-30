@@ -1129,11 +1129,11 @@ class SqlAlchemyTable(DBTable, abc.ABC):
             chunk_idx = 0
             total_time = 0
             session = sessionmaker(bind=sa_engine)()
-            result = session.execute(stmt, execution_options={"stream_results": True}).yield_per(fetch_chunk_size)
+            conn = session.connection()
+            results_generator = pd.read_sql_query(stmt, conn, dtype_backend="pyarrow", chunksize=fetch_chunk_size)
             chunks_df = pd.DataFrame()
-            while sa_rows := result.fetchmany(fetch_chunk_size):
+            for chunk_df in results_generator:
                 t0 = time.time()
-                chunk_df = pd.DataFrame(sa_rows).convert_dtypes(dtype_backend="pyarrow")
                 if where is not None:
                     where_column, where_values = next(iter(where.items()))
                     chunk_df = chunk_df[chunk_df[where_column].isin(where_values)]
