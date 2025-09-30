@@ -295,22 +295,22 @@ def train(
         plt.show()
 
 
-def store_model(*, model: ParentChildMatcher, smart_select_workspace_dir: Path) -> None:
-    smart_select_workspace_dir.mkdir(parents=True, exist_ok=True)
+def store_fk_model(*, model: ParentChildMatcher, tgt_parent_key: str, fk_models_workspace_dir: Path) -> None:
+    fk_models_workspace_dir.mkdir(parents=True, exist_ok=True)
     model_config = {
         "parent_dim": model.parent_dim,
         "child_dim": model.child_dim,
         "hidden_dim": model.hidden_dim,
         "emb_dim": model.emb_dim,
     }
-    model_config_path = smart_select_workspace_dir / "model_config.json"
+    model_config_path = fk_models_workspace_dir / f"model_config[{tgt_parent_key}].json"
     model_config_path.write_text(json.dumps(model_config, indent=4))
-    model_state_path = smart_select_workspace_dir / "model_weights.pt"
+    model_state_path = fk_models_workspace_dir / f"model_weights[{tgt_parent_key}].pt"
     torch.save(model.state_dict(), model_state_path)
 
 
-def load_model(*, smart_select_workspace_dir: Path) -> ParentChildMatcher:
-    model_config_path = smart_select_workspace_dir / "model_config.json"
+def load_fk_model(*, tgt_parent_key: str, fk_models_workspace_dir: Path) -> ParentChildMatcher:
+    model_config_path = fk_models_workspace_dir / f"model_config[{tgt_parent_key}].json"
     model_config = json.loads(model_config_path.read_text())
     model = ParentChildMatcher(
         parent_dim=model_config["parent_dim"],
@@ -318,7 +318,7 @@ def load_model(*, smart_select_workspace_dir: Path) -> ParentChildMatcher:
         hidden_dim=model_config["hidden_dim"],
         emb_dim=model_config["emb_dim"],
     )
-    model_state_path = smart_select_workspace_dir / "model_weights.pt"
+    model_state_path = fk_models_workspace_dir / f"model_weights[{tgt_parent_key}].pt"
     model.load_state_dict(torch.load(model_state_path))
     return model
 

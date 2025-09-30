@@ -156,9 +156,9 @@ def make_generator_execution_plan(generator: Generator) -> ExecutionPlan:
                 include_report=table.language_model_configuration.enable_model_report,
             )
     execution_plan.add_task(TaskType.sync)
-    # post_training_sync = execution_plan.add_task(TaskType.sync)
-    # finalize_task = execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
-    # execution_plan.add_task(TaskType.sync, parent=finalize_task)
+    post_training_sync = execution_plan.add_task(TaskType.sync)
+    finalize_task = execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
+    execution_plan.add_task(TaskType.sync, parent=finalize_task)
     return execution_plan
 
 

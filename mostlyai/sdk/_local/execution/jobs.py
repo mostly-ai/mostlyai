@@ -43,6 +43,7 @@ from mostlyai.sdk._local.execution.step_finalize_generation import (
     execute_step_finalize_generation,
     update_total_rows,
 )
+from mostlyai.sdk._local.execution.step_finalize_training import execute_step_finalize_training
 from mostlyai.sdk._local.execution.step_generate_data import execute_step_generate_data
 from mostlyai.sdk._local.execution.step_generate_model_report_data import (
     execute_step_generate_model_report_data,
@@ -85,16 +86,15 @@ def _set_random_state(random_state: int | None = None):
 
 
 def _move_training_artefacts(generator_dir: Path, job_workspace_dir: Path):
-    for dir in ["Logs", "ModelStore", "SmartSelectModelStore", "ModelQAReports", "ModelQAStatistics"]:
+    for dir in ["Logs", "ModelStore", "FKModelsStore", "ModelQAReports", "ModelQAStatistics"]:
         shutil.rmtree(generator_dir / dir, ignore_errors=True)
         (generator_dir / dir).mkdir()
     for path in job_workspace_dir.absolute().rglob("*"):
         if path.is_dir() and path.name == "ModelStore":
             model_label = path.parent.name
             path.rename(generator_dir / "ModelStore" / model_label)
-        if path.is_dir() and path.name == "SmartSelectModelStore":
-            model_label = path.parent.name
-            path.rename(generator_dir / "SmartSelectModelStore" / model_label)
+        if path.is_dir() and path.name == "FKModelsStore":
+            path.rename(generator_dir / "FKModelsStore")
         if path.is_file() and path.parent.name == "ModelQAReports":
             path.rename(generator_dir / "ModelQAReports" / path.name)
         if path.is_dir() and path.name == "ModelQAStatistics":
@@ -183,10 +183,10 @@ def _copy_model(generator_dir: Path, model_label: str, workspace_dir: Path) -> b
     return False
 
 
-def _copy_smart_select_model(generator_dir: Path, model_label: str, workspace_dir: Path) -> bool:
-    model_path = generator_dir / "SmartSelectModelStore" / model_label
-    if model_path.exists():
-        shutil.copytree(model_path, workspace_dir / "SmartSelectModelStore")
+def _copy_fk_models(generator_dir: Path, job_workspace_dir: Path) -> bool:
+    models_path = generator_dir / "FKModelsStore"
+    if models_path.exists():
+        shutil.copytree(models_path, job_workspace_dir / "FKModelsStore")
         return True
     return False
 
@@ -442,7 +442,13 @@ class Execution:
                 tgt_table.language_model_metrics = model_metrics
 
     def execute_task_finalize_training(self, task: Task):
-        pass
+        generator = self._generator
+        connectors = [
+            read_connector_from_json(self._home_dir / "connectors" / t.source_connector_id) for t in generator.tables
+        ]
+        execute_step_finalize_training(
+            generator=generator, connectors=connectors, job_workspace_dir=self._job_workspace_dir
+        )
 
     def execute_task_generate(self, task: Task):
         generator = self._generator
@@ -471,9 +477,6 @@ class Execution:
             if step.step_code in {StepCode.generate_data_tabular, StepCode.generate_data_language}:
                 # step: GENERATE_DATA
                 _copy_model(generator_dir=generator_dir, model_label=model_label_path, workspace_dir=workspace_dir)
-                _copy_smart_select_model(
-                    generator_dir=generator_dir, model_label=model_label_path, workspace_dir=workspace_dir
-                )
 
                 visited_tables.add(step.target_table_name)
 
@@ -545,16 +548,22 @@ class Execution:
                 self.execute_deliver_data()
 
     def execute_finalize_generation(self):
+        generator = self._generator
+        generator_dir = self._home_dir / "generators" / generator.id
+        job_workspace_dir = self._job_workspace_dir
+
+        _copy_fk_models(generator_dir=generator_dir, job_workspace_dir=self._job_workspace_dir)
+
         schema = create_generation_schema(
             generator=self._generator,
-            job_workspace_dir=self._job_workspace_dir,
+            job_workspace_dir=job_workspace_dir,
             step="finalize_generation",
         )
 
         usages = execute_step_finalize_generation(
             schema=schema,
             is_probe=False,
-            job_workspace_dir=self._job_workspace_dir,
+            job_workspace_dir=job_workspace_dir,
             update_progress=LocalProgressCallback(
                 resource_path=self._home_dir / "synthetic-datasets" / self._synthetic_dataset.id,
                 model_label=None,

@@ -13,5 +13,164 @@
 # limitations under the License.
 
 
-def execute_step_finalize_training():
-    pass
+from pathlib import Path
+
+import pandas as pd
+from torch import Generator
+
+from mostlyai.sdk._data.base import Schema
+from mostlyai.sdk._data.fk_models import (
+    ParentChildMatcher,
+    encode_df,
+    pre_training,
+    prepare_training_data,
+    store_fk_model,
+    train,
+)
+from mostlyai.sdk._local.execution.step_pull_training_data import create_training_schema
+from mostlyai.sdk.domain import Connector
+
+
+def execute_train_fk_models_for_single_table(
+    *,
+    tgt_table_name: str,
+    schema: Schema,
+    fk_models_workspace_dir: Path,
+):
+    non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == tgt_table_name]
+    if not non_ctx_relations:
+        # no non-context relations, so no parent-child matchers to train
+        return
+
+    fk_models_workspace_dir.mkdir(parents=True, exist_ok=True)
+
+    tgt_table = schema.tables[tgt_table_name]
+    tgt_data = tgt_table.read_data()
+    tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
+    tgt_data_columns = [c for c in tgt_table.columns if c != tgt_table.primary_key and c not in tgt_foreign_keys]
+
+    for non_ctx_relation in non_ctx_relations:
+        parent_table = schema.tables[non_ctx_relation.parent.table]
+        parent_foreign_keys = [fk.column for fk in parent_table.foreign_keys]
+        parent_data_columns = [
+            c for c in parent_table.columns if c != parent_table.primary_key and c not in parent_foreign_keys
+        ]
+        parent_table_name = non_ctx_relation.parent.table
+        parent_data = schema.tables[parent_table_name].read_data()
+
+        tgt_primary_key = schema.tables[tgt_table_name].primary_key
+        tgt_parent_key = non_ctx_relation.child.column
+        parent_primary_key = non_ctx_relation.parent.column
+
+        execute_train_fk_models_for_single_relation(
+            tgt_data=tgt_data,
+            parent_data=parent_data,
+            tgt_primary_key=tgt_primary_key,
+            tgt_parent_key=tgt_parent_key,
+            tgt_data_columns=tgt_data_columns,
+            parent_primary_key=parent_primary_key,
+            parent_data_columns=parent_data_columns,
+            parent_table_name=parent_table_name,
+            fk_models_workspace_dir=fk_models_workspace_dir,
+        )
+
+
+def execute_train_fk_models_for_single_relation(
+    *,
+    tgt_data: pd.DataFrame,
+    parent_data: pd.DataFrame,
+    tgt_primary_key: str,
+    tgt_parent_key: str,
+    tgt_data_columns: list[str],
+    parent_primary_key: str,
+    parent_table_name: str,
+    parent_data_columns: list[str],
+    fk_models_workspace_dir: Path,
+):
+    fk_models_workspace_dir.mkdir(parents=True, exist_ok=True)
+
+    tgt_data_columns = [
+        c for c in tgt_data_columns if c != tgt_primary_key and c != tgt_parent_key and c in tgt_data.columns
+    ]
+    parent_data_columns = [c for c in parent_data_columns if c != parent_primary_key and c in parent_data.columns]
+
+    # fit tgt encoders
+    tgt_pre_training_dir = fk_models_workspace_dir / f"pre_training[{tgt_parent_key}]"
+    pre_training(
+        df=tgt_data,
+        primary_key=tgt_primary_key,
+        parent_key=tgt_parent_key,
+        data_columns=tgt_data_columns,
+        pre_training_dir=tgt_pre_training_dir,
+    )
+
+    # fit parent encoders
+    parent_pre_training_dir = fk_models_workspace_dir / f"pre_training[{parent_table_name}]"
+    if not parent_pre_training_dir.exists():
+        pre_training(
+            df=parent_data,
+            primary_key=parent_primary_key,
+            data_columns=parent_data_columns,
+            pre_training_dir=parent_pre_training_dir,
+        )
+    else:
+        print(f"Parent table `{parent_table_name}` pre-training already done, skipping")
+
+    # encode tgt data
+    tgt_encoded_data = encode_df(
+        df=tgt_data,
+        pre_training_dir=tgt_pre_training_dir,
+        include_primary_key=False,
+    )
+
+    # encode parent data
+    parent_encoded_data = encode_df(
+        df=parent_data,
+        pre_training_dir=parent_pre_training_dir,
+    )
+
+    # initialize child-parent matcher model
+    parent_dim = parent_encoded_data.shape[1] - 1
+    child_dim = tgt_encoded_data.shape[1] - 1
+    hidden_dim = 32
+    emb_dim = 8
+    model = ParentChildMatcher(
+        parent_dim=parent_dim,
+        child_dim=child_dim,
+        hidden_dim=hidden_dim,
+        emb_dim=emb_dim,
+    )
+
+    # create positive and negative pairs for training
+    parent_vecs, tgt_vecs, labels = prepare_training_data(
+        parent_encoded_data=parent_encoded_data,
+        tgt_encoded_data=tgt_encoded_data,
+        parent_primary_key=parent_primary_key,
+        tgt_parent_key=tgt_parent_key,
+        sample_size=1_000,
+    )
+
+    # train model
+    train(
+        model=model,
+        parent_vecs=parent_vecs,
+        tgt_vecs=tgt_vecs,
+        labels=labels,
+        do_plot_losses=False,
+    )
+
+    # store model
+    store_fk_model(model=model, tgt_parent_key=tgt_parent_key, fk_models_workspace_dir=fk_models_workspace_dir)
+
+    print(f"Child-parent matcher model trained and stored for parent table: {parent_table_name}")
+
+
+def execute_step_finalize_training(*, generator: Generator, connectors: list[Connector], job_workspace_dir: Path):
+    schema = create_training_schema(generator=generator, connectors=connectors)
+    for tgt_table_name in schema.tables:
+        fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / tgt_table_name
+        execute_train_fk_models_for_single_table(
+            tgt_table_name=tgt_table_name,
+            schema=schema,
+            fk_models_workspace_dir=fk_models_workspace_dir,
+        )

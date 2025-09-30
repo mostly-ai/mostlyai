@@ -24,7 +24,7 @@ from mostlyai.sdk._data.dtype import is_timestamp_dtype
 from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
-from mostlyai.sdk._data.fk_models import build_parent_child_probabilities, encode_df, load_model, sample_best_parents
+from mostlyai.sdk._data.fk_models import build_parent_child_probabilities, encode_df, load_fk_model, sample_best_parents
 from mostlyai.sdk._data.non_context import postproc_non_context
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._data.util.common import (
@@ -39,15 +39,15 @@ _LOG = logging.getLogger(__name__)
 
 def execute_match_non_context_relation(
     *,
-    smart_select_workspace_dir: Path,
+    fk_models_workspace_dir: Path,
     tgt_data: pd.DataFrame,
     parent_data: pd.DataFrame,
     tgt_parent_key: str,
     parent_primary_key: str,
     parent_table_name: str,
 ) -> pd.DataFrame:
-    tgt_pre_training_dir = smart_select_workspace_dir / f"pre_training[{tgt_parent_key}]"
-    parent_pre_training_dir = smart_select_workspace_dir / f"pre_training[{parent_table_name}]"
+    tgt_pre_training_dir = fk_models_workspace_dir / f"pre_training[{tgt_parent_key}]"
+    parent_pre_training_dir = fk_models_workspace_dir / f"pre_training[{parent_table_name}]"
     tgt_encoded = encode_df(
         df=tgt_data,
         pre_training_dir=tgt_pre_training_dir,
@@ -59,7 +59,7 @@ def execute_match_non_context_relation(
         pre_training_dir=parent_pre_training_dir,
         include_primary_key=False,
     )
-    model = load_model(smart_select_workspace_dir=smart_select_workspace_dir)
+    model = load_fk_model(tgt_parent_key=tgt_parent_key, fk_models_workspace_dir=fk_models_workspace_dir)
     prob_matrix = build_parent_child_probabilities(
         model=model,
         tgt_encoded=tgt_encoded,
@@ -89,11 +89,10 @@ def execute_match_non_context_relations(job_workspace_dir: Path, delivery_dir: P
             tgt_parent_key = non_ctx_relation.child.column
             parent_primary_key = non_ctx_relation.parent.column
 
-            model_label = get_model_label(table_name, ModelType.tabular, path_safe=True)
-            smart_select_workspace_dir = job_workspace_dir / model_label / "SmartSelectModelStore"
+            fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / table_name
 
             tgt_data = execute_match_non_context_relation(
-                smart_select_workspace_dir=smart_select_workspace_dir,
+                fk_models_workspace_dir=fk_models_workspace_dir,
                 tgt_data=tgt_data,
                 parent_data=parent_data,
                 tgt_parent_key=tgt_parent_key,
