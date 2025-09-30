@@ -304,3 +304,22 @@ sd = mostly.generate(g, config={
     }
 })
 ```
+
+## Creation of datasets
+
+Create datasets to train [generators](#tabular-and-textual-data) or generate [artifacts](https://docs.mostly.ai/assistant/artifacts). The `connector` parameter may be used to reference an existing [connector](#usage-of-connectors) via UUID.
+
+> Only available in `client` mode.
+
+```python
+# create a source dataset (for training generators or artifacts)
+ds = mostly.datasets.create({
+    "name": "My New Dataset",                                                    # name of the dataset
+    "description": "A dataset created using the MOSTLY AI SDK in client mode.",  # description of the dataset
+    "connectors": [                                                              # list of connectors
+        {
+            "id": "e43aa845-8d77-4cda-bc9e-10da9a4196a9"                         # the UUID of the source connector
+        }
+    ]
+})
+```

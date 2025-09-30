@@ -165,6 +165,7 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             # status: DONE
             ```
         """
+        config = SyntheticDatasetConfig.model_validate(config)
         synthetic_dataset = self.request(
             verb=POST,
             path=[],
@@ -186,12 +187,13 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
     def _update(
         self,
         synthetic_dataset_id: str,
-        config: SyntheticDatasetPatchConfig | dict[str, Any],
+        config: SyntheticDatasetPatchConfig,
     ) -> SyntheticDataset:
         response = self.request(
             verb=PATCH,
             path=[synthetic_dataset_id],
             json=config,
+            exclude_none_in_json=True,
             response_type=SyntheticDataset,
         )
         return response
@@ -335,6 +337,7 @@ class _MostlySyntheticProbesClient(_MostlyBaseClient):
         Returns:
             A dictionary mapping probe names to pandas DataFrames.
         """
+        config = SyntheticProbeConfig.model_validate(config)
         dicts = self.request(
             verb=POST,
             path=[],

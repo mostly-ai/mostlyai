@@ -122,7 +122,7 @@ class _MostlyDatasetsClient(_MostlyBaseClient):
 
     def create(self, config: DatasetConfig | dict[str, Any]) -> Dataset:
         """
-        Create a dataset.
+        Create a dataset with optional connectors and files.
 
         Args:
             config: Configuration for the dataset.
@@ -130,24 +130,39 @@ class _MostlyDatasetsClient(_MostlyBaseClient):
         Returns:
             The created dataset object.
 
-        Example for creating a dataset:
+        Example for creating a dataset with a connector:
             ```python
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
             ds = mostly.datasets.create(
                 config=DatasetConfig(
                     name="INSERT_YOUR_DATASET_NAME",
-                    description="INSERT_YOUR_DATASET_DESCRIPTION",
+                    description="INSERT_YOUR_DATASET_INSTRUCTIONS",
                     connectors=[
                         DatasetConnector(
                             connector_id="INSERT_YOUR_CONNECTOR_ID",
-                            location="INSERT_YOUR_LOCATION",
+                            locations=["LOCATION_1", "LOCATION_2"],
                         )
                     ],
                 )
             )
             ```
+
+        Example for creating a dataset with files:
+            ```python
+            from mostlyai.sdk import MostlyAI
+            mostly = MostlyAI()
+            ds = mostly.datasets.create(
+                config=DatasetConfig(
+                    name="INSERT_YOUR_DATASET_NAME",
+                    description="INSERT_YOUR_DATASET_INSTRUCTIONS",
+                )
+            )
+            ds.upload_file("path/to/file_1.csv.gz")
+            ds.upload_file("path/to/file_2.txt")
+            ```
         """
+        config = DatasetConfig.model_validate(config)
         dataset = self.request(
             verb=POST,
             path=[],
@@ -164,12 +179,13 @@ class _MostlyDatasetsClient(_MostlyBaseClient):
     def _update(
         self,
         dataset_id: str,
-        config: DatasetPatchConfig | dict[str, Any],
+        config: DatasetPatchConfig,
     ) -> Dataset:
         response = self.request(
             verb=PATCH,
             path=[dataset_id],
             json=config,
+            exclude_none_in_json=True,
             response_type=Dataset,
         )
         return response
