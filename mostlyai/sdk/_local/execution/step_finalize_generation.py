@@ -48,6 +48,8 @@ def execute_match_non_context_relation(
 ) -> pd.DataFrame:
     tgt_pre_training_dir = fk_models_workspace_dir / f"pre_training[{tgt_parent_key}]"
     parent_pre_training_dir = fk_models_workspace_dir / f"pre_training[{parent_table_name}]"
+
+    # encode target and parent data
     tgt_encoded = encode_df(
         df=tgt_data,
         pre_training_dir=tgt_pre_training_dir,
@@ -59,12 +61,18 @@ def execute_match_non_context_relation(
         pre_training_dir=parent_pre_training_dir,
         include_primary_key=False,
     )
+
+    # load model
     model = load_fk_model(tgt_parent_key=tgt_parent_key, fk_models_workspace_dir=fk_models_workspace_dir)
+
+    # build probability matrix
     prob_matrix = build_parent_child_probabilities(
         model=model,
         tgt_encoded=tgt_encoded,
         parent_encoded=parent_encoded,
     )
+
+    # sample best parents
     best_parent_indices = sample_best_parents(prob_matrix=prob_matrix)
     best_parent_ids = parent_data.iloc[best_parent_indices][parent_primary_key].values
     tgt_data[tgt_parent_key] = best_parent_ids

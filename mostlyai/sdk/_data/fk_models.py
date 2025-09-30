@@ -17,42 +17,98 @@ import json
 import time
 from pathlib import Path
 
-import joblib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
-from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
+from mostlyai.engine._encoding_types.tabular.categorical import (
+    analyze_categorical,
+    analyze_reduce_categorical,
+    encode_categorical,
+)
+from mostlyai.engine._encoding_types.tabular.numeric import analyze_numeric, analyze_reduce_numeric, encode_numeric
+
+
+class EntityEncoder(nn.Module):
+    def __init__(
+        self,
+        cardinalities: dict[str, int],
+        sub_column_embedding_dim: int = 16,
+        entity_hidden_dim: int = 16,
+        entity_embedding_dim: int = 8,
+    ):
+        super().__init__()
+        self.cardinalities = cardinalities
+        self.sub_column_embedding_dim = sub_column_embedding_dim
+        self.entity_hidden_dim = entity_hidden_dim
+        self.entity_embedding_dim = entity_embedding_dim
+        self.embeddings = nn.ModuleDict(
+            {
+                col: nn.Embedding(num_embeddings=cardinality, embedding_dim=self.sub_column_embedding_dim)
+                for col, cardinality in self.cardinalities.items()
+            }
+        )
+        entity_dim = len(self.cardinalities) * self.sub_column_embedding_dim
+        self.entity_encoder = nn.Sequential(
+            nn.Linear(entity_dim, self.entity_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.entity_hidden_dim, self.entity_embedding_dim),
+        )
+
+    def forward(self, inputs: dict[str, torch.Tensor]) -> torch.Tensor:
+        embeddings = torch.cat([self.embeddings[col](inputs[col]) for col in inputs.keys()], dim=1)
+        encoded = self.entity_encoder(embeddings)
+        return encoded
+
 
 class ParentChildMatcher(nn.Module):
-    def __init__(self, parent_dim: int, child_dim: int, hidden_dim: int, emb_dim: int):
+    def __init__(
+        self,
+        parent_cardinalities: dict[str, int],
+        child_cardinalities: dict[str, int],
+        sub_column_embedding_dim: int = 16,
+        entity_hidden_dim: int = 16,
+        entity_embedding_dim: int = 8,
+        similarity_hidden_dim: int = 16,
+    ):
         super().__init__()
-        self.parent_dim = parent_dim
-        self.child_dim = child_dim
-        self.hidden_dim = hidden_dim
-        self.emb_dim = emb_dim
-        self.child_encoder = nn.Sequential(nn.Linear(child_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, emb_dim))
-        self.parent_encoder = nn.Sequential(
-            nn.Linear(parent_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, emb_dim)
+        self.entity_embedding_dim = entity_embedding_dim
+        self.similarity_hidden_dim = similarity_hidden_dim
+        self.parent_encoder = EntityEncoder(
+            cardinalities=parent_cardinalities,
+            sub_column_embedding_dim=sub_column_embedding_dim,
+            entity_hidden_dim=entity_hidden_dim,
+            entity_embedding_dim=self.entity_embedding_dim,
         )
-        self.similarity_layer = nn.Sequential(nn.Linear(3 * emb_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 1))
+        self.child_encoder = EntityEncoder(
+            cardinalities=child_cardinalities,
+            sub_column_embedding_dim=sub_column_embedding_dim,
+            entity_hidden_dim=entity_hidden_dim,
+            entity_embedding_dim=self.entity_embedding_dim,
+        )
+        self.similarity_layer = nn.Sequential(
+            nn.Linear(3 * self.entity_embedding_dim, self.similarity_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.similarity_hidden_dim, 1),
+        )
 
-    def forward(self, parent_vec: torch.Tensor, child_vec: torch.Tensor) -> torch.Tensor:
-        u = self.parent_encoder(parent_vec)
-        v = self.child_encoder(child_vec)
-        sim = F.normalize(u, dim=1) * F.normalize(v, dim=1)  # cosine similarity
-        x = torch.cat([u, v, sim], dim=1)
-        logit = self.similarity_layer(x)
-        return torch.sigmoid(logit)
+    def forward(self, parent_inputs: dict[str, torch.Tensor], child_inputs: dict[str, torch.Tensor]) -> torch.Tensor:
+        parent_encoded = self.parent_encoder(parent_inputs)
+        child_encoded = self.child_encoder(child_inputs)
+
+        similarity = F.normalize(parent_encoded, dim=1) * F.normalize(child_encoded, dim=1)  # cosine similarity
+        similarity_layer_input = torch.cat([parent_encoded, child_encoded, similarity], dim=1)
+        probability_logit = self.similarity_layer(similarity_layer_input)
+        probability = torch.sigmoid(probability_logit)
+
+        return probability
 
 
-def pre_training(
+def analyze_df(
     *,
     df: pd.DataFrame,
     primary_key: str | None = None,
@@ -72,34 +128,34 @@ def pre_training(
 
     data_columns = data_columns or list(df.columns)
     data_columns = list(set(data_columns).difference(key_columns).intersection(df.columns))
-    num_columns = df.select_dtypes(include="number").columns.intersection(data_columns)
-    cat_columns = df.columns.difference(num_columns).intersection(data_columns)
-
-    # fit encoder for numeric columns & store
-    num_encoder = Pipeline([("imputer", SimpleImputer(strategy="mean")), ("scaler", StandardScaler())])
-    num_encoder.fit(df[num_columns])
-    num_encoder_path = pre_training_dir / "num_encoder.pkl"
-    joblib.dump(num_encoder, num_encoder_path)
-
-    # fit encoder for categorical columns & store
-    cat_encoder = OneHotEncoder(
-        handle_unknown="infrequent_if_exist",
-        max_categories=20,
-        sparse_output=False,
-    )
-    df_cat = df[cat_columns].astype(str).fillna("__NULL__")
-    cat_encoder = cat_encoder.fit(df_cat)
-    cat_encoder_path = pre_training_dir / "cat_encoder.pkl"
-    joblib.dump(cat_encoder, cat_encoder_path)
+    num_columns = list(df.select_dtypes(include="number").columns.intersection(data_columns))
+    cat_columns = list(df.columns.difference(num_columns).intersection(data_columns))
 
     # store pre-training metadata as JSON
-    pre_training_meta = {
+    stats = {
         "primary_key": primary_key,
         "parent_key": parent_key,
         "data_columns": data_columns,
+        "cat_columns": cat_columns,
+        "num_columns": num_columns,
+        "columns": {},
     }
-    pre_training_meta_path = pre_training_dir / "pre_training_meta.json"
-    pre_training_meta_path.write_text(json.dumps(pre_training_meta, indent=4))
+    for col in data_columns:
+        values = df[col]
+        root_keys = pd.Series(np.arange(len(values)), name="root_keys")
+        if col in cat_columns:
+            analyze, reduce = analyze_categorical, analyze_reduce_categorical
+        elif col in num_columns:
+            analyze, reduce = analyze_numeric, analyze_reduce_numeric
+        else:
+            raise ValueError(f"unknown column type: {col}")
+        col_stats = analyze(values, root_keys)
+        col_stats = reduce([col_stats])
+        stats["columns"][col] = col_stats
+
+    # store stats
+    stats_path = pre_training_dir / "stats.json"
+    stats_path.write_text(json.dumps(stats, indent=4))
 
     t1 = time.time()
     print(f"pre_training() | time: {t1 - t0:.2f}s")
@@ -110,36 +166,38 @@ def encode_df(
 ) -> pd.DataFrame:
     t0 = time.time()
 
-    pre_training_meta_path = pre_training_dir / "pre_training_meta.json"
-    pre_training_meta = json.loads(pre_training_meta_path.read_text())
-    primary_key = pre_training_meta["primary_key"]
-    parent_key = pre_training_meta["parent_key"]
+    # load stats
+    stats_path = pre_training_dir / "stats.json"
+    stats = json.loads(stats_path.read_text())
+    primary_key = stats["primary_key"]
+    parent_key = stats["parent_key"]
+    cat_columns = stats["cat_columns"]
+    num_columns = stats["num_columns"]
 
-    # encode numeric columns
-    num_encoder_path = pre_training_dir / "num_encoder.pkl"
-    num_encoder = joblib.load(num_encoder_path)
-    num_encoded = num_encoder.transform(df[num_encoder.feature_names_in_])
-    num_features = num_encoder.get_feature_names_out().tolist()
+    # encode columns
+    data = []
+    for col, col_stats in stats["columns"].items():
+        if col in cat_columns:
+            encode = encode_categorical
+        elif col in num_columns:
+            encode = encode_numeric
+        else:
+            raise ValueError(f"unknown column type: {col}")
+        values = df[col].copy()
+        df_encoded = encode(values, col_stats)
+        df_encoded = df_encoded.add_prefix(col + "_")
+        data.append(df_encoded)
 
-    # encode categorical columns
-    cat_encoder_path = pre_training_dir / "cat_encoder.pkl"
-    cat_encoder = joblib.load(cat_encoder_path)
-    cat_df = df[cat_encoder.feature_names_in_].astype(str).fillna("__NULL__")
-    cat_encoded = cat_encoder.transform(cat_df)
-    cat_features = cat_encoder.get_feature_names_out().tolist()
-
-    # concatenate keys and encoded columns
-    data = [num_encoded, cat_encoded]
-    features = num_features + cat_features
+    # optionally include keys
     for key, include_key in [(primary_key, include_primary_key), (parent_key, include_parent_key)]:
         if key is not None and include_key:
-            data.insert(0, df[[key]])
-            features.insert(0, key)
-    data = np.concatenate(data, axis=1)
+            data.insert(0, df[key])
+
+    data = pd.concat(data, axis=1)
 
     t1 = time.time()
     print(f"encode_df() | time: {t1 - t0:.2f}s")
-    return pd.DataFrame(data, columns=features)
+    return data
 
 
 def prepare_training_data(
@@ -148,7 +206,7 @@ def prepare_training_data(
     parent_primary_key: str,
     tgt_parent_key: str,
     sample_size: int | None = None,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
     Prepare training data for a parent-child matching model.
     For each child, one positive pair and one negative pair will be sampled.
@@ -204,19 +262,24 @@ def prepare_training_data(
     # concatenate positives and negatives
     parent_vecs = np.vstack([pos_parents, neg_parents]).astype(np.float32, copy=False)
     child_vecs = np.vstack([children_X, children_X]).astype(np.float32, copy=False)
-    labels = np.concatenate([pos_labels, neg_labels]).astype(np.float32, copy=False)
+    labels_vec = np.concatenate([pos_labels, neg_labels]).astype(np.float32, copy=False)
+
+    # convert to pandas
+    parent_pd = pd.DataFrame(parent_vecs, columns=parent_encoded_data.drop(columns=[parent_primary_key]).columns)
+    child_pd = pd.DataFrame(child_vecs, columns=tgt_encoded_data.drop(columns=[tgt_parent_key]).columns)
+    labels_pd = pd.Series(labels_vec, name="labels")
 
     t1 = time.time()
     print(f"prepare_training_data() | time: {t1 - t0:.2f}s")
-    return parent_vecs, child_vecs, labels
+    return parent_pd, child_pd, labels_pd
 
 
 def train(
     *,
     model: ParentChildMatcher,
-    parent_vecs: np.ndarray,
-    tgt_vecs: np.ndarray,
-    labels: np.ndarray,
+    parent_pd: pd.DataFrame,
+    child_pd: pd.DataFrame,
+    labels: torch.Tensor,
     do_plot_losses: bool = True,
 ) -> None:
     patience = 20
@@ -224,10 +287,9 @@ def train(
     epochs_no_improve = 0
     max_epochs = 1000
 
-    X_parent = torch.tensor(parent_vecs, dtype=torch.float32)
-    X_child = torch.tensor(tgt_vecs, dtype=torch.float32)
-    y = torch.tensor(labels, dtype=torch.float32).unsqueeze(1)
-
+    X_parent = torch.tensor(parent_pd.values, dtype=torch.int64)
+    X_child = torch.tensor(child_pd.values, dtype=torch.int64)
+    y = torch.tensor(labels.values, dtype=torch.float32).unsqueeze(1)
     dataset = TensorDataset(X_parent, X_child, y)
 
     val_size = int(0.2 * len(dataset))
@@ -248,12 +310,14 @@ def train(
         model.train()
         train_loss = 0
         for batch_parent, batch_child, batch_y in train_loader:
+            batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
+            batch_child = {col: batch_child[:, i] for i, col in enumerate(child_pd.columns)}
             optimizer.zero_grad()
             pred = model(batch_parent, batch_child)
             loss = loss_fn(pred, batch_y)
             loss.backward()
             optimizer.step()
-            train_loss += loss.item() * batch_child.size(0)
+            train_loss += loss.item() * batch_y.size(0)
         train_loss /= train_size
         train_losses.append(train_loss)
 
@@ -262,9 +326,11 @@ def train(
         val_loss = 0
         with torch.no_grad():
             for batch_parent, batch_child, batch_y in val_loader:
+                batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
+                batch_child = {col: batch_child[:, i] for i, col in enumerate(child_pd.columns)}
                 pred = model(batch_parent, batch_child)
                 loss = loss_fn(pred, batch_y)
-                val_loss += loss.item() * batch_child.size(0)
+                val_loss += loss.item() * batch_y.size(0)
         val_loss /= val_size
         val_losses.append(val_loss)
 
@@ -298,10 +364,19 @@ def train(
 def store_fk_model(*, model: ParentChildMatcher, tgt_parent_key: str, fk_models_workspace_dir: Path) -> None:
     fk_models_workspace_dir.mkdir(parents=True, exist_ok=True)
     model_config = {
-        "parent_dim": model.parent_dim,
-        "child_dim": model.child_dim,
-        "hidden_dim": model.hidden_dim,
-        "emb_dim": model.emb_dim,
+        "parent_encoder": {
+            "cardinalities": model.parent_encoder.cardinalities,
+            "sub_column_embedding_dim": model.parent_encoder.sub_column_embedding_dim,
+            "entity_hidden_dim": model.parent_encoder.entity_hidden_dim,
+            "entity_embedding_dim": model.parent_encoder.entity_embedding_dim,
+        },
+        "child_encoder": {
+            "cardinalities": model.child_encoder.cardinalities,
+            "sub_column_embedding_dim": model.child_encoder.sub_column_embedding_dim,
+            "entity_hidden_dim": model.child_encoder.entity_hidden_dim,
+            "entity_embedding_dim": model.child_encoder.entity_embedding_dim,
+        },
+        "similarity_hidden_dim": model.similarity_hidden_dim,
     }
     model_config_path = fk_models_workspace_dir / f"model_config[{tgt_parent_key}].json"
     model_config_path.write_text(json.dumps(model_config, indent=4))
@@ -313,10 +388,12 @@ def load_fk_model(*, tgt_parent_key: str, fk_models_workspace_dir: Path) -> Pare
     model_config_path = fk_models_workspace_dir / f"model_config[{tgt_parent_key}].json"
     model_config = json.loads(model_config_path.read_text())
     model = ParentChildMatcher(
-        parent_dim=model_config["parent_dim"],
-        child_dim=model_config["child_dim"],
-        hidden_dim=model_config["hidden_dim"],
-        emb_dim=model_config["emb_dim"],
+        parent_cardinalities=model_config["parent_encoder"]["cardinalities"],
+        child_cardinalities=model_config["child_encoder"]["cardinalities"],
+        sub_column_embedding_dim=model_config["parent_encoder"]["sub_column_embedding_dim"],
+        entity_hidden_dim=model_config["parent_encoder"]["entity_hidden_dim"],
+        entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
+        similarity_hidden_dim=model_config["similarity_hidden_dim"],
     )
     model_state_path = fk_models_workspace_dir / f"model_weights[{tgt_parent_key}].pt"
     model.load_state_dict(torch.load(model_state_path))
@@ -330,15 +407,19 @@ def build_parent_child_probabilities(
     parent_encoded: pd.DataFrame,
 ) -> torch.Tensor:
     t0 = time.time()
-    tgt_vecs = torch.tensor(tgt_encoded.values.astype(np.float32))
-    parent_vecs = torch.tensor(parent_encoded.values.astype(np.float32))
-    n_tgt = tgt_vecs.shape[0]
-    n_parent = parent_vecs.shape[0]
-    tgt_vecs_expanded = tgt_vecs.repeat_interleave(n_parent, dim=0)
-    parent_vecs_expanded = parent_vecs.repeat(n_tgt, 1)
+    n_tgt = tgt_encoded.shape[0]
+    n_parent = parent_encoded.shape[0]
+
+    tgt_inputs = {col: torch.tensor(tgt_encoded[col].values.astype(np.int64)) for col in tgt_encoded.columns}
+    parent_inputs = {col: torch.tensor(parent_encoded[col].values.astype(np.int64)) for col in parent_encoded.columns}
+
+    # for all pairs, compute the probability for each (tgt, parent) pair
+    tgt_inputs = {col: tgt_inputs[col].repeat_interleave(n_parent) for col in tgt_encoded.columns}
+    parent_inputs = {col: parent_inputs[col].repeat(n_tgt) for col in parent_encoded.columns}
+
     model.eval()
     with torch.no_grad():
-        probs = model(parent_vecs_expanded, tgt_vecs_expanded).squeeze()
+        probs = model(parent_inputs, tgt_inputs).squeeze()
         prob_matrix = probs.view(n_tgt, n_parent)
         t1 = time.time()
     print(f"build_parent_child_probabilities() | time: {t1 - t0:.2f}s")
@@ -351,3 +432,14 @@ def sample_best_parents(
 ) -> np.ndarray:
     best_parent_indices = torch.argmax(prob_matrix, dim=1).cpu().numpy()
     return best_parent_indices
+
+
+def get_cardinalities(*, pre_training_dir: Path) -> dict[str, int]:
+    stats_path = pre_training_dir / "stats.json"
+    stats = json.loads(stats_path.read_text())
+    cardinalities = {
+        f"{column}_{sub_column}": cardinality
+        for column, column_stats in stats["columns"].items()
+        for sub_column, cardinality in column_stats["cardinalities"].items()
+    }
+    return cardinalities
