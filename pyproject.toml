@@ -152,25 +152,6 @@ docs = [
     "griffe-fieldz>=0.2",
     "black>=25.0",
 ]
-redshift = [
-    "adlfs>=2025.8.0",
-    "azure-storage-blob>=12.26.0",
-    "cloudpathlib>=0.22.0",
-    "fastapi>=0.115.14",
-    "gcsfs>=2025.9.0",
-    "joblib>=1.5.2",
-    "mostlyai-engine>=1.5.5",
-    "mostlyai-qa>=1.9.8",
-    "networkx>=3.4.2",
-    "psycopg2>=2.9.4,<3",
-    "python-multipart>=0.0.20",
-    "s3fs>=2025.9.0",
-    "smart-open>=7.3.1",
-    "sqlalchemy>=2.0.43",
-    "psycopg2>=2.9.4,<3",
-    "sshtunnel>=0.4.0",
-    "uvicorn>=0.34.3",
-]
 
 [project.urls]
 homepage = "https://app.mostly.ai/"
