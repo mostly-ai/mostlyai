@@ -260,7 +260,7 @@ def test_make_synthetic_dataset_execution_plan_with_probe():
     synthetic_dataset = SyntheticDataset(
         tables=[
             SyntheticTable(name=table.name, configuration=SyntheticTableConfiguration()) for table in generator.tables
-        ]
+        ],
     )
 
     execution_plan = make_synthetic_dataset_execution_plan(generator, synthetic_dataset, is_probe=True)

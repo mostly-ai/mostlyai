@@ -97,14 +97,14 @@ def create_synthetic_dataset(
         sd_tables.append(sd_table)
 
     # create synthetic dataset
-    synthetic_dataset = SyntheticDataset(
-        **{
-            **config.model_dump(),
-            "generation_status": ProgressStatus.new,
-            "tables": sd_tables,
-        }
-    )
-    synthetic_dataset.name = synthetic_dataset.name or generator.name
+    full_config = {
+        **config.model_dump(),
+        "generation_status": ProgressStatus.new,
+        "tables": sd_tables,
+    }
+    if full_config.get("name") is None:
+        full_config["name"] = generator.name
+    synthetic_dataset = SyntheticDataset(**full_config)
     synthetic_dataset.description = synthetic_dataset.description or generator.description
     synthetic_dataset_dir = home_dir / "synthetic-datasets" / synthetic_dataset.id
     write_synthetic_dataset_to_json(synthetic_dataset_dir, synthetic_dataset)
