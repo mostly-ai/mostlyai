@@ -19,8 +19,9 @@ from urllib.parse import quote
 
 import redshift_connector
 import sqlalchemy as sa
+from sqlalchemy import text, types
 from sqlalchemy.dialects import registry
-from sqlalchemy.dialects.postgresql.base import PGDialect
+from sqlalchemy.engine.default import DefaultDialect
 
 from mostlyai.sdk._data.db.base import DBDType
 from mostlyai.sdk._data.db.postgresql import PostgresqlContainer, PostgresqlTable
@@ -61,118 +62,238 @@ class RedshiftDBAPI:
     NotSupportedError = redshift_connector.NotSupportedError
 
 
-# minimal redshift dialect that avoids postgresql-specific introspection
-class RedshiftDialect(PGDialect):
+# minimal redshift dialect that inherits from DefaultDialect instead of PGDialect
+class RedshiftDialect(DefaultDialect):
     name = "redshift"
-    driver = "redshift-connector"
+    driver = "redshift_connector"
     supports_statement_cache = False
     default_paramstyle = "format"
+
+    # redshift-specific capabilities
+    supports_alter = True
+    supports_unicode_statements = True
+    supports_unicode_binds = True
+    supports_native_boolean = True
+    supports_native_decimal = True
+    supports_schemas = True
+    supports_sequences = False  # redshift doesn't support sequences
+    supports_identity_columns = False  # redshift doesn't support identity columns
+    supports_comments = True
+    supports_default_values = True
+    supports_empty_inserts = False
+    supports_multivalues_insert = True
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.on_connect = lambda: None
+        # set a stable version tuple to avoid version comparison issues
+        self.server_version_info = (8, 4, 0)
 
     @classmethod
     def import_dbapi(cls):
         return RedshiftDBAPI
 
-    def initialize(self, connection):
-        # skip postgresql-specific initialization that doesn't work with redshift
-        pass
+    def _execute_information_schema_query(self, connection, query, params):
+        """helper method to execute information_schema queries with common error handling"""
+        return connection.execute(text(query), params)
 
-    @property
-    def server_version_info(self):
-        # return a stable version tuple to avoid version comparison issues
-        return (8, 4, 0)
+    def _get_schema_or_default(self, schema):
+        """helper method to get schema name with default fallback"""
+        return schema or "public"
 
-    def _get_relnames_for_relkinds(self, connection, schema, relkinds, scope):
-        # use information_schema for redshift compatibility
-        if not relkinds:
-            return []
+    def _query_table_names_by_type(self, connection, schema, table_type):
+        """helper method to query table names by type (BASE TABLE or VIEW)"""
+        schema = self._get_schema_or_default(schema)
 
-        from sqlalchemy import text
-
-        # map relkinds to table types: "r"=tables, "v"=views, "m"=materialized views
-        type_map = {"r": "BASE TABLE", "v": "VIEW", "m": "MATERIALIZED VIEW"}
-        conditions = [f"table_type = '{type_map[k]}'" for k in relkinds if k in type_map]
-
-        if not conditions:
-            return []
-
-        result = connection.execute(
-            text(f"""
-            SELECT table_name FROM information_schema.tables
-            WHERE table_schema = :schema AND ({" OR ".join(conditions)})
+        query = """
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = :schema AND table_type = :table_type
             ORDER BY table_name
-        """),
-            {"schema": schema or "public"},
-        )
+        """
+
+        result = self._execute_information_schema_query(connection, query, {"schema": schema, "table_type": table_type})
         return [row[0] for row in result.fetchall()]
 
-    def get_domains(self, connection, schema=None, **kw):
-        # redshift doesn't support domains, return empty list to avoid pg_collation queries
+    def get_table_names(self, connection, schema=None, **kw):
+        """get table names using information_schema for redshift compatibility"""
+        return self._query_table_names_by_type(connection, schema, "BASE TABLE")
+
+    def get_view_names(self, connection, schema=None, **kw):
+        """get view names using information_schema for redshift compatibility"""
+        return self._query_table_names_by_type(connection, schema, "VIEW")
+
+    def get_columns(self, connection, table_name, schema=None, **kw):
+        """get column information using information_schema for redshift compatibility"""
+        schema = self._get_schema_or_default(schema)
+
+        query = """
+            SELECT
+                column_name,
+                data_type,
+                is_nullable,
+                column_default,
+                character_maximum_length,
+                numeric_precision,
+                numeric_scale
+            FROM information_schema.columns
+            WHERE table_schema = :schema AND table_name = :table_name
+            ORDER BY ordinal_position
+        """
+
+        result = self._execute_information_schema_query(connection, query, {"schema": schema, "table_name": table_name})
+
+        columns = []
+        for row in result.fetchall():
+            columns.append(
+                {
+                    "name": row[0],
+                    "type": self._get_column_type(row[1], row[4], row[5], row[6]),
+                    "nullable": row[2] == "YES",
+                    "default": row[3],
+                }
+            )
+        return columns
+
+    def _get_column_type(self, data_type, max_length, precision, scale):
+        """map redshift data types to sqlalchemy types"""
+        type_map = {
+            "character varying": lambda: types.VARCHAR(max_length) if max_length else types.VARCHAR(),
+            "character": lambda: types.CHAR(max_length) if max_length else types.CHAR(),
+            "varchar": lambda: types.VARCHAR(max_length) if max_length else types.VARCHAR(),
+            "char": lambda: types.CHAR(max_length) if max_length else types.CHAR(),
+            "text": lambda: types.TEXT(),
+            "integer": lambda: types.INTEGER(),
+            "bigint": lambda: types.BIGINT(),
+            "smallint": lambda: types.SMALLINT(),
+            "decimal": lambda: types.DECIMAL(precision, scale) if precision else types.DECIMAL(),
+            "numeric": lambda: types.NUMERIC(precision, scale) if precision else types.NUMERIC(),
+            "real": lambda: types.REAL(),
+            "double precision": lambda: types.FLOAT(),
+            "boolean": lambda: types.BOOLEAN(),
+            "date": lambda: types.DATE(),
+            "timestamp": lambda: types.TIMESTAMP(),
+            "timestamp without time zone": lambda: types.TIMESTAMP(),
+            "timestamp with time zone": lambda: types.TIMESTAMP(timezone=True),
+            "time": lambda: types.TIME(),
+            "time without time zone": lambda: types.TIME(),
+            "time with time zone": lambda: types.TIME(timezone=True),
+        }
+
+        return type_map.get(data_type.lower(), lambda: types.NULLTYPE)()
+
+    def get_pk_constraint(self, connection, table_name, schema=None, **kw):
+        """get primary key constraint information (non-enforced in redshift)"""
+        schema = self._get_schema_or_default(schema)
+
+        query = """
+            SELECT
+                t.constraint_name,
+                c.column_name
+            FROM
+                information_schema.table_constraints t
+            JOIN
+                information_schema.key_column_usage c
+                  ON t.constraint_name = c.constraint_name
+                 AND t.table_schema   = c.table_schema
+                 AND t.table_name     = c.table_name
+            WHERE
+                t.table_schema = :schema
+                AND t.table_name = :table_name
+                AND t.constraint_type = 'PRIMARY KEY'
+            ORDER BY
+                c.ordinal_position
+        """
+
+        result = self._execute_information_schema_query(connection, query, {"schema": schema, "table_name": table_name})
+
+        columns = []
+        constraint_name = None
+        for row in result.fetchall():
+            if constraint_name is None:
+                constraint_name = row[0]
+            columns.append(row[1])
+
+        return {"constrained_columns": columns, "name": constraint_name}
+
+    def get_foreign_keys(self, connection, table_name, schema=None, **kw):
+        """get foreign key constraint information (non-enforced in redshift)"""
+        schema = self._get_schema_or_default(schema)
+
+        query = """
+            SELECT
+                tc.constraint_name,
+                kcu.column_name,
+                ccu.table_schema AS foreign_table_schema,
+                ccu.table_name AS foreign_table_name,
+                ccu.column_name AS foreign_column_name
+            FROM
+                information_schema.table_constraints AS tc
+            JOIN information_schema.key_column_usage AS kcu
+                ON tc.constraint_name = kcu.constraint_name
+                AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage AS ccu
+                ON ccu.constraint_name = tc.constraint_name
+                AND ccu.table_schema = tc.table_schema
+            WHERE
+                tc.constraint_type = 'FOREIGN KEY'
+                AND tc.table_schema = :schema
+                AND tc.table_name = :table_name
+            ORDER BY
+                tc.constraint_name,
+                kcu.ordinal_position
+        """
+
+        result = self._execute_information_schema_query(connection, query, {"schema": schema, "table_name": table_name})
+
+        # group by constraint name
+        fkeys = {}
+        for row in result:
+            const_name, col_name, ref_schema, ref_table, ref_col = row
+            if const_name not in fkeys:
+                fkeys[const_name] = {
+                    "name": const_name,
+                    "constrained_columns": [],
+                    "referred_schema": ref_schema,
+                    "referred_table": ref_table,
+                    "referred_columns": [],
+                }
+            fkeys[const_name]["constrained_columns"].append(col_name)
+            fkeys[const_name]["referred_columns"].append(ref_col)
+
+        return list(fkeys.values())
+
+    def get_indexes(self, connection, table_name, schema=None, **kw):
+        """get index information"""
+        # redshift doesn't support traditional indexes, return empty
         return []
 
-    def _load_domains(self, connection, schema=None, **kw):
-        # override to prevent domain loading that causes pg_collation errors
+    def get_unique_constraints(self, connection, table_name, schema=None, **kw):
+        """get unique constraint information"""
+        # redshift doesn't enforce unique constraints, return empty
         return []
 
-    def _get_domain_query(self, schema):
-        # override to prevent domain queries that cause pg_collation errors
-        from sqlalchemy import text
+    def has_table(self, connection, table_name, schema=None, **kw):
+        """check if table exists"""
+        schema = self._get_schema_or_default(schema)
 
-        return text("SELECT 1 WHERE 1=0")  # return empty result
+        query = """
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = :schema AND table_name = :table_name
+        """
 
-    def _load_enums(self, connection, schema=None, **kw):
-        # override to prevent enum loading that causes syntax errors in redshift
-        return []
-
-    def _enum_query(self, schema):
-        # override to prevent enum queries that cause syntax errors in redshift
-        from sqlalchemy import text
-
-        return text("SELECT 1 WHERE 1=0")  # return empty result
-
-    def get_multi_pk_constraint(self, connection, schema=None, **kw):
-        # override to prevent primary key constraint queries that cause syntax errors in redshift
-        return {}
-
-    def _reflect_constraint(self, connection, constraint_name, table_name, schema, **kw):
-        # override to prevent constraint reflection that causes syntax errors in redshift
-        return []
-
-    def get_multi_unique_constraints(self, connection, schema=None, **kw):
-        # override to prevent unique constraint queries that cause syntax errors in redshift
-        return {}
-
-    def get_multi_indexes(self, connection, schema=None, **kw):
-        # override to prevent index queries that cause syntax errors in redshift
-        return {}
+        result = self._execute_information_schema_query(connection, query, {"schema": schema, "table_name": table_name})
+        return result.scalar() > 0
 
 
 def _ensure_dialect_registered():
     """ensure the redshift dialect is registered with sqlalchemy"""
-    try:
-        # try to load the dialect to see if it's already registered
-        registry.load("redshift.redshift_connector")
-    except Exception:
-        # dialect not registered, register it now
-        registry.register("redshift.redshift_connector", __name__, "RedshiftDialect")
+    registry.register("redshift.redshift_connector", __name__, "RedshiftDialect")
 
 
 # register the dialect immediately when module is imported
 _ensure_dialect_registered()
-
-
-def configure_redshift_dialect():
-    """configure redshift dialect for parallel write processes"""
-    # ensure the dialect is registered in the parallel process
-    try:
-        # try to load the dialect to see if it's already registered
-        registry.load("redshift.redshift_connector")
-    except Exception:
-        # dialect not registered, register it now
-        registry.register("redshift.redshift_connector", "mostlyai.sdk._data.db.redshift", "RedshiftDialect")
 
 
 class RedshiftDType(DBDType):
@@ -234,7 +355,7 @@ class RedshiftTable(PostgresqlTable):
 
     def write_data(self, df: "pd.DataFrame", **kwargs):
         # set the chunk initialization function for parallel writes
-        self.INIT_WRITE_CHUNK = configure_redshift_dialect
+        self.INIT_WRITE_CHUNK = _ensure_dialect_registered
         super().write_data(df, **kwargs)
 
     def calculate_write_chunk_size(self, df: "pd.DataFrame") -> int:
