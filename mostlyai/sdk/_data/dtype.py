@@ -75,7 +75,7 @@ class DType(abc.ABC):
 
     def coerce(self, data: pd.Series) -> pd.Series:
         """
-        Coerce a given the data to self's data type (expected to be overriden for each specific coercion)
+        Coerce a given the data to self's data type (expected to be overridden for each specific coercion).
         :param data: data
         :return: coerced pd.Series of data
         """
@@ -108,7 +108,7 @@ class DType(abc.ABC):
             return False  # in case of a failure, be on the safer side
 
     def get_encompass_data_fallback_dtypes(self) -> list["DType"]:
-        """Returns a default list of fallback dtypes for data encompassment (shall be overriden, when needed)"""
+        """Returns a default list of fallback dtypes for data encompassment (shall be overridden, when needed)."""
         return [VirtualVarchar]
 
     def encompass_data(
