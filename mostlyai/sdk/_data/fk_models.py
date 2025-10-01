@@ -74,10 +74,12 @@ class ParentChildMatcher(nn.Module):
         entity_hidden_dim: int = 256,
         entity_embedding_dim: int = 16,
         similarity_hidden_dim: int = 256,
+        num_classes: int = 3,
     ):
         super().__init__()
         self.entity_embedding_dim = entity_embedding_dim
         self.similarity_hidden_dim = similarity_hidden_dim
+        self.num_classes = num_classes  # 0=match, 1=negative, 2=null
         self.parent_encoder = EntityEncoder(
             cardinalities=parent_cardinalities,
             sub_column_embedding_dim=sub_column_embedding_dim,
@@ -90,10 +92,11 @@ class ParentChildMatcher(nn.Module):
             entity_hidden_dim=entity_hidden_dim,
             entity_embedding_dim=self.entity_embedding_dim,
         )
-        self.similarity_layer = nn.Sequential(
+        # output 3 classes: [match_prob, negative_prob, null_prob]
+        self.classifier = nn.Sequential(
             nn.Linear(3 * self.entity_embedding_dim, self.similarity_hidden_dim),
             nn.ReLU(),
-            nn.Linear(self.similarity_hidden_dim, 1),
+            nn.Linear(self.similarity_hidden_dim, self.num_classes),
         )
 
     def forward(self, parent_inputs: dict[str, torch.Tensor], child_inputs: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -101,11 +104,10 @@ class ParentChildMatcher(nn.Module):
         child_encoded = self.child_encoder(child_inputs)
 
         similarity = F.normalize(parent_encoded, dim=1) * F.normalize(child_encoded, dim=1)  # cosine similarity
-        similarity_layer_input = torch.cat([parent_encoded, child_encoded, similarity], dim=1)
-        probability_logit = self.similarity_layer(similarity_layer_input)
-        probability = torch.sigmoid(probability_logit)
+        classifier_input = torch.cat([parent_encoded, child_encoded, similarity], dim=1)
+        logits = self.classifier(classifier_input)
 
-        return probability
+        return logits  # shape: (batch_size, 3)
 
 
 def analyze_df(
@@ -209,18 +211,21 @@ def prepare_training_data(
     n_negative: int = 10,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
-    Prepare training data for a parent-child matching model.
-    For each child, one positive pair and multiple negative pairs will be sampled.
-    If sample_size is not provided, all children will be sampled.
-    Negative pairs are sampled randomly.
+    Prepare training data for a parent-child matching model with null FK support.
+    For each child, samples will include:
+    - One positive pair (correct parent) with label=0 [non-null children only]
+    - Multiple negative pairs (wrong parents) with label=1 [non-null children only]
+    - Multiple null pairs (any parent) with label=2 [null children only]
+
+    The training set composition respects the actual null ratio in the data.
 
     Args:
-        df_parents_encoded: Encoded parent data
-        df_children_encoded: Encoded child data
-        parents_primary_key: Primary key of parents
-        children_foreign_key: Foreign key of children
-        sample_size: Number of children to sample.
-        n_negative: Number of negative pairs per child.
+        parent_encoded_data: Encoded parent data
+        tgt_encoded_data: Encoded child data
+        parent_primary_key: Primary key of parents
+        tgt_parent_key: Foreign key of children
+        sample_size: Number of children to sample (None = use all)
+        n_negative: Number of negative/null samples per child
     """
 
     t0 = time.time()
@@ -243,38 +248,75 @@ def prepare_training_data(
     children_X = children_X[sampled_child_indices]
     child_keys = child_keys[sampled_child_indices]
 
-    # map each sampled child to its true parent row index
-    true_parent_pos = parent_index_by_key.loc[child_keys].to_numpy()
-    if np.any(pd.isna(true_parent_pos)):
-        raise ValueError("Some child foreign keys do not match any parent primary key")
+    # separate null and non-null children based on their FK values
+    null_mask = pd.isna(child_keys)
+    null_children_X = children_X[null_mask]
+    non_null_children_X = children_X[~null_mask]
+    non_null_child_keys = child_keys[~null_mask]
 
-    # positive pairs
-    pos_parents = parents_X[true_parent_pos]
-    pos_labels = np.ones(sample_size, dtype=np.float32)
+    n_null = len(null_children_X)
+    n_non_null = len(non_null_children_X)
 
-    # negative pairs; for each child, sample n_negative negative parents (not the true parent)
-    neg_parents_list = []
-    neg_labels_list = []
-    child_neg_list = []
-    for i in range(sample_size):
-        neg_indices = rng.integers(0, n_parents, size=n_negative)
+    # map each non-null child to its true parent row index
+    if n_non_null > 0:
+        true_parent_pos = parent_index_by_key.loc[non_null_child_keys].to_numpy()
+        if np.any(pd.isna(true_parent_pos)):
+            raise ValueError("Some child foreign keys do not match any parent primary key")
+    else:
+        true_parent_pos = np.array([], dtype=np.int64)
+
+    # Lists to accumulate data
+    parent_vecs_list = []
+    child_vecs_list = []
+    labels_list = []
+
+    # 1. Positive pairs (label=0) - one per non-null child
+    if n_non_null > 0:
+        pos_parents = parents_X[true_parent_pos]
+        parent_vecs_list.append(pos_parents)
+        child_vecs_list.append(non_null_children_X)
+        labels_list.append(np.zeros(n_non_null, dtype=np.int64))
+
+    # 2. Negative pairs (label=1) - n_negative per non-null child (vectorized)
+    if n_non_null > 0:
+        # Generate all negative samples at once
+        neg_indices = rng.integers(0, n_parents, size=(n_non_null, n_negative))
+
         # Ensure negatives are not the true parent
-        mask = neg_indices == true_parent_pos[i]
+        true_parent_pos_expanded = true_parent_pos[:, np.newaxis]  # Shape: (n_non_null, 1)
+        mask = neg_indices == true_parent_pos_expanded
+
+        # Replace any matches with new random samples
         while mask.any():
             neg_indices[mask] = rng.integers(0, n_parents, size=mask.sum())
-            mask = neg_indices == true_parent_pos[i]
-        neg_parents_list.append(parents_X[neg_indices])
-        # repeat the child vector n_negative times for each negative parent
-        child_neg_list.append(np.repeat(children_X[i][np.newaxis, :], n_negative, axis=0))
-        neg_labels_list.append(np.zeros(n_negative, dtype=np.float32))
-    neg_parents = np.vstack(neg_parents_list)
-    neg_children = np.vstack(child_neg_list)
-    neg_labels = np.concatenate(neg_labels_list)
+            mask = neg_indices == true_parent_pos_expanded
 
-    # concatenate positives and negatives
-    parent_vecs = np.vstack([pos_parents, neg_parents]).astype(np.float32, copy=False)
-    child_vecs = np.vstack([children_X, neg_children]).astype(np.float32, copy=False)
-    labels_vec = np.concatenate([pos_labels, neg_labels]).astype(np.float32, copy=False)
+        # Flatten and create pairs
+        neg_parents = parents_X[neg_indices.ravel()]  # Shape: (n_non_null * n_negative, n_features)
+        neg_children = np.repeat(non_null_children_X, n_negative, axis=0)  # Same shape
+
+        parent_vecs_list.append(neg_parents)
+        child_vecs_list.append(neg_children)
+        labels_list.append(np.ones(n_non_null * n_negative, dtype=np.int64))
+
+    # 3. Null pairs (label=2) - n_negative per null child
+    # Pair each null child with random parents to teach: "this child doesn't belong to any parent"
+    if n_null > 0:
+        # Generate random parent indices for all null children at once
+        null_parent_indices = rng.integers(0, n_parents, size=(n_null, n_negative))
+
+        # Flatten and create pairs
+        null_parents = parents_X[null_parent_indices.ravel()]  # Shape: (n_null * n_negative, n_features)
+        null_children_repeated = np.repeat(null_children_X, n_negative, axis=0)  # Same shape
+
+        parent_vecs_list.append(null_parents)
+        child_vecs_list.append(null_children_repeated)
+        labels_list.append(np.full(n_null * n_negative, 2, dtype=np.int64))
+
+    # concatenate all data
+    parent_vecs = np.vstack(parent_vecs_list).astype(np.float32, copy=False)
+    child_vecs = np.vstack(child_vecs_list).astype(np.float32, copy=False)
+    labels_vec = np.concatenate(labels_list).astype(np.int64, copy=False)
 
     # convert to pandas
     parent_pd = pd.DataFrame(parent_vecs, columns=parent_encoded_data.drop(columns=[parent_primary_key]).columns)
@@ -283,6 +325,11 @@ def prepare_training_data(
 
     t1 = time.time()
     print(f"prepare_training_data() | time: {t1 - t0:.2f}s")
+    print(f"  - Non-null children: {n_non_null} ({n_non_null / sample_size * 100:.1f}%)")
+    print(f"  - Null children: {n_null} ({n_null / sample_size * 100:.1f}%)")
+    print(f"  - Positive pairs (label=0): {(labels_vec == 0).sum()}")
+    print(f"  - Negative pairs (label=1): {(labels_vec == 1).sum()}")
+    print(f"  - Null pairs (label=2): {(labels_vec == 2).sum()}")
     return parent_pd, child_pd, labels_pd
 
 
@@ -291,7 +338,7 @@ def train(
     model: ParentChildMatcher,
     parent_pd: pd.DataFrame,
     child_pd: pd.DataFrame,
-    labels: torch.Tensor,
+    labels: pd.Series,
     do_plot_losses: bool = True,
 ) -> None:
     patience = 20
@@ -301,7 +348,7 @@ def train(
 
     X_parent = torch.tensor(parent_pd.values, dtype=torch.int64)
     X_child = torch.tensor(child_pd.values, dtype=torch.int64)
-    y = torch.tensor(labels.values, dtype=torch.float32).unsqueeze(1)
+    y = torch.tensor(labels.values, dtype=torch.int64)  # Labels are now class indices (0, 1, 2)
     dataset = TensorDataset(X_parent, X_child, y)
 
     val_size = int(0.2 * len(dataset))
@@ -312,7 +359,7 @@ def train(
     val_loader = DataLoader(val_ds, batch_size=128, shuffle=False)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    loss_fn = nn.BCELoss()
+    loss_fn = nn.CrossEntropyLoss()  # Use CrossEntropy for multi-class classification
 
     train_losses, val_losses = [], []
     best_model_state = None
@@ -321,32 +368,42 @@ def train(
         # training phase
         model.train()
         train_loss = 0
+        train_correct = 0
         for batch_parent, batch_child, batch_y in train_loader:
             batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
             batch_child = {col: batch_child[:, i] for i, col in enumerate(child_pd.columns)}
             optimizer.zero_grad()
-            pred = model(batch_parent, batch_child)
-            loss = loss_fn(pred, batch_y)
+            logits = model(batch_parent, batch_child)
+            loss = loss_fn(logits, batch_y)
             loss.backward()
             optimizer.step()
             train_loss += loss.item() * batch_y.size(0)
+            train_correct += (logits.argmax(dim=1) == batch_y).sum().item()
         train_loss /= train_size
+        train_acc = train_correct / train_size
         train_losses.append(train_loss)
 
         # validation phase
         model.eval()
         val_loss = 0
+        val_correct = 0
         with torch.no_grad():
             for batch_parent, batch_child, batch_y in val_loader:
                 batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
                 batch_child = {col: batch_child[:, i] for i, col in enumerate(child_pd.columns)}
-                pred = model(batch_parent, batch_child)
-                loss = loss_fn(pred, batch_y)
+                logits = model(batch_parent, batch_child)
+                loss = loss_fn(logits, batch_y)
                 val_loss += loss.item() * batch_y.size(0)
+                val_correct += (logits.argmax(dim=1) == batch_y).sum().item()
         val_loss /= val_size
+        val_acc = val_correct / val_size
         val_losses.append(val_loss)
 
-        print(f"Epoch {epoch + 1}/{max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+        print(
+            f"Epoch {epoch + 1}/{max_epochs}, "
+            f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, "
+            f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}"
+        )
 
         # early stopping check
         if val_loss < best_val_loss - 1e-5:  # small delta to avoid float issues
@@ -417,7 +474,14 @@ def build_parent_child_probabilities(
     model: ParentChildMatcher,
     tgt_encoded: pd.DataFrame,
     parent_encoded: pd.DataFrame,
-) -> torch.Tensor:
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Build probability matrices for parent-child matching.
+
+    Returns:
+        match_prob_matrix: (n_tgt, n_parent) - probability each parent is a match
+        null_prob: (n_tgt,) - probability each child should have null FK
+    """
     t0 = time.time()
     n_tgt = tgt_encoded.shape[0]
     n_parent = parent_encoded.shape[0]
@@ -431,18 +495,66 @@ def build_parent_child_probabilities(
 
     model.eval()
     with torch.no_grad():
-        probs = model(parent_inputs, tgt_inputs).squeeze()
-        prob_matrix = probs.view(n_tgt, n_parent)
+        logits = model(parent_inputs, tgt_inputs)  # Shape: (n_tgt * n_parent, 3)
+        probs = F.softmax(logits, dim=1)  # Convert logits to probabilities
+
+        # Reshape to (n_tgt, n_parent, 3)
+        probs = probs.view(n_tgt, n_parent, 3)
+
+        # Extract match probabilities (class 0) for each (child, parent) pair
+        match_prob_matrix = probs[:, :, 0]  # Shape: (n_tgt, n_parent)
+
+        # Extract null probabilities (class 2) - average across all parents for each child
+        # The null probability should be consistent regardless of which parent we pair with
+        # Taking mean gives us the model's overall belief that this child should have null FK
+        null_prob = probs[:, :, 2].mean(dim=1)  # Shape: (n_tgt,)
+
         t1 = time.time()
     print(f"build_parent_child_probabilities() | time: {t1 - t0:.2f}s")
-    return prob_matrix
+    return match_prob_matrix, null_prob
 
 
 def sample_best_parents(
     *,
-    prob_matrix: torch.Tensor,
+    match_prob_matrix: torch.Tensor,
+    null_prob: torch.Tensor,
+    sample_probabilistically: bool = True,
 ) -> np.ndarray:
-    best_parent_indices = torch.argmax(prob_matrix, dim=1).cpu().numpy()
+    """
+    Sample best parent for each child, or None if should be null.
+
+    Args:
+        match_prob_matrix: (n_tgt, n_parent) probability each parent is a match
+        null_prob: (n_tgt,) probability each child should have null FK
+        sample_probabilistically: If True, sample based on null_prob to preserve distribution.
+                                  If False, use argmax (deterministic).
+
+    Returns:
+        best_parent_indices: Array of parent indices, or -1 for null FK
+    """
+    n_tgt = match_prob_matrix.shape[0]
+    best_parent_indices = np.full(n_tgt, -1, dtype=np.int64)
+
+    rng = np.random.default_rng()
+
+    # For each child, decide: null or match to a parent?
+    for i in range(n_tgt):
+        if sample_probabilistically:
+            # Probabilistic sampling: preserves the learned null distribution
+            # Sample from bernoulli distribution with p=null_prob[i]
+            is_null = rng.random() < null_prob[i].cpu().numpy()
+            if is_null:
+                best_parent_indices[i] = -1
+            else:
+                # Find best matching parent
+                best_parent_indices[i] = torch.argmax(match_prob_matrix[i]).cpu().numpy()
+        else:
+            # Deterministic: use threshold of 0.5
+            if null_prob[i] > 0.5:
+                best_parent_indices[i] = -1
+            else:
+                best_parent_indices[i] = torch.argmax(match_prob_matrix[i]).cpu().numpy()
+
     return best_parent_indices
 
 

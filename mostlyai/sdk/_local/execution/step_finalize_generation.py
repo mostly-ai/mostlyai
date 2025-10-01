@@ -46,10 +46,14 @@ def execute_match_non_context_relation(
     parent_primary_key: str,
     parent_table_name: str,
 ) -> pd.DataFrame:
+    # Initialize FK column with nulls
+    tgt_data[tgt_parent_key] = pd.NA
+
+    # Prepare data for FK model
     tgt_pre_training_dir = fk_models_workspace_dir / f"pre_training[{tgt_parent_key}]"
     parent_pre_training_dir = fk_models_workspace_dir / f"pre_training[{parent_table_name}]"
 
-    # encode target and parent data
+    # Encode target and parent data
     tgt_encoded = encode_df(
         df=tgt_data,
         pre_training_dir=tgt_pre_training_dir,
@@ -62,20 +66,36 @@ def execute_match_non_context_relation(
         include_primary_key=False,
     )
 
-    # load model
+    # Load model
     model = load_fk_model(tgt_parent_key=tgt_parent_key, fk_models_workspace_dir=fk_models_workspace_dir)
 
-    # build probability matrix
-    prob_matrix = build_parent_child_probabilities(
+    # Build probability matrices
+    match_prob_matrix, null_prob = build_parent_child_probabilities(
         model=model,
         tgt_encoded=tgt_encoded,
         parent_encoded=parent_encoded,
     )
 
-    # sample best parents
-    best_parent_indices = sample_best_parents(prob_matrix=prob_matrix)
-    best_parent_ids = parent_data.iloc[best_parent_indices][parent_primary_key].values
-    tgt_data[tgt_parent_key] = best_parent_ids
+    # Use FK model's learned null distribution (respects training data distribution)
+    _LOG.info("Using FK model's learned null distribution")
+    best_parent_indices = sample_best_parents(
+        match_prob_matrix=match_prob_matrix,
+        null_prob=null_prob,
+        sample_probabilistically=True,  # Respects training distribution
+    )
+
+    # Map indices to parent IDs (-1 means null FK)
+    mask_matched = best_parent_indices >= 0
+    if mask_matched.sum() > 0:
+        matched_indices = best_parent_indices[mask_matched]
+        best_parent_ids = parent_data.iloc[matched_indices][parent_primary_key].values
+        matched_rows = tgt_data.index[mask_matched]
+        tgt_data.loc[matched_rows, tgt_parent_key] = best_parent_ids
+
+    n_matched = mask_matched.sum()
+    n_null = (~mask_matched).sum()
+    _LOG.info(f"FK matching complete: {n_matched} matched, {n_null} null")
+
     return tgt_data
 
 
@@ -134,6 +154,7 @@ def execute_step_finalize_generation(
                 target_table_name=table_name,
                 delivery_dir=delivery_dir,
                 export_csv=False,
+                job_workspace_dir=job_workspace_dir,
             )
         return usages
 
@@ -154,10 +175,11 @@ def execute_step_finalize_generation(
                 target_table_name=tgt,
                 delivery_dir=delivery_dir,
                 export_csv=export_csv,
+                job_workspace_dir=job_workspace_dir,
             )
             progress.update(advance=1)
 
-        # handle parent-child matching (for non-context relations)
+        # handle parent-child matching (for non-context relations) using FK models
         execute_match_non_context_relations(
             job_workspace_dir=job_workspace_dir,
             delivery_dir=delivery_dir,
@@ -293,6 +315,7 @@ def finalize_table_generation(
     target_table_name: str,
     delivery_dir: Path,
     export_csv: bool,
+    job_workspace_dir: Path | None = None,
 ) -> None:
     """
     Post-process the generated data for a given table.
@@ -329,12 +352,29 @@ def finalize_table_generation(
         part_table = ParquetDataTable(container=container)
         tgt_data = part_table.read_data(do_coerce_dtypes=True)
 
-        # post-process non-context keys
-        tgt_data = postproc_non_context(
-            tgt_data=tgt_data,
-            generated_data_schema=generated_data_schema,
-            tgt=target_table_name,
-        )
+        # post-process non-context keys ONLY if FK models are NOT available
+        # Check if FK models exist for this table's non-context relations
+        has_fk_models = False
+        if job_workspace_dir is not None:
+            fk_models_dir = job_workspace_dir / "FKModelsStore" / target_table_name
+            has_fk_models = fk_models_dir.exists() and any(fk_models_dir.glob("model_*.pt"))
+
+        if not has_fk_models:
+            # Use old random sampling approach for non-context FKs
+            tgt_data = postproc_non_context(
+                tgt_data=tgt_data,
+                generated_data_schema=generated_data_schema,
+                tgt=target_table_name,
+            )
+        else:
+            # FK models will handle non-context relations later
+            # Just remove the _is_null columns here
+            is_null_cols = [c for c in tgt_data.columns if c.endswith("_is_null")]
+            if is_null_cols:
+                _LOG.info(
+                    f"Skipping postproc_non_context (FK models available), removing {len(is_null_cols)} _is_null columns"
+                )
+                tgt_data = tgt_data.drop(columns=is_null_cols)
 
         # keep only original columns, and in the right order
         tgt_cols = (
