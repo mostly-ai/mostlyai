@@ -519,6 +519,8 @@ def sample_best_parents(
     match_prob_matrix: torch.Tensor,
     null_prob: torch.Tensor,
     sample_probabilistically: bool = True,
+    temperature: float = 1.0,
+    top_k: int | None = None,
 ) -> np.ndarray:
     """
     Sample best parent for each child, or None if should be null.
@@ -528,6 +530,14 @@ def sample_best_parents(
         null_prob: (n_tgt,) probability each child should have null FK
         sample_probabilistically: If True, sample based on null_prob to preserve distribution.
                                   If False, use argmax (deterministic).
+        temperature: Controls variance in parent selection (default=1.0)
+                    - temperature=0.0: Always pick argmax (most confident match)
+                    - temperature=1.0: Sample from original probabilities
+                    - temperature>1.0: Increase variance (flatten distribution)
+                    Higher values create more diverse matches but may reduce quality.
+        top_k: If specified, only sample from top-K most probable parents per child.
+               This prevents unrealistic outlier matches while maintaining variance.
+               Recommended: 10-50 depending on parent pool size.
 
     Returns:
         best_parent_indices: Array of parent indices, or -1 for null FK
@@ -546,8 +556,29 @@ def sample_best_parents(
             if is_null:
                 best_parent_indices[i] = -1
             else:
-                # Find best matching parent
-                best_parent_indices[i] = torch.argmax(match_prob_matrix[i]).cpu().numpy()
+                # Sample parent based on match probabilities with temperature
+                if temperature == 0.0:
+                    # Deterministic: pick best match
+                    best_parent_indices[i] = torch.argmax(match_prob_matrix[i]).cpu().numpy()
+                else:
+                    # Apply top-k filtering if specified
+                    probs = match_prob_matrix[i]
+                    candidate_indices = torch.arange(len(probs))
+
+                    if top_k is not None and top_k < len(probs):
+                        # Keep only top-k most probable parents
+                        top_k_values, top_k_indices = torch.topk(probs, k=top_k)
+                        probs = top_k_values
+                        candidate_indices = top_k_indices
+
+                    # Probabilistic: sample from distribution with temperature scaling
+                    # Higher temperature = more uniform sampling (more variance)
+                    logits = torch.log(probs + 1e-10) / temperature
+                    probs = torch.softmax(logits, dim=0).cpu().numpy()
+
+                    # Sample from candidates and map back to original indices
+                    sampled_candidate = rng.choice(len(probs), p=probs)
+                    best_parent_indices[i] = candidate_indices[sampled_candidate].cpu().numpy()
         else:
             # Deterministic: use threshold of 0.5
             if null_prob[i] > 0.5:

@@ -45,6 +45,8 @@ def execute_match_non_context_relation(
     tgt_parent_key: str,
     parent_primary_key: str,
     parent_table_name: str,
+    temperature: float = 0.5,
+    top_k: int = 20,
 ) -> pd.DataFrame:
     # Initialize FK column with nulls
     tgt_data[tgt_parent_key] = pd.NA
@@ -77,11 +79,13 @@ def execute_match_non_context_relation(
     )
 
     # Use FK model's learned null distribution (respects training data distribution)
-    _LOG.info("Using FK model's learned null distribution")
+    _LOG.info(f"Using FK model with temperature={temperature}, top_k={top_k}")
     best_parent_indices = sample_best_parents(
         match_prob_matrix=match_prob_matrix,
         null_prob=null_prob,
         sample_probabilistically=True,  # Respects training distribution
+        temperature=temperature,  # Controls match variance
+        top_k=top_k,  # Limits outliers
     )
 
     # Map indices to parent IDs (-1 means null FK)
