@@ -37,9 +37,9 @@ class EntityEncoder(nn.Module):
     def __init__(
         self,
         cardinalities: dict[str, int],
-        sub_column_embedding_dim: int = 16,
-        entity_hidden_dim: int = 16,
-        entity_embedding_dim: int = 8,
+        sub_column_embedding_dim: int = 32,
+        entity_hidden_dim: int = 256,
+        entity_embedding_dim: int = 16,
     ):
         super().__init__()
         self.cardinalities = cardinalities
@@ -70,10 +70,10 @@ class ParentChildMatcher(nn.Module):
         self,
         parent_cardinalities: dict[str, int],
         child_cardinalities: dict[str, int],
-        sub_column_embedding_dim: int = 16,
-        entity_hidden_dim: int = 16,
-        entity_embedding_dim: int = 8,
-        similarity_hidden_dim: int = 16,
+        sub_column_embedding_dim: int = 32,
+        entity_hidden_dim: int = 256,
+        entity_embedding_dim: int = 16,
+        similarity_hidden_dim: int = 256,
     ):
         super().__init__()
         self.entity_embedding_dim = entity_embedding_dim
@@ -206,10 +206,11 @@ def prepare_training_data(
     parent_primary_key: str,
     tgt_parent_key: str,
     sample_size: int | None = None,
+    n_negative: int = 10,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
     Prepare training data for a parent-child matching model.
-    For each child, one positive pair and one negative pair will be sampled.
+    For each child, one positive pair and multiple negative pairs will be sampled.
     If sample_size is not provided, all children will be sampled.
     Negative pairs are sampled randomly.
 
@@ -219,6 +220,7 @@ def prepare_training_data(
         parents_primary_key: Primary key of parents
         children_foreign_key: Foreign key of children
         sample_size: Number of children to sample.
+        n_negative: Number of negative pairs per child.
     """
 
     t0 = time.time()
@@ -250,18 +252,28 @@ def prepare_training_data(
     pos_parents = parents_X[true_parent_pos]
     pos_labels = np.ones(sample_size, dtype=np.float32)
 
-    # negative pairs; resample any collisions with true parent indices
-    neg_indices = rng.integers(0, n_parents, size=sample_size)
-    mask = neg_indices == true_parent_pos
-    while mask.any():
-        neg_indices[mask] = rng.integers(0, n_parents, size=mask.sum())
-        mask = neg_indices == true_parent_pos
-    neg_parents = parents_X[neg_indices]
-    neg_labels = np.zeros(sample_size, dtype=np.float32)
+    # negative pairs; for each child, sample n_negative negative parents (not the true parent)
+    neg_parents_list = []
+    neg_labels_list = []
+    child_neg_list = []
+    for i in range(sample_size):
+        neg_indices = rng.integers(0, n_parents, size=n_negative)
+        # Ensure negatives are not the true parent
+        mask = neg_indices == true_parent_pos[i]
+        while mask.any():
+            neg_indices[mask] = rng.integers(0, n_parents, size=mask.sum())
+            mask = neg_indices == true_parent_pos[i]
+        neg_parents_list.append(parents_X[neg_indices])
+        # repeat the child vector n_negative times for each negative parent
+        child_neg_list.append(np.repeat(children_X[i][np.newaxis, :], n_negative, axis=0))
+        neg_labels_list.append(np.zeros(n_negative, dtype=np.float32))
+    neg_parents = np.vstack(neg_parents_list)
+    neg_children = np.vstack(child_neg_list)
+    neg_labels = np.concatenate(neg_labels_list)
 
     # concatenate positives and negatives
     parent_vecs = np.vstack([pos_parents, neg_parents]).astype(np.float32, copy=False)
-    child_vecs = np.vstack([children_X, children_X]).astype(np.float32, copy=False)
+    child_vecs = np.vstack([children_X, neg_children]).astype(np.float32, copy=False)
     labels_vec = np.concatenate([pos_labels, neg_labels]).astype(np.float32, copy=False)
 
     # convert to pandas
@@ -299,7 +311,7 @@ def train(
     train_loader = DataLoader(train_ds, batch_size=128, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=128, shuffle=False)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     loss_fn = nn.BCELoss()
 
     train_losses, val_losses = [], []
