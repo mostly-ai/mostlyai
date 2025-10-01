@@ -86,8 +86,6 @@ class RedshiftDialect(DefaultDialect):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.on_connect = lambda: None
-        # set a stable version tuple to avoid version comparison issues
-        self.server_version_info = (8, 4, 0)
 
     @classmethod
     def import_dbapi(cls):
@@ -178,6 +176,12 @@ class RedshiftDialect(DefaultDialect):
             "time": lambda: types.TIME(),
             "time without time zone": lambda: types.TIME(),
             "time with time zone": lambda: types.TIME(timezone=True),
+            # redshift-specific types
+            "super": lambda: types.JSON(),  # super type for semi-structured data, map to JSON
+            "geometry": lambda: types.TEXT(),  # geometry type, map to text for sqlalchemy
+            "geography": lambda: types.TEXT(),  # geography type, map to text for sqlalchemy
+            "hllsketch": lambda: types.TEXT(),  # hllsketch type, map to text for sqlalchemy
+            "varbyte": lambda: types.BINARY(),  # varbyte type, map to binary
         }
 
         return type_map.get(data_type.lower(), lambda: types.NULLTYPE)()
@@ -318,11 +322,15 @@ class RedshiftContainer(PostgresqlContainer):
 
     @property
     def sa_uri(self):
-        # user and password are needed to avoid double-encoding of @ character
-        username = quote(self.username)
-        password = quote(self.password)
+        # encode all connection parameters to handle special characters properly
+        username = quote(self.username, safe="")
+        password = quote(self.password, safe="")
+        # host might contain special chars (unlikely but possible in some environments)
+        host = quote(self.host, safe="")
+        # dbname might contain special chars (e.g., hyphens, dots)
+        dbname = quote(self.dbname, safe="")
         # use redshift+redshift_connector dialect
-        return f"redshift+redshift_connector://{username}:{password}@{self.host}:{self.port}/{self.dbname}"
+        return f"redshift+redshift_connector://{username}:{password}@{host}:{self.port}/{dbname}"
 
     @property
     def sa_create_engine_kwargs(self) -> dict:
@@ -330,9 +338,13 @@ class RedshiftContainer(PostgresqlContainer):
         # use only standard sqlalchemy engine parameters
         return {
             # optimize connection pooling for redshift
-            "pool_size": 5,
-            "max_overflow": 10,
+            # pool_size: base connections kept alive (aligned with typical workload)
+            "pool_size": 2,
+            # max_overflow: additional connections allowed (matches WRITE_CHUNKS_N_JOBS parallelism)
+            "max_overflow": 2,
+            # pool_timeout: seconds to wait for available connection
             "pool_timeout": 30,
+            # pool_recycle: recycle connections after 1 hour to avoid stale connections
             "pool_recycle": 3600,
         }
 
@@ -350,7 +362,8 @@ class RedshiftTable(PostgresqlTable):
     WRITE_CHUNK_SIZE = 10_000
     # enable multiple inserts for better performance
     SA_MULTIPLE_INSERTS = True
-    # reduce parallel jobs to avoid overwhelming redshift (redshift has limited concurrent connections)
+    # limit parallel jobs to match connection pool size (pool_size + max_overflow = 4)
+    # redshift has limited concurrent connections and performs better with fewer parallel inserts
     WRITE_CHUNKS_N_JOBS = 2
 
     def write_data(self, df: "pd.DataFrame", **kwargs):
@@ -359,13 +372,19 @@ class RedshiftTable(PostgresqlTable):
         super().write_data(df, **kwargs)
 
     def calculate_write_chunk_size(self, df: "pd.DataFrame") -> int:
-        # optimize chunk size based on dataframe size for redshift
+        """
+        optimize chunk size based on dataframe size for redshift
+        - small datasets (<1000 rows): write all at once to minimize overhead
+        - medium datasets (1000-100k rows): use 5k chunks to balance memory and network efficiency
+        - large datasets (>100k rows): use 10k chunks for optimal throughput
+        thresholds chosen based on typical redshift insert performance characteristics
+        """
         if len(df) < 1000:
-            return len(df)  # write all at once for small datasets
+            return len(df)
         elif len(df) < 100_000:
-            return 5_000  # medium chunks for medium datasets
+            return 5_000
         else:
-            return self.WRITE_CHUNK_SIZE  # use default for large datasets
+            return self.WRITE_CHUNK_SIZE
 
     @property
     def _sa_table(self):
