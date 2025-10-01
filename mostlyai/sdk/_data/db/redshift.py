@@ -290,6 +290,19 @@ class RedshiftDialect(DefaultDialect):
         result = self._execute_information_schema_query(connection, query, {"schema": schema, "table_name": table_name})
         return result.scalar() > 0
 
+    def get_schema_names(self, connection, **kw):
+        """get all schema names using pg_namespace system catalog"""
+        query = """
+            SELECT nspname
+            FROM pg_namespace
+            WHERE nspname NOT LIKE 'pg_%'
+              AND nspname != 'information_schema'
+            ORDER BY nspname
+        """
+
+        result = connection.execute(text(query))
+        return [row[0] for row in result.fetchall()]
+
 
 def _ensure_dialect_registered():
     """ensure the redshift dialect is registered with sqlalchemy"""
