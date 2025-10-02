@@ -48,16 +48,59 @@ def execute_match_non_context_relation(
     temperature: float = 0.5,
     top_k: int = 20,
 ) -> pd.DataFrame:
+    # Check for _is_null column to determine which rows should have null FK
+    # Column name format: {fk_name}.{parent_table_name}._is_null
+    is_null_col = NON_CONTEXT_COLUMN_INFIX.join([tgt_parent_key, parent_table_name, IS_NULL])
+    has_is_null = is_null_col in tgt_data.columns
+
     # Initialize FK column with nulls
     tgt_data[tgt_parent_key] = pd.NA
+
+    if has_is_null:
+        # Use _is_null column to determine which rows should have null FK
+        # _is_null column contains string values "True" or "False"
+        is_null_values = tgt_data[is_null_col].astype(str)
+        _LOG.info(f"_is_null column unique values: {is_null_values.unique()}")
+        _LOG.info(f"_is_null column value counts: {is_null_values.value_counts()}")
+
+        null_mask = is_null_values == "True"
+        non_null_mask = ~null_mask
+
+        _LOG.info(f"Total rows: {len(tgt_data)}, Null rows: {null_mask.sum()}, Non-null rows: {non_null_mask.sum()}")
+
+        # Only process non-null rows
+        if non_null_mask.sum() == 0:
+            _LOG.info(f"All rows have null FK (via {is_null_col})")
+            # Remove _is_null column
+            if is_null_col in tgt_data.columns:
+                tgt_data = tgt_data.drop(columns=[is_null_col])
+            return tgt_data
+
+        # Get indices of non-null rows
+        non_null_indices = tgt_data.index[non_null_mask].tolist()
+
+        # Filter to only non-null rows for FK model processing
+        tgt_data_non_null = tgt_data.loc[non_null_mask].copy().reset_index(drop=True)
+        _LOG.info(f"Filtered to {len(tgt_data_non_null)} non-null rows for FK matching")
+
+        # Remove _is_null column from data before encoding (it shouldn't be used by the FK model)
+        if is_null_col in tgt_data_non_null.columns:
+            tgt_data_non_null = tgt_data_non_null.drop(columns=[is_null_col])
+    else:
+        _LOG.warning(f"No {is_null_col} column found, processing all rows")
+        tgt_data_non_null = tgt_data.copy()
+        non_null_indices = tgt_data.index.tolist()
+        non_null_mask = pd.Series(True, index=tgt_data.index)
 
     # Prepare data for FK model
     tgt_pre_training_dir = fk_models_workspace_dir / f"pre_training[{tgt_parent_key}]"
     parent_pre_training_dir = fk_models_workspace_dir / f"pre_training[{parent_table_name}]"
 
+    _LOG.info(f"Encoding {len(tgt_data_non_null)} rows with columns: {list(tgt_data_non_null.columns)}")
+
     # Encode target and parent data
     tgt_encoded = encode_df(
-        df=tgt_data,
+        df=tgt_data_non_null,
         pre_training_dir=tgt_pre_training_dir,
         include_primary_key=False,
         include_parent_key=False,
@@ -71,33 +114,39 @@ def execute_match_non_context_relation(
     # Load model
     model = load_fk_model(tgt_parent_key=tgt_parent_key, fk_models_workspace_dir=fk_models_workspace_dir)
 
-    # Build probability matrices
-    match_prob_matrix, null_prob = build_parent_child_probabilities(
+    # Build probability matrix
+    _LOG.info(f"Using FK model with temperature={temperature}, top_k={top_k}")
+    prob_matrix = build_parent_child_probabilities(
         model=model,
         tgt_encoded=tgt_encoded,
         parent_encoded=parent_encoded,
     )
 
-    # Use FK model's learned null distribution (respects training data distribution)
-    _LOG.info(f"Using FK model with temperature={temperature}, top_k={top_k}")
+    # Sample best parents for non-null rows
     best_parent_indices = sample_best_parents(
-        match_prob_matrix=match_prob_matrix,
-        null_prob=null_prob,
-        sample_probabilistically=True,  # Respects training distribution
-        temperature=temperature,  # Controls match variance
-        top_k=top_k,  # Limits outliers
+        prob_matrix=prob_matrix,
+        temperature=temperature,
+        top_k=top_k,
     )
 
-    # Map indices to parent IDs (-1 means null FK)
-    mask_matched = best_parent_indices >= 0
-    if mask_matched.sum() > 0:
-        matched_indices = best_parent_indices[mask_matched]
-        best_parent_ids = parent_data.iloc[matched_indices][parent_primary_key].values
-        matched_rows = tgt_data.index[mask_matched]
-        tgt_data.loc[matched_rows, tgt_parent_key] = best_parent_ids
+    # Map indices to parent IDs
+    best_parent_ids = parent_data.iloc[best_parent_indices][parent_primary_key].values
 
-    n_matched = mask_matched.sum()
-    n_null = (~mask_matched).sum()
+    _LOG.info(f"FK matching results: {len(best_parent_ids)} parent IDs for {len(non_null_indices)} non-null rows")
+    _LOG.info(f"best_parent_ids length: {len(best_parent_ids)}, non_null_indices length: {len(non_null_indices)}")
+
+    # Create a Series with the correct index alignment
+    parent_ids_series = pd.Series(best_parent_ids, index=non_null_indices)
+
+    # Assign to non-null rows
+    tgt_data.loc[non_null_indices, tgt_parent_key] = parent_ids_series
+
+    # Remove _is_null column if it exists
+    if has_is_null and is_null_col in tgt_data.columns:
+        tgt_data = tgt_data.drop(columns=[is_null_col])
+
+    n_matched = non_null_mask.sum()
+    n_null = (~non_null_mask).sum()
     _LOG.info(f"FK matching complete: {n_matched} matched, {n_null} null")
 
     return tgt_data
@@ -372,13 +421,12 @@ def finalize_table_generation(
             )
         else:
             # FK models will handle non-context relations later
-            # Just remove the _is_null columns here
-            is_null_cols = [c for c in tgt_data.columns if c.endswith("_is_null")]
+            # Keep _is_null columns - they will be used by FK models and removed after matching
+            is_null_cols = [c for c in tgt_data.columns if c.endswith(IS_NULL)]
             if is_null_cols:
                 _LOG.info(
-                    f"Skipping postproc_non_context (FK models available), removing {len(is_null_cols)} _is_null columns"
+                    f"Skipping postproc_non_context (FK models available), keeping {len(is_null_cols)} {IS_NULL} columns for FK matching"
                 )
-                tgt_data = tgt_data.drop(columns=is_null_cols)
 
         # keep only original columns, and in the right order
         tgt_cols = (
@@ -388,6 +436,12 @@ def finalize_table_generation(
         if drop_cols:
             _LOG.info(f"remove columns from final output: {', '.join(drop_cols)}")
         keep_cols = [c for c in tgt_cols if c in tgt_data]
+
+        # If FK models are available, also keep _is_null columns temporarily
+        if has_fk_models:
+            is_null_cols = [c for c in tgt_data.columns if c.endswith(IS_NULL)]
+            keep_cols = keep_cols + [c for c in is_null_cols if c in tgt_data.columns]
+
         tgt_data = tgt_data[keep_cols]
 
         partition_text = f"{part_i} out of {n_partitions}"
