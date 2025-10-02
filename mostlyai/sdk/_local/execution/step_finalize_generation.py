@@ -261,9 +261,11 @@ def finalize_table_generation(
             for non_ctx_relation in non_ctx_relations:
                 parent_table_name = non_ctx_relation.parent.table
                 if parent_table_name not in parent_data_cache:
-                    parent_data_path = delivery_dir / parent_table_name / "parquet"
-                    _LOG.info(f"Loading parent data for {parent_table_name} from {parent_data_path}")
-                    parent_data = pd.read_parquet(parent_data_path)
+                    # Load parent data from RAW generated data (before finalization)
+                    # This ensures we have all the generated columns needed for encoding
+                    parent_table = generated_data_schema.tables[parent_table_name]
+                    _LOG.info(f"Loading parent data for {parent_table_name} from raw generated data")
+                    parent_data = pd.read_parquet(parent_table.dataset.files)
                     parent_data_cache[parent_table_name] = parent_data
 
     # instantiate container outside of loop to avoid memory to pile up
