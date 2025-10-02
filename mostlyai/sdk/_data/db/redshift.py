@@ -377,6 +377,28 @@ class RedshiftTable(PostgresqlTable):
     SA_MULTIPLE_INSERTS = True
     WRITE_CHUNKS_N_JOBS = 2
 
+    @property
+    def _sa_table(self):
+        # override to ensure schema is explicitly passed and handle case-insensitive table names
+        with self.container.use_sa_engine() as sa_engine:
+            schema = self.container.dbschema or "public"
+            inspector = sa.inspect(sa_engine)
+            available_tables = inspector.get_table_names(schema=schema)
+
+            # redshift dialect's has_table is case-insensitive, so match accordingly
+            actual_table_name = self.name
+            for table in available_tables:
+                if table.lower() == self.name.lower():
+                    actual_table_name = table
+                    break
+
+            return sa.Table(
+                actual_table_name,
+                self.container.sa_metadata,
+                autoload_with=sa_engine,
+                schema=schema,
+            )
+
     def create_table(self, df: "pd.DataFrame | None" = None, **kwargs) -> None:
         """handle if_exists='replace' with case-insensitive table names"""
         if df is None:
