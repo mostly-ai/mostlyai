@@ -278,15 +278,13 @@ class RedshiftDialect(DefaultDialect):
         return []
 
     def has_table(self, connection, table_name, schema=None, **kw):
-        """check if table exists"""
+        """check if table exists - case-insensitive for redshift"""
         schema = self._get_schema_or_default(schema)
-
         query = """
             SELECT COUNT(*)
             FROM information_schema.tables
-            WHERE table_schema = :schema AND table_name = :table_name
+            WHERE table_schema = :schema AND LOWER(table_name) = LOWER(:table_name)
         """
-
         result = self._execute_information_schema_query(connection, query, {"schema": schema, "table_name": table_name})
         return result.scalar() > 0
 
@@ -307,6 +305,12 @@ class RedshiftDialect(DefaultDialect):
 def _ensure_dialect_registered():
     """ensure the redshift dialect is registered with sqlalchemy"""
     registry.register("redshift.redshift_connector", __name__, "RedshiftDialect")
+
+
+def _init_worker():
+    """initialize worker process: register dialect and suppress case warnings"""
+    _ensure_dialect_registered()
+    warnings.filterwarnings("ignore", message=".*not found exactly.*case sensitivity.*")
 
 
 # register the dialect immediately when module is imported
@@ -369,41 +373,37 @@ class RedshiftContainer(PostgresqlContainer):
 class RedshiftTable(PostgresqlTable):
     DATA_TABLE_TYPE = "redshift"
     SA_RANDOM = sa.func.rand()
-
-    # performance optimizations for redshift
-    # larger chunks for better redshift performance (redshift prefers fewer, larger operations)
-    WRITE_CHUNK_SIZE = 10_000
-    # enable multiple inserts for better performance
+    WRITE_CHUNK_SIZE = 3_000  # redshift bind parameter limit: 32767 params
     SA_MULTIPLE_INSERTS = True
-    # limit parallel jobs to match connection pool size (pool_size + max_overflow = 4)
-    # redshift has limited concurrent connections and performs better with fewer parallel inserts
     WRITE_CHUNKS_N_JOBS = 2
 
-    def write_data(self, df: "pd.DataFrame", **kwargs):
-        # set the chunk initialization function for parallel writes
-        self.INIT_WRITE_CHUNK = _ensure_dialect_registered
-        super().write_data(df, **kwargs)
+    def create_table(self, df: "pd.DataFrame | None" = None, **kwargs) -> None:
+        """handle if_exists='replace' with case-insensitive table names"""
+        if df is None:
+            df = pd.DataFrame(columns=self.columns)
+
+        # manually drop table for "replace" mode using case-insensitive matching
+        if kwargs.get("if_exists") == "replace":
+            with self.container.use_sa_engine(mode="write_data") as sa_engine:
+                inspector = sa.inspect(sa_engine)
+                existing_tables = inspector.get_table_names(schema=self.container.dbschema)
+
+                # find table case-insensitively
+                for t in existing_tables:
+                    if t.lower() == self.name.lower():
+                        with sa_engine.begin() as conn:
+                            conn.execute(sa.text(f'DROP TABLE {self.container.dbschema}."{t}"'))
+                        break
+
+                kwargs["if_exists"] = "fail"
+
+        super().create_table(df, **kwargs)
 
     def calculate_write_chunk_size(self, df: "pd.DataFrame") -> int:
-        """
-        optimize chunk size based on dataframe size for redshift
-        - small datasets (<1000 rows): write all at once to minimize overhead
-        - medium datasets (1000-100k rows): use 5k chunks to balance memory and network efficiency
-        - large datasets (>100k rows): use 10k chunks for optimal throughput
-        thresholds chosen based on typical redshift insert performance characteristics
-        """
-        if len(df) < 1000:
-            return len(df)
-        elif len(df) < 100_000:
-            return 5_000
-        else:
-            return self.WRITE_CHUNK_SIZE
+        """cap chunk size by redshift's 32767 parameter limit"""
+        max_rows = 32767 // max(len(df.columns), 1)
+        return min(self.WRITE_CHUNK_SIZE, max_rows, len(df) if len(df) < 1000 else self.WRITE_CHUNK_SIZE)
 
-    @property
-    def _sa_table(self):
-        # quote table name to handle special characters like dots
-        with self.container.use_sa_engine() as sa_engine:
-            quoted_name = sa.quoted_name(self.name, quote=True)
-            return sa.Table(
-                quoted_name, self.container.sa_metadata, schema=self.container.dbschema, autoload_with=sa_engine
-            )
+    def write_data(self, df: "pd.DataFrame", **kwargs):
+        self.INIT_WRITE_CHUNK = _init_worker  # use custom init that suppresses warnings
+        super().write_data(df, **kwargs)
