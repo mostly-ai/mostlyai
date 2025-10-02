@@ -24,7 +24,9 @@ from mostlyai.sdk._data.dtype import is_timestamp_dtype
 from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
-from mostlyai.sdk._data.fk_models import build_parent_child_probabilities, encode_df, load_fk_model, sample_best_parents
+from mostlyai.sdk._data.fk_models import (
+    match_non_context,
+)
 from mostlyai.sdk._data.non_context import postproc_non_context
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._data.util.common import (
@@ -35,156 +37,6 @@ from mostlyai.sdk._local.storage import get_model_label
 from mostlyai.sdk.domain import Generator, ModelType, SyntheticDataset
 
 _LOG = logging.getLogger(__name__)
-
-
-def execute_match_non_context_relation(
-    *,
-    fk_models_workspace_dir: Path,
-    tgt_data: pd.DataFrame,
-    parent_data: pd.DataFrame,
-    tgt_parent_key: str,
-    parent_primary_key: str,
-    parent_table_name: str,
-    temperature: float = 0.5,
-    top_k: int = 20,
-) -> pd.DataFrame:
-    # Check for _is_null column to determine which rows should have null FK
-    # Column name format: {fk_name}.{parent_table_name}._is_null
-    is_null_col = NON_CONTEXT_COLUMN_INFIX.join([tgt_parent_key, parent_table_name, IS_NULL])
-    has_is_null = is_null_col in tgt_data.columns
-
-    # Initialize FK column with nulls
-    tgt_data[tgt_parent_key] = pd.NA
-
-    if has_is_null:
-        # Use _is_null column to determine which rows should have null FK
-        # _is_null column contains string values "True" or "False"
-        is_null_values = tgt_data[is_null_col].astype(str)
-        _LOG.info(f"_is_null column unique values: {is_null_values.unique()}")
-        _LOG.info(f"_is_null column value counts: {is_null_values.value_counts()}")
-
-        null_mask = is_null_values == "True"
-        non_null_mask = ~null_mask
-
-        _LOG.info(f"Total rows: {len(tgt_data)}, Null rows: {null_mask.sum()}, Non-null rows: {non_null_mask.sum()}")
-
-        # Only process non-null rows
-        if non_null_mask.sum() == 0:
-            _LOG.info(f"All rows have null FK (via {is_null_col})")
-            # Remove _is_null column
-            if is_null_col in tgt_data.columns:
-                tgt_data = tgt_data.drop(columns=[is_null_col])
-            return tgt_data
-
-        # Get indices of non-null rows
-        non_null_indices = tgt_data.index[non_null_mask].tolist()
-
-        # Filter to only non-null rows for FK model processing
-        tgt_data_non_null = tgt_data.loc[non_null_mask].copy().reset_index(drop=True)
-        _LOG.info(f"Filtered to {len(tgt_data_non_null)} non-null rows for FK matching")
-
-        # Remove _is_null column from data before encoding (it shouldn't be used by the FK model)
-        if is_null_col in tgt_data_non_null.columns:
-            tgt_data_non_null = tgt_data_non_null.drop(columns=[is_null_col])
-    else:
-        _LOG.warning(f"No {is_null_col} column found, processing all rows")
-        tgt_data_non_null = tgt_data.copy()
-        non_null_indices = tgt_data.index.tolist()
-        non_null_mask = pd.Series(True, index=tgt_data.index)
-
-    # Prepare data for FK model
-    tgt_pre_training_dir = fk_models_workspace_dir / f"pre_training[{tgt_parent_key}]"
-    parent_pre_training_dir = fk_models_workspace_dir / f"pre_training[{parent_table_name}]"
-
-    _LOG.info(f"Encoding {len(tgt_data_non_null)} rows with columns: {list(tgt_data_non_null.columns)}")
-
-    # Encode target and parent data
-    tgt_encoded = encode_df(
-        df=tgt_data_non_null,
-        pre_training_dir=tgt_pre_training_dir,
-        include_primary_key=False,
-        include_parent_key=False,
-    )
-    parent_encoded = encode_df(
-        df=parent_data,
-        pre_training_dir=parent_pre_training_dir,
-        include_primary_key=False,
-    )
-
-    # Load model
-    model = load_fk_model(tgt_parent_key=tgt_parent_key, fk_models_workspace_dir=fk_models_workspace_dir)
-
-    # Build probability matrix
-    _LOG.info(f"Using FK model with temperature={temperature}, top_k={top_k}")
-    prob_matrix = build_parent_child_probabilities(
-        model=model,
-        tgt_encoded=tgt_encoded,
-        parent_encoded=parent_encoded,
-    )
-
-    # Sample best parents for non-null rows
-    best_parent_indices = sample_best_parents(
-        prob_matrix=prob_matrix,
-        temperature=temperature,
-        top_k=top_k,
-    )
-
-    # Map indices to parent IDs
-    best_parent_ids = parent_data.iloc[best_parent_indices][parent_primary_key].values
-
-    _LOG.info(f"FK matching results: {len(best_parent_ids)} parent IDs for {len(non_null_indices)} non-null rows")
-    _LOG.info(f"best_parent_ids length: {len(best_parent_ids)}, non_null_indices length: {len(non_null_indices)}")
-
-    # Create a Series with the correct index alignment
-    parent_ids_series = pd.Series(best_parent_ids, index=non_null_indices)
-
-    # Assign to non-null rows
-    tgt_data.loc[non_null_indices, tgt_parent_key] = parent_ids_series
-
-    # Remove _is_null column if it exists
-    if has_is_null and is_null_col in tgt_data.columns:
-        tgt_data = tgt_data.drop(columns=[is_null_col])
-
-    n_matched = non_null_mask.sum()
-    n_null = (~non_null_mask).sum()
-    _LOG.info(f"FK matching complete: {n_matched} matched, {n_null} null")
-
-    return tgt_data
-
-
-def execute_match_non_context_relations(job_workspace_dir: Path, delivery_dir: Path, schema: Schema):
-    for table_name in schema.tables:
-        non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == table_name]
-        if not non_ctx_relations:
-            # no non-context relations for this table, so no parent-child matching to do
-            continue
-
-        for non_ctx_relation in non_ctx_relations:
-            tgt_data_path = delivery_dir / table_name / "parquet"
-            tgt_data = pd.read_parquet(tgt_data_path)
-
-            parent_table_name = non_ctx_relation.parent.table
-            parent_data_path = delivery_dir / parent_table_name / "parquet"
-            parent_data = pd.read_parquet(parent_data_path)
-
-            tgt_parent_key = non_ctx_relation.child.column
-            parent_primary_key = non_ctx_relation.parent.column
-
-            fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / table_name
-
-            tgt_data = execute_match_non_context_relation(
-                fk_models_workspace_dir=fk_models_workspace_dir,
-                tgt_data=tgt_data,
-                parent_data=parent_data,
-                tgt_parent_key=tgt_parent_key,
-                parent_primary_key=parent_primary_key,
-                parent_table_name=parent_table_name,
-            )
-
-            tgt_data_path.mkdir(parents=True, exist_ok=True)
-            for f in tgt_data_path.glob("*.parquet"):
-                f.unlink()
-            tgt_data.to_parquet(tgt_data_path / f"{table_name}.parquet")
 
 
 def execute_step_finalize_generation(
@@ -219,8 +71,8 @@ def execute_step_finalize_generation(
     export_csv = total_datapoints < 100_000_000  # only export CSV if datapoints < 100M
 
     with ProgressCallbackWrapper(update_progress, description="Finalize generation") as progress:
-        # init progress with total_count; +4 for the 4 steps below
-        progress.update(completed=0, total=len(schema.tables) + 4)
+        # init progress with total_count; +3 for the 3 steps below
+        progress.update(completed=0, total=len(schema.tables) + 3)
 
         for tgt in schema.tables:
             finalize_table_generation(
@@ -231,13 +83,6 @@ def execute_step_finalize_generation(
                 job_workspace_dir=job_workspace_dir,
             )
             progress.update(advance=1)
-
-        # handle parent-child matching (for non-context relations) using FK models
-        execute_match_non_context_relations(
-            job_workspace_dir=job_workspace_dir,
-            delivery_dir=delivery_dir,
-            schema=schema,
-        )
 
         _LOG.info("export random samples")
         export_random_samples(
@@ -372,7 +217,7 @@ def finalize_table_generation(
 ) -> None:
     """
     Post-process the generated data for a given table.
-    * handle non-context keys
+    * handle non-context keys (using FK models if available)
     * handle reference keys
     * keep only needed columns, and in the right order
     * export to PARQUET, and optionally also to CSV (without col prefixes)
@@ -398,6 +243,29 @@ def finalize_table_generation(
     else:
         csv_path = None
 
+    # Check if FK models exist for this table's non-context relations
+    has_fk_models = False
+    non_ctx_relations = []
+    parent_data_cache = {}
+    if job_workspace_dir is not None:
+        fk_models_dir = job_workspace_dir / "FKModelsStore" / target_table_name
+        has_fk_models = fk_models_dir.exists() and any(fk_models_dir.glob("model_*.pt"))
+
+        if has_fk_models:
+            # Get non-context relations for this table
+            non_ctx_relations = [
+                rel for rel in generated_data_schema.non_context_relations if rel.child.table == target_table_name
+            ]
+
+            # Pre-load all parent data once (to avoid loading per partition)
+            for non_ctx_relation in non_ctx_relations:
+                parent_table_name = non_ctx_relation.parent.table
+                if parent_table_name not in parent_data_cache:
+                    parent_data_path = delivery_dir / parent_table_name / "parquet"
+                    _LOG.info(f"Loading parent data for {parent_table_name} from {parent_data_path}")
+                    parent_data = pd.read_parquet(parent_data_path)
+                    parent_data_cache[parent_table_name] = parent_data
+
     # instantiate container outside of loop to avoid memory to pile up
     container = type(table.container)()
     for part_i, part_file in enumerate(tgt_table_files, start=1):
@@ -406,12 +274,6 @@ def finalize_table_generation(
         tgt_data = part_table.read_data(do_coerce_dtypes=True)
 
         # post-process non-context keys ONLY if FK models are NOT available
-        # Check if FK models exist for this table's non-context relations
-        has_fk_models = False
-        if job_workspace_dir is not None:
-            fk_models_dir = job_workspace_dir / "FKModelsStore" / target_table_name
-            has_fk_models = fk_models_dir.exists() and any(fk_models_dir.glob("model_*.pt"))
-
         if not has_fk_models:
             # Use old random sampling approach for non-context FKs
             tgt_data = postproc_non_context(
@@ -420,12 +282,20 @@ def finalize_table_generation(
                 tgt=target_table_name,
             )
         else:
-            # FK models will handle non-context relations later
-            # Keep _is_null columns - they will be used by FK models and removed after matching
-            is_null_cols = [c for c in tgt_data.columns if c.endswith(IS_NULL)]
-            if is_null_cols:
-                _LOG.info(
-                    f"Skipping postproc_non_context (FK models available), keeping {len(is_null_cols)} {IS_NULL} columns for FK matching"
+            # FK models available: match non-context relations
+            for non_ctx_relation in non_ctx_relations:
+                parent_table_name = non_ctx_relation.parent.table
+                parent_data = parent_data_cache[parent_table_name]
+                tgt_parent_key = non_ctx_relation.child.column
+                parent_primary_key = non_ctx_relation.parent.column
+
+                tgt_data = match_non_context(
+                    fk_models_workspace_dir=fk_models_dir,
+                    tgt_data=tgt_data,
+                    parent_data=parent_data,
+                    tgt_parent_key=tgt_parent_key,
+                    parent_primary_key=parent_primary_key,
+                    parent_table_name=parent_table_name,
                 )
 
         # keep only original columns, and in the right order
@@ -436,11 +306,6 @@ def finalize_table_generation(
         if drop_cols:
             _LOG.info(f"remove columns from final output: {', '.join(drop_cols)}")
         keep_cols = [c for c in tgt_cols if c in tgt_data]
-
-        # If FK models are available, also keep _is_null columns temporarily
-        if has_fk_models:
-            is_null_cols = [c for c in tgt_data.columns if c.endswith(IS_NULL)]
-            keep_cols = keep_cols + [c for c in is_null_cols if c in tgt_data.columns]
 
         tgt_data = tgt_data[keep_cols]
 
