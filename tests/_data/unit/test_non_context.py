@@ -25,7 +25,7 @@ from mostlyai.sdk._data.non_context import (
 
 
 def test_handle_non_context_relation(tmp_path):
-    """Test single non-context relation with missing and broken links"""
+    """Test single non-context relation with missing and broken links."""
     data = pd.DataFrame(
         {
             "id": [1, 2, 3, 4, 5],
@@ -63,7 +63,7 @@ def test_handle_non_context_relation(tmp_path):
 
 
 def test_handle_non_context_relations(tmp_path):
-    """Test multiple non-context relations"""
+    """Test multiple non-context relations."""
     # prepare data
     non_ctx_path = tmp_path / "non_ctx.parquet"
     pd.DataFrame(
