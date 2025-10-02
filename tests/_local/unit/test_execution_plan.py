@@ -195,7 +195,9 @@ def test_make_generator_execution_plan():
     expected_execution_plan.add_task(
         TaskType.train_language, parent=sync_task, target_table_name="comments", include_report=False
     )
-    expected_execution_plan.add_task(TaskType.sync)
+    post_training_sync = expected_execution_plan.add_task(TaskType.sync)
+    finalize_task = expected_execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
+    expected_execution_plan.add_task(TaskType.sync, parent=finalize_task)
 
     assert len(execution_plan.tasks) == len(expected_execution_plan.tasks)
     for actual, expected in zip(execution_plan.tasks, expected_execution_plan.tasks):
@@ -214,10 +216,11 @@ def test_make_generator_execution_plan():
             actual_step_codes = [s.step_code for s in actual.steps]
             expected_step_codes = [s.step_code for s in expected.steps]
             assert actual_step_codes == expected_step_codes
-            if actual.target_table_name == "comments" and actual.type == TaskType.train_language:
-                assert actual_step_codes == TRAINING_TASK_STEPS
-            else:
-                assert actual_step_codes == TRAINING_TASK_STEPS + TRAINING_TASK_REPORT_STEPS
+            if actual.type in (TaskType.train_tabular, TaskType.train_language):
+                if actual.target_table_name == "comments" and actual.type == TaskType.train_language:
+                    assert actual_step_codes == TRAINING_TASK_STEPS
+                else:
+                    assert actual_step_codes == TRAINING_TASK_STEPS + TRAINING_TASK_REPORT_STEPS
 
 
 def test_make_synthetic_dataset_execution_plan_with_probe():
