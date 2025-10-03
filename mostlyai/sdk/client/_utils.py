@@ -355,24 +355,22 @@ def harmonize_sd_config(
     else:
         subject_tables = []
 
-    # validate size dict keys match subject tables
-    if isinstance(size, dict) and size:
-        invalid_keys = set(size.keys()) - set(subject_tables)
-        if invalid_keys:
-            raise ValueError(f"{invalid_keys} not in {subject_tables}")
-
-    # validate seed dict keys match subject tables
-    if isinstance(seed, dict) and seed:
-        invalid_keys = set(seed.keys()) - set(subject_tables)
-        if invalid_keys:
-            raise ValueError(f"{invalid_keys} not in {subject_tables}")
-
     # normalize size
-    if not isinstance(size, dict):
+    if isinstance(size, dict):
+        if size:
+            invalid_keys = set(size.keys()) - set(subject_tables)
+            if invalid_keys:
+                raise ValueError(f"{invalid_keys} not in {subject_tables}")
+    else:
         size = {table: size for table in subject_tables}
 
     # normalize seed, applicable only for the first subject table
-    if not isinstance(seed, dict):
+    if isinstance(seed, dict):
+        if seed:
+            invalid_keys = set(seed.keys()) - set(subject_tables)
+            if invalid_keys:
+                raise ValueError(f"{invalid_keys} not in {subject_tables}")
+    else:
         seed = {table: seed for table in subject_tables[:1]}
 
     # insert name into config
