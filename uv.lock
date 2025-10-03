@@ -3709,8 +3709,8 @@ requires-dist = [
     { name = "joblib", marker = "extra == 'local'", specifier = ">=1.4.2" },
     { name = "joblib", marker = "extra == 'local-gpu'", specifier = ">=1.4.2" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
-    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.5.7" },
-    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.5.7" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.5.8" },
+    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.5.8" },
     { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.9.8" },
     { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.9.8" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
@@ -3787,7 +3787,7 @@ docs = [
 
 [[package]]
 name = "mostlyai-engine"
-version = "1.5.7"
+version = "1.5.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
@@ -3809,9 +3809,9 @@ dependencies = [
     { name = "transformers" },
     { name = "xgrammar" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/24/9f/db81dbb68906216ebb402bfed1893fa1e67672f0b42cc804e1e455642e01/mostlyai_engine-1.5.7.tar.gz", hash = "sha256:d9d9f8e6ed7dfa23816f83e7252b8622f5bfaa49f5c2b36d4aa48e79ab0b1377", size = 115696, upload-time = "2025-09-26T22:31:40.38Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6c/22/63987e616a4811518157da844a50afdf85d740ead7bbde53c474e85c1152/mostlyai_engine-1.5.8.tar.gz", hash = "sha256:cce5d5f483563a61d518e2adf05094cd9856659b120ffc1fc918e2b2cf7f8107", size = 115709, upload-time = "2025-10-03T14:46:26.831Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cf/0b/f1ecd5a806574afff1ef3a15511c428b786f8b1cce5a5f709a755fa00bb8/mostlyai_engine-1.5.7-py3-none-any.whl", hash = "sha256:f88773525cce0cf2618f9023f5cc58da0daada9c17de84aed8bf62297f97a05b", size = 155128, upload-time = "2025-09-26T22:31:38.632Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/c0/9e0e4249272bbf839aa57d09058790a6397f1c9f2923cc8530070fb41794/mostlyai_engine-1.5.8-py3-none-any.whl", hash = "sha256:08448e79c135a6e74f3b515e68edede7c12d31cdae4ebe0331983ece83784d9c", size = 155132, upload-time = "2025-10-03T14:46:25.364Z" },
 ]
 
 [package.optional-dependencies]
