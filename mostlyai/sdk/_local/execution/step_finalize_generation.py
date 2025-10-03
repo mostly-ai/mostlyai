@@ -24,6 +24,9 @@ from mostlyai.sdk._data.dtype import is_timestamp_dtype
 from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
+from mostlyai.sdk._data.fk_models import (
+    match_non_context,
+)
 from mostlyai.sdk._data.non_context import postproc_non_context
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._data.util.common import (
@@ -56,6 +59,7 @@ def execute_step_finalize_generation(
                 target_table_name=table_name,
                 delivery_dir=delivery_dir,
                 export_csv=False,
+                job_workspace_dir=job_workspace_dir,
             )
         return usages
 
@@ -67,8 +71,8 @@ def execute_step_finalize_generation(
     export_csv = total_datapoints < 100_000_000  # only export CSV if datapoints < 100M
 
     with ProgressCallbackWrapper(update_progress, description="Finalize generation") as progress:
-        # init progress with total_count; +4 for the 4 steps below
-        progress.update(completed=0, total=len(schema.tables) + 4)
+        # init progress with total_count; +3 for the 3 steps below
+        progress.update(completed=0, total=len(schema.tables) + 3)
 
         for tgt in schema.tables:
             finalize_table_generation(
@@ -76,6 +80,7 @@ def execute_step_finalize_generation(
                 target_table_name=tgt,
                 delivery_dir=delivery_dir,
                 export_csv=export_csv,
+                job_workspace_dir=job_workspace_dir,
             )
             progress.update(advance=1)
 
@@ -208,10 +213,11 @@ def finalize_table_generation(
     target_table_name: str,
     delivery_dir: Path,
     export_csv: bool,
+    job_workspace_dir: Path | None = None,
 ) -> None:
     """
     Post-process the generated data for a given table.
-    * handle non-context keys
+    * handle non-context keys (using FK models if available)
     * handle reference keys
     * keep only needed columns, and in the right order
     * export to PARQUET, and optionally also to CSV (without col prefixes)
@@ -237,6 +243,31 @@ def finalize_table_generation(
     else:
         csv_path = None
 
+    # Check if FK models exist for this table's non-context relations
+    has_fk_models = False
+    non_ctx_relations = []
+    parent_data_cache = {}
+    if job_workspace_dir is not None:
+        fk_models_dir = job_workspace_dir / "FKModelsStore" / target_table_name
+        has_fk_models = fk_models_dir.exists() and any(fk_models_dir.glob("model_*.pt"))
+
+        if has_fk_models:
+            # Get non-context relations for this table
+            non_ctx_relations = [
+                rel for rel in generated_data_schema.non_context_relations if rel.child.table == target_table_name
+            ]
+
+            # Pre-load all parent data once (to avoid loading per partition)
+            for non_ctx_relation in non_ctx_relations:
+                parent_table_name = non_ctx_relation.parent.table
+                if parent_table_name not in parent_data_cache:
+                    # Load parent data from RAW generated data (before finalization)
+                    # This ensures we have all the generated columns needed for encoding
+                    parent_table = generated_data_schema.tables[parent_table_name]
+                    _LOG.info(f"Loading parent data for {parent_table_name} from raw generated data")
+                    parent_data = parent_table.read_data()
+                    parent_data_cache[parent_table_name] = parent_data
+
     # instantiate container outside of loop to avoid memory to pile up
     container = type(table.container)()
     for part_i, part_file in enumerate(tgt_table_files, start=1):
@@ -244,12 +275,30 @@ def finalize_table_generation(
         part_table = ParquetDataTable(container=container)
         tgt_data = part_table.read_data(do_coerce_dtypes=True)
 
-        # post-process non-context keys
-        tgt_data = postproc_non_context(
-            tgt_data=tgt_data,
-            generated_data_schema=generated_data_schema,
-            tgt=target_table_name,
-        )
+        # post-process non-context keys ONLY if FK models are NOT available
+        if not has_fk_models:
+            # Use old random sampling approach for non-context FKs
+            tgt_data = postproc_non_context(
+                tgt_data=tgt_data,
+                generated_data_schema=generated_data_schema,
+                tgt=target_table_name,
+            )
+        else:
+            # FK models available: match non-context relations
+            for non_ctx_relation in non_ctx_relations:
+                parent_table_name = non_ctx_relation.parent.table
+                parent_data = parent_data_cache[parent_table_name]
+                tgt_parent_key = non_ctx_relation.child.column
+                parent_primary_key = non_ctx_relation.parent.column
+
+                tgt_data = match_non_context(
+                    fk_models_workspace_dir=fk_models_dir,
+                    tgt_data=tgt_data,
+                    parent_data=parent_data,
+                    tgt_parent_key=tgt_parent_key,
+                    parent_primary_key=parent_primary_key,
+                    parent_table_name=parent_table_name,
+                )
 
         # keep only original columns, and in the right order
         tgt_cols = (
@@ -259,6 +308,7 @@ def finalize_table_generation(
         if drop_cols:
             _LOG.info(f"remove columns from final output: {', '.join(drop_cols)}")
         keep_cols = [c for c in tgt_cols if c in tgt_data]
+
         tgt_data = tgt_data[keep_cols]
 
         partition_text = f"{part_i} out of {n_partitions}"
