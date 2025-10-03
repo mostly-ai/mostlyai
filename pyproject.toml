@@ -122,6 +122,9 @@ oracle = [
 postgres = [
     "psycopg2>=2.9.4,<3"
 ]
+redshift = [
+    "redshift-connector>=2.1.8",
+]
 snowflake = [
     "snowflake-sqlalchemy>=1.6.1,<2"
 ]
