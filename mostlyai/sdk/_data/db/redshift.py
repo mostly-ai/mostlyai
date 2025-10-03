@@ -14,9 +14,9 @@
 
 import logging
 import warnings
-from typing import TYPE_CHECKING
 from urllib.parse import quote
 
+import pandas as pd
 import redshift_connector
 import sqlalchemy as sa
 from sqlalchemy import text, types
@@ -31,9 +31,6 @@ warnings.filterwarnings(
     "ignore", message="ssl.SSLContext.*without protocol argument is deprecated", category=DeprecationWarning
 )
 warnings.filterwarnings("ignore", message="ssl.PROTOCOL_TLS is deprecated", category=DeprecationWarning)
-
-if TYPE_CHECKING:
-    import pandas as pd
 
 _LOG = logging.getLogger(__name__)
 
@@ -308,8 +305,7 @@ def _ensure_dialect_registered():
 
 
 def _init_worker():
-    """initialize worker process: register dialect and suppress case warnings"""
-    _ensure_dialect_registered()
+    """initialize worker process: suppress case warnings"""
     warnings.filterwarnings("ignore", message=".*not found exactly.*case sensitivity.*")
 
 
@@ -339,15 +335,12 @@ class RedshiftContainer(PostgresqlContainer):
 
     @property
     def sa_uri(self):
-        # encode all connection parameters to handle special characters properly
+        # encode credentials and database name to handle special characters
         username = quote(self.username, safe="")
         password = quote(self.password, safe="")
-        # host might contain special chars (unlikely but possible in some environments)
-        host = quote(self.host, safe="")
-        # dbname might contain special chars (e.g., hyphens, dots)
         dbname = quote(self.dbname, safe="")
         # use redshift+redshift_connector dialect
-        return f"redshift+redshift_connector://{username}:{password}@{host}:{self.port}/{dbname}"
+        return f"redshift+redshift_connector://{username}:{password}@{self.host}:{self.port}/{dbname}"
 
     @property
     def sa_create_engine_kwargs(self) -> dict:
@@ -412,11 +405,12 @@ class RedshiftTable(PostgresqlTable):
                 schema = self.container.dbschema or "public"
                 existing_tables = inspector.get_table_names(schema=schema)
 
-                # find table case-insensitively
+                # find table case-insensitively and drop using sqlalchemy
                 for t in existing_tables:
                     if t.lower() == self.name.lower():
-                        with sa_engine.begin() as conn:
-                            conn.execute(sa.text(f'DROP TABLE {schema}."{t}"'))
+                        # use sqlalchemy Table object for safe drop operation
+                        table_to_drop = sa.Table(t, sa.MetaData(), schema=schema)
+                        table_to_drop.drop(sa_engine, checkfirst=False)
                         break
 
                 kwargs["if_exists"] = "fail"
@@ -425,8 +419,14 @@ class RedshiftTable(PostgresqlTable):
 
     def calculate_write_chunk_size(self, df: "pd.DataFrame") -> int:
         """cap chunk size by redshift's 32767 parameter limit"""
-        max_rows = 32767 // max(len(df.columns), 1)
-        return min(self.WRITE_CHUNK_SIZE, max_rows, len(df) if len(df) < 1000 else self.WRITE_CHUNK_SIZE)
+        # guard against empty dataframes
+        if len(df.columns) == 0:
+            return self.WRITE_CHUNK_SIZE
+
+        # calculate maximum rows based on parameter limit (32767 total params)
+        # each row uses len(df.columns) parameters
+        max_rows = 32767 // len(df.columns)
+        return min(self.WRITE_CHUNK_SIZE, max_rows)
 
     def write_data(self, df: "pd.DataFrame", **kwargs):
         self.INIT_WRITE_CHUNK = _init_worker  # use custom init that suppresses warnings
