@@ -265,7 +265,7 @@ def finalize_table_generation(
                     # This ensures we have all the generated columns needed for encoding
                     parent_table = generated_data_schema.tables[parent_table_name]
                     _LOG.info(f"Loading parent data for {parent_table_name} from raw generated data")
-                    parent_data = pd.read_parquet(parent_table.dataset.files)
+                    parent_data = parent_table.read_data()
                     parent_data_cache[parent_table_name] = parent_data
 
     # instantiate container outside of loop to avoid memory to pile up
