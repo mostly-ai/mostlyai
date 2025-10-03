@@ -408,13 +408,15 @@ class RedshiftTable(PostgresqlTable):
         if kwargs.get("if_exists") == "replace":
             with self.container.use_sa_engine(mode="write_data") as sa_engine:
                 inspector = sa.inspect(sa_engine)
-                existing_tables = inspector.get_table_names(schema=self.container.dbschema)
+                # use default schema if dbschema is None
+                schema = self.container.dbschema or "public"
+                existing_tables = inspector.get_table_names(schema=schema)
 
                 # find table case-insensitively
                 for t in existing_tables:
                     if t.lower() == self.name.lower():
                         with sa_engine.begin() as conn:
-                            conn.execute(sa.text(f'DROP TABLE {self.container.dbschema}."{t}"'))
+                            conn.execute(sa.text(f'DROP TABLE {schema}."{t}"'))
                         break
 
                 kwargs["if_exists"] = "fail"
