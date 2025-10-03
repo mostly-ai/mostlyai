@@ -355,6 +355,12 @@ def harmonize_sd_config(
     else:
         subject_tables = []
 
+    # validate seed dict keys match subject tables
+    if isinstance(seed, dict) and seed:
+        invalid_keys = set(seed.keys()) - set(subject_tables)
+        if invalid_keys:
+            raise ValueError(f"{invalid_keys} not in {subject_tables}")
+
     # normalize size
     if not isinstance(size, dict):
         size = {table: size for table in subject_tables}
