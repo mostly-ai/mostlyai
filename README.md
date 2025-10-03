@@ -230,7 +230,7 @@ pip install -U torch==2.7.0+cpu torchvision==0.22.0+cpu 'mostlyai[local]' --extr
 
 ### Data Connectors
 
-Add any of the following extras for further data connectors support in LOCAL mode: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`. E.g.
+Add any of the following extras for further data connectors support in LOCAL mode: `databricks`, `googlebigquery`, `hive`, `mssql`, `mysql`, `oracle`, `postgres`, `redshift`, `snowflake`. E.g.
 
 ```shell
 uv pip install -U 'mostlyai[local, databricks, snowflake]'

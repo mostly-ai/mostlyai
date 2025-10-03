@@ -862,7 +862,7 @@ def use_ssh_tunnel(
 class SqlAlchemyTable(DBTable, abc.ABC):
     ENABLE_ORDER_AND_LIMIT_ON_SQL: bool = True
     IS_SERVER_SIDE_CURSOR_AVAILABLE: bool = True
-    SA_RANDOM: sa.sql.Executable | None = None  # must be overriden
+    SA_RANDOM: sa.sql.Executable | None = None  # must be overridden
     SA_MAX_VALS_PER_BATCH: int = 10_000
     SA_MAX_VALS_PER_IN_CLAUSE: int | None = None
     SA_CONN_DIALECT_PROPS: dict[str, Any] | None = None

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Data pull."""
+"""Data pull utilities."""
 
 import itertools
 import json
@@ -655,7 +655,7 @@ def export_chunk(
     data_dir: Path,
     do_ctx_only: bool,
 ):
-    """Distributes rows of a chunk into partitions using hash trick"""
+    """Distributes rows of a chunk into partitions using hash trick."""
 
     data_dir.mkdir(exist_ok=True, parents=True)
 
@@ -701,7 +701,7 @@ def export_chunk(
 
 
 def consolidate_partitions(data_dir: Path, shuffle: bool = True):
-    """Consolidates partition chunks into partitions"""
+    """Consolidates partition chunks into partitions."""
     t0 = time.time()
     for partition_dir in sorted(d for d in data_dir.glob("part.*/") if d.is_dir()):
         partition_data = pd.concat(
