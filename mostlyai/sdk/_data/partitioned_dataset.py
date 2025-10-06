@@ -32,7 +32,9 @@ class PartitionedDataset:
         self.total_rows = 0
 
         # Create cached method with instance-specific maxsize
-        self._load_partition_cached = lru_cache(maxsize=max_cached_partitions)(self._load_partition_uncached)
+        # If max_cached_partitions is -1, set maxsize to None for unlimited cache
+        cache_maxsize = None if max_cached_partitions == -1 else max_cached_partitions
+        self._load_partition_cached = lru_cache(maxsize=cache_maxsize)(self._load_partition_uncached)
 
         # Build partition index with fast metadata reads
         for file in partition_files:

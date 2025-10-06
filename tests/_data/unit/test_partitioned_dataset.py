@@ -537,3 +537,73 @@ class TestPartitionedDatasetCaching:
             cache_info = dataset._load_partition_cached.cache_info()
             assert cache_info.misses == 1  # Still only 1 miss
             assert cache_info.hits == 1    # Now 1 hit
+
+    def test_unlimited_cache_with_minus_one(self):
+        """Test that max_cached_partitions=-1 keeps all partitions in memory."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            # Create 5 partitions (more than typical cache limit)
+            files = []
+            for i in range(5):
+                df = pd.DataFrame({'id': range(i*100, (i+1)*100)})
+                file_path = temp_path / f'part{i}.parquet'
+                df.to_parquet(file_path)
+                files.append(file_path)
+
+            # Use -1 for unlimited caching
+            dataset = PartitionedDataset(files, max_cached_partitions=-1)
+
+            # Access all partitions
+            for i in range(5):
+                _ = dataset[i*100:(i*100)+10]
+
+            # All partitions should be cached (no eviction with unlimited cache)
+            cache_info = dataset._load_partition_cached.cache_info()
+            assert cache_info.currsize == 5  # All 5 partitions cached
+            assert cache_info.misses == 5     # 5 initial misses
+            assert cache_info.hits == 0      # No hits yet
+
+            # Access partitions again - should all be cache hits
+            for i in range(5):
+                _ = dataset[i*100:(i*100)+10]
+
+            cache_info = dataset._load_partition_cached.cache_info()
+            assert cache_info.currsize == 5  # Still all 5 partitions cached
+            assert cache_info.misses == 5    # Still only 5 misses
+            assert cache_info.hits == 5      # Now 5 hits
+
+    def test_unlimited_cache_vs_limited_cache(self):
+        """Test comparison between unlimited and limited cache behavior."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            # Create 4 partitions
+            files = []
+            for i in range(4):
+                df = pd.DataFrame({'id': range(i*100, (i+1)*100)})
+                file_path = temp_path / f'part{i}.parquet'
+                df.to_parquet(file_path)
+                files.append(file_path)
+
+            # Test with limited cache (maxsize=2)
+            limited_dataset = PartitionedDataset(files, max_cached_partitions=2)
+
+            # Access all 4 partitions
+            for i in range(4):
+                _ = limited_dataset[i*100:(i*100)+10]
+
+            # Should only cache 2 partitions (LRU eviction)
+            limited_cache_info = limited_dataset._load_partition_cached.cache_info()
+            assert limited_cache_info.currsize == 2
+
+            # Test with unlimited cache (-1)
+            unlimited_dataset = PartitionedDataset(files, max_cached_partitions=-1)
+
+            # Access all 4 partitions
+            for i in range(4):
+                _ = unlimited_dataset[i*100:(i*100)+10]
+
+            # Should cache all 4 partitions
+            unlimited_cache_info = unlimited_dataset._load_partition_cached.cache_info()
+            assert unlimited_cache_info.currsize == 4
