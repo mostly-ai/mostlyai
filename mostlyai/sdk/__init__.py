@@ -15,4 +15,4 @@
 from mostlyai.sdk.client.api import MostlyAI
 
 __all__ = ["MostlyAI"]
-__version__ = "5.2.6"  # Do not set this manually. Use poetry version [params].
+__version__ = "5.2.7"  # Do not set this manually. Use poetry version [params].
