@@ -15,7 +15,7 @@ import logging
 import uuid
 import zipfile
 from pathlib import Path
-from typing import Literal
+from typing import Callable, Literal
 
 import pandas as pd
 
@@ -27,6 +27,7 @@ from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.fk_models import (
     match_non_context,
 )
+from mostlyai.sdk._data.partitioned_dataset import PartitionedDataset
 from mostlyai.sdk._data.non_context import postproc_non_context
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._data.util.common import (
@@ -60,6 +61,8 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=False,
                 job_workspace_dir=job_workspace_dir,
+                fk_parent_sample_size=1000,
+                children_batch_size=10000,
             )
         return usages
 
@@ -81,6 +84,8 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=export_csv,
                 job_workspace_dir=job_workspace_dir,
+                fk_parent_sample_size=1000,
+                children_batch_size=10000,
             )
             progress.update(advance=1)
 
@@ -208,12 +213,205 @@ def finalize_probing(schema: Schema, delivery_dir: Path):
         )
 
 
+def filter_and_order_columns(data: pd.DataFrame, table_name: str, schema: Schema) -> pd.DataFrame:
+    """Keep only original columns in the right order."""
+    tgt_cols = schema.tables[table_name].columns or data.columns
+    drop_cols = [c for c in tgt_cols if c not in data]
+    if drop_cols:
+        _LOG.info(f"remove columns from final output: {', '.join(drop_cols)}")
+    keep_cols = [c for c in tgt_cols if c in data]
+    return data[keep_cols]
+
+
+def write_batch_outputs(
+    data: pd.DataFrame,
+    table_name: str,
+    batch_counter: int,
+    pqt_path: Path,
+    csv_path: Path | None
+) -> None:
+    """Write batch to both parquet and CSV."""
+    # Parquet output
+    batch_filename = f"batch_{batch_counter:06d}.parquet"
+    _LOG.info(f"store post-processed batch {batch_counter} ({len(data)} rows) as PQT")
+    pqt_post = ParquetDataTable(path=pqt_path / batch_filename, name=table_name)
+    pqt_post.write_data(data)
+
+    # CSV output
+    if csv_path:
+        _LOG.info(f"store post-processed batch {batch_counter} as CSV")
+        csv_post = CsvDataTable(path=csv_path / f"{table_name}.csv", name=table_name)
+        if batch_counter == 1:
+            csv_post.write_data(data)
+        else:
+            data.to_csv(csv_path / f"{table_name}.csv", mode='a', header=False, index=False)
+
+
+def setup_output_paths(delivery_dir: Path, target_table_name: str, export_csv: bool) -> tuple[Path, Path | None]:
+    """Setup output directories."""
+    pqt_path = delivery_dir / target_table_name / "parquet"
+    pqt_path.mkdir(exist_ok=True, parents=True)
+    _LOG.info(f"prepared {pqt_path=} for storing post-processed data as PQT files")
+
+    csv_path = None
+    if export_csv:
+        csv_path = delivery_dir / target_table_name / "csv"
+        csv_path.mkdir(exist_ok=True, parents=True)
+        _LOG.info(f"prepared {csv_path=} for storing post-processed data as CSV file")
+
+    return pqt_path, csv_path
+
+
+def detect_fk_context(
+    job_workspace_dir: Path | None,
+    target_table_name: str,
+    schema: Schema,
+    table_files: list[Path],
+) -> dict | None:
+    """Detect and setup FK processing context."""
+    if job_workspace_dir is None:
+        return None
+
+    fk_models_dir = job_workspace_dir / "FKModelsStore" / target_table_name
+    has_fk_models = fk_models_dir.exists() and any(fk_models_dir.glob("model_*.pt"))
+
+    if not has_fk_models:
+        return None
+
+    # Setup FK context
+    non_ctx_relations = [
+        rel for rel in schema.non_context_relations
+        if rel.child.table == target_table_name
+    ]
+
+    children_dataset = PartitionedDataset(table_files)
+    parent_datasets = {}
+
+    for relation in non_ctx_relations:
+        parent_table_name = relation.parent.table
+        if parent_table_name not in parent_datasets:
+            parent_table = schema.tables[parent_table_name]
+            parent_datasets[parent_table_name] = PartitionedDataset(parent_table.dataset.files)
+
+    return {
+        'fk_models_dir': fk_models_dir,
+        'non_ctx_relations': non_ctx_relations,
+        'children_dataset': children_dataset,
+        'parent_datasets': parent_datasets,
+    }
+
+
+def process_table_in_batches(
+    dataset: PartitionedDataset,
+    batch_size: int,
+    process_batch_fn: Callable[[pd.DataFrame], pd.DataFrame],
+    table_name: str,
+    schema: Schema,
+    pqt_path: Path,
+    csv_path: Path | None,
+) -> None:
+    """Unified batch processing pipeline for both FK and non-FK."""
+    batch_counter = 0
+
+    for start_idx in range(0, len(dataset), batch_size):
+        end_idx = min(start_idx + batch_size, len(dataset))
+        batch_counter += 1
+
+        # Get batch data
+        batch_data = dataset[start_idx:end_idx]
+
+        # Apply processing function (FK or non-FK specific)
+        processed_data = process_batch_fn(batch_data)
+
+        # Common post-processing
+        processed_data = filter_and_order_columns(processed_data, table_name, schema)
+
+        # Common output writing
+        write_batch_outputs(processed_data, table_name, batch_counter, pqt_path, csv_path)
+
+        del processed_data
+
+
+def create_single_relation_fk_processor(
+    relation,
+    parent_dataset: PartitionedDataset,
+    fk_models_dir: Path,
+    fk_parent_sample_size: int,
+) -> Callable[[pd.DataFrame], pd.DataFrame]:
+    """Returns a function that processes a batch for a single FK relationship."""
+
+    def process_single_fk_batch(batch_data: pd.DataFrame) -> pd.DataFrame:
+        parent_table_name = relation.parent.table
+        n_parents_needed = len(batch_data) * fk_parent_sample_size
+        parent_data = parent_dataset.random_sample(n_parents_needed)
+
+        batch_data = match_non_context(
+            fk_models_workspace_dir=fk_models_dir,
+            tgt_data=batch_data,
+            parent_data=parent_data,
+            tgt_parent_key=relation.child.column,
+            parent_primary_key=relation.parent.column,
+            parent_table_name=parent_table_name,
+        )
+        return batch_data
+
+    return process_single_fk_batch
+
+
+def create_fk_batch_processor(
+    non_ctx_relations: list,
+    parent_datasets: dict[str, PartitionedDataset],
+    fk_models_dir: Path,
+    fk_parent_sample_size: int,
+) -> Callable[[pd.DataFrame], pd.DataFrame]:
+    """Returns a function that processes a batch with FK models."""
+
+    def process_fk_batch(batch_data: pd.DataFrame) -> pd.DataFrame:
+        for relation in non_ctx_relations:
+            parent_table_name = relation.parent.table
+            n_parents_needed = len(batch_data) * fk_parent_sample_size
+            parent_data = parent_datasets[parent_table_name].random_sample(n_parents_needed)
+
+            batch_data = match_non_context(
+                fk_models_workspace_dir=fk_models_dir,
+                tgt_data=batch_data,
+                parent_data=parent_data,
+                tgt_parent_key=relation.child.column,
+                parent_primary_key=relation.parent.column,
+                parent_table_name=parent_table_name,
+            )
+
+            # Clear parent dataset cache after processing this relationship
+            parent_datasets[parent_table_name].clear_cache()
+        return batch_data
+
+    return process_fk_batch
+
+
+def create_non_fk_batch_processor(
+    schema: Schema,
+    table_name: str,
+) -> Callable[[pd.DataFrame], pd.DataFrame]:
+    """Returns a function that processes a batch without FK models."""
+
+    def process_non_fk_batch(batch_data: pd.DataFrame) -> pd.DataFrame:
+        return postproc_non_context(
+            tgt_data=batch_data,
+            generated_data_schema=schema,
+            tgt=table_name,
+        )
+
+    return process_non_fk_batch
+
+
 def finalize_table_generation(
     generated_data_schema: Schema,
     target_table_name: str,
     delivery_dir: Path,
     export_csv: bool,
     job_workspace_dir: Path | None = None,
+    fk_parent_sample_size: int = 1000,
+    children_batch_size: int = 10000,
 ) -> None:
     """
     Post-process the generated data for a given table.
@@ -223,108 +421,51 @@ def finalize_table_generation(
     * export to PARQUET, and optionally also to CSV (without col prefixes)
     """
 
-    # read generated "raw" data into memory
-    # Note: We should avoid reading all data into memory. E.g. by looping over source.dataset.files or over
-    # source.dataset.to_batches(), then process in batches, and then append to CSV, respectively write out
-    # as separate parquet files.
+    # Setup
     table = generated_data_schema.tables[target_table_name]
-    tgt_table_files = table.dataset.files
-    n_partitions = len(tgt_table_files)
+    table_files = table.dataset.files
+    n_partitions = len(table_files)
     _LOG.info(f"POSTPROC will handle {n_partitions} partitions")
 
-    pqt_path = delivery_dir / target_table_name / "parquet"
-    pqt_path.mkdir(exist_ok=True, parents=True)
-    _LOG.info(f"prepared {pqt_path=} for storing post-processed data as PQT files")
+    pqt_path, csv_path = setup_output_paths(delivery_dir, target_table_name, export_csv)
 
-    if export_csv:
-        csv_path = delivery_dir / target_table_name / "csv"
-        csv_path.mkdir(exist_ok=True, parents=True)
-        _LOG.info(f"prepared {csv_path=} for storing post-processed data as CSV file")
-    else:
-        csv_path = None
+    # Detect FK capabilities
+    fk_context = detect_fk_context(job_workspace_dir, target_table_name, generated_data_schema, table_files)
 
-    # Check if FK models exist for this table's non-context relations
-    has_fk_models = False
-    non_ctx_relations = []
-    parent_data_cache = {}
-    if job_workspace_dir is not None:
-        fk_models_dir = job_workspace_dir / "FKModelsStore" / target_table_name
-        has_fk_models = fk_models_dir.exists() and any(fk_models_dir.glob("model_*.pt"))
-
-        if has_fk_models:
-            # Get non-context relations for this table
-            non_ctx_relations = [
-                rel for rel in generated_data_schema.non_context_relations if rel.child.table == target_table_name
-            ]
-
-            # Pre-load all parent data once (to avoid loading per partition)
-            for non_ctx_relation in non_ctx_relations:
-                parent_table_name = non_ctx_relation.parent.table
-                if parent_table_name not in parent_data_cache:
-                    # Load parent data from RAW generated data (before finalization)
-                    # This ensures we have all the generated columns needed for encoding
-                    parent_table = generated_data_schema.tables[parent_table_name]
-                    _LOG.info(f"Loading parent data for {parent_table_name} from raw generated data")
-                    parent_data = parent_table.read_data()
-                    parent_data_cache[parent_table_name] = parent_data
-
-    # instantiate container outside of loop to avoid memory to pile up
-    container = type(table.container)()
-    for part_i, part_file in enumerate(tgt_table_files, start=1):
-        container.set_location(part_file)
-        part_table = ParquetDataTable(container=container)
-        tgt_data = part_table.read_data(do_coerce_dtypes=True)
-
-        # post-process non-context keys ONLY if FK models are NOT available
-        if not has_fk_models:
-            # Use old random sampling approach for non-context FKs
-            tgt_data = postproc_non_context(
-                tgt_data=tgt_data,
-                generated_data_schema=generated_data_schema,
-                tgt=target_table_name,
-            )
-        else:
-            # FK models available: match non-context relations
-            for non_ctx_relation in non_ctx_relations:
-                parent_table_name = non_ctx_relation.parent.table
-                parent_data = parent_data_cache[parent_table_name]
-                tgt_parent_key = non_ctx_relation.child.column
-                parent_primary_key = non_ctx_relation.parent.column
-
-                tgt_data = match_non_context(
-                    fk_models_workspace_dir=fk_models_dir,
-                    tgt_data=tgt_data,
-                    parent_data=parent_data,
-                    tgt_parent_key=tgt_parent_key,
-                    parent_primary_key=parent_primary_key,
-                    parent_table_name=parent_table_name,
-                )
-
-        # keep only original columns, and in the right order
-        tgt_cols = (
-            cols if (cols := generated_data_schema.tables[target_table_name].columns) is not None else tgt_data.columns
+    if fk_context:
+        # FK processing path
+        dataset = fk_context['children_dataset']
+        process_batch_fn = create_fk_batch_processor(
+            fk_context['non_ctx_relations'],
+            fk_context['parent_datasets'],
+            fk_context['fk_models_dir'],
+            fk_parent_sample_size,
         )
-        drop_cols = [c for c in tgt_cols if c not in tgt_data]
-        if drop_cols:
-            _LOG.info(f"remove columns from final output: {', '.join(drop_cols)}")
-        keep_cols = [c for c in tgt_cols if c in tgt_data]
+        batch_size = children_batch_size
+    else:
+        # Non-FK processing path
+        dataset = PartitionedDataset(table_files)
+        process_batch_fn = create_non_fk_batch_processor(generated_data_schema, target_table_name)
+        batch_size = children_batch_size  # Use same batch size for consistency
 
-        tgt_data = tgt_data[keep_cols]
+    # Unified processing pipeline
+    process_table_in_batches(
+        dataset=dataset,
+        batch_size=batch_size,
+        process_batch_fn=process_batch_fn,
+        table_name=target_table_name,
+        schema=generated_data_schema,
+        pqt_path=pqt_path,
+        csv_path=csv_path,
+    )
 
-        partition_text = f"{part_i} out of {n_partitions}"
-
-        # store post-processed data as PQT files
-        _LOG.info(f"store post-processed {partition_text} as PQT")
-        pqt_post = ParquetDataTable(path=pqt_path / f"{Path(part_file).stem}.parquet", name=target_table_name)
-        pqt_post.write_data(tgt_data)
-
-        # store post-processed data as single CSV file
-        if csv_path:
-            _LOG.info(f"store post-processed {partition_text} as CSV")
-            csv_post = CsvDataTable(path=csv_path / f"{target_table_name}.csv", name=target_table_name)
-            csv_post.write_data(tgt_data)
-
-        del tgt_data
+    # Clear caches after processing
+    if fk_context:
+        # Clear children dataset cache (parent caches cleared sequentially)
+        fk_context['children_dataset'].clear_cache()
+    else:
+        # Clear non-FK dataset cache
+        dataset.clear_cache()
 
 
 def export_data_to_excel(delivery_dir: Path, output_dir: Path):

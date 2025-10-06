@@ -34,6 +34,9 @@ from mostlyai.engine._encoding_types.tabular.numeric import analyze_numeric, ana
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
 
+# DistributedParentSampler has been replaced by PartitionedDataset
+
+
 class EntityEncoder(nn.Module):
     def __init__(
         self,
