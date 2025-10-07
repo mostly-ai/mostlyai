@@ -34,9 +34,6 @@ from mostlyai.engine._encoding_types.tabular.numeric import analyze_numeric, ana
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
 
-# DistributedParentSampler has been replaced by PartitionedDataset
-
-
 class EntityEncoder(nn.Module):
     def __init__(
         self,
@@ -445,28 +442,49 @@ def build_parent_child_probabilities(
     model: ParentChildMatcher,
     tgt_encoded: pd.DataFrame,
     parent_encoded: pd.DataFrame,
+    fk_parent_sample_size: int,
 ) -> torch.Tensor:
     """
-    Build probability matrix for parent-child matching.
+    Build probability matrix for parent-child matching with independent parent pools per child.
+
+    Args:
+        model: Trained parent-child matching model
+        tgt_encoded: Encoded target/child data (n_tgt rows)
+        parent_encoded: Encoded parent data (n_tgt * fk_parent_sample_size rows)
+        fk_parent_sample_size: Number of parent candidates per child
 
     Returns:
-        prob_matrix: (n_tgt, n_parent) - probability each parent is a match for each child
+        prob_matrix: (n_tgt, fk_parent_sample_size) - probability each parent pool candidate is a match for each child
     """
     t0 = time.time()
     n_tgt = tgt_encoded.shape[0]
-    n_parent = parent_encoded.shape[0]
+    n_parent_total = parent_encoded.shape[0]
+
+    # Validate that parent data matches expected structure
+    expected_parents = n_tgt * fk_parent_sample_size
+    if n_parent_total != expected_parents:
+        raise ValueError(f"Expected {expected_parents} parents ({n_tgt} children × {fk_parent_sample_size}), got {n_parent_total}")
 
     tgt_inputs = {col: torch.tensor(tgt_encoded[col].values.astype(np.int64)) for col in tgt_encoded.columns}
     parent_inputs = {col: torch.tensor(parent_encoded[col].values.astype(np.int64)) for col in parent_encoded.columns}
 
-    # for all pairs, compute the probability for each (tgt, parent) pair
-    tgt_inputs = {col: tgt_inputs[col].repeat_interleave(n_parent) for col in tgt_encoded.columns}
-    parent_inputs = {col: parent_inputs[col].repeat(n_tgt) for col in parent_encoded.columns}
+    # Create proper interleaving for independent parent pools:
+    # Child 0 with parents [0:k], Child 1 with parents [k:2k], etc.
+    tgt_inputs_interleaved = {}
+    parent_inputs_interleaved = {}
+
+    for col in tgt_encoded.columns:
+        # Each child repeated fk_parent_sample_size times
+        tgt_inputs_interleaved[col] = tgt_inputs[col].repeat_interleave(fk_parent_sample_size)
+
+    for col in parent_encoded.columns:
+        # Parents are already in correct order: [child0_parents, child1_parents, ...]
+        parent_inputs_interleaved[col] = parent_inputs[col]
 
     model.eval()
     with torch.no_grad():
-        probs = model(parent_inputs, tgt_inputs).squeeze()
-        prob_matrix = probs.view(n_tgt, n_parent)
+        probs = model(parent_inputs_interleaved, tgt_inputs_interleaved).squeeze()
+        prob_matrix = probs.view(n_tgt, fk_parent_sample_size)
         t1 = time.time()
     print(f"build_parent_child_probabilities() | time: {t1 - t0:.2f}s")
     return prob_matrix
@@ -606,10 +624,13 @@ def match_non_context(
 
     # Build probability matrix
     print(f"Using FK model with temperature={temperature}, top_k={top_k}")
+    # Calculate fk_parent_sample_size from data shapes
+    fk_parent_sample_size = len(parent_encoded) // len(tgt_encoded)
     prob_matrix = build_parent_child_probabilities(
         model=model,
         tgt_encoded=tgt_encoded,
         parent_encoded=parent_encoded,
+        fk_parent_sample_size=fk_parent_sample_size,
     )
 
     # Sample best parents for non-null rows
