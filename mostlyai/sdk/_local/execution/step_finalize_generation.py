@@ -14,8 +14,9 @@
 import logging
 import uuid
 import zipfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Literal
 
 import pandas as pd
 
@@ -27,8 +28,8 @@ from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.fk_models import (
     match_non_context,
 )
-from mostlyai.sdk._data.partitioned_dataset import PartitionedDataset
 from mostlyai.sdk._data.non_context import postproc_non_context
+from mostlyai.sdk._data.partitioned_dataset import PartitionedDataset
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._data.util.common import (
     IS_NULL,
@@ -224,11 +225,7 @@ def filter_and_order_columns(data: pd.DataFrame, table_name: str, schema: Schema
 
 
 def write_batch_outputs(
-    data: pd.DataFrame,
-    table_name: str,
-    batch_counter: int,
-    pqt_path: Path,
-    csv_path: Path | None
+    data: pd.DataFrame, table_name: str, batch_counter: int, pqt_path: Path, csv_path: Path | None
 ) -> None:
     """Write batch to both parquet and CSV."""
     # Parquet output
@@ -244,7 +241,7 @@ def write_batch_outputs(
         if batch_counter == 1:
             csv_post.write_data(data)
         else:
-            data.to_csv(csv_path / f"{table_name}.csv", mode='a', header=False, index=False)
+            data.to_csv(csv_path / f"{table_name}.csv", mode="a", header=False, index=False)
 
 
 def setup_output_paths(delivery_dir: Path, target_table_name: str, export_csv: bool) -> tuple[Path, Path | None]:
@@ -279,10 +276,7 @@ def detect_fk_context(
         return None
 
     # Setup FK context
-    non_ctx_relations = [
-        rel for rel in schema.non_context_relations
-        if rel.child.table == target_table_name
-    ]
+    non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == target_table_name]
 
     children_dataset = PartitionedDataset(table_files)
     parent_datasets = {}
@@ -294,10 +288,10 @@ def detect_fk_context(
             parent_datasets[parent_table_name] = PartitionedDataset(parent_table.dataset.files)
 
     return {
-        'fk_models_dir': fk_models_dir,
-        'non_ctx_relations': non_ctx_relations,
-        'children_dataset': children_dataset,
-        'parent_datasets': parent_datasets,
+        "fk_models_dir": fk_models_dir,
+        "non_ctx_relations": non_ctx_relations,
+        "children_dataset": children_dataset,
+        "parent_datasets": parent_datasets,
     }
 
 
@@ -434,11 +428,11 @@ def finalize_table_generation(
 
     if fk_context:
         # FK processing path
-        dataset = fk_context['children_dataset']
+        dataset = fk_context["children_dataset"]
         process_batch_fn = create_fk_batch_processor(
-            fk_context['non_ctx_relations'],
-            fk_context['parent_datasets'],
-            fk_context['fk_models_dir'],
+            fk_context["non_ctx_relations"],
+            fk_context["parent_datasets"],
+            fk_context["fk_models_dir"],
             fk_parent_sample_size,
         )
         batch_size = children_batch_size
@@ -462,7 +456,7 @@ def finalize_table_generation(
     # Clear caches after processing
     if fk_context:
         # Clear children dataset cache (parent caches cleared sequentially)
-        fk_context['children_dataset'].clear_cache()
+        fk_context["children_dataset"].clear_cache()
     else:
         # Clear non-FK dataset cache
         dataset.clear_cache()

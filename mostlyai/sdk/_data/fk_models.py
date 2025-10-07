@@ -463,7 +463,9 @@ def build_parent_child_probabilities(
     # Validate that parent data matches expected structure
     expected_parents = n_tgt * fk_parent_sample_size
     if n_parent_total != expected_parents:
-        raise ValueError(f"Expected {expected_parents} parents ({n_tgt} children × {fk_parent_sample_size}), got {n_parent_total}")
+        raise ValueError(
+            f"Expected {expected_parents} parents ({n_tgt} children × {fk_parent_sample_size}), got {n_parent_total}"
+        )
 
     tgt_inputs = {col: torch.tensor(tgt_encoded[col].values.astype(np.int64)) for col in tgt_encoded.columns}
     parent_inputs = {col: torch.tensor(parent_encoded[col].values.astype(np.int64)) for col in parent_encoded.columns}

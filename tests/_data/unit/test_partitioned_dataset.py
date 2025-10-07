@@ -15,7 +15,6 @@
 import tempfile
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -31,13 +30,13 @@ class TestPartitionedDatasetBasic:
             temp_path = Path(temp_dir)
 
             # Create partitions with different sizes
-            df1 = pd.DataFrame({'id': range(0, 100), 'value': range(0, 100)})
-            df2 = pd.DataFrame({'id': range(100, 250), 'value': range(100, 250)})
-            df3 = pd.DataFrame({'id': range(250, 300), 'value': range(250, 300)})
+            df1 = pd.DataFrame({"id": range(0, 100), "value": range(0, 100)})
+            df2 = pd.DataFrame({"id": range(100, 250), "value": range(100, 250)})
+            df3 = pd.DataFrame({"id": range(250, 300), "value": range(250, 300)})
 
             files = []
             for i, df in enumerate([df1, df2, df3]):
-                file_path = temp_path / f'part{i}.parquet'
+                file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
                 files.append(file_path)
 
@@ -45,17 +44,17 @@ class TestPartitionedDatasetBasic:
 
             assert len(dataset) == 300
             assert len(dataset.partition_info) == 3
-            assert dataset.partition_info[0]['size'] == 100
-            assert dataset.partition_info[1]['size'] == 150
-            assert dataset.partition_info[2]['size'] == 50
+            assert dataset.partition_info[0]["size"] == 100
+            assert dataset.partition_info[1]["size"] == 150
+            assert dataset.partition_info[2]["size"] == 50
 
     def test_single_partition(self):
         """Test dataset with single partition."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df = pd.DataFrame({'id': range(0, 100), 'value': ['A'] * 100})
-            file_path = temp_path / 'single.parquet'
+            df = pd.DataFrame({"id": range(0, 100), "value": ["A"] * 100})
+            file_path = temp_path / "single.parquet"
             df.to_parquet(file_path)
 
             dataset = PartitionedDataset([file_path])
@@ -69,19 +68,19 @@ class TestPartitionedDatasetBasic:
             temp_path = Path(temp_dir)
 
             # Create empty dataframe
-            df_empty = pd.DataFrame({'id': [], 'value': []})
-            df_normal = pd.DataFrame({'id': range(0, 50), 'value': ['A'] * 50})
+            df_empty = pd.DataFrame({"id": [], "value": []})
+            df_normal = pd.DataFrame({"id": range(0, 50), "value": ["A"] * 50})
 
-            file_empty = temp_path / 'empty.parquet'
-            file_normal = temp_path / 'normal.parquet'
+            file_empty = temp_path / "empty.parquet"
+            file_normal = temp_path / "normal.parquet"
             df_empty.to_parquet(file_empty)
             df_normal.to_parquet(file_normal)
 
             dataset = PartitionedDataset([file_empty, file_normal])
 
             assert len(dataset) == 50
-            assert dataset.partition_info[0]['size'] == 0
-            assert dataset.partition_info[1]['size'] == 50
+            assert dataset.partition_info[0]["size"] == 0
+            assert dataset.partition_info[1]["size"] == 50
 
     def test_partitioned_dataset_length(self):
         """Test total row count matches sum of partitions."""
@@ -94,8 +93,8 @@ class TestPartitionedDatasetBasic:
 
             start_id = 0
             for i, size in enumerate(sizes):
-                df = pd.DataFrame({'id': range(start_id, start_id + size)})
-                file_path = temp_path / f'part{i}.parquet'
+                df = pd.DataFrame({"id": range(start_id, start_id + size)})
+                file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
                 files.append(file_path)
                 start_id += size
@@ -112,11 +111,11 @@ class TestPartitionedDatasetSlicing:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df1 = pd.DataFrame({'id': range(0, 100), 'category': ['A'] * 100})
-            df2 = pd.DataFrame({'id': range(100, 200), 'category': ['B'] * 100})
+            df1 = pd.DataFrame({"id": range(0, 100), "category": ["A"] * 100})
+            df2 = pd.DataFrame({"id": range(100, 200), "category": ["B"] * 100})
 
-            file1 = temp_path / 'part1.parquet'
-            file2 = temp_path / 'part2.parquet'
+            file1 = temp_path / "part1.parquet"
+            file2 = temp_path / "part2.parquet"
             df1.to_parquet(file1)
             df2.to_parquet(file2)
 
@@ -125,7 +124,7 @@ class TestPartitionedDatasetSlicing:
             # Slice within first partition
             slice_result = dataset[10:50]
             assert len(slice_result) == 40
-            assert all(slice_result.category == 'A')
+            assert all(slice_result.category == "A")
             assert slice_result.id.min() == 10
             assert slice_result.id.max() == 49
 
@@ -134,13 +133,13 @@ class TestPartitionedDatasetSlicing:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df1 = pd.DataFrame({'id': range(0, 100), 'category': ['A'] * 100})
-            df2 = pd.DataFrame({'id': range(100, 200), 'category': ['B'] * 100})
-            df3 = pd.DataFrame({'id': range(200, 300), 'category': ['C'] * 100})
+            df1 = pd.DataFrame({"id": range(0, 100), "category": ["A"] * 100})
+            df2 = pd.DataFrame({"id": range(100, 200), "category": ["B"] * 100})
+            df3 = pd.DataFrame({"id": range(200, 300), "category": ["C"] * 100})
 
             files = []
             for i, df in enumerate([df1, df2, df3]):
-                file_path = temp_path / f'part{i}.parquet'
+                file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
                 files.append(file_path)
 
@@ -150,7 +149,7 @@ class TestPartitionedDatasetSlicing:
             slice_result = dataset[50:150]
             assert len(slice_result) == 100
             categories = slice_result.category.unique()
-            assert 'A' in categories and 'B' in categories
+            assert "A" in categories and "B" in categories
             assert slice_result.id.min() == 50
             assert slice_result.id.max() == 149
 
@@ -159,11 +158,11 @@ class TestPartitionedDatasetSlicing:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df1 = pd.DataFrame({'id': range(0, 100), 'category': ['A'] * 100})
-            df2 = pd.DataFrame({'id': range(100, 200), 'category': ['B'] * 100})
+            df1 = pd.DataFrame({"id": range(0, 100), "category": ["A"] * 100})
+            df2 = pd.DataFrame({"id": range(100, 200), "category": ["B"] * 100})
 
-            file1 = temp_path / 'part1.parquet'
-            file2 = temp_path / 'part2.parquet'
+            file1 = temp_path / "part1.parquet"
+            file2 = temp_path / "part2.parquet"
             df1.to_parquet(file1)
             df2.to_parquet(file2)
 
@@ -172,15 +171,15 @@ class TestPartitionedDatasetSlicing:
             # Slice exactly at boundary
             slice_result = dataset[100:200]
             assert len(slice_result) == 100
-            assert all(slice_result.category == 'B')
+            assert all(slice_result.category == "B")
 
     def test_out_of_bounds_slicing(self):
         """Test slicing with out-of-bounds indices."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df = pd.DataFrame({'id': range(0, 100)})
-            file_path = temp_path / 'part.parquet'
+            df = pd.DataFrame({"id": range(0, 100)})
+            file_path = temp_path / "part.parquet"
             df.to_parquet(file_path)
 
             dataset = PartitionedDataset([file_path])
@@ -189,15 +188,15 @@ class TestPartitionedDatasetSlicing:
             assert len(dataset[50:150]) == 50  # End beyond dataset
             assert len(dataset[-10:50]) == 50  # Negative start (becomes 0)
             assert len(dataset[150:200]) == 0  # Start beyond dataset
-            assert len(dataset[50:50]) == 0   # Empty slice
+            assert len(dataset[50:50]) == 0  # Empty slice
 
     def test_empty_slices(self):
         """Test slicing that results in empty results."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df = pd.DataFrame({'id': range(0, 100)})
-            file_path = temp_path / 'part.parquet'
+            df = pd.DataFrame({"id": range(0, 100)})
+            file_path = temp_path / "part.parquet"
             df.to_parquet(file_path)
 
             dataset = PartitionedDataset([file_path])
@@ -215,8 +214,8 @@ class TestPartitionedDatasetRandomSampling:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df = pd.DataFrame({'id': range(0, 1000), 'value': range(0, 1000)})
-            file_path = temp_path / 'data.parquet'
+            df = pd.DataFrame({"id": range(0, 1000), "value": range(0, 1000)})
+            file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
             dataset = PartitionedDataset([file_path])
@@ -224,12 +223,11 @@ class TestPartitionedDatasetRandomSampling:
             # Test sampling less than total
             sample = dataset.random_sample(100)
             assert len(sample) == 100
-            assert set(sample.columns) == {'id', 'value'}
+            assert set(sample.columns) == {"id", "value"}
 
             # Test sampling exactly total
             sample_all = dataset.random_sample(1000)
             assert len(sample_all) == 1000
-
 
     def test_random_sampling_distribution(self):
         """Test partition-weighted distribution over multiple samples."""
@@ -237,13 +235,13 @@ class TestPartitionedDatasetRandomSampling:
             temp_path = Path(temp_dir)
 
             # Create partitions with known size ratio (1:2:1)
-            df1 = pd.DataFrame({'id': range(0, 100), 'partition': ['A'] * 100})
-            df2 = pd.DataFrame({'id': range(100, 300), 'partition': ['B'] * 200})
-            df3 = pd.DataFrame({'id': range(300, 400), 'partition': ['C'] * 100})
+            df1 = pd.DataFrame({"id": range(0, 100), "partition": ["A"] * 100})
+            df2 = pd.DataFrame({"id": range(100, 300), "partition": ["B"] * 200})
+            df3 = pd.DataFrame({"id": range(300, 400), "partition": ["C"] * 100})
 
             files = []
             for i, df in enumerate([df1, df2, df3]):
-                file_path = temp_path / f'part{i}.parquet'
+                file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
                 files.append(file_path)
 
@@ -267,8 +265,8 @@ class TestPartitionedDatasetRandomSampling:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df = pd.DataFrame({'id': range(0, 100)})
-            file_path = temp_path / 'data.parquet'
+            df = pd.DataFrame({"id": range(0, 100)})
+            file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
             dataset = PartitionedDataset([file_path])
@@ -287,11 +285,11 @@ class TestPartitionedDatasetRandomSampling:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df_empty = pd.DataFrame({'id': [], 'value': []})
-            df_normal = pd.DataFrame({'id': range(0, 100), 'value': range(0, 100)})
+            df_empty = pd.DataFrame({"id": [], "value": []})
+            df_normal = pd.DataFrame({"id": range(0, 100), "value": range(0, 100)})
 
-            file_empty = temp_path / 'empty.parquet'
-            file_normal = temp_path / 'normal.parquet'
+            file_empty = temp_path / "empty.parquet"
+            file_normal = temp_path / "normal.parquet"
             df_empty.to_parquet(file_empty)
             df_normal.to_parquet(file_normal)
 
@@ -302,8 +300,6 @@ class TestPartitionedDatasetRandomSampling:
             # Should only contain data from non-empty partition
 
 
-
-
 class TestPartitionedDatasetErrorHandling:
     """Test error handling and edge cases."""
 
@@ -312,8 +308,8 @@ class TestPartitionedDatasetErrorHandling:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df = pd.DataFrame({'id': range(0, 100)})
-            file_path = temp_path / 'data.parquet'
+            df = pd.DataFrame({"id": range(0, 100)})
+            file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
             dataset = PartitionedDataset([file_path])
@@ -329,8 +325,8 @@ class TestPartitionedDatasetErrorHandling:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df = pd.DataFrame({'id': range(0, 100)})
-            file_path = temp_path / 'data.parquet'
+            df = pd.DataFrame({"id": range(0, 100)})
+            file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
             dataset = PartitionedDataset([file_path])
@@ -352,12 +348,13 @@ class TestPartitionedDatasetPerformance:
             temp_path = Path(temp_dir)
 
             # Create a moderately large dataset
-            df = pd.DataFrame({'id': range(0, 10000), 'data': ['x'] * 10000})
-            file_path = temp_path / 'large.parquet'
+            df = pd.DataFrame({"id": range(0, 10000), "data": ["x"] * 10000})
+            file_path = temp_path / "large.parquet"
             df.to_parquet(file_path)
 
             # Creating dataset should be fast (only reads metadata)
             import time
+
             start_time = time.time()
             dataset = PartitionedDataset([file_path])
             init_time = time.time() - start_time
@@ -377,22 +374,26 @@ class TestPartitionedDatasetIntegration:
             # Create realistic parent data (multiple partitions)
             parent_files = []
             for i in range(3):
-                parent_df = pd.DataFrame({
-                    'parent_id': range(i*1000, (i+1)*1000),
-                    'parent_value': [f'parent_{j}' for j in range(i*1000, (i+1)*1000)]
-                })
-                file_path = temp_path / f'parents_{i}.parquet'
+                parent_df = pd.DataFrame(
+                    {
+                        "parent_id": range(i * 1000, (i + 1) * 1000),
+                        "parent_value": [f"parent_{j}" for j in range(i * 1000, (i + 1) * 1000)],
+                    }
+                )
+                file_path = temp_path / f"parents_{i}.parquet"
                 parent_df.to_parquet(file_path)
                 parent_files.append(file_path)
 
             # Create child data
             child_files = []
             for i in range(2):
-                child_df = pd.DataFrame({
-                    'child_id': range(i*500, (i+1)*500),
-                    'child_value': [f'child_{j}' for j in range(i*500, (i+1)*500)]
-                })
-                file_path = temp_path / f'children_{i}.parquet'
+                child_df = pd.DataFrame(
+                    {
+                        "child_id": range(i * 500, (i + 1) * 500),
+                        "child_value": [f"child_{j}" for j in range(i * 500, (i + 1) * 500)],
+                    }
+                )
+                file_path = temp_path / f"children_{i}.parquet"
                 child_df.to_parquet(file_path)
                 child_files.append(file_path)
 
@@ -425,8 +426,8 @@ class TestPartitionedDatasetIntegration:
             # Create dataset larger than cache
             files = []
             for i in range(10):  # 10 partitions
-                df = pd.DataFrame({'id': range(i*1000, (i+1)*1000)})
-                file_path = temp_path / f'part{i}.parquet'
+                df = pd.DataFrame({"id": range(i * 1000, (i + 1) * 1000)})
+                file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
                 files.append(file_path)
 
@@ -450,8 +451,8 @@ class TestPartitionedDatasetCaching:
             temp_path = Path(temp_dir)
 
             # Create test data
-            df = pd.DataFrame({'id': range(0, 100), 'value': range(0, 100)})
-            file_path = temp_path / 'data.parquet'
+            df = pd.DataFrame({"id": range(0, 100), "value": range(0, 100)})
+            file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
             dataset = PartitionedDataset([file_path], max_cached_partitions=2)
@@ -476,8 +477,8 @@ class TestPartitionedDatasetCaching:
             # Create 3 partitions
             files = []
             for i in range(3):
-                df = pd.DataFrame({'id': range(i*100, (i+1)*100)})
-                file_path = temp_path / f'part{i}.parquet'
+                df = pd.DataFrame({"id": range(i * 100, (i + 1) * 100)})
+                file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
                 files.append(file_path)
 
@@ -501,8 +502,8 @@ class TestPartitionedDatasetCaching:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df = pd.DataFrame({'id': range(0, 100)})
-            file_path = temp_path / 'data.parquet'
+            df = pd.DataFrame({"id": range(0, 100)})
+            file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
             dataset = PartitionedDataset([file_path])
@@ -520,8 +521,8 @@ class TestPartitionedDatasetCaching:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            df = pd.DataFrame({'id': range(0, 1000)})
-            file_path = temp_path / 'data.parquet'
+            df = pd.DataFrame({"id": range(0, 1000)})
+            file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
             dataset = PartitionedDataset([file_path])
@@ -536,7 +537,7 @@ class TestPartitionedDatasetCaching:
             _ = dataset[50:150]  # Overlapping slice, same partition
             cache_info = dataset._load_partition_cached.cache_info()
             assert cache_info.misses == 1  # Still only 1 miss
-            assert cache_info.hits == 1    # Now 1 hit
+            assert cache_info.hits == 1  # Now 1 hit
 
     def test_unlimited_cache_with_minus_one(self):
         """Test that max_cached_partitions=-1 keeps all partitions in memory."""
@@ -546,8 +547,8 @@ class TestPartitionedDatasetCaching:
             # Create 5 partitions (more than typical cache limit)
             files = []
             for i in range(5):
-                df = pd.DataFrame({'id': range(i*100, (i+1)*100)})
-                file_path = temp_path / f'part{i}.parquet'
+                df = pd.DataFrame({"id": range(i * 100, (i + 1) * 100)})
+                file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
                 files.append(file_path)
 
@@ -556,22 +557,22 @@ class TestPartitionedDatasetCaching:
 
             # Access all partitions
             for i in range(5):
-                _ = dataset[i*100:(i*100)+10]
+                _ = dataset[i * 100 : (i * 100) + 10]
 
             # All partitions should be cached (no eviction with unlimited cache)
             cache_info = dataset._load_partition_cached.cache_info()
             assert cache_info.currsize == 5  # All 5 partitions cached
-            assert cache_info.misses == 5     # 5 initial misses
-            assert cache_info.hits == 0      # No hits yet
+            assert cache_info.misses == 5  # 5 initial misses
+            assert cache_info.hits == 0  # No hits yet
 
             # Access partitions again - should all be cache hits
             for i in range(5):
-                _ = dataset[i*100:(i*100)+10]
+                _ = dataset[i * 100 : (i * 100) + 10]
 
             cache_info = dataset._load_partition_cached.cache_info()
             assert cache_info.currsize == 5  # Still all 5 partitions cached
-            assert cache_info.misses == 5    # Still only 5 misses
-            assert cache_info.hits == 5      # Now 5 hits
+            assert cache_info.misses == 5  # Still only 5 misses
+            assert cache_info.hits == 5  # Now 5 hits
 
     def test_unlimited_cache_vs_limited_cache(self):
         """Test comparison between unlimited and limited cache behavior."""
@@ -581,8 +582,8 @@ class TestPartitionedDatasetCaching:
             # Create 4 partitions
             files = []
             for i in range(4):
-                df = pd.DataFrame({'id': range(i*100, (i+1)*100)})
-                file_path = temp_path / f'part{i}.parquet'
+                df = pd.DataFrame({"id": range(i * 100, (i + 1) * 100)})
+                file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
                 files.append(file_path)
 
@@ -591,7 +592,7 @@ class TestPartitionedDatasetCaching:
 
             # Access all 4 partitions
             for i in range(4):
-                _ = limited_dataset[i*100:(i*100)+10]
+                _ = limited_dataset[i * 100 : (i * 100) + 10]
 
             # Should only cache 2 partitions (LRU eviction)
             limited_cache_info = limited_dataset._load_partition_cached.cache_info()
@@ -602,7 +603,7 @@ class TestPartitionedDatasetCaching:
 
             # Access all 4 partitions
             for i in range(4):
-                _ = unlimited_dataset[i*100:(i*100)+10]
+                _ = unlimited_dataset[i * 100 : (i * 100) + 10]
 
             # Should cache all 4 partitions
             unlimited_cache_info = unlimited_dataset._load_partition_cached.cache_info()
