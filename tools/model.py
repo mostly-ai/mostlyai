@@ -539,13 +539,12 @@ class SourceTableConfig:
         return included_columns
 
     @model_validator(mode="after")
-    @classmethod
-    def add_model_configuration(cls, values):
+    def add_model_configuration(self):
         # Check if the table has a tabular and/or a language model
-        columns = values.columns or []
-        keys = [fk.column for fk in values.foreign_keys or []]
-        if values.primary_key:
-            keys.append(values.primary_key)
+        columns = self.columns or []
+        keys = [fk.column for fk in self.foreign_keys or []]
+        if self.primary_key:
+            keys.append(self.primary_key)
         model_columns = [c for c in columns if c.name not in keys]
         if model_columns:
             enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
@@ -555,24 +554,24 @@ class SourceTableConfig:
             has_tabular_model = True
             has_language_model = False
         # Always train tabular model for tables with a primary key or linked tables to model sequences
-        if values.primary_key or (values.foreign_keys and any(fk.is_context for fk in values.foreign_keys)):
+        if self.primary_key or (self.foreign_keys and any(fk.is_context for fk in self.foreign_keys)):
             has_tabular_model = True
         # Remove model configurations that are not applicable for the model type
-        if values.tabular_model_configuration and not has_tabular_model:
-            values.tabular_model_configuration = None
-        if values.language_model_configuration and not has_language_model:
-            values.language_model_configuration = None
+        if self.tabular_model_configuration and not has_tabular_model:
+            self.tabular_model_configuration = None
+        if self.language_model_configuration and not has_language_model:
+            self.language_model_configuration = None
         # Add default model configurations if none were provided
-        if has_tabular_model and not values.tabular_model_configuration:
+        if has_tabular_model and not self.tabular_model_configuration:
             default_model = "MOSTLY_AI/Medium"
-            values.tabular_model_configuration = ModelConfiguration(model=default_model)
-        if has_language_model and not values.language_model_configuration:
+            self.tabular_model_configuration = ModelConfiguration(model=default_model)
+        if has_language_model and not self.language_model_configuration:
             default_model = "MOSTLY_AI/LSTMFromScratch-3m"
-            values.language_model_configuration = ModelConfiguration(model=default_model, max_sequence_window=None)
-        if has_language_model and values.language_model_configuration:
+            self.language_model_configuration = ModelConfiguration(model=default_model, max_sequence_window=None)
+        if has_language_model and self.language_model_configuration:
             # language models atm do not support max_sequence_window; thus set configuration to None
-            values.language_model_configuration.max_sequence_window = None
-        return values
+            self.language_model_configuration.max_sequence_window = None
+        return self
 
     @field_validator("columns", mode="after")
     @classmethod
@@ -584,15 +583,14 @@ class SourceTableConfig:
         return columns
 
     @model_validator(mode="after")
-    @classmethod
-    def validate_unique_keys(cls, values):
-        pk = values.primary_key or []
-        fks = [fk.column for fk in values.foreign_keys or []]
+    def validate_unique_keys(self):
+        pk = self.primary_key or []
+        fks = [fk.column for fk in self.foreign_keys or []]
         if len(fks) != len(set(fks)):
             raise ValueError("Foreign key column names must be unique.")
         if pk in fks:
             raise ValueError("Primary key column name must not be defined as foreign key.")
-        return values
+        return self
 
     @field_validator("foreign_keys", mode="after")
     @classmethod
@@ -604,26 +602,24 @@ class SourceTableConfig:
         return foreign_keys
 
     @model_validator(mode="after")
-    @classmethod
-    def validate_keys_exists_in_columns(cls, values):
-        if values.columns:
-            column_names = {col.name for col in values.columns}
-            pk = values.primary_key
+    def validate_keys_exists_in_columns(self):
+        if self.columns:
+            column_names = {col.name for col in self.columns}
+            pk = self.primary_key
             if pk and pk not in column_names:
                 raise ValueError(f"Primary key column '{pk}' does not exist in the table's columns.")
-            for fk in values.foreign_keys or []:
+            for fk in self.foreign_keys or []:
                 if fk.column not in column_names:
                     raise ValueError(f"Foreign key column '{fk.column}' does not exist in the table's columns.")
-        return values
+        return self
 
     @model_validator(mode="after")
-    @classmethod
-    def validate_pk_and_fks_are_not_overlapping(cls, values):
-        primary_key = values.primary_key
-        foreign_keys = [fk.column for fk in values.foreign_keys or []]
+    def validate_pk_and_fks_are_not_overlapping(self):
+        primary_key = self.primary_key
+        foreign_keys = [fk.column for fk in self.foreign_keys or []]
         if primary_key and primary_key in foreign_keys:
             raise ValueError(f"Column '{primary_key}' is both a primary key and a foreign key.")
-        return values
+        return self
 
 
 class SourceColumn:
@@ -642,15 +638,14 @@ class SourceColumn:
 
 class ModelConfiguration:
     @model_validator(mode="after")
-    @classmethod
-    def validate_differential_privacy_config(cls, values):
-        if values.differential_privacy:
-            if not values.value_protection:
-                values.differential_privacy.value_protection_epsilon = None
+    def validate_differential_privacy_config(self):
+        if self.differential_privacy:
+            if not self.value_protection:
+                self.differential_privacy.value_protection_epsilon = None
             else:
-                if values.differential_privacy.value_protection_epsilon is None:
-                    values.differential_privacy.value_protection_epsilon = 1.0
-        return values
+                if self.differential_privacy.value_protection_epsilon is None:
+                    self.differential_privacy.value_protection_epsilon = 1.0
+        return self
 
 
 class SyntheticTableConfiguration:
@@ -670,32 +665,12 @@ class SyntheticTableConfiguration:
         )
 
     @model_validator(mode="after")
-    @classmethod
-    def add_required_fields(cls, values):
-        if values.sampling_temperature is None:
-            values.sampling_temperature = 1.0
-        if values.sampling_top_p is None:
-            values.sampling_top_p = 1.0
-        return values
-
-    # @model_validator(mode="after")
-    # @classmethod
-    # def mutually_exclusive_fields(cls, values):
-    #     seed_fields = [
-    #         field
-    #         for field in [values.sample_seed_connector_id, values.sample_seed_dict, values.sample_seed_data]
-    #         if field is not None
-    #     ]
-    #     if len(seed_fields) > 1:
-    #         raise ValueError(
-    #             "Only one of sample_seed_connector_id, sample_seed_dict and sample_seed_data can be provided"
-    #         )
-
-    #     if seed_fields and values.sample_size is not None:
-    #         raise ValueError(
-    #             "sample_seed_connector_id, sample_seed_dict and sample_seed_data are mutually exclusive with sample_size"
-    #         )
-    #     return values
+    def add_required_fields(self):
+        if self.sampling_temperature is None:
+            self.sampling_temperature = 1.0
+        if self.sampling_top_p is None:
+            self.sampling_top_p = 1.0
+        return self
 
 
 class SyntheticDataset:
@@ -985,11 +960,10 @@ class SyntheticTable:
 
 class SyntheticTableConfig:
     @model_validator(mode="after")
-    @classmethod
-    def add_configuration(cls, values):
-        if values.configuration is None:
-            values.configuration = SyntheticTableConfiguration()
-        return values
+    def add_configuration(self):
+        if self.configuration is None:
+            self.configuration = SyntheticTableConfiguration()
+        return self
 
     def validate_against_source_table(self, source_table: SourceTable, is_probe: bool) -> None:
         self._maybe_set_sample_size(source_table, is_probe)
@@ -1027,87 +1001,81 @@ class _SyntheticTableConfigValidation(CustomBaseModel):
     source_table: SourceTable
 
     @model_validator(mode="after")
-    def validate_rebalancing_config(cls, validation):
-        config = validation.synthetic_table.configuration
+    def validate_rebalancing_config(self):
+        config = self.synthetic_table.configuration
         if config and config.rebalancing:
             rebalancing_column = config.rebalancing.column
             rebalancing_col = next(
-                (col for col in validation.source_table.columns or [] if col.name == rebalancing_column),
+                (col for col in self.source_table.columns or [] if col.name == rebalancing_column),
                 None,
             )
             if not rebalancing_col:
                 raise ValueError(
-                    f"Rebalancing column '{rebalancing_column}' not found in table '{validation.source_table.name}'"
+                    f"Rebalancing column '{rebalancing_column}' not found in table '{self.source_table.name}'"
                 )
             if not rebalancing_col.model_encoding_type == ModelEncodingType.tabular_categorical:
                 raise ValueError(
-                    f"Rebalancing column '{rebalancing_column}' in table '{validation.source_table.name}' must be categorical"
+                    f"Rebalancing column '{rebalancing_column}' in table '{self.source_table.name}' must be categorical"
                 )
             if not rebalancing_col.included:
                 raise ValueError(
-                    f"Rebalancing column '{rebalancing_column}' in table '{validation.source_table.name}' must have `included=True`"
+                    f"Rebalancing column '{rebalancing_column}' in table '{self.source_table.name}' must have `included=True`"
                 )
             for value in config.rebalancing.probabilities.keys():
                 if value not in rebalancing_col.value_range.values:
                     raise ValueError(
-                        f"Rebalancing value '{value}' not found in table '{validation.source_table.name}' column '{rebalancing_column}'"
+                        f"Rebalancing value '{value}' not found in table '{self.source_table.name}' column '{rebalancing_column}'"
                     )
-        return validation
+        return self
 
     @model_validator(mode="after")
-    def validate_imputation_config(cls, validation):
-        config = validation.synthetic_table.configuration
+    def validate_imputation_config(self):
+        config = self.synthetic_table.configuration
         if config and config.imputation:
-            has_tabular_model = validation.source_table.tabular_model_configuration is not None
+            has_tabular_model = self.source_table.tabular_model_configuration is not None
             if not has_tabular_model:
-                raise ValueError(
-                    f"Table '{validation.source_table.name}' specifies imputation but has no tabular model"
-                )
+                raise ValueError(f"Table '{self.source_table.name}' specifies imputation but has no tabular model")
 
             for col in config.imputation.columns:
-                if not any(gcol.name == col for gcol in validation.source_table.columns or []):
-                    raise ValueError(f"Imputation column '{col}' not found in table '{validation.source_table.name}'")
-        return validation
+                if not any(gcol.name == col for gcol in self.source_table.columns or []):
+                    raise ValueError(f"Imputation column '{col}' not found in table '{self.source_table.name}'")
+        return self
 
     @model_validator(mode="after")
-    def validate_fairness_config(cls, validation):
-        config = validation.synthetic_table.configuration
+    def validate_fairness_config(self):
+        config = self.synthetic_table.configuration
         if config and config.fairness:
-            has_tabular_model = validation.source_table.tabular_model_configuration is not None
+            has_tabular_model = self.source_table.tabular_model_configuration is not None
             if not has_tabular_model:
-                raise ValueError(f"Table '{validation.source_table.name}' specifies fairness but has no tabular model")
+                raise ValueError(f"Table '{self.source_table.name}' specifies fairness but has no tabular model")
 
             target_col = config.fairness.target_column
-            if not any(col.name == target_col for col in validation.source_table.columns or []):
-                raise ValueError(
-                    f"Fairness target column '{target_col}' not found in table '{validation.source_table.name}'"
-                )
+            if not any(col.name == target_col for col in self.source_table.columns or []):
+                raise ValueError(f"Fairness target column '{target_col}' not found in table '{self.source_table.name}'")
 
             for col in config.fairness.sensitive_columns:
-                if not any(gcol.name == col for gcol in validation.source_table.columns or []):
-                    raise ValueError(
-                        f"Fairness sensitive column '{col}' not found in table '{validation.source_table.name}'"
-                    )
+                if not any(gcol.name == col for gcol in self.source_table.columns or []):
+                    raise ValueError(f"Fairness sensitive column '{col}' not found in table '{self.source_table.name}'")
 
             if target_col in config.fairness.sensitive_columns:
                 raise ValueError(f"Target column '{target_col}' cannot be a sensitive column")
-        return validation
+        return self
 
     @model_validator(mode="after")
-    def validate_data_report_disabled_if_both_model_reports_disabled(cls, validation):
+    def validate_data_report_disabled_if_both_model_reports_disabled(self):
         configs = [
             cfg
             for cfg in [
-                validation.source_table.tabular_model_configuration,
-                validation.source_table.language_model_configuration,
+                self.source_table.tabular_model_configuration,
+                self.source_table.language_model_configuration,
             ]
             if cfg
         ]
 
         if all(cfg.enable_model_report is False for cfg in configs):
-            if validation.synthetic_table.configuration is not None:
-                validation.synthetic_table.configuration.enable_data_report = False
-        return validation
+            if self.synthetic_table.configuration is not None:
+                self.synthetic_table.configuration.enable_data_report = False
+        return self
 
 
 class _SyntheticDataConfigValidation(CustomBaseModel):
@@ -1119,21 +1087,21 @@ class _SyntheticDataConfigValidation(CustomBaseModel):
     generator: Generator
 
     @model_validator(mode="after")
-    def add_missing_tables(cls, validation):
-        generator_table_map = {t.name: t for t in validation.generator.tables}
-        if validation.synthetic_config.tables is None:
-            validation.synthetic_config.tables = []
-        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables}
+    def add_missing_tables(self):
+        generator_table_map = {t.name: t for t in self.generator.tables}
+        if self.synthetic_config.tables is None:
+            self.synthetic_config.tables = []
+        synthetic_table_map = {t.name: t for t in self.synthetic_config.tables}
 
         missing_tables = set(generator_table_map.keys()) - set(synthetic_table_map.keys())
         for t in missing_tables:
-            validation.synthetic_config.tables.append(SyntheticTableConfig(name=t))
-        return validation
+            self.synthetic_config.tables.append(SyntheticTableConfig(name=t))
+        return self
 
     @model_validator(mode="after")
-    def validate_no_extra_tables(cls, validation):
-        generator_table_map = {t.name: t for t in validation.generator.tables}
-        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables or []}
+    def validate_no_extra_tables(self):
+        generator_table_map = {t.name: t for t in self.generator.tables}
+        synthetic_table_map = {t.name: t for t in self.synthetic_config.tables or []}
 
         generator_tables = set(generator_table_map.keys())
         extra_tables = set(synthetic_table_map.keys()) - generator_tables
@@ -1141,32 +1109,31 @@ class _SyntheticDataConfigValidation(CustomBaseModel):
             raise ValueError(
                 f"Tables {extra_tables} are not present in the generator. Only {generator_tables} are available."
             )
-        return validation
+        return self
 
     @model_validator(mode="after")
-    def validate_tables(cls, validation):
-        generator_table_map = {t.name: t for t in validation.generator.tables}
-        synthetic_table_map = {t.name: t for t in validation.synthetic_config.tables or []}
+    def validate_tables(self):
+        generator_table_map = {t.name: t for t in self.generator.tables}
+        synthetic_table_map = {t.name: t for t in self.synthetic_config.tables or []}
 
         for table_name, synthetic_table in synthetic_table_map.items():
             generator_table = generator_table_map[table_name]
             synthetic_table.validate_against_source_table(
-                generator_table, is_probe=isinstance(validation.synthetic_config, SyntheticProbeConfig)
+                generator_table, is_probe=isinstance(self.synthetic_config, SyntheticProbeConfig)
             )
-        return validation
+        return self
 
 
 class ProgressStep:
     @model_validator(mode="after")
-    @classmethod
-    def add_required_fields(cls, values):
-        if values.id is None:
-            values.id = str(uuid.uuid4())
-        if values.status is None:
-            values.status = ProgressStatus.new
-        if values.compute_name is None:
-            values.compute_name = "SDK"
-        return values
+    def add_required_fields(self):
+        if self.id is None:
+            self.id = str(uuid.uuid4())
+        if self.status is None:
+            self.status = ProgressStatus.new
+        if self.compute_name is None:
+            self.compute_name = "SDK"
+        return self
 
 
 class RebalancingConfig:
