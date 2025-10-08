@@ -25,6 +25,7 @@ from mostlyai.sdk._data.fk_models import (
     encode_df,
     get_cardinalities,
     prepare_training_data,
+    pull_fk_training_data,
     store_fk_model,
     train,
 )
@@ -37,6 +38,8 @@ def execute_train_fk_models_for_single_table(
     tgt_table_name: str,
     schema: Schema,
     fk_models_workspace_dir: Path,
+    max_parent_sample_size: int = 10000,
+    max_children_per_parent: int = 1,
 ):
     non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == tgt_table_name]
     if not non_ctx_relations:
@@ -46,7 +49,6 @@ def execute_train_fk_models_for_single_table(
     fk_models_workspace_dir.mkdir(parents=True, exist_ok=True)
 
     tgt_table = schema.tables[tgt_table_name]
-    tgt_data = tgt_table.read_data()
     tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
     tgt_data_columns = [c for c in tgt_table.columns if c != tgt_table.primary_key and c not in tgt_foreign_keys]
 
@@ -57,11 +59,21 @@ def execute_train_fk_models_for_single_table(
             c for c in parent_table.columns if c != parent_table.primary_key and c not in parent_foreign_keys
         ]
         parent_table_name = non_ctx_relation.parent.table
-        parent_data = schema.tables[parent_table_name].read_data()
 
         tgt_primary_key = schema.tables[tgt_table_name].primary_key
         tgt_parent_key = non_ctx_relation.child.column
         parent_primary_key = non_ctx_relation.parent.column
+
+        parent_data, tgt_data = pull_fk_training_data(
+            schema=schema,
+            non_ctx_relation=non_ctx_relation,
+            max_parent_sample_size=max_parent_sample_size,
+            max_children_per_parent=max_children_per_parent,
+        )
+
+        # Skip if no data was pulled
+        if len(parent_data) == 0 or len(tgt_data) == 0:
+            continue
 
         execute_train_fk_models_for_single_relation(
             tgt_data=tgt_data,
@@ -144,7 +156,7 @@ def execute_train_fk_models_for_single_relation(
         tgt_encoded_data=tgt_encoded_data,
         parent_primary_key=parent_primary_key,
         tgt_parent_key=tgt_parent_key,
-        sample_size=1_000,  # TODO: the limit here is only for fast iterations, remove/increase it later
+        sample_size=None,  # No additional sampling - already done in data pull phase
     )
 
     # train model
@@ -162,7 +174,14 @@ def execute_train_fk_models_for_single_relation(
     print(f"Child-parent matcher model trained and stored for parent table: {parent_table_name}")
 
 
-def execute_step_finalize_training(*, generator: Generator, connectors: list[Connector], job_workspace_dir: Path):
+def execute_step_finalize_training(
+    *,
+    generator: Generator,
+    connectors: list[Connector],
+    job_workspace_dir: Path,
+    max_parent_sample_size: int = 10000,
+    max_children_per_parent: int = 1,
+):
     schema = create_training_schema(generator=generator, connectors=connectors)
     for tgt_table_name in schema.tables:
         fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / tgt_table_name
@@ -170,4 +189,6 @@ def execute_step_finalize_training(*, generator: Generator, connectors: list[Con
             tgt_table_name=tgt_table_name,
             schema=schema,
             fk_models_workspace_dir=fk_models_workspace_dir,
+            max_parent_sample_size=max_parent_sample_size,
+            max_children_per_parent=max_children_per_parent,
         )
