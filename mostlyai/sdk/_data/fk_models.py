@@ -221,7 +221,7 @@ def encode_df(
 # FK Training Data Pull Functions
 
 
-def fetch_parent_data(parent_table: DataTable, max_sample_size: int = 10000) -> pd.DataFrame:
+def fetch_parent_data(parent_table: DataTable, max_sample_size: int = 10000) -> pd.DataFrame | None:
     """
     Fetch unique parent data with optional sampling limit.
 
@@ -235,7 +235,7 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = 10000) -> 
 
     Returns:
         DataFrame containing complete parent records with all columns.
-        Records are unique by primary key.
+        Records are unique by primary key. Returns None if no data found.
     """
     t0 = time.time()
     primary_key = parent_table.primary_key
@@ -260,17 +260,18 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = 10000) -> 
 
     if collected_rows:
         parent_data = pd.DataFrame(collected_rows).reset_index(drop=True)
+        t1 = time.time()
+        _LOG.info(f"fetch_parent_data() | time: {t1 - t0:.2f}s | sampled: {len(parent_data)}")
+        return parent_data
     else:
-        parent_data = pd.DataFrame(columns=parent_table.columns)
-
-    t1 = time.time()
-    _LOG.info(f"fetch_parent_data() | time: {t1 - t0:.2f}s | sampled: {len(parent_data)}")
-    return parent_data
+        t1 = time.time()
+        _LOG.info(f"fetch_parent_data() | time: {t1 - t0:.2f}s | sampled: 0")
+        return None
 
 
 def fetch_child_data(
     child_table: DataTable, parent_keys: list, child_fk_column: str, max_per_parent: int = 1
-) -> pd.DataFrame:
+) -> pd.DataFrame | None:
     """
     Fetch child data with per-parent limits.
 
@@ -285,6 +286,7 @@ def fetch_child_data(
 
     Returns:
         DataFrame containing child rows, limited by max_per_parent constraint.
+        Returns None if no child data found.
 
     Example:
         >>> children = fetch_child_data(orders_table, [1, 2, 3], "product_id", max_per_parent=2)
@@ -312,12 +314,13 @@ def fetch_child_data(
     # Convert to DataFrame
     if collected_rows:
         child_data = pd.DataFrame(collected_rows).reset_index(drop=True)
+        t1 = time.time()
+        _LOG.info(f"fetch_child_data() | time: {t1 - t0:.2f}s | fetched: {len(child_data)}")
+        return child_data
     else:
-        child_data = pd.DataFrame(columns=child_table.columns)
-
-    t1 = time.time()
-    _LOG.info(f"fetch_child_data() | time: {t1 - t0:.2f}s | fetched: {len(child_data)}")
-    return child_data
+        t1 = time.time()
+        _LOG.info(f"fetch_child_data() | time: {t1 - t0:.2f}s | fetched: 0")
+        return None
 
 
 def pull_fk_training_data(
@@ -325,7 +328,7 @@ def pull_fk_training_data(
     non_ctx_relation: NonContextRelation,
     max_parent_sample_size: int = 10000,
     max_children_per_parent: int = 1,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
     """
     Pull training data for a specific non-context FK relation.
 
@@ -336,24 +339,18 @@ def pull_fk_training_data(
         max_children_per_parent: Maximum children per parent
 
     Returns:
-        Tuple of (parent_data, child_data)
+        Tuple of (parent_data, child_data) or (None, None) if no data available
     """
-    t0 = time.time()
-
     parent_table = schema.tables[non_ctx_relation.parent.table]
     child_table = schema.tables[non_ctx_relation.child.table]
 
     parent_pk = non_ctx_relation.parent.column
     child_fk = non_ctx_relation.child.column
 
-    _LOG.info(f"Pulling FK training data for {non_ctx_relation.parent.table} -> {non_ctx_relation.child.table}")
-
     # Step 1: Fetch parent data (complete records, not just keys)
     parent_data = fetch_parent_data(parent_table, max_parent_sample_size)
-    if len(parent_data) == 0:
-        _LOG.warning("No parent data found")
-        empty_child = pd.DataFrame(columns=child_table.columns)
-        return parent_data, empty_child
+    if parent_data is None:
+        return None, None
 
     # Step 2: Fetch child data using parent keys
     parent_keys_list = parent_data[parent_pk].tolist()
@@ -365,18 +362,11 @@ def pull_fk_training_data(
     )
 
     # Step 3: Filter parent data to only include parents that have children
-    if len(child_data) > 0:
-        used_parent_keys = child_data[child_fk].dropna().unique().tolist()
-        parent_data = parent_data[parent_data[parent_pk].isin(used_parent_keys)]
-    else:
-        # No children found, return empty DataFrames
-        parent_data = pd.DataFrame(columns=parent_table.columns)
-        child_data = pd.DataFrame(columns=child_table.columns)
-
-    t1 = time.time()
-    _LOG.info(f"pull_fk_training_data() | time: {t1 - t0:.2f}s")
-    _LOG.info(f"  - Parent records: {len(parent_data)}")
-    _LOG.info(f"  - Child records: {len(child_data)}")
+    if child_data is None:
+        return None, None
+    # else:
+    # used_parent_keys = child_data[child_fk].dropna().unique().tolist()
+    # parent_data = parent_data[parent_data[parent_pk].isin(used_parent_keys)].reset_index(drop=True)
 
     return parent_data, child_data
 

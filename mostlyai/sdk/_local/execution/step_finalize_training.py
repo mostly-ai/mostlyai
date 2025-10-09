@@ -72,7 +72,7 @@ def execute_train_fk_models_for_single_table(
         )
 
         # Skip if no data was pulled
-        if len(parent_data) == 0 or len(tgt_data) == 0:
+        if parent_data is None or tgt_data is None:
             continue
 
         execute_train_fk_models_for_single_relation(
