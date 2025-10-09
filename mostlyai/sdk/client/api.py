@@ -412,6 +412,15 @@ class MostlyAI(_MostlyBaseClient):
               sslCertificate: base64-encoded string
               sslCertificateKey: base64-encoded string
 
+          - type: REDSHIFT
+            config:
+              host: string
+              port: integer, default: 5439
+              username: string
+              database: string
+            secrets:
+              password: string
+
           - type: SNOWFLAKE
             config:
               account: string
