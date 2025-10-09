@@ -429,6 +429,15 @@ class MostlyAI(_MostlyBaseClient):
               database: string
             secrets:
               password: string
+
+          - type: REDSHIFT
+            config:
+              host: string
+              port: integer, default: 5439
+              username: string
+              database: string
+            secrets:
+              password: string
           ```
         """
         c = self.connectors.create(config=config, test_connection=test_connection)
