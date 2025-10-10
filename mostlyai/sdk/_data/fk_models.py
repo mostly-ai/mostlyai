@@ -632,7 +632,7 @@ def build_parent_child_probabilities(
     parent_encoded: pd.DataFrame,
 ) -> torch.Tensor:
     """
-    Build probability matrix for parent-child matching with round robin assignment.
+    Build probability matrix for parent-child matching.
 
     Args:
         model: Trained parent-child matching model
@@ -648,22 +648,22 @@ def build_parent_child_probabilities(
     tgt_inputs = {col: torch.tensor(tgt_encoded[col].values.astype(np.int64)) for col in tgt_encoded.columns}
     parent_inputs = {col: torch.tensor(parent_encoded[col].values.astype(np.int64)) for col in parent_encoded.columns}
 
-    # Create interleaving for round robin assignment:
-    # Each child with all parent candidates: C repeated Cp times, Cp repeated C times
-    tgt_inputs_interleaved = {}
-    parent_inputs_interleaved = {}
-
-    for col in tgt_encoded.columns:
-        # Each child repeated n_parent_batch times: [c0, c0, c0, c1, c1, c1, ...]
-        tgt_inputs_interleaved[col] = tgt_inputs[col].repeat_interleave(n_parent_batch)
-
-    for col in parent_encoded.columns:
-        # Parents repeated for each child: [p0, p1, p2, p0, p1, p2, ...]
-        parent_inputs_interleaved[col] = parent_inputs[col].repeat(n_tgt)
-
     model.eval()
     with torch.no_grad():
-        probs = model(parent_inputs_interleaved, tgt_inputs_interleaved).squeeze()
+        # Compute embeddings once for each unique child and parent
+        child_embeddings = model.child_encoder(tgt_inputs)  # Shape: (C, embedding_dim)
+        parent_embeddings = model.parent_encoder(parent_inputs)  # Shape: (Cp, embedding_dim)
+
+        # Each child with all parent candidates: C repeated Cp times, Cp repeated C times
+        child_embeddings_interleaved = child_embeddings.repeat_interleave(n_parent_batch, dim=0)  # Shape: (C*Cp, embedding_dim)
+        parent_embeddings_interleaved = parent_embeddings.repeat(n_tgt, 1)  # Shape: (Cp*C, embedding_dim)
+
+        # Compute similarities using the similarity layer
+        # Following the same logic as the forward method: cosine similarity + concatenation
+        similarity = F.normalize(parent_embeddings_interleaved, dim=1) * F.normalize(child_embeddings_interleaved, dim=1)
+        similarity_layer_input = torch.cat([parent_embeddings_interleaved, child_embeddings_interleaved, similarity], dim=1)
+        probability_logit = model.similarity_layer(similarity_layer_input)
+        probs = torch.sigmoid(probability_logit).squeeze()
         prob_matrix = probs.view(n_tgt, n_parent_batch)
         return prob_matrix
 
@@ -798,7 +798,6 @@ def match_non_context(
     model = load_fk_model(tgt_parent_key=tgt_parent_key, fk_models_workspace_dir=fk_models_workspace_dir)
 
     # Build probability matrix
-    # With round robin: parent batch size IS the sample size
     fk_parent_sample_size = len(parent_encoded)
     _LOG.info(f"FK model matching | temperature: {temperature} | top_k: {top_k} | parent_sample_size: {fk_parent_sample_size}")
     prob_matrix = build_parent_child_probabilities(
