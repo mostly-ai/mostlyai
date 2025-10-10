@@ -315,7 +315,13 @@ def process_table_in_batches(
         batch_data = dataset[start_idx:end_idx]
 
         # Apply processing function (FK or non-FK specific)
-        processed_data = process_batch_fn(batch_data)
+        # For FK functions, pass the batch index; for non-FK functions, just pass the data
+        try:
+            # Try calling with batch index (FK processing function)
+            processed_data = process_batch_fn(batch_data, batch_counter - 1)
+        except TypeError:
+            # Fall back to calling without batch index (non-FK processing function)
+            processed_data = process_batch_fn(batch_data)
 
         # Common post-processing
         processed_data = filter_and_order_columns(processed_data, table_name, schema)
@@ -357,19 +363,33 @@ def create_fk_batch_processor(
     parent_datasets: dict[str, PartitionedDataset],
     fk_models_dir: Path,
     fk_parent_sample_size: int,
-) -> Callable[[pd.DataFrame], pd.DataFrame]:
+) -> Callable[[pd.DataFrame, int], pd.DataFrame]:
     """Returns a function that processes a batch with FK models."""
 
-    def process_fk_batch(batch_data: pd.DataFrame) -> pd.DataFrame:
+    def process_fk_batch(batch_data: pd.DataFrame, child_batch_idx: int) -> pd.DataFrame:
         for relation in non_ctx_relations:
             parent_table_name = relation.parent.table
-            n_parents_needed = len(batch_data) * fk_parent_sample_size
-            parent_data = parent_datasets[parent_table_name].random_sample(n_parents_needed)
+            parent_dataset = parent_datasets[parent_table_name]
+
+            # Simple round robin: cycle through parent dataset
+            parent_dataset_size = len(parent_dataset)
+            start_idx = (child_batch_idx * fk_parent_sample_size) % parent_dataset_size
+            end_idx = min(start_idx + fk_parent_sample_size, parent_dataset_size)
+
+            # Handle wrap-around if needed
+            if end_idx - start_idx < fk_parent_sample_size and parent_dataset_size > fk_parent_sample_size:
+                # Need to wrap around to beginning
+                first_part = parent_dataset[start_idx:end_idx]
+                remaining_needed = fk_parent_sample_size - (end_idx - start_idx)
+                second_part = parent_dataset[0:remaining_needed]
+                assigned_parent_data = pd.concat([first_part, second_part], ignore_index=True)
+            else:
+                assigned_parent_data = parent_dataset[start_idx:end_idx]
 
             batch_data = match_non_context(
                 fk_models_workspace_dir=fk_models_dir,
                 tgt_data=batch_data,
-                parent_data=parent_data,
+                parent_data=assigned_parent_data,
                 tgt_parent_key=relation.child.column,
                 parent_primary_key=relation.parent.column,
                 parent_table_name=parent_table_name,

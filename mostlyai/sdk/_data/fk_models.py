@@ -630,50 +630,41 @@ def build_parent_child_probabilities(
     model: ParentChildMatcher,
     tgt_encoded: pd.DataFrame,
     parent_encoded: pd.DataFrame,
-    fk_parent_sample_size: int,
 ) -> torch.Tensor:
     """
-    Build probability matrix for parent-child matching with independent parent pools per child.
+    Build probability matrix for parent-child matching with round robin assignment.
 
     Args:
         model: Trained parent-child matching model
-        tgt_encoded: Encoded target/child data (n_tgt rows)
-        parent_encoded: Encoded parent data (n_tgt * fk_parent_sample_size rows)
-        fk_parent_sample_size: Number of parent candidates per child
+        tgt_encoded: Encoded target/child data (C rows)
+        parent_encoded: Encoded parent data (Cp rows - assigned parent batch)
 
     Returns:
-        prob_matrix: (n_tgt, fk_parent_sample_size) - probability each parent pool candidate is a match for each child
+        prob_matrix: (C, Cp) - probability each parent candidate is a match for each child
     """
     n_tgt = tgt_encoded.shape[0]
-    n_parent_total = parent_encoded.shape[0]
-
-    # Validate that parent data matches expected structure
-    expected_parents = n_tgt * fk_parent_sample_size
-    if n_parent_total != expected_parents:
-        raise ValueError(
-            f"Expected {expected_parents} parents ({n_tgt} children × {fk_parent_sample_size}), got {n_parent_total}"
-        )
+    n_parent_batch = parent_encoded.shape[0]
 
     tgt_inputs = {col: torch.tensor(tgt_encoded[col].values.astype(np.int64)) for col in tgt_encoded.columns}
     parent_inputs = {col: torch.tensor(parent_encoded[col].values.astype(np.int64)) for col in parent_encoded.columns}
 
-    # Create proper interleaving for independent parent pools:
-    # Child 0 with parents [0:k], Child 1 with parents [k:2k], etc.
+    # Create interleaving for round robin assignment:
+    # Each child with all parent candidates: C repeated Cp times, Cp repeated C times
     tgt_inputs_interleaved = {}
     parent_inputs_interleaved = {}
 
     for col in tgt_encoded.columns:
-        # Each child repeated fk_parent_sample_size times
-        tgt_inputs_interleaved[col] = tgt_inputs[col].repeat_interleave(fk_parent_sample_size)
+        # Each child repeated n_parent_batch times: [c0, c0, c0, c1, c1, c1, ...]
+        tgt_inputs_interleaved[col] = tgt_inputs[col].repeat_interleave(n_parent_batch)
 
     for col in parent_encoded.columns:
-        # Parents are already in correct order: [child0_parents, child1_parents, ...]
-        parent_inputs_interleaved[col] = parent_inputs[col]
+        # Parents repeated for each child: [p0, p1, p2, p0, p1, p2, ...]
+        parent_inputs_interleaved[col] = parent_inputs[col].repeat(n_tgt)
 
     model.eval()
     with torch.no_grad():
         probs = model(parent_inputs_interleaved, tgt_inputs_interleaved).squeeze()
-        prob_matrix = probs.view(n_tgt, fk_parent_sample_size)
+        prob_matrix = probs.view(n_tgt, n_parent_batch)
         return prob_matrix
 
 
@@ -807,14 +798,13 @@ def match_non_context(
     model = load_fk_model(tgt_parent_key=tgt_parent_key, fk_models_workspace_dir=fk_models_workspace_dir)
 
     # Build probability matrix
-    # Calculate fk_parent_sample_size from data shapes
-    fk_parent_sample_size = len(parent_encoded) // len(tgt_encoded)
+    # With round robin: parent batch size IS the sample size
+    fk_parent_sample_size = len(parent_encoded)
     _LOG.info(f"FK model matching | temperature: {temperature} | top_k: {top_k} | parent_sample_size: {fk_parent_sample_size}")
     prob_matrix = build_parent_child_probabilities(
         model=model,
         tgt_encoded=tgt_encoded,
         parent_encoded=parent_encoded,
-        fk_parent_sample_size=fk_parent_sample_size,
     )
 
     # Sample best parents for non-null rows
