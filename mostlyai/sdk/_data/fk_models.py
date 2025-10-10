@@ -64,13 +64,7 @@ DEFAULT_MAX_PARENT_SAMPLE_SIZE = 10000
 DEFAULT_MAX_CHILDREN_PER_PARENT = 1
 DEFAULT_TRAINING_SAMPLE_SIZE = None
 
-# Inference Parameters
-DEFAULT_TEMPERATURE = 1.0
-DEFAULT_TOP_K = 20
-DEFAULT_FK_PARENT_SAMPLE_SIZE = 1000
-
 # Processing Parameters
-DEFAULT_CHILDREN_BATCH_SIZE = 10000
 
 
 def timeit(func):
@@ -672,8 +666,8 @@ def build_parent_child_probabilities(
 def sample_best_parents(
     *,
     prob_matrix: torch.Tensor,
-    temperature: float = DEFAULT_TEMPERATURE,
-    top_k: int | None = DEFAULT_TOP_K,
+    temperature: float = 1.0,
+    top_k: int | None = 20,
 ) -> np.ndarray:
     """
     Sample best parent for each child based on match probabilities.
@@ -733,8 +727,8 @@ def match_non_context(
     tgt_parent_key: str,
     parent_primary_key: str,
     parent_table_name: str,
-    temperature: float = DEFAULT_TEMPERATURE,
-    top_k: int = DEFAULT_TOP_K,
+    temperature: float = 1.0,
+    top_k: int = 20,
 ) -> pd.DataFrame:
     # Check for _is_null column to determine which rows should have null FK
     # Column name format: {fk_name}.{parent_table_name}._is_null

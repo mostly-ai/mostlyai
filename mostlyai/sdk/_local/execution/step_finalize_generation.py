@@ -40,6 +40,15 @@ from mostlyai.sdk.domain import Generator, ModelType, SyntheticDataset
 
 _LOG = logging.getLogger(__name__)
 
+# FK processing constants
+DEFAULT_FK_CHILDREN_BATCH_SIZE = 10000
+DEFAULT_FK_MIN_CHILDREN_BATCH_SIZE = 1000
+DEFAULT_FK_PARENT_BATCH_SIZE = 1000
+
+# FK inference constants
+DEFAULT_FK_TEMPERATURE = 0.0
+DEFAULT_FK_TOP_K = 20
+
 
 def execute_step_finalize_generation(
     *,
@@ -62,7 +71,7 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=False,
                 job_workspace_dir=job_workspace_dir,
-                fk_parent_sample_size=1000,
+                parent_batch_size=1000,
                 children_batch_size=10000,
             )
         return usages
@@ -85,7 +94,7 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=export_csv,
                 job_workspace_dir=job_workspace_dir,
-                fk_parent_sample_size=1000,
+                parent_batch_size=1000,
                 children_batch_size=10000,
             )
             progress.update(advance=1)
@@ -336,13 +345,13 @@ def create_single_relation_fk_processor(
     relation,
     parent_dataset: PartitionedDataset,
     fk_models_dir: Path,
-    fk_parent_sample_size: int,
+    parent_batch_size: int,
 ) -> Callable[[pd.DataFrame], pd.DataFrame]:
     """Returns a function that processes a batch for a single FK relationship."""
 
     def process_single_fk_batch(batch_data: pd.DataFrame) -> pd.DataFrame:
         parent_table_name = relation.parent.table
-        n_parents_needed = len(batch_data) * fk_parent_sample_size
+        n_parents_needed = len(batch_data) * parent_batch_size
         parent_data = parent_dataset.random_sample(n_parents_needed)
 
         batch_data = match_non_context(
@@ -352,39 +361,115 @@ def create_single_relation_fk_processor(
             tgt_parent_key=relation.child.column,
             parent_primary_key=relation.parent.column,
             parent_table_name=parent_table_name,
+            temperature=DEFAULT_FK_TEMPERATURE,
+            top_k=DEFAULT_FK_TOP_K,
         )
         return batch_data
 
     return process_single_fk_batch
 
 
+def calculate_optimal_child_batch_size_for_relation(
+    parent_dataset: PartitionedDataset,
+    children_dataset: PartitionedDataset,
+    parent_batch_size: int,
+    relation_name: str,
+) -> int:
+    """Calculate optimal child batch size for a specific FK relationship."""
+
+    total_children = len(children_dataset)
+    parent_size = len(parent_dataset)
+    num_parent_batches = parent_size // parent_batch_size
+
+    if num_parent_batches == 0:
+        print(f"[{relation_name}] Parent dataset too small, using default batch size: {DEFAULT_FK_CHILDREN_BATCH_SIZE}")
+        return DEFAULT_FK_CHILDREN_BATCH_SIZE
+
+    # Calculate ideal batch size for full parent utilization
+    ideal_batch_size = total_children // num_parent_batches
+
+    # Apply constraints: respect minimum and maximum batch sizes
+    optimal_batch_size = max(ideal_batch_size, DEFAULT_FK_MIN_CHILDREN_BATCH_SIZE)
+    optimal_batch_size = min(optimal_batch_size, DEFAULT_FK_CHILDREN_BATCH_SIZE)
+
+    # Calculate utilization metrics for logging
+    num_child_batches = total_children // optimal_batch_size
+    parent_utilization = min(num_child_batches / num_parent_batches * 100, 100)
+
+    _LOG.info(
+        f"[{relation_name}] Batch size optimization | "
+        f"total_children: {total_children} | "
+        f"parent_size: {parent_size} | "
+        f"parent_batch_size: {parent_batch_size} | "
+        f"parent_batches: {num_parent_batches} | "
+        f"ideal_child_batch: {ideal_batch_size} | "
+        f"optimal_child_batch: {optimal_batch_size} | "
+        f"parent_utilization: {parent_utilization:.1f}%"
+    )
+
+    return optimal_batch_size
+
+
+def assign_parent_partition_round_robin(
+    parent_dataset: PartitionedDataset,
+    child_batch_idx: int,
+    parent_batch_size: int,
+) -> pd.DataFrame:
+    """Assign parent data partition using round robin strategy."""
+    parent_dataset_size = len(parent_dataset)
+    start_idx = (child_batch_idx * parent_batch_size) % parent_dataset_size
+    end_idx = min(start_idx + parent_batch_size, parent_dataset_size)
+
+    # Handle wrap-around if needed
+    if end_idx - start_idx < parent_batch_size and parent_dataset_size > parent_batch_size:
+        # Need to wrap around to beginning
+        first_part = parent_dataset[start_idx:end_idx]
+        remaining_needed = parent_batch_size - (end_idx - start_idx)
+        second_part = parent_dataset[0:remaining_needed]
+        assigned_parent_data = pd.concat([first_part, second_part], ignore_index=True)
+    else:
+        assigned_parent_data = parent_dataset[start_idx:end_idx]
+
+    return assigned_parent_data
+
+
 def create_fk_batch_processor(
     non_ctx_relations: list,
     parent_datasets: dict[str, PartitionedDataset],
+    children_dataset: PartitionedDataset,
     fk_models_dir: Path,
-    fk_parent_sample_size: int,
-) -> Callable[[pd.DataFrame, int], pd.DataFrame]:
-    """Returns a function that processes a batch with FK models."""
+    parent_batch_size: int,
+) -> tuple[Callable[[pd.DataFrame, int], pd.DataFrame], int]:
+    """Returns a function that processes a batch with FK models and the optimal batch size."""
+
+    # Calculate optimal batch size based on all relationships
+    optimal_batch_sizes = []
+    for relation in non_ctx_relations:
+        parent_table_name = relation.parent.table
+        parent_dataset = parent_datasets[parent_table_name]
+        relation_name = f"{relation.child.table}.{relation.child.column}->{parent_table_name}"
+
+        optimal_size = calculate_optimal_child_batch_size_for_relation(
+            parent_dataset=parent_dataset,
+            children_dataset=children_dataset,
+            parent_batch_size=parent_batch_size,
+            relation_name=relation_name,
+        )
+        optimal_batch_sizes.append(optimal_size)
+
+    # Use the minimum optimal batch size to ensure all relationships work well
+    overall_optimal_batch_size = min(optimal_batch_sizes) if optimal_batch_sizes else DEFAULT_FK_CHILDREN_BATCH_SIZE
+    print(f"Selected overall optimal batch size: {overall_optimal_batch_size}")
 
     def process_fk_batch(batch_data: pd.DataFrame, child_batch_idx: int) -> pd.DataFrame:
         for relation in non_ctx_relations:
             parent_table_name = relation.parent.table
             parent_dataset = parent_datasets[parent_table_name]
 
-            # Simple round robin: cycle through parent dataset
-            parent_dataset_size = len(parent_dataset)
-            start_idx = (child_batch_idx * fk_parent_sample_size) % parent_dataset_size
-            end_idx = min(start_idx + fk_parent_sample_size, parent_dataset_size)
-
-            # Handle wrap-around if needed
-            if end_idx - start_idx < fk_parent_sample_size and parent_dataset_size > fk_parent_sample_size:
-                # Need to wrap around to beginning
-                first_part = parent_dataset[start_idx:end_idx]
-                remaining_needed = fk_parent_sample_size - (end_idx - start_idx)
-                second_part = parent_dataset[0:remaining_needed]
-                assigned_parent_data = pd.concat([first_part, second_part], ignore_index=True)
-            else:
-                assigned_parent_data = parent_dataset[start_idx:end_idx]
+            # Assign parent partition using round robin strategy
+            assigned_parent_data = assign_parent_partition_round_robin(
+                parent_dataset, child_batch_idx, parent_batch_size
+            )
 
             batch_data = match_non_context(
                 fk_models_workspace_dir=fk_models_dir,
@@ -393,13 +478,15 @@ def create_fk_batch_processor(
                 tgt_parent_key=relation.child.column,
                 parent_primary_key=relation.parent.column,
                 parent_table_name=parent_table_name,
+                temperature=DEFAULT_FK_TEMPERATURE,
+                top_k=DEFAULT_FK_TOP_K,
             )
 
             # Clear parent dataset cache after processing this relationship
             parent_datasets[parent_table_name].clear_cache()
         return batch_data
 
-    return process_fk_batch
+    return process_fk_batch, overall_optimal_batch_size
 
 
 def create_non_fk_batch_processor(
@@ -424,8 +511,8 @@ def finalize_table_generation(
     delivery_dir: Path,
     export_csv: bool,
     job_workspace_dir: Path | None = None,
-    fk_parent_sample_size: int = 1000,
-    children_batch_size: int = 10000,
+    parent_batch_size: int = DEFAULT_FK_PARENT_BATCH_SIZE,
+    children_batch_size: int = DEFAULT_FK_CHILDREN_BATCH_SIZE,
 ) -> None:
     """
     Post-process the generated data for a given table.
@@ -449,13 +536,13 @@ def finalize_table_generation(
     if fk_context:
         # FK processing path
         dataset = fk_context["children_dataset"]
-        process_batch_fn = create_fk_batch_processor(
+        process_batch_fn, batch_size = create_fk_batch_processor(
             fk_context["non_ctx_relations"],
             fk_context["parent_datasets"],
+            fk_context["children_dataset"],
             fk_context["fk_models_dir"],
-            fk_parent_sample_size,
+            parent_batch_size,
         )
-        batch_size = children_batch_size
     else:
         # Non-FK processing path
         dataset = PartitionedDataset(table_files)
