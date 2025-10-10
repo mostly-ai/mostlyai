@@ -167,7 +167,7 @@ def analyze_df(
         else:
             raise ValueError(f"unknown column type: {col}")
         col_stats = analyze(values, root_keys)
-        col_stats = reduce([col_stats])
+        col_stats = reduce([col_stats], value_protection=True)
         stats["columns"][col] = col_stats
 
     # store stats
@@ -347,27 +347,16 @@ def pull_fk_training_data(
     parent_pk = non_ctx_relation.parent.column
     child_fk = non_ctx_relation.child.column
 
-    # Step 1: Fetch parent data (complete records, not just keys)
     parent_data = fetch_parent_data(parent_table, max_parent_sample_size)
-    if parent_data is None:
-        return None, None
-
-    # Step 2: Fetch child data using parent keys
-    parent_keys_list = parent_data[parent_pk].tolist()
-    child_data = fetch_child_data(
-        child_table=child_table,
-        parent_keys=parent_keys_list,
-        child_fk_column=child_fk,
-        max_per_parent=max_children_per_parent,
-    )
-
-    # Step 3: Filter parent data to only include parents that have children
-    if child_data is None:
-        return None, None
-    # else:
-    # used_parent_keys = child_data[child_fk].dropna().unique().tolist()
-    # parent_data = parent_data[parent_data[parent_pk].isin(used_parent_keys)].reset_index(drop=True)
-
+    child_data = None
+    if parent_data is not None:
+        parent_keys_list = parent_data[parent_pk].tolist()
+        child_data = fetch_child_data(
+            child_table=child_table,
+            parent_keys=parent_keys_list,
+            child_fk_column=child_fk,
+            max_per_parent=max_children_per_parent,
+        )
     return parent_data, child_data
 
 
@@ -377,7 +366,7 @@ def prepare_training_data(
     parent_primary_key: str,
     tgt_parent_key: str,
     sample_size: int | None = None,
-    n_negative: int = 10,
+    n_negative: int = 1,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
     Prepare training data for a parent-child matching model.
