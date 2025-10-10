@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import copy
+import functools
 import json
 import logging
 import time
@@ -39,13 +40,59 @@ from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 _LOG = logging.getLogger(__name__)
 
 
+# =============================================================================
+# GLOBAL HYPERPARAMETER DEFAULTS
+# =============================================================================
+
+# Model Architecture Parameters
+DEFAULT_SUB_COLUMN_EMBEDDING_DIM = 32
+DEFAULT_ENTITY_HIDDEN_DIM = 256
+DEFAULT_ENTITY_EMBEDDING_DIM = 16
+DEFAULT_SIMILARITY_HIDDEN_DIM = 256
+
+# Training Parameters
+DEFAULT_BATCH_SIZE = 128
+DEFAULT_LEARNING_RATE = 0.001
+DEFAULT_MAX_EPOCHS = 1000
+DEFAULT_PATIENCE = 20
+DEFAULT_N_NEGATIVE_SAMPLES = 2
+DEFAULT_VAL_SPLIT = 0.2
+DEFAULT_DO_PLOT_LOSSES = True
+
+# Data Sampling Parameters
+DEFAULT_MAX_PARENT_SAMPLE_SIZE = 10000
+DEFAULT_MAX_CHILDREN_PER_PARENT = 1
+DEFAULT_TRAINING_SAMPLE_SIZE = None
+
+# Inference Parameters
+DEFAULT_TEMPERATURE = 1.0
+DEFAULT_TOP_K = 20
+DEFAULT_FK_PARENT_SAMPLE_SIZE = 1000
+
+# Processing Parameters
+DEFAULT_CHILDREN_BATCH_SIZE = 10000
+
+
+def timeit(func):
+    """Decorator to time function execution and log the result."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        duration = time.perf_counter() - start
+        _LOG.info(f"{func.__name__} | time: {duration:.4f}s")
+        print(f"{func.__name__} | time: {duration:.4f}s")
+        return result
+    return wrapper
+
+
 class EntityEncoder(nn.Module):
     def __init__(
         self,
         cardinalities: dict[str, int],
-        sub_column_embedding_dim: int = 32,
-        entity_hidden_dim: int = 256,
-        entity_embedding_dim: int = 16,
+        sub_column_embedding_dim: int = DEFAULT_SUB_COLUMN_EMBEDDING_DIM,
+        entity_hidden_dim: int = DEFAULT_ENTITY_HIDDEN_DIM,
+        entity_embedding_dim: int = DEFAULT_ENTITY_EMBEDDING_DIM,
     ):
         super().__init__()
         self.cardinalities = cardinalities
@@ -76,10 +123,10 @@ class ParentChildMatcher(nn.Module):
         self,
         parent_cardinalities: dict[str, int],
         child_cardinalities: dict[str, int],
-        sub_column_embedding_dim: int = 32,
-        entity_hidden_dim: int = 256,
-        entity_embedding_dim: int = 16,
-        similarity_hidden_dim: int = 256,
+        sub_column_embedding_dim: int = DEFAULT_SUB_COLUMN_EMBEDDING_DIM,
+        entity_hidden_dim: int = DEFAULT_ENTITY_HIDDEN_DIM,
+        entity_embedding_dim: int = DEFAULT_ENTITY_EMBEDDING_DIM,
+        similarity_hidden_dim: int = DEFAULT_SIMILARITY_HIDDEN_DIM,
     ):
         super().__init__()
         self.entity_embedding_dim = entity_embedding_dim
@@ -114,6 +161,7 @@ class ParentChildMatcher(nn.Module):
         return probability
 
 
+@timeit
 def get_cardinalities(*, pre_training_dir: Path) -> dict[str, int]:
     stats_path = pre_training_dir / "stats.json"
     stats = json.loads(stats_path.read_text())
@@ -125,6 +173,7 @@ def get_cardinalities(*, pre_training_dir: Path) -> dict[str, int]:
     return cardinalities
 
 
+@timeit
 def analyze_df(
     *,
     df: pd.DataFrame,
@@ -133,7 +182,6 @@ def analyze_df(
     data_columns: list[str] | None = None,
     pre_training_dir: Path,
 ) -> None:
-    t0 = time.time()
 
     pre_training_dir.mkdir(parents=True, exist_ok=True)
 
@@ -174,14 +222,12 @@ def analyze_df(
     stats_path = pre_training_dir / "stats.json"
     stats_path.write_text(json.dumps(stats, indent=4))
 
-    t1 = time.time()
-    print(f"pre_training() | time: {t1 - t0:.2f}s")
 
 
+@timeit
 def encode_df(
     *, df: pd.DataFrame, pre_training_dir: Path, include_primary_key: bool = True, include_parent_key: bool = True
 ) -> pd.DataFrame:
-    t0 = time.time()
 
     # load stats
     stats_path = pre_training_dir / "stats.json"
@@ -213,15 +259,14 @@ def encode_df(
 
     data = pd.concat(data, axis=1)
 
-    t1 = time.time()
-    print(f"encode_df() | time: {t1 - t0:.2f}s")
     return data
 
 
 # FK Training Data Pull Functions
 
 
-def fetch_parent_data(parent_table: DataTable, max_sample_size: int = 10000) -> pd.DataFrame | None:
+@timeit
+def fetch_parent_data(parent_table: DataTable, max_sample_size: int = DEFAULT_MAX_PARENT_SAMPLE_SIZE) -> pd.DataFrame | None:
     """
     Fetch unique parent data with optional sampling limit.
 
@@ -237,7 +282,6 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = 10000) -> 
         DataFrame containing complete parent records with all columns.
         Records are unique by primary key. Returns None if no data found.
     """
-    t0 = time.time()
     primary_key = parent_table.primary_key
     seen_keys = set()
     collected_rows = []
@@ -260,17 +304,16 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = 10000) -> 
 
     if collected_rows:
         parent_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-        t1 = time.time()
-        _LOG.info(f"fetch_parent_data() | time: {t1 - t0:.2f}s | sampled: {len(parent_data)}")
+        _LOG.info(f"fetch_parent_data | sampled: {len(parent_data)}")
         return parent_data
     else:
-        t1 = time.time()
-        _LOG.info(f"fetch_parent_data() | time: {t1 - t0:.2f}s | sampled: 0")
+        _LOG.info(f"fetch_parent_data | sampled: 0")
         return None
 
 
+@timeit
 def fetch_child_data(
-    child_table: DataTable, parent_keys: list, child_fk_column: str, max_per_parent: int = 1
+    child_table: DataTable, parent_keys: list, child_fk_column: str, max_per_parent: int = DEFAULT_MAX_CHILDREN_PER_PARENT
 ) -> pd.DataFrame | None:
     """
     Fetch child data with per-parent limits.
@@ -292,7 +335,6 @@ def fetch_child_data(
         >>> children = fetch_child_data(orders_table, [1, 2, 3], "product_id", max_per_parent=2)
         >>> # Returns up to 2 orders per product
     """
-    t0 = time.time()
 
     # Track count of children per parent and collect rows directly
     parent_counts = defaultdict(int)
@@ -314,20 +356,19 @@ def fetch_child_data(
     # Convert to DataFrame
     if collected_rows:
         child_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-        t1 = time.time()
-        _LOG.info(f"fetch_child_data() | time: {t1 - t0:.2f}s | fetched: {len(child_data)}")
+        _LOG.info(f"fetch_child_data | fetched: {len(child_data)}")
         return child_data
     else:
-        t1 = time.time()
-        _LOG.info(f"fetch_child_data() | time: {t1 - t0:.2f}s | fetched: 0")
+        _LOG.info(f"fetch_child_data | fetched: 0")
         return None
 
 
+@timeit
 def pull_fk_training_data(
     schema: Schema,
     non_ctx_relation: NonContextRelation,
-    max_parent_sample_size: int = 10000,
-    max_children_per_parent: int = 1,
+    max_parent_sample_size: int = DEFAULT_MAX_PARENT_SAMPLE_SIZE,
+    max_children_per_parent: int = DEFAULT_MAX_CHILDREN_PER_PARENT,
 ) -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
     """
     Pull training data for a specific non-context FK relation.
@@ -360,13 +401,14 @@ def pull_fk_training_data(
     return parent_data, child_data
 
 
+@timeit
 def prepare_training_data(
     parent_encoded_data: pd.DataFrame,
     tgt_encoded_data: pd.DataFrame,
     parent_primary_key: str,
     tgt_parent_key: str,
-    sample_size: int | None = None,
-    n_negative: int = 1,
+    sample_size: int | None = DEFAULT_TRAINING_SAMPLE_SIZE,
+    n_negative: int = DEFAULT_N_NEGATIVE_SAMPLES,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
     Prepare training data for a parent-child matching model.
@@ -384,8 +426,6 @@ def prepare_training_data(
         sample_size: Number of children to sample (None = use all)
         n_negative: Number of negative samples per child
     """
-
-    t0 = time.time()
     if sample_size is None:
         sample_size = len(tgt_encoded_data)
 
@@ -451,40 +491,37 @@ def prepare_training_data(
     child_pd = pd.DataFrame(child_vecs, columns=tgt_encoded_data.drop(columns=[tgt_parent_key]).columns)
     labels_pd = pd.Series(labels_vec, name="labels")
 
-    t1 = time.time()
-    print(f"prepare_training_data() | time: {t1 - t0:.2f}s")
-    print(f"  - Non-null children sampled: {n_non_null}")
-    print(f"  - Positive pairs (label=1): {(labels_vec == 1).sum()}")
-    print(f"  - Negative pairs (label=0): {(labels_vec == 0).sum()}")
+    _LOG.info(f"FK training data prepared | non_null_children: {n_non_null} | positive_pairs: {(labels_vec == 1).sum()} | negative_pairs: {(labels_vec == 0).sum()}")
     return parent_pd, child_pd, labels_pd
 
 
+@timeit
 def train(
     *,
     model: ParentChildMatcher,
     parent_pd: pd.DataFrame,
     child_pd: pd.DataFrame,
     labels: pd.Series,
-    do_plot_losses: bool = True,
+    do_plot_losses: bool = DEFAULT_DO_PLOT_LOSSES,
 ) -> None:
-    patience = 20
+    patience = DEFAULT_PATIENCE
     best_val_loss = float("inf")
     epochs_no_improve = 0
-    max_epochs = 1000
+    max_epochs = DEFAULT_MAX_EPOCHS
 
     X_parent = torch.tensor(parent_pd.values, dtype=torch.int64)
     X_child = torch.tensor(child_pd.values, dtype=torch.int64)
     y = torch.tensor(labels.values, dtype=torch.float32).unsqueeze(1)
     dataset = TensorDataset(X_parent, X_child, y)
 
-    val_size = int(0.2 * len(dataset))
+    val_size = int(DEFAULT_VAL_SPLIT * len(dataset))
     train_size = len(dataset) - val_size
     train_ds, val_ds = random_split(dataset, [train_size, val_size])
 
-    train_loader = DataLoader(train_ds, batch_size=128, shuffle=True)
-    val_loader = DataLoader(val_ds, batch_size=128, shuffle=False)
+    train_loader = DataLoader(train_ds, batch_size=DEFAULT_BATCH_SIZE, shuffle=True)
+    val_loader = DataLoader(val_ds, batch_size=DEFAULT_BATCH_SIZE, shuffle=False)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=DEFAULT_LEARNING_RATE)
     loss_fn = nn.BCELoss()
 
     train_losses, val_losses = [], []
@@ -546,6 +583,7 @@ def train(
         plt.show()
 
 
+@timeit
 def store_fk_model(*, model: ParentChildMatcher, tgt_parent_key: str, fk_models_workspace_dir: Path) -> None:
     fk_models_workspace_dir.mkdir(parents=True, exist_ok=True)
     model_config = {
@@ -569,6 +607,7 @@ def store_fk_model(*, model: ParentChildMatcher, tgt_parent_key: str, fk_models_
     torch.save(model.state_dict(), model_state_path)
 
 
+@timeit
 def load_fk_model(*, tgt_parent_key: str, fk_models_workspace_dir: Path) -> ParentChildMatcher:
     model_config_path = fk_models_workspace_dir / f"model_config[{tgt_parent_key}].json"
     model_config = json.loads(model_config_path.read_text())
@@ -585,6 +624,7 @@ def load_fk_model(*, tgt_parent_key: str, fk_models_workspace_dir: Path) -> Pare
     return model
 
 
+@timeit
 def build_parent_child_probabilities(
     *,
     model: ParentChildMatcher,
@@ -604,7 +644,6 @@ def build_parent_child_probabilities(
     Returns:
         prob_matrix: (n_tgt, fk_parent_sample_size) - probability each parent pool candidate is a match for each child
     """
-    t0 = time.time()
     n_tgt = tgt_encoded.shape[0]
     n_parent_total = parent_encoded.shape[0]
 
@@ -635,16 +674,15 @@ def build_parent_child_probabilities(
     with torch.no_grad():
         probs = model(parent_inputs_interleaved, tgt_inputs_interleaved).squeeze()
         prob_matrix = probs.view(n_tgt, fk_parent_sample_size)
-        t1 = time.time()
-    print(f"build_parent_child_probabilities() | time: {t1 - t0:.2f}s")
-    return prob_matrix
+        return prob_matrix
 
 
+@timeit
 def sample_best_parents(
     *,
     prob_matrix: torch.Tensor,
-    temperature: float = 1.0,
-    top_k: int | None = None,
+    temperature: float = DEFAULT_TEMPERATURE,
+    top_k: int | None = DEFAULT_TOP_K,
 ) -> np.ndarray:
     """
     Sample best parent for each child based on match probabilities.
@@ -695,6 +733,7 @@ def sample_best_parents(
     return best_parent_indices
 
 
+@timeit
 def match_non_context(
     *,
     fk_models_workspace_dir: Path,
@@ -703,8 +742,8 @@ def match_non_context(
     tgt_parent_key: str,
     parent_primary_key: str,
     parent_table_name: str,
-    temperature: float = 1.0,
-    top_k: int = 20,
+    temperature: float = DEFAULT_TEMPERATURE,
+    top_k: int = DEFAULT_TOP_K,
 ) -> pd.DataFrame:
     # Check for _is_null column to determine which rows should have null FK
     # Column name format: {fk_name}.{parent_table_name}._is_null
@@ -718,17 +757,14 @@ def match_non_context(
         # Use _is_null column to determine which rows should have null FK
         # _is_null column contains string values "True" or "False"
         is_null_values = tgt_data[is_null_col].astype(str)
-        print(f"_is_null column unique values: {is_null_values.unique()}")
-        print(f"_is_null column value counts: {is_null_values.value_counts()}")
-
         null_mask = is_null_values == "True"
         non_null_mask = ~null_mask
 
-        print(f"Total rows: {len(tgt_data)}, Null rows: {null_mask.sum()}, Non-null rows: {non_null_mask.sum()}")
+        _LOG.info(f"FK matching data | total_rows: {len(tgt_data)} | null_rows: {null_mask.sum()} | non_null_rows: {non_null_mask.sum()}")
 
         # Only process non-null rows
         if non_null_mask.sum() == 0:
-            print(f"All rows have null FK (via {is_null_col})")
+            _LOG.warning(f"All rows have null FK values (via {is_null_col})")
             # Remove _is_null column
             if is_null_col in tgt_data.columns:
                 tgt_data = tgt_data.drop(columns=[is_null_col])
@@ -739,13 +775,12 @@ def match_non_context(
 
         # Filter to only non-null rows for FK model processing
         tgt_data_non_null = tgt_data.loc[non_null_mask].copy().reset_index(drop=True)
-        print(f"Filtered to {len(tgt_data_non_null)} non-null rows for FK matching")
 
         # Remove _is_null column from data before encoding (it shouldn't be used by the FK model)
         if is_null_col in tgt_data_non_null.columns:
             tgt_data_non_null = tgt_data_non_null.drop(columns=[is_null_col])
     else:
-        print(f"No {is_null_col} column found, processing all rows")
+        _LOG.info(f"FK matching data | total_rows: {len(tgt_data)} | null_rows: 0 | non_null_rows: {len(tgt_data)}")
         tgt_data_non_null = tgt_data.copy()
         non_null_indices = tgt_data.index.tolist()
         non_null_mask = pd.Series(True, index=tgt_data.index)
@@ -754,7 +789,6 @@ def match_non_context(
     tgt_pre_training_dir = fk_models_workspace_dir / f"pre_training[{tgt_parent_key}]"
     parent_pre_training_dir = fk_models_workspace_dir / f"pre_training[{parent_table_name}]"
 
-    print(f"Encoding {len(tgt_data_non_null)} rows with columns: {list(tgt_data_non_null.columns)}")
 
     # Encode target and parent data
     tgt_encoded = encode_df(
@@ -773,9 +807,9 @@ def match_non_context(
     model = load_fk_model(tgt_parent_key=tgt_parent_key, fk_models_workspace_dir=fk_models_workspace_dir)
 
     # Build probability matrix
-    print(f"Using FK model with temperature={temperature}, top_k={top_k}")
     # Calculate fk_parent_sample_size from data shapes
     fk_parent_sample_size = len(parent_encoded) // len(tgt_encoded)
+    _LOG.info(f"FK model matching | temperature: {temperature} | top_k: {top_k} | parent_sample_size: {fk_parent_sample_size}")
     prob_matrix = build_parent_child_probabilities(
         model=model,
         tgt_encoded=tgt_encoded,
@@ -793,8 +827,6 @@ def match_non_context(
     # Map indices to parent IDs
     best_parent_ids = parent_data.iloc[best_parent_indices][parent_primary_key].values
 
-    print(f"FK matching results: {len(best_parent_ids)} parent IDs for {len(non_null_indices)} non-null rows")
-    print(f"best_parent_ids length: {len(best_parent_ids)}, non_null_indices length: {len(non_null_indices)}")
 
     # Create a Series with the correct index alignment
     parent_ids_series = pd.Series(best_parent_ids, index=non_null_indices)
@@ -808,6 +840,6 @@ def match_non_context(
 
     n_matched = non_null_mask.sum()
     n_null = (~non_null_mask).sum()
-    print(f"FK matching complete: {n_matched} matched, {n_null} null")
+    _LOG.info(f"FK matching completed | matched: {n_matched} | null: {n_null}")
 
     return tgt_data
