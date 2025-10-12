@@ -209,6 +209,10 @@ class MostlyAI(_MostlyBaseClient):
         else:
             raise ValueError("Invalid SDK mode")
 
+        # Set quiet mode BEFORE any rich output
+        if quiet:
+            rich.get_console().quiet = True
+
         client_kwargs = {
             "base_url": base_url,
             "api_key": api_key,
@@ -253,9 +257,6 @@ class MostlyAI(_MostlyBaseClient):
                 rich.print(f"Failed to connect to {self.base_url} : {e}.")
         else:
             raise ValueError("Invalid SDK mode")
-
-        if quiet:
-            rich.get_console().quiet = True
 
     def __repr__(self) -> str:
         if self.local:
