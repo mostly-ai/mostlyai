@@ -46,7 +46,7 @@ DEFAULT_FK_MIN_CHILDREN_BATCH_SIZE = 10
 DEFAULT_FK_PARENT_BATCH_SIZE = 1000
 
 # FK inference constants
-DEFAULT_FK_TEMPERATURE = 0.0
+DEFAULT_FK_TEMPERATURE = 0.5
 DEFAULT_FK_TOP_K = 20
 
 
@@ -453,7 +453,7 @@ def process_table_with_fk_models(
         relationship_batch_sizes[relation] = optimal_batch_size
 
     # Process data using natural dataset partitions with buffering
-    global_child_batch_idx = 0
+    relationship_batch_indices = {relation: 0 for relation in non_ctx_relations}  # Each relationship has its own batch counter
     leftover_buffers = {}  # Buffer per relationship for incomplete batches
     batch_counter = 0
     dataset_files = children_dataset.partition_files
@@ -494,9 +494,10 @@ def process_table_with_fk_models(
                 is_final_batch = is_final_partition and (chunk_end == len(current_data))
 
                 if is_complete_batch or is_final_batch:
-                    # Process as complete batch
+                    # Process as complete batch using relationship-specific batch index
+                    current_batch_idx = relationship_batch_indices[relation]
                     assigned_parent_data = assign_parent_partition_round_robin(
-                        parent_dataset, global_child_batch_idx, parent_batch_size
+                        parent_dataset, current_batch_idx, parent_batch_size
                     )
 
                     processed_chunk = match_non_context(
@@ -511,7 +512,7 @@ def process_table_with_fk_models(
                     )
 
                     processed_chunks.append(processed_chunk)
-                    global_child_batch_idx += 1
+                    relationship_batch_indices[relation] += 1  # Increment this relationship's batch counter
                 else:
                     # Incomplete batch - buffer for next partition
                     leftover_buffers[relation] = chunk_data
