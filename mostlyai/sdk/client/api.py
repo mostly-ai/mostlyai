@@ -586,12 +586,12 @@ class MostlyAI(_MostlyBaseClient):
                         {'name': 'headline', 'model_encoding_type': 'LANGUAGE_TEXT'},
                     ],
                     'tabular_model_configuration': {              # tabular model configuration (optional)
-                        'max_sample_size': 20_000,                # cap sample size to 20k; set None for max accuracy
-                        'max_training_time': 30,                  # cap runtime to 30min; set None for max accuracy
+                        'max_sample_size': None,                  # eg. use all availabel training samples for max accuracy
+                        'max_training_time': None,                # eg. set no upper time limit for max accuracy
                     },
                     'language_model_configuration': {             # language model configuration (optional)
-                        'max_sample_size': 1_000,                 # cap sample size to 1k; set None for max accuracy
-                        'max_training_time': 60,                  # cap runtime to 60min; set None for max accuracy
+                        'max_sample_size': 50_000,                # eg. cap sample size to 50k; set None for max accuracy
+                        'max_training_time': 60,                  # eg. cap runtime to 60min; set None for max accuracy
                         'model': 'MOSTLY_AI/LSTMFromScratch-3m',  # use a light-weight LSTM model, trained from scratch (GPU recommended)
                         #'model': 'microsoft/phi-1.5',            # alternatively use a pre-trained HF-hosted LLM model (GPU required)
                     }
