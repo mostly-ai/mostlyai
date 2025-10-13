@@ -20,38 +20,44 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
+from mostlyai.sdk._data.file.base import FileDataTable
+
 
 class PartitionedDataset:
-    """Common abstraction for accessing partitioned data with slicing and random sampling."""
+    """Cached wrapper for FileDataTable with slicing and random sampling capabilities."""
 
-    def __init__(self, partition_files: list[Path], max_cached_partitions: int = 3):
-        self.partition_files = partition_files
+    def __init__(self, table: FileDataTable, max_cached_partitions: int = 1):
+        self.table = table
         self.max_cached_partitions = max_cached_partitions
         self.partition_info = []
-        self.total_rows = 0
 
         # Create cached method with instance-specific maxsize
         # If max_cached_partitions is -1, set maxsize to None for unlimited cache
         cache_maxsize = None if max_cached_partitions == -1 else max_cached_partitions
         self._load_partition_cached = lru_cache(maxsize=cache_maxsize)(self._load_partition_uncached)
 
-        # Build partition index with fast metadata reads
-        for file in partition_files:
+        # Build partition index using table information
+        self._build_partition_index()
+
+    def _build_partition_index(self):
+        """Build partition index using table's files."""
+        current_total = 0
+        for file in self.table.files:
             partition_size = self._get_row_count_fast(file)
             self.partition_info.append(
                 {
                     "file": file,
-                    "start_idx": self.total_rows,
-                    "end_idx": self.total_rows + partition_size,
+                    "start_idx": current_total,
+                    "end_idx": current_total + partition_size,
                     "size": partition_size,
                 }
             )
-            self.total_rows += partition_size
+            current_total += partition_size
 
     def __getitem__(self, key) -> pd.DataFrame:
         """Support slicing: dataset[start:end]"""
         if isinstance(key, slice):
-            return self._slice_data(key.start or 0, key.stop or self.total_rows)
+            return self._slice_data(key.start or 0, key.stop or len(self))
         else:
             raise TypeError("Key must be slice")
 
@@ -92,17 +98,17 @@ class PartitionedDataset:
         return sampled_df
 
     def __len__(self) -> int:
-        return self.total_rows
+        return self.table.row_count
 
     def _get_row_count_fast(self, file_path: Path) -> int:
         """Get row count from parquet metadata without reading data."""
-        try:
-            parquet_file = pq.ParquetFile(file_path)
-            return parquet_file.metadata.num_rows
-        except Exception:
-            # Fallback for non-parquet files or corrupted metadata
-            df = pd.read_parquet(file_path)
-            return len(df)
+        # For single-partition tables, use table's row_count directly
+        if len(self.table.files) == 1:
+            return self.table.row_count
+
+        # Use PyArrow parquet metadata for efficiency
+        parquet_file = pq.ParquetFile(file_path)
+        return parquet_file.metadata.num_rows
 
     def _load_partition_uncached(self, file_path: Path) -> pd.DataFrame:
         """Load partition data from disk (no caching)."""
@@ -117,15 +123,15 @@ class PartitionedDataset:
         for partition in self.partition_info:
             if partition["start_idx"] <= global_idx < partition["end_idx"]:
                 return partition
-        raise IndexError(f"Index {global_idx} out of range [0, {self.total_rows})")
+        raise IndexError(f"Index {global_idx} out of range [0, {len(self)}")
 
     def _slice_data(self, start: int, end: int) -> pd.DataFrame:
         """Load data for slice range [start:end]"""
-        if start >= self.total_rows or end <= 0:
+        if start >= len(self) or end <= 0:
             return pd.DataFrame()
 
         start = max(0, start)
-        end = min(self.total_rows, end)
+        end = min(len(self), end)
 
         # Find which partitions we need
         needed_partitions = []
@@ -145,18 +151,15 @@ class PartitionedDataset:
 
         return pd.concat(result_dfs, ignore_index=True) if result_dfs else pd.DataFrame()
 
-    def clear_cache(self) -> None:
-        """Clear the partition cache."""
-        self._load_partition_cached.cache_clear()
-
     def iter_partitions(self) -> Iterator[tuple[int, Path, pd.DataFrame]]:
-        """Iterate over partitions yielding (index, file_path, dataframe)."""
-        for idx, partition in enumerate(self.partition_info):
-            file_path = partition["file"]
-            data = self._load_partition(file_path)
-            yield idx, file_path, data
+        """Iterate over partitions using table's method."""
+        yield from self.table.iter_partitions()
 
     @property
     def files(self) -> list[Path]:
-        """Get the list of partition files."""
-        return [partition["file"] for partition in self.partition_info]
+        """Access partition files using table's files."""
+        return self.table.files
+
+    def clear_cache(self) -> None:
+        """Clear the partition cache."""
+        self._load_partition_cached.cache_clear()

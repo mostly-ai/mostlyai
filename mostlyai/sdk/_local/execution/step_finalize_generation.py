@@ -285,14 +285,15 @@ def detect_fk_context(
     # Setup FK context
     non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == target_table_name]
 
-    children_dataset = PartitionedDataset(table_files)
+    children_table = schema.tables[target_table_name]
+    children_dataset = PartitionedDataset(children_table)
     parent_datasets = {}
 
     for relation in non_ctx_relations:
         parent_table_name = relation.parent.table
         if parent_table_name not in parent_datasets:
             parent_table = schema.tables[parent_table_name]
-            parent_datasets[parent_table_name] = PartitionedDataset(parent_table.dataset.files)
+            parent_datasets[parent_table_name] = PartitionedDataset(parent_table)
 
     return {
         "fk_models_dir": fk_models_dir,
@@ -547,7 +548,8 @@ def finalize_table_generation(
         )
     else:
         # Random FK assignment without ML models
-        dataset = PartitionedDataset(table_files)
+        table = generated_data_schema.tables[target_table_name]
+        dataset = PartitionedDataset(table)
 
         # Calculate reasonable batch size based on dataset size
         total_rows = len(dataset)

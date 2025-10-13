@@ -21,7 +21,7 @@ from abc import abstractmethod
 from collections.abc import Generator, Iterable
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 from urllib.parse import urlparse
 
 import duckdb
@@ -374,6 +374,17 @@ class FileDataTable(DataTable, abc.ABC):
             elif if_exists == "append" and self.IS_WRITE_APPEND_ALLOWED:
                 return "a"
         return "w"
+
+    def iter_partitions(self) -> Iterator[tuple[int, Path, pd.DataFrame]]:
+        """Iterate over dataset partitions yielding (index, file_path, dataframe)."""
+        for idx, file_path in enumerate(self.dataset.files):
+            data = pd.read_parquet(file_path)
+            yield idx, Path(file_path), data
+
+    @property
+    def files(self) -> list[Path]:
+        """Get the list of partition files."""
+        return [Path(f) for f in self.dataset.files]
 
 
 class FileContainer(DataContainer):
