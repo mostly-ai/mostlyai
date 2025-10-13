@@ -336,34 +336,6 @@ def process_table_with_random_assignment(
         del processed_data
 
 
-def create_single_relation_fk_processor(
-    relation,
-    parent_dataset: PartitionedDataset,
-    fk_models_dir: Path,
-    parent_batch_size: int,
-) -> Callable[[pd.DataFrame], pd.DataFrame]:
-    """Returns a function that processes a batch for a single FK relationship."""
-
-    def process_single_fk_batch(batch_data: pd.DataFrame) -> pd.DataFrame:
-        parent_table_name = relation.parent.table
-        n_parents_needed = len(batch_data) * parent_batch_size
-        parent_data = parent_dataset.random_sample(n_parents_needed)
-
-        batch_data = match_non_context(
-            fk_models_workspace_dir=fk_models_dir,
-            tgt_data=batch_data,
-            parent_data=parent_data,
-            tgt_parent_key=relation.child.column,
-            parent_primary_key=relation.parent.column,
-            parent_table_name=parent_table_name,
-            temperature=DEFAULT_FK_TEMPERATURE,
-            top_k=DEFAULT_FK_TOP_K,
-        )
-        return batch_data
-
-    return process_single_fk_batch
-
-
 def calculate_optimal_child_batch_size_for_relation(
     parent_dataset: PartitionedDataset,
     children_dataset: PartitionedDataset,
@@ -455,17 +427,13 @@ def process_table_with_fk_models(
     # Process data using natural dataset partitions with buffering
     relationship_batch_indices = {relation: 0 for relation in non_ctx_relations}  # Each relationship has its own batch counter
     leftover_buffers = {}  # Buffer per relationship for incomplete batches
-    batch_counter = 0
-    dataset_files = children_dataset.partition_files
 
-    for partition_idx, partition_file in enumerate(dataset_files):
-        batch_counter += 1
-        is_final_partition = (partition_idx == len(dataset_files) - 1)
+    total_partitions = len(children_dataset.files)
 
-        # Load partition data
-        partition_data = pd.read_parquet(partition_file)
+    for partition_idx, _, partition_data in children_dataset.iter_partitions():
+        is_final_partition = (partition_idx == total_partitions - 1)
 
-        print(f"Processing partition {batch_counter} ({len(partition_data)} rows)")
+        print(f"Processing partition {partition_idx + 1} ({len(partition_data)} rows)")
 
         # Process each relationship on this partition
         for relation in non_ctx_relations:
@@ -529,7 +497,7 @@ def process_table_with_fk_models(
         partition_data = filter_and_order_columns(partition_data, table_name, schema)
 
         # Write the fully-processed partition
-        write_batch_outputs(partition_data, table_name, batch_counter, pqt_path, csv_path)
+        write_batch_outputs(partition_data, table_name, partition_idx + 1, pqt_path, csv_path)
 
         # Free partition memory
         del partition_data

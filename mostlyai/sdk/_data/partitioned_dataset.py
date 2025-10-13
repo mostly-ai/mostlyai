@@ -14,6 +14,7 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Iterator
 
 import numpy as np
 import pandas as pd
@@ -147,3 +148,15 @@ class PartitionedDataset:
     def clear_cache(self) -> None:
         """Clear the partition cache."""
         self._load_partition_cached.cache_clear()
+
+    def iter_partitions(self) -> Iterator[tuple[int, Path, pd.DataFrame]]:
+        """Iterate over partitions yielding (index, file_path, dataframe)."""
+        for idx, partition in enumerate(self.partition_info):
+            file_path = partition["file"]
+            data = self._load_partition(file_path)
+            yield idx, file_path, data
+
+    @property
+    def files(self) -> list[Path]:
+        """Get the list of partition files."""
+        return [partition["file"] for partition in self.partition_info]
