@@ -35,7 +35,7 @@ from mostlyai.engine._encoding_types.tabular.categorical import (
 )
 from mostlyai.engine._encoding_types.tabular.numeric import analyze_numeric, analyze_reduce_numeric, encode_numeric
 from mostlyai.sdk._data.base import DataTable, NonContextRelation, Schema
-from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
+from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX, timeit
 
 _LOG = logging.getLogger(__name__)
 
@@ -66,18 +66,6 @@ DEFAULT_TRAINING_SAMPLE_SIZE = None
 
 # Processing Parameters
 
-
-def timeit(func):
-    """Decorator to time function execution and log the result."""
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        start = time.perf_counter()
-        result = func(*args, **kwargs)
-        duration = time.perf_counter() - start
-        _LOG.info(f"{func.__name__} | time: {duration:.4f}s")
-        print(f"{func.__name__} | time: {duration:.4f}s")
-        return result
-    return wrapper
 
 
 class EntityEncoder(nn.Module):
@@ -155,7 +143,7 @@ class ParentChildMatcher(nn.Module):
         return probability
 
 
-@timeit
+# @timeit
 def get_cardinalities(*, pre_training_dir: Path) -> dict[str, int]:
     stats_path = pre_training_dir / "stats.json"
     stats = json.loads(stats_path.read_text())
@@ -167,7 +155,7 @@ def get_cardinalities(*, pre_training_dir: Path) -> dict[str, int]:
     return cardinalities
 
 
-@timeit
+# @timeit
 def analyze_df(
     *,
     df: pd.DataFrame,
@@ -218,7 +206,7 @@ def analyze_df(
 
 
 
-@timeit
+# @timeit
 def encode_df(
     *, df: pd.DataFrame, pre_training_dir: Path, include_primary_key: bool = True, include_parent_key: bool = True
 ) -> pd.DataFrame:
@@ -259,7 +247,7 @@ def encode_df(
 # FK Training Data Pull Functions
 
 
-@timeit
+# @timeit
 def fetch_parent_data(parent_table: DataTable, max_sample_size: int = DEFAULT_MAX_PARENT_SAMPLE_SIZE) -> pd.DataFrame | None:
     """
     Fetch unique parent data with optional sampling limit.
@@ -305,7 +293,7 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = DEFAULT_MA
         return None
 
 
-@timeit
+# @timeit
 def fetch_child_data(
     child_table: DataTable, parent_keys: list, child_fk_column: str, max_per_parent: int = DEFAULT_MAX_CHILDREN_PER_PARENT
 ) -> pd.DataFrame | None:
@@ -357,7 +345,7 @@ def fetch_child_data(
         return None
 
 
-@timeit
+# @timeit
 def pull_fk_training_data(
     schema: Schema,
     non_ctx_relation: NonContextRelation,
@@ -395,7 +383,7 @@ def pull_fk_training_data(
     return parent_data, child_data
 
 
-@timeit
+# @timeit
 def prepare_training_data(
     parent_encoded_data: pd.DataFrame,
     tgt_encoded_data: pd.DataFrame,
@@ -489,7 +477,7 @@ def prepare_training_data(
     return parent_pd, child_pd, labels_pd
 
 
-@timeit
+# @timeit
 def train(
     *,
     model: ParentChildMatcher,
@@ -577,7 +565,7 @@ def train(
         plt.show()
 
 
-@timeit
+# @timeit
 def store_fk_model(*, model: ParentChildMatcher, tgt_parent_key: str, fk_models_workspace_dir: Path) -> None:
     fk_models_workspace_dir.mkdir(parents=True, exist_ok=True)
     model_config = {
@@ -601,7 +589,7 @@ def store_fk_model(*, model: ParentChildMatcher, tgt_parent_key: str, fk_models_
     torch.save(model.state_dict(), model_state_path)
 
 
-@timeit
+# @timeit
 def load_fk_model(*, tgt_parent_key: str, fk_models_workspace_dir: Path) -> ParentChildMatcher:
     model_config_path = fk_models_workspace_dir / f"model_config[{tgt_parent_key}].json"
     model_config = json.loads(model_config_path.read_text())
@@ -618,7 +606,7 @@ def load_fk_model(*, tgt_parent_key: str, fk_models_workspace_dir: Path) -> Pare
     return model
 
 
-@timeit
+# @timeit
 def build_parent_child_probabilities(
     *,
     model: ParentChildMatcher,
@@ -662,7 +650,7 @@ def build_parent_child_probabilities(
         return prob_matrix
 
 
-@timeit
+# @timeit
 def sample_best_parents(
     *,
     prob_matrix: torch.Tensor,
@@ -718,7 +706,7 @@ def sample_best_parents(
     return best_parent_indices
 
 
-@timeit
+# @timeit
 def match_non_context(
     *,
     fk_models_workspace_dir: Path,

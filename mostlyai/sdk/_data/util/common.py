@@ -13,10 +13,12 @@
 # limitations under the License.
 
 import concurrent.futures
+import functools
 import hashlib
 import json
 import logging
 import os
+import time
 import traceback
 import uuid
 from collections.abc import Callable
@@ -35,6 +37,19 @@ from mostlyai.sdk._data.exceptions import MostlyDataException
 _ENV_PASSPHRASE = "MOSTLY_PASSPHRASE"
 
 _LOG = logging.getLogger(__name__)
+
+
+def timeit(func):
+    """Decorator to time function execution and log the result."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        duration = time.perf_counter() - start
+        _LOG.info(f"{func.__name__} | time: {duration:.4f}s")
+        print(f"{func.__name__} | time: {duration:.4f}s")
+        return result
+    return wrapper
 
 
 # create a func as_list with one parameter that could be object OR list, use python 3.9 syntax, do not use lambda
