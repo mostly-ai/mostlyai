@@ -54,6 +54,11 @@ T = TypeVar("T")
 class _MostlyBaseClient:
     """
     Base client class, which contains all the essentials to be used by subclasses.
+
+    The client uses a shared httpx.Client instance for connection pooling, which improves
+    performance by reusing TCP connections across multiple requests. The client should be
+    properly closed when no longer needed, either by calling close() explicitly or by using
+    the client as a context manager.
     """
 
     API_SECTION = ["api", "v2"]

@@ -323,3 +323,33 @@ ds = mostly.datasets.create({
     ]
 })
 ```
+
+## Resource management
+
+The SDK uses HTTP connection pooling to improve performance by reusing connections across multiple API calls. While connections are automatically managed, you can ensure proper cleanup using either of these approaches:
+
+**Using a context manager (recommended for scripts):**
+
+```python
+from mostlyai.sdk import MostlyAI
+
+with MostlyAI(api_key='INSERT_YOUR_API_KEY') as mostly:
+    g = mostly.train(name='My Generator', data=df)
+    sd = mostly.generate(g, size=1000)
+# Connection pool is automatically closed when exiting the context
+```
+
+**Explicit cleanup (optional):**
+
+```python
+from mostlyai.sdk import MostlyAI
+
+mostly = MostlyAI(api_key='INSERT_YOUR_API_KEY')
+try:
+    g = mostly.train(name='My Generator', data=df)
+    sd = mostly.generate(g, size=1000)
+finally:
+    mostly.close()  # explicitly close the connection pool
+```
+
+For typical usage patterns (notebooks, interactive sessions), explicit cleanup is not necessary as Python's garbage collector will handle resource cleanup automatically.

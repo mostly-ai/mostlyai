@@ -128,6 +128,21 @@ class MostlyAI(_MostlyBaseClient):
         mostly
         # MostlyAI(local=True, local_port=8080)
         ```
+
+    Example using context manager for automatic resource cleanup:
+        ```python
+        from mostlyai.sdk import MostlyAI
+        with MostlyAI(api_key='INSERT_YOUR_API_KEY') as mostly:
+            g = mostly.generators.list()
+            # ... perform operations
+        # Connection pool automatically cleaned up after exiting context
+        ```
+
+    Note:
+        The SDK uses connection pooling to improve performance by reusing HTTP connections
+        across multiple API calls. While not strictly necessary for typical usage, you can
+        use the client as a context manager (as shown above) or call `mostly.close()` explicitly
+        to ensure proper cleanup of the connection pool when you're done with the client.
     """
 
     def __init__(
