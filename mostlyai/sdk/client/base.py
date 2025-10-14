@@ -75,6 +75,8 @@ class _MostlyBaseClient:
         self.transport = httpx.HTTPTransport(uds=uds) if uds else None
         self.timeout = timeout
         self.ssl_verify = ssl_verify
+        # Create shared httpx.Client for connection pooling
+        self._client = httpx.Client(timeout=self.timeout, verify=self.ssl_verify, transport=self.transport)
 
     def headers(self):
         headers = {
@@ -87,6 +89,31 @@ class _MostlyBaseClient:
             headers["X-MOSTLY-API-KEY"] = self.api_key
 
         return headers
+
+    def close(self):
+        """
+        Close the shared httpx.Client and release resources.
+        """
+        if hasattr(self, "_client") and self._client is not None:
+            self._client.close()
+
+    def __enter__(self):
+        """
+        Enable use as a context manager.
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Ensure the client is closed when exiting the context manager.
+        """
+        self.close()
+
+    def __del__(self):
+        """
+        Fallback cleanup when object is garbage collected.
+        """
+        self.close()
 
     def request(
         self,
@@ -146,8 +173,7 @@ class _MostlyBaseClient:
             kwargs["params"] = map_snake_to_camel_case(kwargs["params"])
 
         try:
-            with httpx.Client(timeout=self.timeout, verify=self.ssl_verify, transport=self.transport) as client:
-                response = client.request(method=verb, url=full_url, **kwargs)
+            response = self._client.request(method=verb, url=full_url, **kwargs)
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             try:
