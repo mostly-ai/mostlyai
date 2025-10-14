@@ -473,7 +473,6 @@ def prepare_training_data(
     child_pd = pd.DataFrame(child_vecs, columns=tgt_encoded_data.drop(columns=[tgt_parent_key]).columns)
     labels_pd = pd.Series(labels_vec, name="labels")
 
-    _LOG.info(f"FK training data prepared | non_null_children: {n_non_null} | positive_pairs: {(labels_vec == 1).sum()} | negative_pairs: {(labels_vec == 0).sum()}")
     return parent_pd, child_pd, labels_pd
 
 

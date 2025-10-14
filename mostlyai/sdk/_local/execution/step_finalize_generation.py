@@ -35,6 +35,7 @@ from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallb
 from mostlyai.sdk._data.util.common import (
     IS_NULL,
     NON_CONTEXT_COLUMN_INFIX,
+    timeit,
 )
 from mostlyai.sdk._local.storage import get_model_label
 from mostlyai.sdk.domain import Generator, ModelType, SyntheticDataset
@@ -397,6 +398,7 @@ def assign_parent_partition_round_robin(
 
 
 
+@timeit
 def process_table_with_fk_models(
     children_dataset: PartitionedDataset,
     non_ctx_relations: list,
