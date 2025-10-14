@@ -66,6 +66,7 @@ class MostlyAI(_MostlyBaseClient):
         local_port (int | None): The port to use for local mode with TCP transport. If not provided, UDS transport is used.
         timeout (float): Timeout for HTTPS requests in seconds. Default is 60 seconds.
         ssl_verify (bool): Whether to verify SSL certificates. Default is True.
+        test_connection (bool): Whether to test the connection during initialization. Default is True.
         quiet (bool): Whether to suppress rich output. Default is False.
 
     Example for SDK in CLIENT mode with explicit arguments:
@@ -139,6 +140,7 @@ class MostlyAI(_MostlyBaseClient):
         local_port: int | None = None,
         timeout: float = 60.0,
         ssl_verify: bool = True,
+        test_connection: bool = True,
         quiet: bool = False,
     ):
         import warnings
@@ -247,14 +249,17 @@ class MostlyAI(_MostlyBaseClient):
             rich.print(msg)
         elif mode == "CLIENT":
             rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]CLIENT mode[/bold] 📡")
-            try:
-                server_version = self.about().version
-                email = self.me().email
-                msg = f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/] {server_version}"
-                msg += f" as [bold]{email}[/bold]" if email else ""
-                rich.print(msg)
-            except Exception as e:
-                rich.print(f"Failed to connect to {self.base_url} : {e}.")
+            if test_connection:
+                try:
+                    server_version = self.about().version
+                    email = self.me().email
+                    msg = (
+                        f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/] {server_version}"
+                    )
+                    msg += f" as [bold]{email}[/bold]" if email else ""
+                    rich.print(msg)
+                except Exception as e:
+                    rich.print(f"Failed to connect to {self.base_url} : {e}.")
         else:
             raise ValueError("Invalid SDK mode")
 
