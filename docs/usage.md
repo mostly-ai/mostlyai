@@ -305,21 +305,39 @@ sd = mostly.generate(g, config={
 })
 ```
 
-## Creation of datasets
+## Usage of datasets (CLIENT mode only)
 
-Create datasets to train [generators](#tabular-and-textual-data) or generate [artifacts](https://docs.mostly.ai/assistant/artifacts). The `connector` parameter may be used to reference an existing [connector](#usage-of-connectors) via UUID.
+Create datasets to train [generators](#tabular-and-textual-data) or generate [artifacts](https://docs.mostly.ai/assistant/artifacts) via the MOSTLY AI Assistant.
 
-> Only available in `client` mode.
+Example 1: Create a dataset with a connector
 
 ```python
-# create a source dataset (for training generators or artifacts)
-ds = mostly.datasets.create({
-    "name": "My New Dataset",                                                    # name of the dataset
-    "description": "A dataset created using the MOSTLY AI SDK in client mode.",  # description of the dataset
-    "connectors": [                                                              # list of connectors
-        {
-            "id": "e43aa845-8d77-4cda-bc9e-10da9a4196a9"                         # the UUID of the source connector
-        }
-    ]
-})
+from mostlyai.sdk import MostlyAI
+mostly = MostlyAI()
+ds = mostly.datasets.create(
+    config={
+        "name": "My Database",
+        "description": "Some instructions...",
+        "connectors": [
+            {
+                "id": "e43aa845-8d77-4cda-bc9e-10da9a4196a9"  # the UUID of the source connector
+            }
+        ]
+    }
+)
+```
+
+Example 2: Create a dataset with files
+
+```python
+from mostlyai.sdk import MostlyAI
+mostly = MostlyAI()
+ds = mostly.datasets.create(
+    config={
+        "name": "My Dataset",
+        "description": "Some instructions...",
+    }
+)
+ds.upload_file("path/to/file_1.csv.gz")
+ds.upload_file("path/to/file_2.txt")
 ```
