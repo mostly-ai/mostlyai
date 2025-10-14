@@ -305,51 +305,39 @@ sd = mostly.generate(g, config={
 })
 ```
 
-## Creation of datasets
+## Usage of datasets (CLIENT mode only)
 
-Create datasets to train [generators](#tabular-and-textual-data) or generate [artifacts](https://docs.mostly.ai/assistant/artifacts). The `connector` parameter may be used to reference an existing [connector](#usage-of-connectors) via UUID.
+Create datasets to train [generators](#tabular-and-textual-data) or generate [artifacts](https://docs.mostly.ai/assistant/artifacts) via the MOSTLY AI Assistant.
 
-> Only available in `client` mode.
-
-```python
-# create a source dataset (for training generators or artifacts)
-ds = mostly.datasets.create({
-    "name": "My New Dataset",                                                    # name of the dataset
-    "description": "A dataset created using the MOSTLY AI SDK in client mode.",  # description of the dataset
-    "connectors": [                                                              # list of connectors
-        {
-            "id": "e43aa845-8d77-4cda-bc9e-10da9a4196a9"                         # the UUID of the source connector
-        }
-    ]
-})
-```
-
-## Resource management
-
-The SDK uses HTTP connection pooling to improve performance by reusing connections across multiple API calls. While connections are automatically managed, you can ensure proper cleanup using either of these approaches:
-
-**Using a context manager (recommended for scripts):**
+Example 1: Create a dataset with a connector
 
 ```python
 from mostlyai.sdk import MostlyAI
-
-with MostlyAI(api_key='INSERT_YOUR_API_KEY') as mostly:
-    g = mostly.train(name='My Generator', data=df)
-    sd = mostly.generate(g, size=1000)
-# Connection pool is automatically closed when exiting the context
+mostly = MostlyAI()
+ds = mostly.datasets.create(
+    config={
+        "name": "My Database",
+        "description": "Some instructions...",
+        "connectors": [
+            {
+                "id": "e43aa845-8d77-4cda-bc9e-10da9a4196a9"  # the UUID of the source connector
+            }
+        ]
+    }
+)
 ```
 
-**Explicit cleanup (optional):**
+Example 2: Create a dataset with files
 
 ```python
 from mostlyai.sdk import MostlyAI
-
-mostly = MostlyAI(api_key='INSERT_YOUR_API_KEY')
-try:
-    g = mostly.train(name='My Generator', data=df)
-    sd = mostly.generate(g, size=1000)
-finally:
-    mostly.close()  # explicitly close the connection pool
+mostly = MostlyAI()
+ds = mostly.datasets.create(
+    config={
+        "name": "My Dataset",
+        "description": "Some instructions...",
+    }
+)
+ds.upload_file("path/to/file_1.csv.gz")
+ds.upload_file("path/to/file_2.txt")
 ```
-
-For typical usage patterns (notebooks, interactive sessions), explicit cleanup is not necessary as Python's garbage collector will handle resource cleanup automatically.
