@@ -16,6 +16,7 @@ import copy
 import functools
 import json
 import logging
+import random
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -40,29 +41,41 @@ from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX, ti
 _LOG = logging.getLogger(__name__)
 
 
+def set_seeds(seed=42):
+    """Set random seeds for reproducible training."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 # =============================================================================
 # GLOBAL HYPERPARAMETER DEFAULTS
 # =============================================================================
 
 # Model Architecture Parameters
-DEFAULT_SUB_COLUMN_EMBEDDING_DIM = 32
-DEFAULT_ENTITY_HIDDEN_DIM = 256
-DEFAULT_ENTITY_EMBEDDING_DIM = 16
-DEFAULT_SIMILARITY_HIDDEN_DIM = 256
+SUB_COLUMN_EMBEDDING_DIM = 32
+ENTITY_HIDDEN_DIM = 256
+ENTITY_EMBEDDING_DIM = 16
+SIMILARITY_HIDDEN_DIM = 256
+PEAKEDNESS_SCALER = 5.0
 
 # Training Parameters
-DEFAULT_BATCH_SIZE = 128
-DEFAULT_LEARNING_RATE = 0.001
-DEFAULT_MAX_EPOCHS = 1000
-DEFAULT_PATIENCE = 20
-DEFAULT_N_NEGATIVE_SAMPLES = 2
-DEFAULT_VAL_SPLIT = 0.2
-DEFAULT_DO_PLOT_LOSSES = True
+BATCH_SIZE = 128
+LEARNING_RATE = 0.001
+MAX_EPOCHS = 1000
+PATIENCE = 20
+N_NEGATIVE_SAMPLES = 2
+VAL_SPLIT = 0.2
+DO_PLOT_LOSSES = True
 
 # Data Sampling Parameters
-DEFAULT_MAX_PARENT_SAMPLE_SIZE = 10000
-DEFAULT_MAX_CHILDREN_PER_PARENT = 1
-DEFAULT_TRAINING_SAMPLE_SIZE = None
+MAX_PARENT_SAMPLE_SIZE = 10000
+MAX_CHILDREN_PER_PARENT = 1
+TRAINING_SAMPLE_SIZE = None
 
 # Processing Parameters
 
@@ -72,9 +85,9 @@ class EntityEncoder(nn.Module):
     def __init__(
         self,
         cardinalities: dict[str, int],
-        sub_column_embedding_dim: int = DEFAULT_SUB_COLUMN_EMBEDDING_DIM,
-        entity_hidden_dim: int = DEFAULT_ENTITY_HIDDEN_DIM,
-        entity_embedding_dim: int = DEFAULT_ENTITY_EMBEDDING_DIM,
+        sub_column_embedding_dim: int = SUB_COLUMN_EMBEDDING_DIM,
+        entity_hidden_dim: int = ENTITY_HIDDEN_DIM,
+        entity_embedding_dim: int = ENTITY_EMBEDDING_DIM,
     ):
         super().__init__()
         self.cardinalities = cardinalities
@@ -105,14 +118,15 @@ class ParentChildMatcher(nn.Module):
         self,
         parent_cardinalities: dict[str, int],
         child_cardinalities: dict[str, int],
-        sub_column_embedding_dim: int = DEFAULT_SUB_COLUMN_EMBEDDING_DIM,
-        entity_hidden_dim: int = DEFAULT_ENTITY_HIDDEN_DIM,
-        entity_embedding_dim: int = DEFAULT_ENTITY_EMBEDDING_DIM,
-        similarity_hidden_dim: int = DEFAULT_SIMILARITY_HIDDEN_DIM,
+        sub_column_embedding_dim: int = SUB_COLUMN_EMBEDDING_DIM,
+        entity_hidden_dim: int = ENTITY_HIDDEN_DIM,
+        entity_embedding_dim: int = ENTITY_EMBEDDING_DIM,
+        similarity_hidden_dim: int = SIMILARITY_HIDDEN_DIM,
     ):
         super().__init__()
         self.entity_embedding_dim = entity_embedding_dim
         self.similarity_hidden_dim = similarity_hidden_dim
+
         self.parent_encoder = EntityEncoder(
             cardinalities=parent_cardinalities,
             sub_column_embedding_dim=sub_column_embedding_dim,
@@ -125,20 +139,35 @@ class ParentChildMatcher(nn.Module):
             entity_hidden_dim=entity_hidden_dim,
             entity_embedding_dim=self.entity_embedding_dim,
         )
-        self.similarity_layer = nn.Sequential(
-            nn.Linear(3 * self.entity_embedding_dim, self.similarity_hidden_dim),
+
+        # Non-linear projections before cosine similarity
+        self.parent_projection = nn.Sequential(
+            nn.Linear(self.entity_embedding_dim, self.similarity_hidden_dim),
             nn.ReLU(),
-            nn.Linear(self.similarity_hidden_dim, 1),
+            nn.Linear(self.similarity_hidden_dim, self.entity_embedding_dim)
+        )
+
+        self.child_projection = nn.Sequential(
+            nn.Linear(self.entity_embedding_dim, self.similarity_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.similarity_hidden_dim, self.entity_embedding_dim)
         )
 
     def forward(self, parent_inputs: dict[str, torch.Tensor], child_inputs: dict[str, torch.Tensor]) -> torch.Tensor:
         parent_encoded = self.parent_encoder(parent_inputs)
         child_encoded = self.child_encoder(child_inputs)
 
-        similarity = F.normalize(parent_encoded, dim=1) * F.normalize(child_encoded, dim=1)  # cosine similarity
-        similarity_layer_input = torch.cat([parent_encoded, child_encoded, similarity], dim=1)
-        probability_logit = self.similarity_layer(similarity_layer_input)
-        probability = torch.sigmoid(probability_logit)
+        # Apply non-linear projections then pure cosine similarity
+        parent_projected = self.parent_projection(parent_encoded)
+        child_projected = self.child_projection(child_encoded)
+
+        # Pure cosine similarity (no additional layers)
+        similarity = F.cosine_similarity(parent_projected, child_projected, dim=1)
+
+        # Convert to probability (sigmoid to ensure [0,1] range and make it more probability-like)
+        probability = torch.sigmoid(similarity * PEAKEDNESS_SCALER).unsqueeze(1)  # Scale factor and add dimension for consistency
+        # probability = ((similarity + 1) / 2).unsqueeze(1)
+        # breakpoint()
 
         return probability
 
@@ -248,7 +277,7 @@ def encode_df(
 
 
 # @timeit
-def fetch_parent_data(parent_table: DataTable, max_sample_size: int = DEFAULT_MAX_PARENT_SAMPLE_SIZE) -> pd.DataFrame | None:
+def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT_SAMPLE_SIZE) -> pd.DataFrame | None:
     """
     Fetch unique parent data with optional sampling limit.
 
@@ -286,16 +315,16 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = DEFAULT_MA
 
     if collected_rows:
         parent_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-        _LOG.info(f"fetch_parent_data | sampled: {len(parent_data)}")
+        print(f"fetch_parent_data | sampled: {len(parent_data)}")
         return parent_data
     else:
-        _LOG.info(f"fetch_parent_data | sampled: 0")
+        print(f"fetch_parent_data | sampled: 0")
         return None
 
 
 # @timeit
 def fetch_child_data(
-    child_table: DataTable, parent_keys: list, child_fk_column: str, max_per_parent: int = DEFAULT_MAX_CHILDREN_PER_PARENT
+    child_table: DataTable, parent_keys: list, child_fk_column: str, max_per_parent: int = MAX_CHILDREN_PER_PARENT
 ) -> pd.DataFrame | None:
     """
     Fetch child data with per-parent limits.
@@ -338,10 +367,10 @@ def fetch_child_data(
     # Convert to DataFrame
     if collected_rows:
         child_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-        _LOG.info(f"fetch_child_data | fetched: {len(child_data)}")
+        print(f"fetch_child_data | fetched: {len(child_data)}")
         return child_data
     else:
-        _LOG.info(f"fetch_child_data | fetched: 0")
+        print(f"fetch_child_data | fetched: 0")
         return None
 
 
@@ -349,8 +378,8 @@ def fetch_child_data(
 def pull_fk_training_data(
     schema: Schema,
     non_ctx_relation: NonContextRelation,
-    max_parent_sample_size: int = DEFAULT_MAX_PARENT_SAMPLE_SIZE,
-    max_children_per_parent: int = DEFAULT_MAX_CHILDREN_PER_PARENT,
+    max_parent_sample_size: int = MAX_PARENT_SAMPLE_SIZE,
+    max_children_per_parent: int = MAX_CHILDREN_PER_PARENT,
 ) -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
     """
     Pull training data for a specific non-context FK relation.
@@ -389,8 +418,8 @@ def prepare_training_data(
     tgt_encoded_data: pd.DataFrame,
     parent_primary_key: str,
     tgt_parent_key: str,
-    sample_size: int | None = DEFAULT_TRAINING_SAMPLE_SIZE,
-    n_negative: int = DEFAULT_N_NEGATIVE_SAMPLES,
+    sample_size: int | None = TRAINING_SAMPLE_SIZE,
+    n_negative: int = N_NEGATIVE_SAMPLES,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
     Prepare training data for a parent-child matching model.
@@ -483,26 +512,26 @@ def train(
     parent_pd: pd.DataFrame,
     child_pd: pd.DataFrame,
     labels: pd.Series,
-    do_plot_losses: bool = DEFAULT_DO_PLOT_LOSSES,
+    do_plot_losses: bool = DO_PLOT_LOSSES,
 ) -> None:
-    patience = DEFAULT_PATIENCE
+    patience = PATIENCE
     best_val_loss = float("inf")
     epochs_no_improve = 0
-    max_epochs = DEFAULT_MAX_EPOCHS
+    max_epochs = MAX_EPOCHS
 
     X_parent = torch.tensor(parent_pd.values, dtype=torch.int64)
     X_child = torch.tensor(child_pd.values, dtype=torch.int64)
     y = torch.tensor(labels.values, dtype=torch.float32).unsqueeze(1)
     dataset = TensorDataset(X_parent, X_child, y)
 
-    val_size = int(DEFAULT_VAL_SPLIT * len(dataset))
+    val_size = int(VAL_SPLIT * len(dataset))
     train_size = len(dataset) - val_size
     train_ds, val_ds = random_split(dataset, [train_size, val_size])
 
-    train_loader = DataLoader(train_ds, batch_size=DEFAULT_BATCH_SIZE, shuffle=True)
-    val_loader = DataLoader(val_ds, batch_size=DEFAULT_BATCH_SIZE, shuffle=False)
+    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
+    val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=DEFAULT_LEARNING_RATE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     loss_fn = nn.BCELoss()
 
     train_losses, val_losses = [], []
@@ -635,18 +664,21 @@ def build_parent_child_probabilities(
         child_embeddings = model.child_encoder(tgt_inputs)  # Shape: (C, embedding_dim)
         parent_embeddings = model.parent_encoder(parent_inputs)  # Shape: (Cp, embedding_dim)
 
+        # Apply non-linear projections
+        child_embeddings = model.child_projection(child_embeddings)
+        parent_embeddings = model.parent_projection(parent_embeddings)
+
         # Each child with all parent candidates: C repeated Cp times, Cp repeated C times
         child_embeddings_interleaved = child_embeddings.repeat_interleave(n_parent_batch, dim=0)  # Shape: (C*Cp, embedding_dim)
         parent_embeddings_interleaved = parent_embeddings.repeat(n_tgt, 1)  # Shape: (Cp*C, embedding_dim)
 
-        # Compute similarities using the similarity layer
-        # Following the same logic as the forward method: cosine similarity + concatenation
-        similarity = F.normalize(parent_embeddings_interleaved, dim=1) * F.normalize(child_embeddings_interleaved, dim=1)
-        similarity_layer_input = torch.cat([parent_embeddings_interleaved, child_embeddings_interleaved, similarity], dim=1)
-        probability_logit = model.similarity_layer(similarity_layer_input)
-        probs = torch.sigmoid(probability_logit).squeeze()
+        # Compute probabilities using pure cosine similarity on projected embeddings
+        similarity = F.cosine_similarity(parent_embeddings_interleaved, child_embeddings_interleaved, dim=1)
+        probs = torch.sigmoid(similarity * PEAKEDNESS_SCALER)  # Same scaling as in forward pass
+
         prob_matrix = probs.view(n_tgt, n_parent_batch)
         return prob_matrix
+
 
 
 # @timeit
@@ -654,7 +686,7 @@ def sample_best_parents(
     *,
     prob_matrix: torch.Tensor,
     temperature: float = 1.0,
-    top_k: int | None = 20,
+    top_k: int | None = 100,
 ) -> np.ndarray:
     """
     Sample best parent for each child based on match probabilities.
@@ -715,7 +747,7 @@ def match_non_context(
     parent_primary_key: str,
     parent_table_name: str,
     temperature: float = 1.0,
-    top_k: int = 20,
+    top_k: int = 100,
 ) -> pd.DataFrame:
     # Check for _is_null column to determine which rows should have null FK
     # Column name format: {fk_name}.{parent_table_name}._is_null
@@ -781,13 +813,15 @@ def match_non_context(
     # Build probability matrix
     fk_parent_sample_size = len(parent_encoded)
     _LOG.info(f"FK model matching | temperature: {temperature} | top_k: {top_k} | parent_sample_size: {fk_parent_sample_size}")
+
+    # Compute parent-child probabilities using new cosine similarity architecture
     prob_matrix = build_parent_child_probabilities(
         model=model,
         tgt_encoded=tgt_encoded,
         parent_encoded=parent_encoded,
     )
 
-    # Sample best parents for non-null rows
+    # Sample best parents based on probabilities
     best_parent_indices = sample_best_parents(
         prob_matrix=prob_matrix,
         temperature=temperature,

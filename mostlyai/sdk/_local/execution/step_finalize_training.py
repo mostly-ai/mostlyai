@@ -28,6 +28,7 @@ from mostlyai.sdk._data.fk_models import (
     pull_fk_training_data,
     store_fk_model,
     train,
+    set_seeds,
 )
 from mostlyai.sdk._local.execution.step_pull_training_data import create_training_schema
 from mostlyai.sdk.domain import Connector
@@ -182,6 +183,7 @@ def execute_step_finalize_training(
     max_parent_sample_size: int = 10000,
     max_children_per_parent: int = 1,
 ):
+    set_seeds(42)
     schema = create_training_schema(generator=generator, connectors=connectors)
     for tgt_table_name in schema.tables:
         fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / tgt_table_name
