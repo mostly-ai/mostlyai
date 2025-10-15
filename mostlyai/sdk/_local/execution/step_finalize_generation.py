@@ -46,8 +46,8 @@ FK_MIN_CHILDREN_BATCH_SIZE = 10
 FK_PARENT_BATCH_SIZE = 1000
 
 # FK inference constants
-FK_TEMPERATURE = 0.5
-FK_TOP_K = 20
+FK_TEMPERATURE = 1
+FK_TOP_K = 100
 
 
 def execute_step_finalize_generation(
