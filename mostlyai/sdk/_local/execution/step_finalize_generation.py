@@ -15,7 +15,6 @@ import logging
 import math
 import uuid
 import zipfile
-from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
 
@@ -43,12 +42,12 @@ from mostlyai.sdk.domain import Generator, ModelType, SyntheticDataset
 _LOG = logging.getLogger(__name__)
 
 # FK processing constants
-DEFAULT_FK_MIN_CHILDREN_BATCH_SIZE = 10
-DEFAULT_FK_PARENT_BATCH_SIZE = 1000
+FK_MIN_CHILDREN_BATCH_SIZE = 10
+FK_PARENT_BATCH_SIZE = 1000
 
 # FK inference constants
-DEFAULT_FK_TEMPERATURE = 0
-DEFAULT_FK_TOP_K = 20
+FK_TEMPERATURE = 0.5
+FK_TOP_K = 20
 
 
 def execute_step_finalize_generation(
@@ -354,7 +353,7 @@ def calculate_optimal_child_batch_size_for_relation(
     ideal_batch_size = total_children // num_parent_batches
 
     # Apply constraints: respect minimum batch size only
-    optimal_batch_size = max(ideal_batch_size, DEFAULT_FK_MIN_CHILDREN_BATCH_SIZE)
+    optimal_batch_size = max(ideal_batch_size, FK_MIN_CHILDREN_BATCH_SIZE)
 
     # Calculate utilization metrics for logging
     num_child_batches = total_children // optimal_batch_size
@@ -397,7 +396,6 @@ def assign_parent_partition_round_robin(
     return assigned_parent_data
 
 
-
 @timeit
 def process_table_with_fk_models(
     children_dataset: PartitionedDataset,
@@ -428,13 +426,15 @@ def process_table_with_fk_models(
         relationship_batch_sizes[relation] = optimal_batch_size
 
     # Process data using natural dataset partitions with buffering
-    relationship_batch_indices = {relation: 0 for relation in non_ctx_relations}  # Each relationship has its own batch counter
+    relationship_batch_indices = {
+        relation: 0 for relation in non_ctx_relations
+    }  # Each relationship has its own batch counter
     leftover_buffers = {}  # Buffer per relationship for incomplete batches
 
     total_partitions = len(children_dataset.files)
 
     for partition_idx, _, partition_data in children_dataset.iter_partitions():
-        is_final_partition = (partition_idx == total_partitions - 1)
+        is_final_partition = partition_idx == total_partitions - 1
 
         print(f"Processing partition {partition_idx + 1} ({len(partition_data)} rows)")
 
@@ -461,7 +461,7 @@ def process_table_with_fk_models(
                 chunk_data = current_data.iloc[chunk_start:chunk_end].copy()
 
                 # Check if complete batch OR final batch
-                is_complete_batch = (chunk_end - chunk_start == optimal_batch_size)
+                is_complete_batch = chunk_end - chunk_start == optimal_batch_size
                 is_final_batch = is_final_partition and (chunk_end == len(current_data))
 
                 if is_complete_batch or is_final_batch:
@@ -478,8 +478,8 @@ def process_table_with_fk_models(
                         tgt_parent_key=relation.child.column,
                         parent_primary_key=relation.parent.column,
                         parent_table_name=parent_table_name,
-                        temperature=DEFAULT_FK_TEMPERATURE,
-                        top_k=DEFAULT_FK_TOP_K,
+                        temperature=FK_TEMPERATURE,
+                        top_k=FK_TOP_K,
                     )
 
                     processed_chunks.append(processed_chunk)
@@ -506,15 +506,13 @@ def process_table_with_fk_models(
         del partition_data
 
 
-
-
 def finalize_table_generation(
     generated_data_schema: Schema,
     target_table_name: str,
     delivery_dir: Path,
     export_csv: bool,
     job_workspace_dir: Path | None = None,
-    parent_batch_size: int = DEFAULT_FK_PARENT_BATCH_SIZE,
+    parent_batch_size: int = FK_PARENT_BATCH_SIZE,
 ) -> None:
     """
     Post-process the generated data for a given table.
@@ -555,7 +553,7 @@ def finalize_table_generation(
 
         # Calculate reasonable batch size based on dataset size
         total_rows = len(dataset)
-        random_batch_size = max(total_rows // 100, DEFAULT_FK_MIN_CHILDREN_BATCH_SIZE)
+        random_batch_size = max(total_rows // 100, FK_MIN_CHILDREN_BATCH_SIZE)
 
         process_table_with_random_assignment(
             dataset=dataset,

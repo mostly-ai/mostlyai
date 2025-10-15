@@ -18,10 +18,10 @@ import logging
 import re
 import time
 from abc import abstractmethod
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Iterator
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 from urllib.parse import urlparse
 
 import duckdb

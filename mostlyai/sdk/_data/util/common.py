@@ -41,6 +41,7 @@ _LOG = logging.getLogger(__name__)
 
 def timeit(func):
     """Decorator to time function execution and log the result."""
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         start = time.perf_counter()
@@ -49,6 +50,7 @@ def timeit(func):
         _LOG.info(f"{func.__name__} | time: {duration:.4f}s")
         print(f"{func.__name__} | time: {duration:.4f}s")
         return result
+
     return wrapper
 
 

@@ -13,11 +13,9 @@
 # limitations under the License.
 
 import copy
-import functools
 import json
 import logging
 import random
-import time
 from collections import defaultdict
 from pathlib import Path
 
@@ -36,7 +34,7 @@ from mostlyai.engine._encoding_types.tabular.categorical import (
 )
 from mostlyai.engine._encoding_types.tabular.numeric import analyze_numeric, analyze_reduce_numeric, encode_numeric
 from mostlyai.sdk._data.base import DataTable, NonContextRelation, Schema
-from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX, timeit
+from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
 _LOG = logging.getLogger(__name__)
 
@@ -75,10 +73,6 @@ DO_PLOT_LOSSES = True
 # Data Sampling Parameters
 MAX_PARENT_SAMPLE_SIZE = 10000
 MAX_CHILDREN_PER_PARENT = 1
-TRAINING_SAMPLE_SIZE = None
-
-# Processing Parameters
-
 
 
 class EntityEncoder(nn.Module):
@@ -144,13 +138,13 @@ class ParentChildMatcher(nn.Module):
         self.parent_projection = nn.Sequential(
             nn.Linear(self.entity_embedding_dim, self.similarity_hidden_dim),
             nn.ReLU(),
-            nn.Linear(self.similarity_hidden_dim, self.entity_embedding_dim)
+            nn.Linear(self.similarity_hidden_dim, self.entity_embedding_dim),
         )
 
         self.child_projection = nn.Sequential(
             nn.Linear(self.entity_embedding_dim, self.similarity_hidden_dim),
             nn.ReLU(),
-            nn.Linear(self.similarity_hidden_dim, self.entity_embedding_dim)
+            nn.Linear(self.similarity_hidden_dim, self.entity_embedding_dim),
         )
 
     def forward(self, parent_inputs: dict[str, torch.Tensor], child_inputs: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -165,7 +159,9 @@ class ParentChildMatcher(nn.Module):
         similarity = F.cosine_similarity(parent_projected, child_projected, dim=1)
 
         # Convert to probability (sigmoid to ensure [0,1] range and make it more probability-like)
-        probability = torch.sigmoid(similarity * PEAKEDNESS_SCALER).unsqueeze(1)  # Scale factor and add dimension for consistency
+        probability = torch.sigmoid(similarity * PEAKEDNESS_SCALER).unsqueeze(
+            1
+        )  # Scale factor and add dimension for consistency
         # probability = ((similarity + 1) / 2).unsqueeze(1)
         # breakpoint()
 
@@ -193,7 +189,6 @@ def analyze_df(
     data_columns: list[str] | None = None,
     pre_training_dir: Path,
 ) -> None:
-
     pre_training_dir.mkdir(parents=True, exist_ok=True)
 
     key_columns = []
@@ -203,9 +198,10 @@ def analyze_df(
         key_columns.append(parent_key)
 
     data_columns = data_columns or list(df.columns)
-    data_columns = list(set(data_columns).difference(key_columns).intersection(df.columns))
-    num_columns = list(df.select_dtypes(include="number").columns.intersection(data_columns))
-    cat_columns = list(df.columns.difference(num_columns).intersection(data_columns))
+    # Preserve column order to ensure deterministic encoding
+    data_columns = [col for col in data_columns if col not in key_columns and col in df.columns]
+    num_columns = [col for col in data_columns if col in df.select_dtypes(include="number").columns]
+    cat_columns = [col for col in data_columns if col not in num_columns]
 
     # store pre-training metadata as JSON
     stats = {
@@ -234,12 +230,10 @@ def analyze_df(
     stats_path.write_text(json.dumps(stats, indent=4))
 
 
-
 # @timeit
 def encode_df(
     *, df: pd.DataFrame, pre_training_dir: Path, include_primary_key: bool = True, include_parent_key: bool = True
 ) -> pd.DataFrame:
-
     # load stats
     stats_path = pre_training_dir / "stats.json"
     stats = json.loads(stats_path.read_text())
@@ -318,7 +312,7 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT
         print(f"fetch_parent_data | sampled: {len(parent_data)}")
         return parent_data
     else:
-        print(f"fetch_parent_data | sampled: 0")
+        print("fetch_parent_data | sampled: 0")
         return None
 
 
@@ -370,7 +364,7 @@ def fetch_child_data(
         print(f"fetch_child_data | fetched: {len(child_data)}")
         return child_data
     else:
-        print(f"fetch_child_data | fetched: 0")
+        print("fetch_child_data | fetched: 0")
         return None
 
 
@@ -418,7 +412,7 @@ def prepare_training_data(
     tgt_encoded_data: pd.DataFrame,
     parent_primary_key: str,
     tgt_parent_key: str,
-    sample_size: int | None = TRAINING_SAMPLE_SIZE,
+    sample_size: int | None = None,
     n_negative: int = N_NEGATIVE_SAMPLES,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
@@ -451,7 +445,7 @@ def prepare_training_data(
 
     # sample children without replacement
     sample_size = min(int(sample_size), n_children)
-    rng = np.random.default_rng()
+    rng = np.random.default_rng(seed=42)
     sampled_child_indices = rng.choice(n_children, size=sample_size, replace=False)
     children_X = children_X[sampled_child_indices]
     child_keys = child_keys[sampled_child_indices]
@@ -524,11 +518,15 @@ def train(
     y = torch.tensor(labels.values, dtype=torch.float32).unsqueeze(1)
     dataset = TensorDataset(X_parent, X_child, y)
 
+    # Create generator for deterministic operations
+    generator = torch.Generator()
+    generator.manual_seed(42)
+
     val_size = int(VAL_SPLIT * len(dataset))
     train_size = len(dataset) - val_size
-    train_ds, val_ds = random_split(dataset, [train_size, val_size])
+    train_ds, val_ds = random_split(dataset, [train_size, val_size], generator=generator)
 
-    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
+    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, generator=generator)
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
@@ -669,7 +667,9 @@ def build_parent_child_probabilities(
         parent_embeddings = model.parent_projection(parent_embeddings)
 
         # Each child with all parent candidates: C repeated Cp times, Cp repeated C times
-        child_embeddings_interleaved = child_embeddings.repeat_interleave(n_parent_batch, dim=0)  # Shape: (C*Cp, embedding_dim)
+        child_embeddings_interleaved = child_embeddings.repeat_interleave(
+            n_parent_batch, dim=0
+        )  # Shape: (C*Cp, embedding_dim)
         parent_embeddings_interleaved = parent_embeddings.repeat(n_tgt, 1)  # Shape: (Cp*C, embedding_dim)
 
         # Compute probabilities using pure cosine similarity on projected embeddings
@@ -678,7 +678,6 @@ def build_parent_child_probabilities(
 
         prob_matrix = probs.view(n_tgt, n_parent_batch)
         return prob_matrix
-
 
 
 # @timeit
@@ -764,7 +763,9 @@ def match_non_context(
         null_mask = is_null_values == "True"
         non_null_mask = ~null_mask
 
-        _LOG.info(f"FK matching data | total_rows: {len(tgt_data)} | null_rows: {null_mask.sum()} | non_null_rows: {non_null_mask.sum()}")
+        _LOG.info(
+            f"FK matching data | total_rows: {len(tgt_data)} | null_rows: {null_mask.sum()} | non_null_rows: {non_null_mask.sum()}"
+        )
 
         # Only process non-null rows
         if non_null_mask.sum() == 0:
@@ -793,7 +794,6 @@ def match_non_context(
     tgt_pre_training_dir = fk_models_workspace_dir / f"pre_training[{tgt_parent_key}]"
     parent_pre_training_dir = fk_models_workspace_dir / f"pre_training[{parent_table_name}]"
 
-
     # Encode target and parent data
     tgt_encoded = encode_df(
         df=tgt_data_non_null,
@@ -812,7 +812,9 @@ def match_non_context(
 
     # Build probability matrix
     fk_parent_sample_size = len(parent_encoded)
-    _LOG.info(f"FK model matching | temperature: {temperature} | top_k: {top_k} | parent_sample_size: {fk_parent_sample_size}")
+    _LOG.info(
+        f"FK model matching | temperature: {temperature} | top_k: {top_k} | parent_sample_size: {fk_parent_sample_size}"
+    )
 
     # Compute parent-child probabilities using new cosine similarity architecture
     prob_matrix = build_parent_child_probabilities(
@@ -830,7 +832,6 @@ def match_non_context(
 
     # Map indices to parent IDs
     best_parent_ids = parent_data.iloc[best_parent_indices][parent_primary_key].values
-
 
     # Create a Series with the correct index alignment
     parent_ids_series = pd.Series(best_parent_ids, index=non_null_indices)
