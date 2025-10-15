@@ -19,6 +19,7 @@ import pandas as pd
 import pytest
 
 from mostlyai.sdk._data.partitioned_dataset import PartitionedDataset
+from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 
 
 class TestPartitionedDatasetBasic:
@@ -34,13 +35,13 @@ class TestPartitionedDatasetBasic:
             df2 = pd.DataFrame({"id": range(100, 250), "value": range(100, 250)})
             df3 = pd.DataFrame({"id": range(250, 300), "value": range(250, 300)})
 
-            files = []
             for i, df in enumerate([df1, df2, df3]):
                 file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
-                files.append(file_path)
 
-            dataset = PartitionedDataset(files)
+            # Create ParquetDataTable from the directory containing all parquet files
+            table = ParquetDataTable(path=temp_path)
+            dataset = PartitionedDataset(table)
 
             assert len(dataset) == 300
             assert len(dataset.partition_info) == 3
@@ -57,7 +58,8 @@ class TestPartitionedDatasetBasic:
             file_path = temp_path / "single.parquet"
             df.to_parquet(file_path)
 
-            dataset = PartitionedDataset([file_path])
+            table = ParquetDataTable(path=file_path)
+            dataset = PartitionedDataset(table)
 
             assert len(dataset) == 100
             assert len(dataset.partition_info) == 1
@@ -76,7 +78,8 @@ class TestPartitionedDatasetBasic:
             df_empty.to_parquet(file_empty)
             df_normal.to_parquet(file_normal)
 
-            dataset = PartitionedDataset([file_empty, file_normal])
+            table = ParquetDataTable(path=temp_path)
+            dataset = PartitionedDataset(table)
 
             assert len(dataset) == 50
             assert dataset.partition_info[0]["size"] == 0
@@ -89,17 +92,16 @@ class TestPartitionedDatasetBasic:
 
             sizes = [50, 75, 25, 100]
             total_expected = sum(sizes)
-            files = []
 
             start_id = 0
             for i, size in enumerate(sizes):
                 df = pd.DataFrame({"id": range(start_id, start_id + size)})
                 file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
-                files.append(file_path)
                 start_id += size
 
-            dataset = PartitionedDataset(files)
+            table = ParquetDataTable(path=temp_path)
+            dataset = PartitionedDataset(table)
             assert len(dataset) == total_expected
 
 
@@ -119,7 +121,8 @@ class TestPartitionedDatasetSlicing:
             df1.to_parquet(file1)
             df2.to_parquet(file2)
 
-            dataset = PartitionedDataset([file1, file2])
+            table = ParquetDataTable(path=temp_path)
+            dataset = PartitionedDataset(table)
 
             # Slice within first partition
             slice_result = dataset[10:50]
@@ -137,13 +140,12 @@ class TestPartitionedDatasetSlicing:
             df2 = pd.DataFrame({"id": range(100, 200), "category": ["B"] * 100})
             df3 = pd.DataFrame({"id": range(200, 300), "category": ["C"] * 100})
 
-            files = []
             for i, df in enumerate([df1, df2, df3]):
                 file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
-                files.append(file_path)
 
-            dataset = PartitionedDataset(files)
+            table = ParquetDataTable(path=temp_path)
+            dataset = PartitionedDataset(table)
 
             # Slice across partitions 1 and 2
             slice_result = dataset[50:150]
@@ -166,7 +168,8 @@ class TestPartitionedDatasetSlicing:
             df1.to_parquet(file1)
             df2.to_parquet(file2)
 
-            dataset = PartitionedDataset([file1, file2])
+            table = ParquetDataTable(path=temp_path)
+            dataset = PartitionedDataset(table)
 
             # Slice exactly at boundary
             slice_result = dataset[100:200]
@@ -182,7 +185,8 @@ class TestPartitionedDatasetSlicing:
             file_path = temp_path / "part.parquet"
             df.to_parquet(file_path)
 
-            dataset = PartitionedDataset([file_path])
+            table = ParquetDataTable(path=file_path)
+            dataset = PartitionedDataset(table)
 
             # Test various out-of-bounds scenarios
             assert len(dataset[50:150]) == 50  # End beyond dataset
@@ -199,7 +203,8 @@ class TestPartitionedDatasetSlicing:
             file_path = temp_path / "part.parquet"
             df.to_parquet(file_path)
 
-            dataset = PartitionedDataset([file_path])
+            table = ParquetDataTable(path=file_path)
+            dataset = PartitionedDataset(table)
 
             empty_slice = dataset[200:300]  # Completely out of bounds
             assert len(empty_slice) == 0
@@ -218,7 +223,8 @@ class TestPartitionedDatasetRandomSampling:
             file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
-            dataset = PartitionedDataset([file_path])
+            table = ParquetDataTable(path=file_path)
+            dataset = PartitionedDataset(table)
 
             # Test sampling less than total
             sample = dataset.random_sample(100)
@@ -239,13 +245,12 @@ class TestPartitionedDatasetRandomSampling:
             df2 = pd.DataFrame({"id": range(100, 300), "partition": ["B"] * 200})
             df3 = pd.DataFrame({"id": range(300, 400), "partition": ["C"] * 100})
 
-            files = []
             for i, df in enumerate([df1, df2, df3]):
                 file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
-                files.append(file_path)
 
-            dataset = PartitionedDataset(files)
+            table = ParquetDataTable(path=temp_path)
+            dataset = PartitionedDataset(table)
 
             # Sample multiple times and check distribution
             samples = []
@@ -269,7 +274,8 @@ class TestPartitionedDatasetRandomSampling:
             file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
-            dataset = PartitionedDataset([file_path])
+            table = ParquetDataTable(path=file_path)
+            dataset = PartitionedDataset(table)
 
             # Test sampling 0 items
             empty_sample = dataset.random_sample(0)
@@ -293,7 +299,8 @@ class TestPartitionedDatasetRandomSampling:
             df_empty.to_parquet(file_empty)
             df_normal.to_parquet(file_normal)
 
-            dataset = PartitionedDataset([file_empty, file_normal])
+            table = ParquetDataTable(path=temp_path)
+            dataset = PartitionedDataset(table)
 
             sample = dataset.random_sample(50)
             assert len(sample) == 50
@@ -312,7 +319,8 @@ class TestPartitionedDatasetErrorHandling:
             file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
-            dataset = PartitionedDataset([file_path])
+            table = ParquetDataTable(path=file_path)
+            dataset = PartitionedDataset(table)
 
             with pytest.raises(TypeError):
                 _ = dataset["invalid"]
@@ -329,7 +337,8 @@ class TestPartitionedDatasetErrorHandling:
             file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
-            dataset = PartitionedDataset([file_path])
+            table = ParquetDataTable(path=file_path)
+            dataset = PartitionedDataset(table)
 
             # Test accessing out-of-range indices
             with pytest.raises(IndexError):
@@ -356,7 +365,8 @@ class TestPartitionedDatasetPerformance:
             import time
 
             start_time = time.time()
-            dataset = PartitionedDataset([file_path])
+            table = ParquetDataTable(path=file_path)
+            dataset = PartitionedDataset(table)
             init_time = time.time() - start_time
 
             assert len(dataset) == 10000
@@ -372,7 +382,8 @@ class TestPartitionedDatasetIntegration:
             temp_path = Path(temp_dir)
 
             # Create realistic parent data (multiple partitions)
-            parent_files = []
+            parent_dir = temp_path / "parent_data"
+            parent_dir.mkdir()
             for i in range(3):
                 parent_df = pd.DataFrame(
                     {
@@ -380,12 +391,12 @@ class TestPartitionedDatasetIntegration:
                         "parent_value": [f"parent_{j}" for j in range(i * 1000, (i + 1) * 1000)],
                     }
                 )
-                file_path = temp_path / f"parents_{i}.parquet"
+                file_path = parent_dir / f"parents_{i}.parquet"
                 parent_df.to_parquet(file_path)
-                parent_files.append(file_path)
 
             # Create child data
-            child_files = []
+            child_dir = temp_path / "child_data"
+            child_dir.mkdir()
             for i in range(2):
                 child_df = pd.DataFrame(
                     {
@@ -393,12 +404,13 @@ class TestPartitionedDatasetIntegration:
                         "child_value": [f"child_{j}" for j in range(i * 500, (i + 1) * 500)],
                     }
                 )
-                file_path = temp_path / f"children_{i}.parquet"
+                file_path = child_dir / f"children_{i}.parquet"
                 child_df.to_parquet(file_path)
-                child_files.append(file_path)
 
-            parent_dataset = PartitionedDataset(parent_files)
-            child_dataset = PartitionedDataset(child_files)
+            parent_table = ParquetDataTable(path=parent_dir)
+            child_table = ParquetDataTable(path=child_dir)
+            parent_dataset = PartitionedDataset(parent_table)
+            child_dataset = PartitionedDataset(child_table)
 
             # Simulate FK processing: batch of children, sample parents
             children_batch_size = 200
@@ -424,14 +436,13 @@ class TestPartitionedDatasetIntegration:
             temp_path = Path(temp_dir)
 
             # Create dataset larger than cache
-            files = []
             for i in range(10):  # 10 partitions
                 df = pd.DataFrame({"id": range(i * 1000, (i + 1) * 1000)})
                 file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
-                files.append(file_path)
 
-            dataset = PartitionedDataset(files)
+            table = ParquetDataTable(path=temp_path)
+            dataset = PartitionedDataset(table)
 
             # Process data in batches
             batch_size = 500
@@ -455,7 +466,8 @@ class TestPartitionedDatasetCaching:
             file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
-            dataset = PartitionedDataset([file_path], max_cached_partitions=2)
+            table = ParquetDataTable(path=file_path)
+            dataset = PartitionedDataset(table, max_cached_partitions=2)
 
             # Load data twice - should be cached on second access
             data1 = dataset[0:50]
@@ -475,15 +487,14 @@ class TestPartitionedDatasetCaching:
             temp_path = Path(temp_dir)
 
             # Create 3 partitions
-            files = []
             for i in range(3):
                 df = pd.DataFrame({"id": range(i * 100, (i + 1) * 100)})
                 file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
-                files.append(file_path)
 
             # Cache limit of 2
-            dataset = PartitionedDataset(files, max_cached_partitions=2)
+            table = ParquetDataTable(path=temp_path)
+            dataset = PartitionedDataset(table, max_cached_partitions=2)
 
             # Access first partition
             _ = dataset[0:10]
@@ -506,7 +517,8 @@ class TestPartitionedDatasetCaching:
             file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
-            dataset = PartitionedDataset([file_path])
+            table = ParquetDataTable(path=file_path)
+            dataset = PartitionedDataset(table)
 
             # Load data to populate cache
             _ = dataset[0:10]
@@ -525,7 +537,8 @@ class TestPartitionedDatasetCaching:
             file_path = temp_path / "data.parquet"
             df.to_parquet(file_path)
 
-            dataset = PartitionedDataset([file_path])
+            table = ParquetDataTable(path=file_path)
+            dataset = PartitionedDataset(table)
 
             # Initial access - should be cache miss
             _ = dataset[0:100]
@@ -545,15 +558,14 @@ class TestPartitionedDatasetCaching:
             temp_path = Path(temp_dir)
 
             # Create 5 partitions (more than typical cache limit)
-            files = []
             for i in range(5):
                 df = pd.DataFrame({"id": range(i * 100, (i + 1) * 100)})
                 file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
-                files.append(file_path)
 
             # Use -1 for unlimited caching
-            dataset = PartitionedDataset(files, max_cached_partitions=-1)
+            table = ParquetDataTable(path=temp_path)
+            dataset = PartitionedDataset(table, max_cached_partitions=-1)
 
             # Access all partitions
             for i in range(5):
@@ -580,15 +592,14 @@ class TestPartitionedDatasetCaching:
             temp_path = Path(temp_dir)
 
             # Create 4 partitions
-            files = []
             for i in range(4):
                 df = pd.DataFrame({"id": range(i * 100, (i + 1) * 100)})
                 file_path = temp_path / f"part{i}.parquet"
                 df.to_parquet(file_path)
-                files.append(file_path)
 
             # Test with limited cache (maxsize=2)
-            limited_dataset = PartitionedDataset(files, max_cached_partitions=2)
+            limited_table = ParquetDataTable(path=temp_path)
+            limited_dataset = PartitionedDataset(limited_table, max_cached_partitions=2)
 
             # Access all 4 partitions
             for i in range(4):
@@ -599,7 +610,8 @@ class TestPartitionedDatasetCaching:
             assert limited_cache_info.currsize == 2
 
             # Test with unlimited cache (-1)
-            unlimited_dataset = PartitionedDataset(files, max_cached_partitions=-1)
+            unlimited_table = ParquetDataTable(path=temp_path)
+            unlimited_dataset = PartitionedDataset(unlimited_table, max_cached_partitions=-1)
 
             # Access all 4 partitions
             for i in range(4):
