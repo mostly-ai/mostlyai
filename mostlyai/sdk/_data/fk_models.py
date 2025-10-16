@@ -63,7 +63,7 @@ PEAKEDNESS_SCALER = 7.0
 
 # Training Parameters
 BATCH_SIZE = 128
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0003
 MAX_EPOCHS = 1000
 PATIENCE = 20
 N_NEGATIVE_SAMPLES = 100
@@ -72,7 +72,7 @@ DO_PLOT_LOSSES = True
 
 # Data Sampling Parameters
 MAX_PARENT_SAMPLE_SIZE = 10000
-MAX_CHILDREN_PER_PARENT = 1
+MAX_CHILDREN_PER_PARENT = 2
 
 
 class EntityEncoder(nn.Module):
@@ -98,7 +98,11 @@ class EntityEncoder(nn.Module):
         self.entity_encoder = nn.Sequential(
             nn.Linear(entity_dim, self.entity_hidden_dim),
             nn.ReLU(),
+            nn.Dropout(0.2),
             nn.Linear(self.entity_hidden_dim, self.entity_embedding_dim),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(self.entity_embedding_dim, self.entity_embedding_dim),
         )
 
     def forward(self, inputs: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -134,31 +138,14 @@ class ParentChildMatcher(nn.Module):
             entity_embedding_dim=self.entity_embedding_dim,
         )
 
-        # Non-linear projections before cosine similarity
-        self.parent_projection = nn.Sequential(
-            nn.Linear(self.entity_embedding_dim, self.similarity_hidden_dim),
-            nn.ReLU(),
-            nn.Linear(self.similarity_hidden_dim, self.entity_embedding_dim),
-        )
-
-        self.child_projection = nn.Sequential(
-            nn.Linear(self.entity_embedding_dim, self.similarity_hidden_dim),
-            nn.ReLU(),
-            nn.Linear(self.similarity_hidden_dim, self.entity_embedding_dim),
-        )
-
     def forward(self, parent_inputs: dict[str, torch.Tensor], child_inputs: dict[str, torch.Tensor]) -> torch.Tensor:
         parent_encoded = self.parent_encoder(parent_inputs)
         child_encoded = self.child_encoder(child_inputs)
 
-        # Apply non-linear projections then pure cosine similarity
-        parent_projected = self.parent_projection(parent_encoded)
-        child_projected = self.child_projection(child_encoded)
+        # Compute cosine similarity between parent and child embeddings
+        similarity = F.cosine_similarity(parent_encoded, child_encoded, dim=1)
 
-        # Pure cosine similarity (no additional layers)
-        similarity = F.cosine_similarity(parent_projected, child_projected, dim=1)
-
-        # Convert to probability (sigmoid to ensure [0,1] range and make it more probability-like)
+        # Convert to probability (sigmoid to ensure [0,1] range)
         probability = torch.sigmoid(similarity * PEAKEDNESS_SCALER).unsqueeze(1)
 
         return probability
@@ -658,17 +645,13 @@ def build_parent_child_probabilities(
         child_embeddings = model.child_encoder(tgt_inputs)  # Shape: (C, embedding_dim)
         parent_embeddings = model.parent_encoder(parent_inputs)  # Shape: (Cp, embedding_dim)
 
-        # Apply non-linear projections
-        child_embeddings = model.child_projection(child_embeddings)
-        parent_embeddings = model.parent_projection(parent_embeddings)
-
         # Each child with all parent candidates: C repeated Cp times, Cp repeated C times
         child_embeddings_interleaved = child_embeddings.repeat_interleave(
             n_parent_batch, dim=0
         )  # Shape: (C*Cp, embedding_dim)
         parent_embeddings_interleaved = parent_embeddings.repeat(n_tgt, 1)  # Shape: (Cp*C, embedding_dim)
 
-        # Compute probabilities using pure cosine similarity on projected embeddings
+        # Compute probabilities using cosine similarity
         similarity = F.cosine_similarity(parent_embeddings_interleaved, child_embeddings_interleaved, dim=1)
         probs = torch.sigmoid(similarity * PEAKEDNESS_SCALER)  # Same scaling as in forward pass
 
