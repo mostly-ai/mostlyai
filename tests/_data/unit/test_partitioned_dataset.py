@@ -18,8 +18,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from mostlyai.sdk._data.partitioned_dataset import PartitionedDataset
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
+from mostlyai.sdk._data.partitioned_dataset import PartitionedDataset
 
 
 class TestPartitionedDatasetBasic:

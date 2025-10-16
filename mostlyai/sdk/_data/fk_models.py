@@ -159,11 +159,7 @@ class ParentChildMatcher(nn.Module):
         similarity = F.cosine_similarity(parent_projected, child_projected, dim=1)
 
         # Convert to probability (sigmoid to ensure [0,1] range and make it more probability-like)
-        probability = torch.sigmoid(similarity * PEAKEDNESS_SCALER).unsqueeze(
-            1
-        )  # Scale factor and add dimension for consistency
-        # probability = ((similarity + 1) / 2).unsqueeze(1)
-        # breakpoint()
+        probability = torch.sigmoid(similarity * PEAKEDNESS_SCALER).unsqueeze(1)
 
         return probability
 
