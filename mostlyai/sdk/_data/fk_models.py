@@ -19,7 +19,6 @@ import random
 from collections import defaultdict
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
@@ -39,7 +38,7 @@ from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 _LOG = logging.getLogger(__name__)
 
 
-def set_seeds(seed=42):
+def set_seeds(seed: int = 42) -> None:
     """Set random seeds for reproducible training."""
     random.seed(seed)
     np.random.seed(seed)
@@ -68,7 +67,9 @@ MAX_EPOCHS = 1000
 PATIENCE = 20
 N_NEGATIVE_SAMPLES = 100
 VAL_SPLIT = 0.2
-DO_PLOT_LOSSES = True
+DROPOUT_RATE = 0.2
+EARLY_STOPPING_DELTA = 1e-5
+NUMERICAL_STABILITY_EPSILON = 1e-10
 
 # Data Sampling Parameters
 MAX_PARENT_SAMPLE_SIZE = 10000
@@ -98,10 +99,10 @@ class EntityEncoder(nn.Module):
         self.entity_encoder = nn.Sequential(
             nn.Linear(entity_dim, self.entity_hidden_dim),
             nn.ReLU(),
-            nn.Dropout(0.2),
+            nn.Dropout(DROPOUT_RATE),
             nn.Linear(self.entity_hidden_dim, self.entity_embedding_dim),
             nn.ReLU(),
-            nn.Dropout(0.2),
+            nn.Dropout(DROPOUT_RATE),
             nn.Linear(self.entity_embedding_dim, self.entity_embedding_dim),
         )
 
@@ -151,7 +152,6 @@ class ParentChildMatcher(nn.Module):
         return probability
 
 
-# @timeit
 def get_cardinalities(*, pre_training_dir: Path) -> dict[str, int]:
     stats_path = pre_training_dir / "stats.json"
     stats = json.loads(stats_path.read_text())
@@ -163,7 +163,6 @@ def get_cardinalities(*, pre_training_dir: Path) -> dict[str, int]:
     return cardinalities
 
 
-# @timeit
 def analyze_df(
     *,
     df: pd.DataFrame,
@@ -213,7 +212,6 @@ def analyze_df(
     stats_path.write_text(json.dumps(stats, indent=4))
 
 
-# @timeit
 def encode_df(
     *, df: pd.DataFrame, pre_training_dir: Path, include_primary_key: bool = True, include_parent_key: bool = True
 ) -> pd.DataFrame:
@@ -253,7 +251,6 @@ def encode_df(
 # FK Training Data Pull Functions
 
 
-# @timeit
 def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT_SAMPLE_SIZE) -> pd.DataFrame | None:
     """
     Fetch unique parent data with optional sampling limit.
@@ -292,14 +289,13 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT
 
     if collected_rows:
         parent_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-        print(f"fetch_parent_data | sampled: {len(parent_data)}")
+        _LOG.info(f"fetch_parent_data | sampled: {len(parent_data)}")
         return parent_data
     else:
-        print("fetch_parent_data | sampled: 0")
+        _LOG.info("fetch_parent_data | sampled: 0")
         return None
 
 
-# @timeit
 def fetch_child_data(
     child_table: DataTable, parent_keys: list, child_fk_column: str, max_per_parent: int = MAX_CHILDREN_PER_PARENT
 ) -> pd.DataFrame | None:
@@ -344,14 +340,13 @@ def fetch_child_data(
     # Convert to DataFrame
     if collected_rows:
         child_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-        print(f"fetch_child_data | fetched: {len(child_data)}")
+        _LOG.info(f"fetch_child_data | fetched: {len(child_data)}")
         return child_data
     else:
-        print("fetch_child_data | fetched: 0")
+        _LOG.info("fetch_child_data | fetched: 0")
         return None
 
 
-# @timeit
 def pull_fk_training_data(
     schema: Schema,
     non_ctx_relation: NonContextRelation,
@@ -389,7 +384,6 @@ def pull_fk_training_data(
     return parent_data, child_data
 
 
-# @timeit
 def prepare_training_data(
     parent_encoded_data: pd.DataFrame,
     tgt_encoded_data: pd.DataFrame,
@@ -482,14 +476,12 @@ def prepare_training_data(
     return parent_pd, child_pd, labels_pd
 
 
-# @timeit
 def train(
     *,
     model: ParentChildMatcher,
     parent_pd: pd.DataFrame,
     child_pd: pd.DataFrame,
     labels: pd.Series,
-    do_plot_losses: bool = DO_PLOT_LOSSES,
 ) -> None:
     patience = PATIENCE
     best_val_loss = float("inf")
@@ -547,34 +539,24 @@ def train(
         val_loss /= val_size
         val_losses.append(val_loss)
 
-        print(f"Epoch {epoch + 1}/{max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+        _LOG.info(f"Epoch {epoch + 1}/{max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
 
         # early stopping check
-        if val_loss < best_val_loss - 1e-5:  # small delta to avoid float issues
+        if val_loss < best_val_loss - EARLY_STOPPING_DELTA:  # small delta to avoid float issues
             best_val_loss = val_loss
             epochs_no_improve = 0
             best_model_state = copy.deepcopy(model.state_dict())
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= patience:
-                print(f"Early stopping at epoch {epoch + 1}")
+                _LOG.info(f"Early stopping at epoch {epoch + 1}")
                 break
 
     assert best_model_state is not None
     model.load_state_dict(best_model_state)
-    print("Best model restored (lowest validation loss).")
-
-    if do_plot_losses:
-        plt.plot(train_losses, label="Train")
-        plt.plot(val_losses, label="Validation")
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-        plt.legend()
-        plt.title("Train/Validation Loss")
-        plt.show()
+    _LOG.info("Best model restored (lowest validation loss).")
 
 
-# @timeit
 def store_fk_model(*, model: ParentChildMatcher, tgt_parent_key: str, fk_models_workspace_dir: Path) -> None:
     fk_models_workspace_dir.mkdir(parents=True, exist_ok=True)
     model_config = {
@@ -598,7 +580,6 @@ def store_fk_model(*, model: ParentChildMatcher, tgt_parent_key: str, fk_models_
     torch.save(model.state_dict(), model_state_path)
 
 
-# @timeit
 def load_fk_model(*, tgt_parent_key: str, fk_models_workspace_dir: Path) -> ParentChildMatcher:
     model_config_path = fk_models_workspace_dir / f"model_config[{tgt_parent_key}].json"
     model_config = json.loads(model_config_path.read_text())
@@ -615,7 +596,6 @@ def load_fk_model(*, tgt_parent_key: str, fk_models_workspace_dir: Path) -> Pare
     return model
 
 
-# @timeit
 def build_parent_child_probabilities(
     *,
     model: ParentChildMatcher,
@@ -659,7 +639,6 @@ def build_parent_child_probabilities(
         return prob_matrix
 
 
-# @timeit
 def sample_best_parents(
     *,
     prob_matrix: torch.Tensor,
@@ -705,7 +684,7 @@ def sample_best_parents(
 
             # Probabilistic: sample from distribution with temperature scaling
             # Higher temperature = more uniform sampling (more variance)
-            logits = torch.log(probs + 1e-10) / temperature
+            logits = torch.log(probs + NUMERICAL_STABILITY_EPSILON) / temperature
             probs = torch.softmax(logits, dim=0).cpu().numpy()
 
             # Sample from candidates and map back to original indices
@@ -715,7 +694,6 @@ def sample_best_parents(
     return best_parent_indices
 
 
-# @timeit
 def match_non_context(
     *,
     fk_models_workspace_dir: Path,

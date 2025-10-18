@@ -166,7 +166,6 @@ def execute_train_fk_models_for_single_relation(
         parent_pd=parent_pd,
         child_pd=child_pd,
         labels=labels_pd,
-        do_plot_losses=False,
     )
 
     # store model
