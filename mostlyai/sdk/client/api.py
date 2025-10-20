@@ -658,7 +658,7 @@ class MostlyAI(_MostlyBaseClient):
             generator (Generator | str): The generator instance or its UUID.
             config (SyntheticDatasetConfig | dict | None): Configuration for the synthetic dataset.
             size (int | dict[str, int] | None): Sample size(s) for the subject table(s).
-            seed (Seed | dict[str, Seed] | None): Seed data for the subject table(s).
+            seed (Seed | dict[str, Seed] | None): Either a single Seed for the subject table, or a dictionary with table names as keys and Seeds as values. Seed can either be a DataFrame or a path to a CSV or PARQUET file. Check generator details (`generator.tables[i].columns[j].value_range`) for possible value ranges.
             name (str | None): Name of the synthetic dataset.
             start (bool): Whether to start generation immediately. Default is True.
             wait (bool): Whether to wait for generation to finish. Default is True.
@@ -738,7 +738,7 @@ class MostlyAI(_MostlyBaseClient):
         Args:
             generator (Generator | str): The generator instance or its UUID.
             size (int | dict[str, int] | None): Sample size(s) for the subject table(s). Default is 1, if no seed is provided.
-            seed (Seed | dict[str, Seed] | None): Seed data for the subject table(s). Check generator details for possible value ranges.
+            seed (Seed | dict[str, Seed] | None): Either a single Seed for the subject table, or a dictionary with table names as keys and Seeds as values. Seed can either be a DataFrame or a path to a CSV or PARQUET file. Check generator details (`generator.tables[i].columns[j].value_range`) for possible value ranges.
             config (SyntheticProbeConfig | dict | None): Configuration for the probe.
             return_type (Literal["auto", "dict"]): The type of the return value. "dict" will always provide a dictionary of DataFrames. "auto" will return a single DataFrame for a single-table generator, and a dictionary of DataFrames for a multi-table generator. Default is "auto".
 
