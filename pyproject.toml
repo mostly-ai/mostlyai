@@ -47,7 +47,9 @@ dependencies = [
 
 [project.optional-dependencies]
 local = [
+    # "mostlyai-engine @ file:///Users/shuangwu/code/mostlyai-engine",  # for local development
     "mostlyai-engine @ git+https://github.com/mostly-ai/mostlyai-engine.git@smarter-init-predictor-layer",  # for development
+    # "mostlyai-engine @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
     # "mostlyai-engine==1.5.8",  # for release
     "mostlyai-qa==1.9.8",  # for release
@@ -73,7 +75,9 @@ local = [
     "adlfs>=2023.4.0",
 ]
 local-gpu = [
+    # "mostlyai-engine[gpu] @ file:///Users/shuangwu/code/mostlyai-engine",  # for local development
     "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@smarter-init-predictor-layer",  # for development
+    # "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
     # "mostlyai-engine[gpu]==1.5.8",  # for release
     "mostlyai-qa==1.9.8",  # for release

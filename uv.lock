@@ -3805,7 +3805,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.5.8"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=smarter-init-predictor-layer#e6cafc7f734cdbae1f42282f9738cd0da75a16ef" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=smarter-init-predictor-layer#bbdc5b3b3372a61aaecb13369d4d48d9a6860e6f" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
