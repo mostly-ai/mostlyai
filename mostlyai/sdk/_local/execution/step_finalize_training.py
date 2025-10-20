@@ -101,51 +101,49 @@ def execute_train_fk_models_for_single_relation(
     parent_data_columns: list[str],
     fk_models_workspace_dir: Path,
 ):
-    fk_models_workspace_dir.mkdir(parents=True, exist_ok=True)
+    fk_model_workspace_dir = fk_models_workspace_dir / tgt_parent_key
+    fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
 
     tgt_data_columns = [
         c for c in tgt_data_columns if c != tgt_primary_key and c != tgt_parent_key and c in tgt_data.columns
     ]
     parent_data_columns = [c for c in parent_data_columns if c != parent_primary_key and c in parent_data.columns]
 
-    # fit tgt encoders
-    tgt_pre_training_dir = fk_models_workspace_dir / f"pre_training[{tgt_parent_key}]"
+    # analyze tgt data
+    tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
     analyze_df(
         df=tgt_data,
         primary_key=tgt_primary_key,
         parent_key=tgt_parent_key,
         data_columns=tgt_data_columns,
-        pre_training_dir=tgt_pre_training_dir,
+        stats_dir=tgt_stats_dir,
     )
 
-    # fit parent encoders
-    parent_pre_training_dir = fk_models_workspace_dir / f"pre_training[{parent_table_name}]"
-    if not parent_pre_training_dir.exists():
-        analyze_df(
-            df=parent_data,
-            primary_key=parent_primary_key,
-            data_columns=parent_data_columns,
-            pre_training_dir=parent_pre_training_dir,
-        )
-    else:
-        print(f"Parent table `{parent_table_name}` pre-training already done, skipping")
+    # analyze parent data
+    parent_stats_dir = fk_model_workspace_dir / "parent-stats"
+    analyze_df(
+        df=parent_data,
+        primary_key=parent_primary_key,
+        data_columns=parent_data_columns,
+        stats_dir=parent_stats_dir,
+    )
 
     # encode tgt data
     tgt_encoded_data = encode_df(
         df=tgt_data,
-        pre_training_dir=tgt_pre_training_dir,
+        stats_dir=tgt_stats_dir,
         include_primary_key=False,
     )
 
     # encode parent data
     parent_encoded_data = encode_df(
         df=parent_data,
-        pre_training_dir=parent_pre_training_dir,
+        stats_dir=parent_stats_dir,
     )
 
     # initialize child-parent matcher model
-    parent_cardinalities = get_cardinalities(pre_training_dir=parent_pre_training_dir)
-    tgt_cardinalities = get_cardinalities(pre_training_dir=tgt_pre_training_dir)
+    parent_cardinalities = get_cardinalities(stats_dir=parent_stats_dir)
+    tgt_cardinalities = get_cardinalities(stats_dir=tgt_stats_dir)
     model = ParentChildMatcher(
         parent_cardinalities=parent_cardinalities,
         child_cardinalities=tgt_cardinalities,
@@ -168,8 +166,7 @@ def execute_train_fk_models_for_single_relation(
         labels=labels_pd,
     )
 
-    # store model
-    store_fk_model(model=model, tgt_parent_key=tgt_parent_key, fk_models_workspace_dir=fk_models_workspace_dir)
+    store_fk_model(model=model, fk_model_workspace_dir=fk_model_workspace_dir)
 
     print(f"Child-parent matcher model trained and stored for parent table: {parent_table_name}")
 

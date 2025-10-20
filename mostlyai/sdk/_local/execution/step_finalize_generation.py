@@ -270,14 +270,13 @@ def detect_fk_context(
     job_workspace_dir: Path | None,
     target_table_name: str,
     schema: Schema,
-    table_files: list[Path],
 ) -> dict | None:
     """Detect and setup FK processing context."""
     if job_workspace_dir is None:
         return None
 
     fk_models_dir = job_workspace_dir / "FKModelsStore" / target_table_name
-    has_fk_models = fk_models_dir.exists() and any(fk_models_dir.glob("model_*.pt"))
+    has_fk_models = fk_models_dir.exists() and any(fk_models_dir.glob("*/model_weights.pt"))
 
     if not has_fk_models:
         return None
@@ -522,16 +521,10 @@ def finalize_table_generation(
     * export to PARQUET, and optionally also to CSV (without col prefixes)
     """
 
-    # Setup
-    table = generated_data_schema.tables[target_table_name]
-    table_files = table.dataset.files
-    n_partitions = len(table_files)
-    _LOG.info(f"POSTPROC will handle {n_partitions} partitions")
-
     pqt_path, csv_path = setup_output_paths(delivery_dir, target_table_name, export_csv)
 
     # Detect FK capabilities
-    fk_context = detect_fk_context(job_workspace_dir, target_table_name, generated_data_schema, table_files)
+    fk_context = detect_fk_context(job_workspace_dir, target_table_name, generated_data_schema)
 
     if fk_context:
         # Model-based FK assignment using trained ML models

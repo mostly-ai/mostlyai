@@ -152,8 +152,8 @@ class ParentChildMatcher(nn.Module):
         return probability
 
 
-def get_cardinalities(*, pre_training_dir: Path) -> dict[str, int]:
-    stats_path = pre_training_dir / "stats.json"
+def get_cardinalities(*, stats_dir: Path) -> dict[str, int]:
+    stats_path = stats_dir / "stats.json"
     stats = json.loads(stats_path.read_text())
     cardinalities = {
         f"{column}_{sub_column}": cardinality
@@ -169,9 +169,9 @@ def analyze_df(
     primary_key: str | None = None,
     parent_key: str | None = None,
     data_columns: list[str] | None = None,
-    pre_training_dir: Path,
+    stats_dir: Path,
 ) -> None:
-    pre_training_dir.mkdir(parents=True, exist_ok=True)
+    stats_dir.mkdir(parents=True, exist_ok=True)
 
     key_columns = []
     if primary_key is not None:
@@ -180,12 +180,13 @@ def analyze_df(
         key_columns.append(parent_key)
 
     data_columns = data_columns or list(df.columns)
-    # Preserve column order to ensure deterministic encoding
+
+    # preserve column order to ensure deterministic encoding
     data_columns = [col for col in data_columns if col not in key_columns and col in df.columns]
     num_columns = [col for col in data_columns if col in df.select_dtypes(include="number").columns]
     cat_columns = [col for col in data_columns if col not in num_columns]
 
-    # store pre-training metadata as JSON
+    # store stats metadata as JSON
     stats = {
         "primary_key": primary_key,
         "parent_key": parent_key,
@@ -208,15 +209,15 @@ def analyze_df(
         stats["columns"][col] = col_stats
 
     # store stats
-    stats_path = pre_training_dir / "stats.json"
+    stats_path = stats_dir / "stats.json"
     stats_path.write_text(json.dumps(stats, indent=4))
 
 
 def encode_df(
-    *, df: pd.DataFrame, pre_training_dir: Path, include_primary_key: bool = True, include_parent_key: bool = True
+    *, df: pd.DataFrame, stats_dir: Path, include_primary_key: bool = True, include_parent_key: bool = True
 ) -> pd.DataFrame:
     # load stats
-    stats_path = pre_training_dir / "stats.json"
+    stats_path = stats_dir / "stats.json"
     stats = json.loads(stats_path.read_text())
     primary_key = stats["primary_key"]
     parent_key = stats["parent_key"]
@@ -557,8 +558,8 @@ def train(
     _LOG.info("Best model restored (lowest validation loss).")
 
 
-def store_fk_model(*, model: ParentChildMatcher, tgt_parent_key: str, fk_models_workspace_dir: Path) -> None:
-    fk_models_workspace_dir.mkdir(parents=True, exist_ok=True)
+def store_fk_model(*, model: ParentChildMatcher, fk_model_workspace_dir: Path) -> None:
+    fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
     model_config = {
         "parent_encoder": {
             "cardinalities": model.parent_encoder.cardinalities,
@@ -574,14 +575,14 @@ def store_fk_model(*, model: ParentChildMatcher, tgt_parent_key: str, fk_models_
         },
         "similarity_hidden_dim": model.similarity_hidden_dim,
     }
-    model_config_path = fk_models_workspace_dir / f"model_config[{tgt_parent_key}].json"
+    model_config_path = fk_model_workspace_dir / "model_config.json"
     model_config_path.write_text(json.dumps(model_config, indent=4))
-    model_state_path = fk_models_workspace_dir / f"model_weights[{tgt_parent_key}].pt"
+    model_state_path = fk_model_workspace_dir / "model_weights.pt"
     torch.save(model.state_dict(), model_state_path)
 
 
-def load_fk_model(*, tgt_parent_key: str, fk_models_workspace_dir: Path) -> ParentChildMatcher:
-    model_config_path = fk_models_workspace_dir / f"model_config[{tgt_parent_key}].json"
+def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
+    model_config_path = fk_model_workspace_dir / "model_config.json"
     model_config = json.loads(model_config_path.read_text())
     model = ParentChildMatcher(
         parent_cardinalities=model_config["parent_encoder"]["cardinalities"],
@@ -591,7 +592,7 @@ def load_fk_model(*, tgt_parent_key: str, fk_models_workspace_dir: Path) -> Pare
         entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
         similarity_hidden_dim=model_config["similarity_hidden_dim"],
     )
-    model_state_path = fk_models_workspace_dir / f"model_weights[{tgt_parent_key}].pt"
+    model_state_path = fk_model_workspace_dir / "model_weights.pt"
     model.load_state_dict(torch.load(model_state_path))
     return model
 
@@ -748,24 +749,24 @@ def match_non_context(
         non_null_mask = pd.Series(True, index=tgt_data.index)
 
     # Prepare data for FK model
-    tgt_pre_training_dir = fk_models_workspace_dir / f"pre_training[{tgt_parent_key}]"
-    parent_pre_training_dir = fk_models_workspace_dir / f"pre_training[{parent_table_name}]"
+    tgt_stats_dir = fk_models_workspace_dir / tgt_parent_key / "tgt-stats"
+    parent_stats_dir = fk_models_workspace_dir / tgt_parent_key / "parent-stats"
 
     # Encode target and parent data
     tgt_encoded = encode_df(
         df=tgt_data_non_null,
-        pre_training_dir=tgt_pre_training_dir,
+        stats_dir=tgt_stats_dir,
         include_primary_key=False,
         include_parent_key=False,
     )
     parent_encoded = encode_df(
         df=parent_data,
-        pre_training_dir=parent_pre_training_dir,
+        stats_dir=parent_stats_dir,
         include_primary_key=False,
     )
 
-    # Load model
-    model = load_fk_model(tgt_parent_key=tgt_parent_key, fk_models_workspace_dir=fk_models_workspace_dir)
+    fk_model_workspace_dir = fk_models_workspace_dir / tgt_parent_key
+    model = load_fk_model(fk_model_workspace_dir=fk_model_workspace_dir)
 
     # Build probability matrix
     fk_parent_sample_size = len(parent_encoded)
