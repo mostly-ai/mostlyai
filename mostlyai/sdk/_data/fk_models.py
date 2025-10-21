@@ -30,6 +30,7 @@ from mostlyai.engine._encoding_types.tabular.categorical import (
     analyze_reduce_categorical,
     encode_categorical,
 )
+from mostlyai.engine._encoding_types.tabular.datetime import analyze_datetime, analyze_reduce_datetime, encode_datetime
 from mostlyai.engine._encoding_types.tabular.numeric import analyze_numeric, analyze_reduce_numeric, encode_numeric
 from mostlyai.sdk._data.base import DataTable
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
@@ -176,7 +177,8 @@ def analyze_df(
     # preserve column order to ensure deterministic encoding
     data_columns = [col for col in data_columns if col not in key_columns and col in df.columns]
     num_columns = [col for col in data_columns if col in df.select_dtypes(include="number").columns]
-    cat_columns = [col for col in data_columns if col not in num_columns]
+    dt_columns = [col for col in data_columns if col in df.select_dtypes(include="datetime").columns]
+    cat_columns = [col for col in data_columns if col not in num_columns + dt_columns]
 
     # store stats metadata as JSON
     stats = {
@@ -185,6 +187,7 @@ def analyze_df(
         "data_columns": data_columns,
         "cat_columns": cat_columns,
         "num_columns": num_columns,
+        "dt_columns": dt_columns,
         "columns": {},
     }
     for col in data_columns:
@@ -194,6 +197,8 @@ def analyze_df(
             analyze, reduce = analyze_categorical, analyze_reduce_categorical
         elif col in num_columns:
             analyze, reduce = analyze_numeric, analyze_reduce_numeric
+        elif col in dt_columns:
+            analyze, reduce = analyze_datetime, analyze_reduce_datetime
         else:
             raise ValueError(f"unknown column type: {col}")
         col_stats = analyze(values, root_keys)
@@ -215,6 +220,7 @@ def encode_df(
     parent_key = stats["parent_key"]
     cat_columns = stats["cat_columns"]
     num_columns = stats["num_columns"]
+    dt_columns = stats["dt_columns"]
 
     # encode columns
     data = []
@@ -223,6 +229,8 @@ def encode_df(
             encode = encode_categorical
         elif col in num_columns:
             encode = encode_numeric
+        elif col in dt_columns:
+            encode = encode_datetime
         else:
             raise ValueError(f"unknown column type: {col}")
 
