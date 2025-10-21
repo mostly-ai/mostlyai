@@ -66,6 +66,7 @@ class MostlyAI(_MostlyBaseClient):
         local_port (int | None): The port to use for local mode with TCP transport. If not provided, UDS transport is used.
         timeout (float): Timeout for HTTPS requests in seconds. Default is 60 seconds.
         ssl_verify (bool): Whether to verify SSL certificates. Default is True.
+        test_connection (bool): Whether to test the connection during initialization. Default is True.
         quiet (bool): Whether to suppress rich output. Default is False.
 
     Example for SDK in CLIENT mode with explicit arguments:
@@ -139,6 +140,7 @@ class MostlyAI(_MostlyBaseClient):
         local_port: int | None = None,
         timeout: float = 60.0,
         ssl_verify: bool = True,
+        test_connection: bool = True,
         quiet: bool = False,
     ):
         import warnings
@@ -209,6 +211,10 @@ class MostlyAI(_MostlyBaseClient):
         else:
             raise ValueError("Invalid SDK mode")
 
+        # Set quiet mode BEFORE any rich output
+        if quiet:
+            rich.get_console().quiet = True
+
         client_kwargs = {
             "base_url": base_url,
             "api_key": api_key,
@@ -243,19 +249,19 @@ class MostlyAI(_MostlyBaseClient):
             rich.print(msg)
         elif mode == "CLIENT":
             rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]CLIENT mode[/bold] 📡")
-            try:
-                server_version = self.about().version
-                email = self.me().email
-                msg = f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/] {server_version}"
-                msg += f" as [bold]{email}[/bold]" if email else ""
-                rich.print(msg)
-            except Exception as e:
-                rich.print(f"Failed to connect to {self.base_url} : {e}.")
+            if test_connection:
+                try:
+                    server_version = self.about().version
+                    email = self.me().email
+                    msg = (
+                        f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/] {server_version}"
+                    )
+                    msg += f" as [bold]{email}[/bold]" if email else ""
+                    rich.print(msg)
+                except Exception as e:
+                    rich.print(f"Failed to connect to {self.base_url} : {e}.")
         else:
             raise ValueError("Invalid SDK mode")
-
-        if quiet:
-            rich.get_console().quiet = True
 
     def __repr__(self) -> str:
         if self.local:
@@ -420,6 +426,15 @@ class MostlyAI(_MostlyBaseClient):
               database: string
             secrets:
               password: string
+
+          - type: REDSHIFT
+            config:
+              host: string
+              port: integer, default: 5439
+              username: string
+              database: string
+            secrets:
+              password: string
           ```
         """
         c = self.connectors.create(config=config, test_connection=test_connection)
@@ -577,12 +592,12 @@ class MostlyAI(_MostlyBaseClient):
                         {'name': 'headline', 'model_encoding_type': 'LANGUAGE_TEXT'},
                     ],
                     'tabular_model_configuration': {              # tabular model configuration (optional)
-                        'max_sample_size': 20_000,                # cap sample size to 20k; set None for max accuracy
-                        'max_training_time': 30,                  # cap runtime to 30min; set None for max accuracy
+                        'max_sample_size': None,                  # eg. use all availabel training samples for max accuracy
+                        'max_training_time': None,                # eg. set no upper time limit for max accuracy
                     },
                     'language_model_configuration': {             # language model configuration (optional)
-                        'max_sample_size': 1_000,                 # cap sample size to 1k; set None for max accuracy
-                        'max_training_time': 60,                  # cap runtime to 60min; set None for max accuracy
+                        'max_sample_size': 50_000,                # eg. cap sample size to 50k; set None for max accuracy
+                        'max_training_time': 60,                  # eg. cap runtime to 60min; set None for max accuracy
                         'model': 'MOSTLY_AI/LSTMFromScratch-3m',  # use a light-weight LSTM model, trained from scratch (GPU recommended)
                         #'model': 'microsoft/phi-1.5',            # alternatively use a pre-trained HF-hosted LLM model (GPU required)
                     }
@@ -643,7 +658,7 @@ class MostlyAI(_MostlyBaseClient):
             generator (Generator | str): The generator instance or its UUID.
             config (SyntheticDatasetConfig | dict | None): Configuration for the synthetic dataset.
             size (int | dict[str, int] | None): Sample size(s) for the subject table(s).
-            seed (Seed | dict[str, Seed] | None): Seed data for the subject table(s).
+            seed (Seed | dict[str, Seed] | None): Either a single Seed for the subject table, or a dictionary with table names as keys and Seeds as values. Seed can either be a DataFrame or a path to a CSV or PARQUET file. Check generator details (`generator.tables[i].columns[j].value_range`) for possible value ranges.
             name (str | None): Name of the synthetic dataset.
             start (bool): Whether to start generation immediately. Default is True.
             wait (bool): Whether to wait for generation to finish. Default is True.
@@ -723,7 +738,7 @@ class MostlyAI(_MostlyBaseClient):
         Args:
             generator (Generator | str): The generator instance or its UUID.
             size (int | dict[str, int] | None): Sample size(s) for the subject table(s). Default is 1, if no seed is provided.
-            seed (Seed | dict[str, Seed] | None): Seed data for the subject table(s). Check generator details for possible value ranges.
+            seed (Seed | dict[str, Seed] | None): Either a single Seed for the subject table, or a dictionary with table names as keys and Seeds as values. Seed can either be a DataFrame or a path to a CSV or PARQUET file. Check generator details (`generator.tables[i].columns[j].value_range`) for possible value ranges.
             config (SyntheticProbeConfig | dict | None): Configuration for the probe.
             return_type (Literal["auto", "dict"]): The type of the return value. "dict" will always provide a dictionary of DataFrames. "auto" will return a single DataFrame for a single-table generator, and a dictionary of DataFrames for a multi-table generator. Default is "auto".
 

@@ -30,7 +30,7 @@ def handle_non_context_relations(
     data: pd.DataFrame,
     is_target: bool,
 ) -> pd.DataFrame:
-    """Handle all non-context relations for a table"""
+    """Handle all non-context relations for a table."""
     non_context_relations = schema.subset(
         relation_type=NonContextRelation,
         relations_to=[table_name],
