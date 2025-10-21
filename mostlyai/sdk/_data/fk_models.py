@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import copy
+import hashlib
 import json
 import logging
 from collections import defaultdict
@@ -22,6 +23,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
+from pathvalidate import sanitize_filename
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
@@ -67,6 +69,12 @@ MAX_TGT_PER_PARENT = 2
 # Inference Parameters
 TEMPERATURE = 1.0
 TOP_K = 200
+
+
+def safe_name(text: str) -> str:
+    safe = sanitize_filename(text)
+    digest = hashlib.md5(safe.encode("utf-8")).hexdigest()[:8]
+    return f"{safe}-{digest}"
 
 
 class EntityEncoder(nn.Module):
@@ -736,8 +744,9 @@ def match_non_context(
         non_null_mask = pd.Series(True, index=tgt_data.index)
 
     # Prepare data for FK model
-    tgt_stats_dir = fk_models_workspace_dir / tgt_parent_key / "tgt-stats"
-    parent_stats_dir = fk_models_workspace_dir / tgt_parent_key / "parent-stats"
+    fk_model_workspace_dir = fk_models_workspace_dir / tgt_parent_key
+    tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
+    parent_stats_dir = fk_model_workspace_dir / "parent-stats"
 
     # Encode target and parent data
     tgt_encoded = encode_df(
@@ -752,7 +761,6 @@ def match_non_context(
         include_primary_key=False,
     )
 
-    fk_model_workspace_dir = fk_models_workspace_dir / tgt_parent_key
     model = load_fk_model(fk_model_workspace_dir=fk_model_workspace_dir)
 
     # Build probability matrix
