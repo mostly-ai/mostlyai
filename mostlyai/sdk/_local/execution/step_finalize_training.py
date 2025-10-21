@@ -25,6 +25,7 @@ from mostlyai.sdk._data.fk_models import (
     get_cardinalities,
     prepare_training_data,
     pull_fk_model_training_data,
+    safe_name,
     store_fk_model,
     train,
 )
@@ -47,7 +48,7 @@ def execute_train_fk_models_for_single_table(
 
     for non_ctx_relation in non_ctx_relations:
         tgt_parent_key = non_ctx_relation.child.column
-        fk_model_workspace_dir = fk_models_workspace_dir / tgt_parent_key
+        fk_model_workspace_dir = fk_models_workspace_dir / safe_name(tgt_parent_key)
 
         execute_train_fk_model_for_single_relation(
             tgt_table_name=tgt_table_name,

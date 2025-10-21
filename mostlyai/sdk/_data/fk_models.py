@@ -744,7 +744,7 @@ def match_non_context(
         non_null_mask = pd.Series(True, index=tgt_data.index)
 
     # Prepare data for FK model
-    fk_model_workspace_dir = fk_models_workspace_dir / tgt_parent_key
+    fk_model_workspace_dir = fk_models_workspace_dir / safe_name(tgt_parent_key)
     tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
     parent_stats_dir = fk_model_workspace_dir / "parent-stats"
 
