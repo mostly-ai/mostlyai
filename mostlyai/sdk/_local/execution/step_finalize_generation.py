@@ -520,17 +520,21 @@ def finalize_table_generation(
 
     if fk_context:
         # Model-based FK assignment using trained ML models
-        process_table_with_fk_models(
-            children_dataset=fk_context["children_dataset"],
-            non_ctx_relations=fk_context["non_ctx_relations"],
-            parent_datasets=fk_context["parent_datasets"],
-            fk_models_dir=fk_context["fk_models_dir"],
-            parent_batch_size=parent_batch_size,
-            table_name=target_table_name,
-            schema=generated_data_schema,
-            pqt_path=pqt_path,
-            csv_path=csv_path,
-        )
+        try:
+            process_table_with_fk_models(
+                children_dataset=fk_context["children_dataset"],
+                non_ctx_relations=fk_context["non_ctx_relations"],
+                parent_datasets=fk_context["parent_datasets"],
+                fk_models_dir=fk_context["fk_models_dir"],
+                parent_batch_size=parent_batch_size,
+                table_name=target_table_name,
+                schema=generated_data_schema,
+                pqt_path=pqt_path,
+                csv_path=csv_path,
+            )
+        except Exception as e:
+            _LOG.error(f"FK model generation failed for table {target_table_name}: {e}")
+            raise
     else:
         # Random FK assignment without ML models
         table = generated_data_schema.tables[target_table_name]

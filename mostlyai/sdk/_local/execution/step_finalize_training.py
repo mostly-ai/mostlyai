@@ -166,8 +166,12 @@ def execute_step_finalize_training(
     schema = create_training_schema(generator=generator, connectors=connectors)
     for tgt_table_name in schema.tables:
         fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / tgt_table_name
-        execute_train_fk_models_for_single_table(
-            tgt_table_name=tgt_table_name,
-            schema=schema,
-            fk_models_workspace_dir=fk_models_workspace_dir,
-        )
+        try:
+            execute_train_fk_models_for_single_table(
+                tgt_table_name=tgt_table_name,
+                schema=schema,
+                fk_models_workspace_dir=fk_models_workspace_dir,
+            )
+        except Exception as e:
+            _LOG.error(f"FK model training failed for table {tgt_table_name}: {e}")
+            continue
