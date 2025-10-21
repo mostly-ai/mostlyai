@@ -418,7 +418,7 @@ def prepare_training_data(
 
     # sample children without replacement
     sample_size = min(int(sample_size), n_children)
-    rng = np.random.default_rng(seed=42)
+    rng = np.random.default_rng()
     sampled_child_indices = rng.choice(n_children, size=sample_size, replace=False)
     children_X = children_X[sampled_child_indices]
     child_keys = child_keys[sampled_child_indices]
@@ -489,15 +489,11 @@ def train(
     y = torch.tensor(labels.values, dtype=torch.float32).unsqueeze(1)
     dataset = TensorDataset(X_parent, X_child, y)
 
-    # Create generator for deterministic operations
-    generator = torch.Generator()
-    generator.manual_seed(42)
-
     val_size = int(VAL_SPLIT * len(dataset))
     train_size = len(dataset) - val_size
-    train_ds, val_ds = random_split(dataset, [train_size, val_size], generator=generator)
+    train_ds, val_ds = random_split(dataset, [train_size, val_size])
 
-    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, generator=generator)
+    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
