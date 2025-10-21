@@ -3129,6 +3129,12 @@ class SourceTableConfig(CustomBaseModel):
         return included_columns
 
     @model_validator(mode="after")
+    def validate_data_or_connector(self):
+        if self.data is None and self.source_connector_id is None:
+            raise ValueError("Either 'data' or 'source_connector_id' must be provided.")
+        return self
+
+    @model_validator(mode="after")
     def add_model_configuration(self):
         # Check if the table has a tabular and/or a language model
         columns = self.columns or []
