@@ -31,7 +31,7 @@ from mostlyai.engine._encoding_types.tabular.categorical import (
     encode_categorical,
 )
 from mostlyai.engine._encoding_types.tabular.numeric import analyze_numeric, analyze_reduce_numeric, encode_numeric
-from mostlyai.sdk._data.base import DataTable, NonContextRelation, Schema
+from mostlyai.sdk._data.base import DataTable
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
 _LOG = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ NUMERICAL_STABILITY_EPSILON = 1e-10
 
 # Data Sampling Parameters
 MAX_PARENT_SAMPLE_SIZE = 10000
-MAX_CHILDREN_PER_PARENT = 2
+MAX_TGT_PER_PARENT = 2
 
 
 class EntityEncoder(nn.Module):
@@ -240,7 +240,7 @@ def encode_df(
 # FK Training Data Pull Functions
 
 
-def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT_SAMPLE_SIZE) -> pd.DataFrame | None:
+def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT_SAMPLE_SIZE) -> pd.DataFrame:
     """
     Fetch unique parent data with optional sampling limit.
 
@@ -254,7 +254,7 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT
 
     Returns:
         DataFrame containing complete parent records with all columns.
-        Records are unique by primary key. Returns None if no data found.
+        Records are unique by primary key.
     """
     primary_key = parent_table.primary_key
     seen_keys = set()
@@ -276,101 +276,88 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT
         if len(collected_rows) >= max_sample_size:
             break
 
-    if collected_rows:
-        parent_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-        _LOG.info(f"fetch_parent_data | sampled: {len(parent_data)}")
-        return parent_data
-    else:
-        _LOG.info("fetch_parent_data | sampled: 0")
-        return None
+    parent_data = pd.DataFrame(collected_rows).reset_index(drop=True)
+    return parent_data
 
 
-def fetch_child_data(
-    child_table: DataTable, parent_keys: list, child_fk_column: str, max_per_parent: int = MAX_CHILDREN_PER_PARENT
-) -> pd.DataFrame | None:
+def fetch_tgt_data(
+    *,
+    tgt_table: DataTable,
+    tgt_parent_key: str,
+    parent_keys: list,
+    max_tgt_per_parent: int = MAX_TGT_PER_PARENT,
+) -> pd.DataFrame:
     """
-    Fetch child data with per-parent limits.
+    Fetch target data with per-parent limits.
 
-    Reads child table in chunks and tracks how many children each parent has.
-    Stops adding children for a parent once the limit is reached.
+    Reads target table in chunks and tracks how many target records each parent has.
+    Stops adding target records for a parent once the limit is reached.
 
     Args:
-        child_table: Child table to fetch from.
+        tgt_table: Target table to fetch from.
+        tgt_parent_key: Foreign key column in target table.
         parent_keys: List of parent key values to filter by.
-        child_fk_column: Name of foreign key column in child table.
-        max_per_parent: Maximum children per parent. Defaults to 1.
+        max_tgt_per_parent: Maximum target records per parent. Defaults to 1.
 
     Returns:
-        DataFrame containing child rows, limited by max_per_parent constraint.
-        Returns None if no child data found.
-
-    Example:
-        >>> children = fetch_child_data(orders_table, [1, 2, 3], "product_id", max_per_parent=2)
-        >>> # Returns up to 2 orders per product
+        DataFrame containing target records, limited by max_tgt_per_parent constraint.
     """
 
     # Track count of children per parent and collect rows directly
     parent_counts = defaultdict(int)
     collected_rows = []
-    where = {child_fk_column: parent_keys}
+    where = {tgt_parent_key: parent_keys}
 
-    for chunk_df in child_table.read_chunks(where=where, columns=child_table.columns, do_coerce_dtypes=True):
+    for chunk_df in tgt_table.read_chunks(where=where, columns=tgt_table.columns, do_coerce_dtypes=True):
         if len(chunk_df) == 0:
             continue
 
         for _, row in chunk_df.iterrows():
-            parent_id = row[child_fk_column]
+            parent_id = row[tgt_parent_key]
 
             # Add child only if under the limit
-            if parent_counts[parent_id] < max_per_parent:
+            if parent_counts[parent_id] < max_tgt_per_parent:
                 collected_rows.append(row)
                 parent_counts[parent_id] += 1
 
     # Convert to DataFrame
-    if collected_rows:
-        child_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-        _LOG.info(f"fetch_child_data | fetched: {len(child_data)}")
-        return child_data
-    else:
-        _LOG.info("fetch_child_data | fetched: 0")
-        return None
+    child_data = pd.DataFrame(collected_rows).reset_index(drop=True)
+    _LOG.info(f"fetch_child_data | fetched: {len(child_data)}")
+    return child_data
 
 
-def pull_fk_training_data(
-    schema: Schema,
-    non_ctx_relation: NonContextRelation,
+def pull_fk_model_training_data(
+    *,
+    tgt_table: DataTable,
+    tgt_parent_key: str,
+    parent_table: DataTable,
+    parent_primary_key: str,
     max_parent_sample_size: int = MAX_PARENT_SAMPLE_SIZE,
-    max_children_per_parent: int = MAX_CHILDREN_PER_PARENT,
-) -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
+    max_tgt_per_parent: int = MAX_TGT_PER_PARENT,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Pull training data for a specific non-context FK relation.
 
     Args:
         schema: Schema containing the tables
-        non_ctx_relation: Non-context relation to pull data for
+        tgt_parent_key: Foreign key column in target table
+        parent_table: Parent table
+        parent_primary_key: Primary key column in parent table
         max_parent_sample_size: Maximum parent keys to sample
-        max_children_per_parent: Maximum children per parent
+        max_tgt_per_parent: Maximum target records per parent
 
     Returns:
-        Tuple of (parent_data, child_data) or (None, None) if no data available
+        Tuple of (parent_data, tgt_data)
     """
-    parent_table = schema.tables[non_ctx_relation.parent.table]
-    child_table = schema.tables[non_ctx_relation.child.table]
-
-    parent_pk = non_ctx_relation.parent.column
-    child_fk = non_ctx_relation.child.column
-
-    parent_data = fetch_parent_data(parent_table, max_parent_sample_size)
-    child_data = None
-    if parent_data is not None:
-        parent_keys_list = parent_data[parent_pk].tolist()
-        child_data = fetch_child_data(
-            child_table=child_table,
-            parent_keys=parent_keys_list,
-            child_fk_column=child_fk,
-            max_per_parent=max_children_per_parent,
-        )
-    return parent_data, child_data
+    parent_data = fetch_parent_data(parent_table=parent_table, max_sample_size=max_parent_sample_size)
+    parent_keys_list = parent_data[parent_primary_key].tolist() if not parent_data.empty else []
+    tgt_data = fetch_tgt_data(
+        tgt_table=tgt_table,
+        tgt_parent_key=tgt_parent_key,
+        parent_keys=parent_keys_list,
+        max_tgt_per_parent=max_tgt_per_parent,
+    )
+    return parent_data, tgt_data
 
 
 def prepare_training_data(
