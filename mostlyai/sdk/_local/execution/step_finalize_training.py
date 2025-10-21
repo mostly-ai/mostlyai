@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+import logging
 from pathlib import Path
 
 from torch import Generator
@@ -31,6 +32,8 @@ from mostlyai.sdk._data.fk_models import (
 )
 from mostlyai.sdk._local.execution.step_pull_training_data import create_training_schema
 from mostlyai.sdk.domain import Connector
+
+_LOG = logging.getLogger(__name__)
 
 
 def execute_train_fk_models_for_single_table(
@@ -151,7 +154,7 @@ def execute_train_fk_model_for_single_relation(
 
     store_fk_model(model=model, fk_model_workspace_dir=fk_model_workspace_dir)
 
-    print(f"Child-parent matcher model trained and stored for parent table: {parent_table_name}")
+    _LOG.info(f"Child-parent matcher model trained and stored for parent table: {parent_table_name}")
 
 
 def execute_step_finalize_training(

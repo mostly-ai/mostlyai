@@ -429,7 +429,7 @@ def process_table_with_fk_models(
     for partition_idx, _, partition_data in children_dataset.iter_partitions():
         is_final_partition = partition_idx == total_partitions - 1
 
-        print(f"Processing partition {partition_idx + 1} ({len(partition_data)} rows)")
+        _LOG.info(f"Processing partition {partition_idx + 1} ({len(partition_data)} rows)")
 
         # Process each relationship on this partition
         for relation in non_ctx_relations:
@@ -444,7 +444,7 @@ def process_table_with_fk_models(
                 current_data = pd.concat([leftover_buffers[relation], current_data], ignore_index=True)
                 del leftover_buffers[relation]
 
-            print(f"  Processing relationship {relation_name} with batch size {optimal_batch_size}")
+            _LOG.info(f"  Processing relationship {relation_name} with batch size {optimal_batch_size}")
 
             # Process relationship in optimal-sized batches
             processed_chunks = []
