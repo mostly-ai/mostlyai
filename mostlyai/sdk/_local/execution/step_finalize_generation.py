@@ -45,10 +45,6 @@ _LOG = logging.getLogger(__name__)
 FK_MIN_CHILDREN_BATCH_SIZE = 10
 FK_PARENT_BATCH_SIZE = 1000
 
-# FK inference constants
-FK_TEMPERATURE = 1
-FK_TOP_K = 200
-
 
 def execute_step_finalize_generation(
     *,
@@ -477,8 +473,6 @@ def process_table_with_fk_models(
                         tgt_parent_key=relation.child.column,
                         parent_primary_key=relation.parent.column,
                         parent_table_name=parent_table_name,
-                        temperature=FK_TEMPERATURE,
-                        top_k=FK_TOP_K,
                     )
 
                     processed_chunks.append(processed_chunk)

@@ -63,6 +63,10 @@ NUMERICAL_STABILITY_EPSILON = 1e-10
 MAX_PARENT_SAMPLE_SIZE = 10000
 MAX_TGT_PER_PARENT = 2
 
+# Inference Parameters
+TEMPERATURE = 1.0
+TOP_K = 200
+
 
 class EntityEncoder(nn.Module):
     def __init__(
@@ -678,8 +682,8 @@ def match_non_context(
     tgt_parent_key: str,
     parent_primary_key: str,
     parent_table_name: str,
-    temperature: float = 1.0,
-    top_k: int = 100,
+    temperature: float = TEMPERATURE,
+    top_k: int = TOP_K,
 ) -> pd.DataFrame:
     # Check for _is_null column to determine which rows should have null FK
     # Column name format: {fk_name}.{parent_table_name}._is_null
