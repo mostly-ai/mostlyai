@@ -15,7 +15,6 @@
 import copy
 import json
 import logging
-import random
 from collections import defaultdict
 from pathlib import Path
 
@@ -36,17 +35,6 @@ from mostlyai.sdk._data.base import DataTable, NonContextRelation, Schema
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
 _LOG = logging.getLogger(__name__)
-
-
-def set_seeds(seed: int = 42) -> None:
-    """Set random seeds for reproducible training."""
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
 
 
 # =============================================================================
