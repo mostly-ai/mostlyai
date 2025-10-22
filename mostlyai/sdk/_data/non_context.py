@@ -22,12 +22,11 @@ This module provides functionality for handling non-context foreign keys in two 
    - Random: Fallback random sampling when ML models are not available
 """
 
-import copy
 import hashlib
 import json
 import logging
 from collections import defaultdict
-from copy import copy as shallow_copy
+from copy import copy, deepcopy
 from pathlib import Path
 
 import numpy as np
@@ -183,7 +182,7 @@ def assign_non_context_fks_randomly(
     Apply non-context keys allocation for each non-context relation for a generated table.
     Uses random sampling as a fallback when ML models are not available.
     """
-    tgt_data = shallow_copy(tgt_data)
+    tgt_data = copy(tgt_data)
     for rel in generated_data_schema.relations:
         if not isinstance(rel, NonContextRelation) or rel.child.table != tgt:
             continue
@@ -673,7 +672,7 @@ def train(
         if val_loss < best_val_loss - EARLY_STOPPING_DELTA:
             best_val_loss = val_loss
             epochs_no_improve = 0
-            best_model_state = copy.deepcopy(model.state_dict())
+            best_model_state = deepcopy(model.state_dict())
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= patience:
