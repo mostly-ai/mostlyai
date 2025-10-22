@@ -95,7 +95,6 @@ def execute_train_fk_model_for_single_relation(
 
     fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
 
-    # analyze tgt data
     tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
     analyze_df(
         df=tgt_data,
@@ -105,7 +104,6 @@ def execute_train_fk_model_for_single_relation(
         stats_dir=tgt_stats_dir,
     )
 
-    # analyze parent data
     parent_stats_dir = fk_model_workspace_dir / "parent-stats"
     analyze_df(
         df=parent_data,
@@ -114,20 +112,17 @@ def execute_train_fk_model_for_single_relation(
         stats_dir=parent_stats_dir,
     )
 
-    # encode tgt data
     tgt_encoded_data = encode_df(
         df=tgt_data,
         stats_dir=tgt_stats_dir,
         include_primary_key=False,
     )
 
-    # encode parent data
     parent_encoded_data = encode_df(
         df=parent_data,
         stats_dir=parent_stats_dir,
     )
 
-    # initialize child-parent matcher model
     parent_cardinalities = get_cardinalities(stats_dir=parent_stats_dir)
     tgt_cardinalities = get_cardinalities(stats_dir=tgt_stats_dir)
     model = ParentChildMatcher(
@@ -135,16 +130,14 @@ def execute_train_fk_model_for_single_relation(
         child_cardinalities=tgt_cardinalities,
     )
 
-    # create positive and negative pairs for training
     parent_pd, child_pd, labels_pd = prepare_training_data(
         parent_encoded_data=parent_encoded_data,
         tgt_encoded_data=tgt_encoded_data,
         parent_primary_key=parent_primary_key,
         tgt_parent_key=tgt_parent_key,
-        sample_size=None,  # No additional sampling - already done in data pull phase
+        sample_size=None,  # no additional sampling - already done in data pull phase
     )
 
-    # train model
     train(
         model=model,
         parent_pd=parent_pd,

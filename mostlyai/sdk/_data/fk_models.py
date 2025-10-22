@@ -144,10 +144,7 @@ class ParentChildMatcher(nn.Module):
         parent_encoded = self.parent_encoder(parent_inputs)
         child_encoded = self.child_encoder(child_inputs)
 
-        # Compute cosine similarity between parent and child embeddings
         similarity = F.cosine_similarity(parent_encoded, child_encoded, dim=1)
-
-        # Convert to probability (sigmoid to ensure [0,1] range)
         probability = torch.sigmoid(similarity * PEAKEDNESS_SCALER).unsqueeze(1)
 
         return probability
@@ -188,7 +185,6 @@ def analyze_df(
     dt_columns = [col for col in data_columns if col in df.select_dtypes(include="datetime").columns]
     cat_columns = [col for col in data_columns if col not in num_columns + dt_columns]
 
-    # store stats metadata as JSON
     stats = {
         "primary_key": primary_key,
         "parent_key": parent_key,
@@ -213,7 +209,6 @@ def analyze_df(
         col_stats = reduce([col_stats], value_protection=True)
         stats["columns"][col] = col_stats
 
-    # store stats
     stats_path = stats_dir / "stats.json"
     stats_path.write_text(json.dumps(stats, indent=4))
 
@@ -221,7 +216,6 @@ def analyze_df(
 def encode_df(
     *, df: pd.DataFrame, stats_dir: Path, include_primary_key: bool = True, include_parent_key: bool = True
 ) -> pd.DataFrame:
-    # load stats
     stats_path = stats_dir / "stats.json"
     stats = json.loads(stats_path.read_text())
     primary_key = stats["primary_key"]
@@ -230,7 +224,6 @@ def encode_df(
     num_columns = stats["num_columns"]
     dt_columns = stats["dt_columns"]
 
-    # encode columns
     data = []
     for col, col_stats in stats["columns"].items():
         if col in cat_columns:
@@ -281,10 +274,8 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT
     collected_rows = []
 
     for chunk_df in parent_table.read_chunks(columns=parent_table.columns, do_coerce_dtypes=True):
-        # Drop duplicates in this chunk
         chunk_df = chunk_df.drop_duplicates(subset=[primary_key])
 
-        # Add rows to list until we have enough
         for _, row in chunk_df.iterrows():
             key = row[primary_key]
             if key not in seen_keys:
@@ -322,8 +313,6 @@ def fetch_tgt_data(
     Returns:
         DataFrame containing target records, limited by max_tgt_per_parent constraint.
     """
-
-    # Track count of children per parent and collect rows directly
     parent_counts = defaultdict(int)
     collected_rows = []
     where = {tgt_parent_key: parent_keys}
@@ -335,12 +324,10 @@ def fetch_tgt_data(
         for _, row in chunk_df.iterrows():
             parent_id = row[tgt_parent_key]
 
-            # Add child only if under the limit
             if parent_counts[parent_id] < max_tgt_per_parent:
                 collected_rows.append(row)
                 parent_counts[parent_id] += 1
 
-    # Convert to DataFrame
     child_data = pd.DataFrame(collected_rows).reset_index(drop=True)
     _LOG.info(f"fetch_child_data | fetched: {len(child_data)}")
     return child_data
@@ -416,14 +403,13 @@ def prepare_training_data(
     children_X = tgt_encoded_data.drop(columns=[tgt_parent_key]).to_numpy(dtype=np.float32)
     n_children = children_X.shape[0]
 
-    # sample children without replacement
     sample_size = min(int(sample_size), n_children)
     rng = np.random.default_rng()
     sampled_child_indices = rng.choice(n_children, size=sample_size, replace=False)
     children_X = children_X[sampled_child_indices]
     child_keys = child_keys[sampled_child_indices]
 
-    # filter out null children - they will be handled by _is_null column during inference
+    # null children excluded from training - handled via _is_null column during inference
     non_null_mask = ~pd.isna(child_keys)
     children_X = children_X[non_null_mask]
     child_keys = child_keys[non_null_mask]
@@ -432,39 +418,33 @@ def prepare_training_data(
     if n_non_null == 0:
         raise ValueError("No non-null children found in training data")
 
-    # map each non-null child to its true parent row index
     true_parent_pos = parent_index_by_key.loc[child_keys].to_numpy()
     if np.any(pd.isna(true_parent_pos)):
         raise ValueError("Some child foreign keys do not match any parent primary key")
 
-    # 1. Positive pairs (label=1) - one per non-null child
+    # positive pairs (label=1) - one per non-null child
     pos_parents = parents_X[true_parent_pos]
     pos_labels = np.ones(n_non_null, dtype=np.float32)
 
-    # 2. Negative pairs (label=0) - n_negative per non-null child (vectorized)
-    # Generate all negative samples at once
+    # negative pairs (label=0) - n_negative per non-null child (vectorized)
     neg_indices = rng.integers(0, n_parents, size=(n_non_null, n_negative))
 
-    # Ensure negatives are not the true parent
-    true_parent_pos_expanded = true_parent_pos[:, np.newaxis]  # Shape: (n_non_null, 1)
+    # ensure negatives are not the true parent
+    true_parent_pos_expanded = true_parent_pos[:, np.newaxis]
     mask = neg_indices == true_parent_pos_expanded
 
-    # Replace any matches with new random samples
     while mask.any():
         neg_indices[mask] = rng.integers(0, n_parents, size=mask.sum())
         mask = neg_indices == true_parent_pos_expanded
 
-    # Flatten and create pairs
-    neg_parents = parents_X[neg_indices.ravel()]  # Shape: (n_non_null * n_negative, n_features)
-    neg_children = np.repeat(children_X, n_negative, axis=0)  # Same shape
+    neg_parents = parents_X[neg_indices.ravel()]
+    neg_children = np.repeat(children_X, n_negative, axis=0)
     neg_labels = np.zeros(n_non_null * n_negative, dtype=np.float32)
 
-    # concatenate positives and negatives
     parent_vecs = np.vstack([pos_parents, neg_parents]).astype(np.float32, copy=False)
     child_vecs = np.vstack([children_X, neg_children]).astype(np.float32, copy=False)
     labels_vec = np.concatenate([pos_labels, neg_labels]).astype(np.float32, copy=False)
 
-    # convert to pandas
     parent_pd = pd.DataFrame(parent_vecs, columns=parent_encoded_data.drop(columns=[parent_primary_key]).columns)
     child_pd = pd.DataFrame(child_vecs, columns=tgt_encoded_data.drop(columns=[tgt_parent_key]).columns)
     labels_pd = pd.Series(labels_vec, name="labels")
@@ -503,7 +483,6 @@ def train(
     best_model_state = None
 
     for epoch in range(max_epochs):
-        # training phase
         model.train()
         train_loss = 0
         for batch_parent, batch_child, batch_y in train_loader:
@@ -518,7 +497,6 @@ def train(
         train_loss /= train_size
         train_losses.append(train_loss)
 
-        # validation phase
         model.eval()
         val_loss = 0
         with torch.no_grad():
@@ -533,8 +511,7 @@ def train(
 
         _LOG.info(f"Epoch {epoch + 1}/{max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
 
-        # early stopping check
-        if val_loss < best_val_loss - EARLY_STOPPING_DELTA:  # small delta to avoid float issues
+        if val_loss < best_val_loss - EARLY_STOPPING_DELTA:
             best_val_loss = val_loss
             epochs_no_improve = 0
             best_model_state = copy.deepcopy(model.state_dict())
@@ -613,19 +590,15 @@ def build_parent_child_probabilities(
 
     model.eval()
     with torch.no_grad():
-        # Compute embeddings once for each unique child and parent
-        child_embeddings = model.child_encoder(tgt_inputs)  # Shape: (C, embedding_dim)
-        parent_embeddings = model.parent_encoder(parent_inputs)  # Shape: (Cp, embedding_dim)
+        child_embeddings = model.child_encoder(tgt_inputs)
+        parent_embeddings = model.parent_encoder(parent_inputs)
 
-        # Each child with all parent candidates: C repeated Cp times, Cp repeated C times
-        child_embeddings_interleaved = child_embeddings.repeat_interleave(
-            n_parent_batch, dim=0
-        )  # Shape: (C*Cp, embedding_dim)
-        parent_embeddings_interleaved = parent_embeddings.repeat(n_tgt, 1)  # Shape: (Cp*C, embedding_dim)
+        # create cartesian product: each child with all parent candidates
+        child_embeddings_interleaved = child_embeddings.repeat_interleave(n_parent_batch, dim=0)
+        parent_embeddings_interleaved = parent_embeddings.repeat(n_tgt, 1)
 
-        # Compute probabilities using cosine similarity
         similarity = F.cosine_similarity(parent_embeddings_interleaved, child_embeddings_interleaved, dim=1)
-        probs = torch.sigmoid(similarity * PEAKEDNESS_SCALER)  # Same scaling as in forward pass
+        probs = torch.sigmoid(similarity * PEAKEDNESS_SCALER)
 
         prob_matrix = probs.view(n_tgt, n_parent_batch)
         return prob_matrix
@@ -661,25 +634,20 @@ def sample_best_parents(
 
     for i in range(n_tgt):
         if temperature == 0.0:
-            # Deterministic: pick best match
             best_parent_indices[i] = torch.argmax(prob_matrix[i]).cpu().numpy()
         else:
-            # Apply top-k filtering if specified
             probs = prob_matrix[i]
             candidate_indices = torch.arange(len(probs))
 
             if top_k is not None and top_k < len(probs):
-                # Keep only top-k most probable parents
                 top_k_values, top_k_indices = torch.topk(probs, k=top_k)
                 probs = top_k_values
                 candidate_indices = top_k_indices
 
-            # Probabilistic: sample from distribution with temperature scaling
-            # Higher temperature = more uniform sampling (more variance)
+            # apply temperature scaling (higher = more uniform sampling)
             logits = torch.log(probs + NUMERICAL_STABILITY_EPSILON) / temperature
             probs = torch.softmax(logits, dim=0).cpu().numpy()
 
-            # Sample from candidates and map back to original indices
             sampled_candidate = rng.choice(len(probs), p=probs)
             best_parent_indices[i] = candidate_indices[sampled_candidate].cpu().numpy()
 
@@ -697,16 +665,13 @@ def match_non_context(
     temperature: float = TEMPERATURE,
     top_k: int = TOP_K,
 ) -> pd.DataFrame:
-    # Check for _is_null column to determine which rows should have null FK
-    # Column name format: {fk_name}.{parent_table_name}._is_null
+    # check for _is_null column (format: {fk_name}.{parent_table_name}._is_null)
     is_null_col = NON_CONTEXT_COLUMN_INFIX.join([tgt_parent_key, parent_table_name, IS_NULL])
     has_is_null = is_null_col in tgt_data.columns
 
-    # Initialize FK column with nulls
     tgt_data[tgt_parent_key] = pd.NA
 
     if has_is_null:
-        # Use _is_null column to determine which rows should have null FK
         # _is_null column contains string values "True" or "False"
         is_null_values = tgt_data[is_null_col].astype(str)
         null_mask = is_null_values == "True"
@@ -716,21 +681,17 @@ def match_non_context(
             f"FK matching data | total_rows: {len(tgt_data)} | null_rows: {null_mask.sum()} | non_null_rows: {non_null_mask.sum()}"
         )
 
-        # Only process non-null rows
         if non_null_mask.sum() == 0:
             _LOG.warning(f"All rows have null FK values (via {is_null_col})")
-            # Remove _is_null column
             if is_null_col in tgt_data.columns:
                 tgt_data = tgt_data.drop(columns=[is_null_col])
             return tgt_data
 
-        # Get indices of non-null rows
         non_null_indices = tgt_data.index[non_null_mask].tolist()
 
-        # Filter to only non-null rows for FK model processing
         tgt_data_non_null = tgt_data.loc[non_null_mask].copy().reset_index(drop=True)
 
-        # Remove _is_null column from data before encoding (it shouldn't be used by the FK model)
+        # remove _is_null column before encoding (not used by FK model)
         if is_null_col in tgt_data_non_null.columns:
             tgt_data_non_null = tgt_data_non_null.drop(columns=[is_null_col])
     else:
@@ -739,12 +700,10 @@ def match_non_context(
         non_null_indices = tgt_data.index.tolist()
         non_null_mask = pd.Series(True, index=tgt_data.index)
 
-    # Prepare data for FK model
     fk_model_workspace_dir = fk_models_workspace_dir / safe_name(tgt_parent_key)
     tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
     parent_stats_dir = fk_model_workspace_dir / "parent-stats"
 
-    # Encode target and parent data
     tgt_encoded = encode_df(
         df=tgt_data_non_null,
         stats_dir=tgt_stats_dir,
@@ -759,36 +718,29 @@ def match_non_context(
 
     model = load_fk_model(fk_model_workspace_dir=fk_model_workspace_dir)
 
-    # Build probability matrix
     fk_parent_sample_size = len(parent_encoded)
     _LOG.info(
         f"FK model matching | temperature: {temperature} | top_k: {top_k} | parent_sample_size: {fk_parent_sample_size}"
     )
 
-    # Compute parent-child probabilities using new cosine similarity architecture
     prob_matrix = build_parent_child_probabilities(
         model=model,
         tgt_encoded=tgt_encoded,
         parent_encoded=parent_encoded,
     )
 
-    # Sample best parents based on probabilities
     best_parent_indices = sample_best_parents(
         prob_matrix=prob_matrix,
         temperature=temperature,
         top_k=top_k,
     )
 
-    # Map indices to parent IDs
     best_parent_ids = parent_data.iloc[best_parent_indices][parent_primary_key].values
 
-    # Create a Series with the correct index alignment
     parent_ids_series = pd.Series(best_parent_ids, index=non_null_indices)
 
-    # Assign to non-null rows
     tgt_data.loc[non_null_indices, tgt_parent_key] = parent_ids_series
 
-    # Remove _is_null column if it exists
     if has_is_null and is_null_col in tgt_data.columns:
         tgt_data = tgt_data.drop(columns=[is_null_col])
 

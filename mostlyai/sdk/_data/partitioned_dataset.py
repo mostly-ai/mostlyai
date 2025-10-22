@@ -31,12 +31,10 @@ class PartitionedDataset:
         self.max_cached_partitions = max_cached_partitions
         self.partition_info = []
 
-        # Create cached method with instance-specific maxsize
-        # If max_cached_partitions is -1, set maxsize to None for unlimited cache
+        # unlimited cache if max_cached_partitions is -1
         cache_maxsize = None if max_cached_partitions == -1 else max_cached_partitions
         self._load_partition_cached = lru_cache(maxsize=cache_maxsize)(self._load_partition_uncached)
 
-        # Build partition index using table information
         self._build_partition_index()
 
     def _build_partition_index(self):
@@ -66,7 +64,6 @@ class PartitionedDataset:
         if n_items <= 0:
             return pd.DataFrame()
 
-        # Randomly select partitions until we have enough rows
         selected_partitions = set()
         total_available = 0
         available_partitions = list(range(len(self.partition_info)))
@@ -78,21 +75,17 @@ class PartitionedDataset:
             selected_partitions.add(partition_idx)
             total_available += self.partition_info[partition_idx]["size"]
 
-        # Load selected partitions
         all_data = []
         for partition_idx in selected_partitions:
             partition = self.partition_info[partition_idx]
             df = self._load_partition(partition["file"])
             all_data.append(df)
 
-        # Combine all loaded data
         combined_df = pd.concat(all_data, ignore_index=True)
 
-        # Sample exactly n_items from the combined data
         if len(combined_df) >= n_items:
             sampled_df = combined_df.sample(n=n_items, replace=False).reset_index(drop=True)
         else:
-            # If we still don't have enough, sample with replacement
             sampled_df = combined_df.sample(n=n_items, replace=True).reset_index(drop=True)
 
         return sampled_df
@@ -102,11 +95,9 @@ class PartitionedDataset:
 
     def _get_row_count_fast(self, file_path: Path) -> int:
         """Get row count from parquet metadata without reading data."""
-        # For single-partition tables, use table's row_count directly
         if len(self.table.files) == 1:
             return self.table.row_count
 
-        # Use PyArrow parquet metadata for efficiency
         parquet_file = pq.ParquetFile(file_path)
         return parquet_file.metadata.num_rows
 
@@ -116,7 +107,7 @@ class PartitionedDataset:
 
     def _load_partition(self, file_path: Path) -> pd.DataFrame:
         """Load partition with caching."""
-        return self._load_partition_cached(file_path).copy()  # Return copy to prevent mutations
+        return self._load_partition_cached(file_path).copy()
 
     def _find_partition_for_index(self, global_idx: int) -> dict:
         """Find which partition contains the given global index."""
@@ -133,16 +124,13 @@ class PartitionedDataset:
         start = max(0, start)
         end = min(len(self), end)
 
-        # Find which partitions we need
         needed_partitions = []
         for partition in self.partition_info:
             if partition["end_idx"] > start and partition["start_idx"] < end:
-                # Calculate local slice within this partition
                 local_start = max(0, start - partition["start_idx"])
                 local_end = min(partition["size"], end - partition["start_idx"])
                 needed_partitions.append((partition, local_start, local_end))
 
-        # Load needed partitions and extract slices
         result_dfs = []
         for partition, local_start, local_end in needed_partitions:
             df = self._load_partition(partition["file"])
