@@ -253,35 +253,18 @@ def process_table_with_random_fk_assignment(
     pqt_path: Path,
     csv_path: Path | None,
 ) -> None:
-    """Process table with random FK assignment."""
+    """Process table with random FK assignment, partition by partition."""
     table = schema.tables[table_name]
-    dataset = PartitionedDataset(table)
 
-    total_rows = len(dataset)
-    batch_size = max(total_rows // 100, FK_MIN_CHILDREN_BATCH_SIZE)
-
-    batch_counter = 0
-
-    for start_idx in range(0, len(dataset), batch_size):
-        end_idx = min(start_idx + batch_size, len(dataset))
-
-        batch_data = dataset[start_idx:end_idx]
-
+    for partition_idx, _, partition_data in table.iter_partitions():
+        _LOG.info(f"Processing partition {partition_idx + 1} ({len(partition_data)} rows)")
         processed_data = assign_non_context_fks_randomly(
-            tgt_data=batch_data,
+            tgt_data=partition_data,
             generated_data_schema=schema,
             tgt=table_name,
         )
-
         processed_data = filter_and_order_columns(processed_data, table_name, schema)
-
-        write_batch_outputs(processed_data, table_name, batch_counter, pqt_path, csv_path)
-
-        batch_counter += 1
-
-        dataset.clear_cache()
-
-        del processed_data
+        write_batch_outputs(processed_data, table_name, partition_idx, pqt_path, csv_path)
 
 
 def calculate_optimal_child_batch_size_for_relation(
