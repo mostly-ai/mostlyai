@@ -88,7 +88,6 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=export_csv,
                 job_workspace_dir=job_workspace_dir,
-                parent_batch_size=1000,
             )
             progress.update(advance=1)
 
