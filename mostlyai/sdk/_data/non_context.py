@@ -911,8 +911,8 @@ def build_parent_child_probabilities(
         parent_embeddings_interleaved = parent_embeddings.repeat(n_tgt, 1)
 
         similarity = F.cosine_similarity(parent_embeddings_interleaved, child_embeddings_interleaved, dim=1)
-        prob_matrix = similarity.view(n_tgt, n_parent_batch)
-        prob_matrix = F.softmax(prob_matrix * PEAKEDNESS_SCALER, dim=1)
+        similarity = similarity.view(n_tgt, n_parent_batch)
+        prob_matrix = F.softmax(similarity * PEAKEDNESS_SCALER, dim=1)
 
         return prob_matrix
 
