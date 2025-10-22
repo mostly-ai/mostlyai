@@ -25,8 +25,7 @@ from mostlyai.sdk._data.dtype import is_timestamp_dtype
 from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
-from mostlyai.sdk._data.non_context import assign_non_context_fks_randomly, match_non_context
-from mostlyai.sdk._data.partitioned_dataset import PartitionedDataset
+from mostlyai.sdk._data.non_context import PartitionedDataset, assign_non_context_fks_randomly, match_non_context
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._data.util.common import (
     IS_NULL,
