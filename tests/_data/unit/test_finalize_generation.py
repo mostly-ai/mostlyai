@@ -71,6 +71,9 @@ def test_finalize_table_generation(tmp_path, tgt_data):
     df_expected = tgt_data
     post_pqt_path = tmp_path / "tgt" / "parquet"
     post_pqt = ParquetDataTable(path=post_pqt_path).read_data()
+    gen_pqt_parts = [i.stem for i in gen_data_path.iterdir()]
+    post_pqt_parts = [i.stem for i in post_pqt_path.iterdir()]
+    assert gen_pqt_parts == post_pqt_parts  # expect the same partitions after postproc
     pd.testing.assert_frame_equal(post_pqt, df_expected, check_dtype=False)
     assert post_pqt["gender"].dtype == STRING
     post_csv = CsvDataTable(path=tmp_path / "tgt" / "csv" / "tgt.csv").read_data()
