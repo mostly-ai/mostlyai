@@ -723,11 +723,11 @@ def prepare_training_data(
     # negative pairs (label=0) - n_negative per non-null child (vectorized)
     neg_indices = rng.integers(0, n_parents, size=(n_non_null, n_negative))
 
-    # ensure negatives are not the true parent
+    # ensure negatives are not the true parent if there is more than one parent
     true_parent_pos_expanded = true_parent_pos[:, np.newaxis]
     mask = neg_indices == true_parent_pos_expanded
 
-    while mask.any():
+    while mask.any() and n_parents > 1:
         neg_indices[mask] = rng.integers(0, n_parents, size=mask.sum())
         mask = neg_indices == true_parent_pos_expanded
 
