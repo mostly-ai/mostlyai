@@ -228,20 +228,17 @@ def write_batch_outputs(
     data: pd.DataFrame, table_name: str, batch_counter: int, pqt_path: Path, csv_path: Path | None
 ) -> None:
     """Write batch to both parquet and CSV."""
-    # Parquet output
-    batch_filename = f"batch_{batch_counter:06d}.parquet"
+    # store data as PQT files
+    batch_filename = f"part.{batch_counter:06d}.parquet"
     _LOG.info(f"store post-processed batch {batch_counter} ({len(data)} rows) as PQT")
     pqt_post = ParquetDataTable(path=pqt_path / batch_filename, name=table_name)
     pqt_post.write_data(data)
 
-    # CSV output
+    # store data as single CSV file
     if csv_path:
         _LOG.info(f"store post-processed batch {batch_counter} as CSV")
         csv_post = CsvDataTable(path=csv_path / f"{table_name}.csv", name=table_name)
-        if batch_counter == 1:
-            csv_post.write_data(data)
-        else:
-            data.to_csv(csv_path / f"{table_name}.csv", mode="a", header=False, index=False)
+        csv_post.write_data(data, if_exists="append")
 
 
 def setup_output_paths(delivery_dir: Path, target_table_name: str, export_csv: bool) -> tuple[Path, Path | None]:
@@ -308,7 +305,6 @@ def process_table_with_random_assignment(
 
     for start_idx in range(0, len(dataset), batch_size):
         end_idx = min(start_idx + batch_size, len(dataset))
-        batch_counter += 1
 
         # Get batch data
         batch_data = dataset[start_idx:end_idx]
@@ -325,6 +321,8 @@ def process_table_with_random_assignment(
 
         # Write output
         write_batch_outputs(processed_data, table_name, batch_counter, pqt_path, csv_path)
+
+        batch_counter += 1
 
         del processed_data
 
@@ -389,11 +387,12 @@ def assign_parent_partition_round_robin(
 
 
 def process_table_with_fk_models(
+    *,
     children_dataset: PartitionedDataset,
     non_ctx_relations: list,
     parent_datasets: dict[str, PartitionedDataset],
     fk_models_dir: Path,
-    parent_batch_size: int,
+    parent_batch_size: int = FK_PARENT_BATCH_SIZE,
     table_name: str,
     schema: Schema,
     pqt_path: Path,
@@ -489,7 +488,7 @@ def process_table_with_fk_models(
         partition_data = filter_and_order_columns(partition_data, table_name, schema)
 
         # Write the fully-processed partition
-        write_batch_outputs(partition_data, table_name, partition_idx + 1, pqt_path, csv_path)
+        write_batch_outputs(partition_data, table_name, partition_idx, pqt_path, csv_path)
 
         # Free partition memory
         del partition_data
@@ -501,7 +500,6 @@ def finalize_table_generation(
     delivery_dir: Path,
     export_csv: bool,
     job_workspace_dir: Path | None = None,
-    parent_batch_size: int = FK_PARENT_BATCH_SIZE,
 ) -> None:
     """
     Post-process the generated data for a given table.
@@ -513,7 +511,7 @@ def finalize_table_generation(
 
     pqt_path, csv_path = setup_output_paths(delivery_dir, target_table_name, export_csv)
 
-    # Detect FK capabilities
+    # detect FK capabilities
     fk_context = detect_fk_context(job_workspace_dir, target_table_name, generated_data_schema)
 
     if fk_context:
@@ -524,7 +522,6 @@ def finalize_table_generation(
                 non_ctx_relations=fk_context["non_ctx_relations"],
                 parent_datasets=fk_context["parent_datasets"],
                 fk_models_dir=fk_context["fk_models_dir"],
-                parent_batch_size=parent_batch_size,
                 table_name=target_table_name,
                 schema=generated_data_schema,
                 pqt_path=pqt_path,
