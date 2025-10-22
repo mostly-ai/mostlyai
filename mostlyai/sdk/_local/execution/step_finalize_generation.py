@@ -66,7 +66,6 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=False,
                 job_workspace_dir=job_workspace_dir,
-                parent_batch_size=1000,
             )
         return usages
 
