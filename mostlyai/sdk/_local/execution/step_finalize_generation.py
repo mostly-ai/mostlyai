@@ -78,8 +78,8 @@ def execute_step_finalize_generation(
     export_csv = total_datapoints < 100_000_000  # only export CSV if datapoints < 100M
 
     with ProgressCallbackWrapper(update_progress, description="Finalize generation") as progress:
-        # init progress with total_count; +3 for the 3 steps below
-        progress.update(completed=0, total=len(schema.tables) + 3)
+        # init progress with total_count; +4 for the 4 steps below
+        progress.update(completed=0, total=len(schema.tables) + 4)
 
         for tgt in schema.tables:
             finalize_table_generation(
