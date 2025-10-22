@@ -16,8 +16,6 @@
 import logging
 from pathlib import Path
 
-from torch import Generator
-
 from mostlyai.sdk._data.base import NonContextRelation, Schema
 from mostlyai.sdk._data.non_context import (
     ParentChildMatcher,
@@ -31,7 +29,7 @@ from mostlyai.sdk._data.non_context import (
     train,
 )
 from mostlyai.sdk._local.execution.step_pull_training_data import create_training_schema
-from mostlyai.sdk.domain import Connector
+from mostlyai.sdk.domain import Connector, Generator
 
 _LOG = logging.getLogger(__name__)
 
