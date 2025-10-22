@@ -28,7 +28,6 @@ import hashlib
 import json
 import logging
 from collections import defaultdict
-from collections.abc import Iterator
 from copy import copy as shallow_copy
 from copy import deepcopy
 from functools import lru_cache
@@ -209,10 +208,6 @@ class PartitionedDataset:
             result_dfs.append(slice_df)
 
         return pd.concat(result_dfs, ignore_index=True) if result_dfs else pd.DataFrame()
-
-    def iter_partitions(self) -> Iterator[tuple[int, Path, pd.DataFrame]]:
-        """Iterate over partitions using table's method."""
-        yield from self.table.iter_partitions()
 
     @property
     def files(self) -> list[Path]:

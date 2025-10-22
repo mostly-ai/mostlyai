@@ -256,8 +256,14 @@ def process_table_with_random_fk_assignment(
     """Process table with random FK assignment, partition by partition."""
     table = schema.tables[table_name]
 
-    for partition_idx, _, partition_data in table.iter_partitions():
+    # instantiate container outside of loop to avoid memory to pile up
+    container = type(table.container)()
+    for partition_idx, partition_file in enumerate(table.dataset.files):
+        container.set_location(partition_file)
+        partition_table = ParquetDataTable(container=container)
+        partition_data = partition_table.read_data(do_coerce_dtypes=True)
         _LOG.info(f"Processing partition {partition_idx + 1} ({len(partition_data)} rows)")
+
         processed_data = assign_non_context_fks_randomly(
             tgt_data=partition_data,
             generated_data_schema=schema,
@@ -367,7 +373,13 @@ def process_table_with_fk_models(
 
     total_partitions = len(children_dataset.files)
 
-    for partition_idx, _, partition_data in children_dataset.iter_partitions():
+    # instantiate container outside of loop to avoid memory to pile up
+    children_container = type(children_dataset.table.container)()
+    for partition_idx, partition_file in enumerate(children_dataset.files):
+        children_container.set_location(partition_file)
+        partition_table = ParquetDataTable(container=children_container)
+        partition_data = partition_table.read_data(do_coerce_dtypes=True)
+
         is_final_partition = partition_idx == total_partitions - 1
 
         _LOG.info(f"Processing partition {partition_idx + 1} ({len(partition_data)} rows)")
