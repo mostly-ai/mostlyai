@@ -919,8 +919,8 @@ def build_parent_child_probabilities(
 def sample_best_parents(
     *,
     prob_matrix: torch.Tensor,
-    temperature: float = 1.0,
-    top_k: int | None = 100,
+    temperature: float,
+    top_k: int | None,
 ) -> np.ndarray:
     """
     Sample best parent for each child based on match probabilities.
