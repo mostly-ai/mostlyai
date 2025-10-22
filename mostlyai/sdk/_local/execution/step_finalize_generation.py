@@ -204,16 +204,6 @@ def export_random_samples(
         )
 
 
-def finalize_probing(schema: Schema, delivery_dir: Path):
-    for tgt in schema.tables:
-        finalize_table_generation(
-            generated_data_schema=schema,
-            target_table_name=tgt,
-            delivery_dir=delivery_dir,
-            export_csv=False,
-        )
-
-
 def filter_and_order_columns(data: pd.DataFrame, table_name: str, schema: Schema) -> pd.DataFrame:
     """Keep only original columns in the right order."""
     tgt_cols = schema.tables[table_name].columns or data.columns
@@ -256,51 +246,27 @@ def setup_output_paths(delivery_dir: Path, target_table_name: str, export_csv: b
     return pqt_path, csv_path
 
 
-def detect_fk_context(
-    job_workspace_dir: Path | None,
-    target_table_name: str,
-    schema: Schema,
-) -> dict | None:
-    """Detect and setup FK processing context."""
-    if job_workspace_dir is None:
-        return None
-
+def are_fk_models_available(job_workspace_dir: Path, target_table_name: str) -> bool:
+    """Check if FK models are available for the given table."""
     fk_models_dir = job_workspace_dir / "FKModelsStore" / target_table_name
     has_fk_models = fk_models_dir.exists() and any(fk_models_dir.glob("*/model_weights.pt"))
-
-    if not has_fk_models:
-        return None
-
-    # Setup FK context
-    non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == target_table_name]
-
-    children_table = schema.tables[target_table_name]
-    children_dataset = PartitionedDataset(children_table)
-    parent_datasets = {}
-
-    for relation in non_ctx_relations:
-        parent_table_name = relation.parent.table
-        if parent_table_name not in parent_datasets:
-            parent_table = schema.tables[parent_table_name]
-            parent_datasets[parent_table_name] = PartitionedDataset(parent_table)
-
-    return {
-        "fk_models_dir": fk_models_dir,
-        "non_ctx_relations": non_ctx_relations,
-        "children_dataset": children_dataset,
-        "parent_datasets": parent_datasets,
-    }
+    return has_fk_models
 
 
-def process_table_with_random_assignment(
-    dataset: PartitionedDataset,
-    batch_size: int,
+def process_table_with_random_fk_assignment(
     table_name: str,
     schema: Schema,
     pqt_path: Path,
     csv_path: Path | None,
 ) -> None:
     """Process table with random FK assignment."""
+    table = schema.tables[table_name]
+    dataset = PartitionedDataset(table)
+
+    # Calculate reasonable batch size based on dataset size
+    total_rows = len(dataset)
+    batch_size = max(total_rows // 100, FK_MIN_CHILDREN_BATCH_SIZE)
+
     batch_counter = 0
 
     for start_idx in range(0, len(dataset), batch_size):
@@ -323,6 +289,9 @@ def process_table_with_random_assignment(
         write_batch_outputs(processed_data, table_name, batch_counter, pqt_path, csv_path)
 
         batch_counter += 1
+
+        # Clear dataset cache
+        dataset.clear_cache()
 
         del processed_data
 
@@ -388,17 +357,25 @@ def assign_parent_partition_round_robin(
 
 def process_table_with_fk_models(
     *,
-    children_dataset: PartitionedDataset,
-    non_ctx_relations: list,
-    parent_datasets: dict[str, PartitionedDataset],
-    fk_models_dir: Path,
-    parent_batch_size: int = FK_PARENT_BATCH_SIZE,
     table_name: str,
     schema: Schema,
     pqt_path: Path,
     csv_path: Path | None,
+    parent_batch_size: int = FK_PARENT_BATCH_SIZE,
+    job_workspace_dir: Path,
 ) -> None:
     """Process table with ML model-based FK assignment using natural dataset partitions and per-relationship batch sizes."""
+
+    fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / table_name
+    non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == table_name]
+    children_table = schema.tables[table_name]
+    children_dataset = PartitionedDataset(children_table)
+    parent_datasets = {}
+    for relation in non_ctx_relations:
+        parent_table_name = relation.parent.table
+        if parent_table_name not in parent_datasets:
+            parent_table = schema.tables[parent_table_name]
+            parent_datasets[parent_table_name] = PartitionedDataset(parent_table)
 
     # Calculate optimal batch size for each relationship
     relationship_batch_sizes = {}
@@ -462,7 +439,7 @@ def process_table_with_fk_models(
                     )
 
                     processed_chunk = match_non_context(
-                        fk_models_workspace_dir=fk_models_dir,
+                        fk_models_workspace_dir=fk_models_workspace_dir,
                         tgt_data=chunk_data,
                         parent_data=assigned_parent_data,
                         tgt_parent_key=relation.child.column,
@@ -499,7 +476,7 @@ def finalize_table_generation(
     target_table_name: str,
     delivery_dir: Path,
     export_csv: bool,
-    job_workspace_dir: Path | None = None,
+    job_workspace_dir: Path,
 ) -> None:
     """
     Post-process the generated data for a given table.
@@ -510,46 +487,32 @@ def finalize_table_generation(
     """
 
     pqt_path, csv_path = setup_output_paths(delivery_dir, target_table_name, export_csv)
+    fk_models_available = are_fk_models_available(job_workspace_dir, target_table_name)
+    fk_models_failed = False
 
-    # detect FK capabilities
-    fk_context = detect_fk_context(job_workspace_dir, target_table_name, generated_data_schema)
-
-    if fk_context:
-        # Model-based FK assignment using trained ML models
+    if fk_models_available:
+        # non context FKs of the table will be smartly assigned with FK models
         try:
+            _LOG.info(f"Assigning non context FKs (if exists) through FK models for table {target_table_name}")
             process_table_with_fk_models(
-                children_dataset=fk_context["children_dataset"],
-                non_ctx_relations=fk_context["non_ctx_relations"],
-                parent_datasets=fk_context["parent_datasets"],
-                fk_models_dir=fk_context["fk_models_dir"],
                 table_name=target_table_name,
                 schema=generated_data_schema,
                 pqt_path=pqt_path,
                 csv_path=csv_path,
+                job_workspace_dir=job_workspace_dir,
             )
         except Exception as e:
-            _LOG.error(f"FK model generation failed for table {target_table_name}: {e}")
-            raise
-    else:
-        # Random FK assignment without ML models
-        table = generated_data_schema.tables[target_table_name]
-        dataset = PartitionedDataset(table)
+            _LOG.error(f"Non context FKs assignment through FK models failed for table {target_table_name}: {e}")
+            fk_models_failed = True
 
-        # Calculate reasonable batch size based on dataset size
-        total_rows = len(dataset)
-        random_batch_size = max(total_rows // 100, FK_MIN_CHILDREN_BATCH_SIZE)
-
-        process_table_with_random_assignment(
-            dataset=dataset,
-            batch_size=random_batch_size,
+    if not fk_models_available or fk_models_failed:
+        _LOG.info(f"Assigning non context FKs (if exists) through random assignment for table {target_table_name}")
+        process_table_with_random_fk_assignment(
             table_name=target_table_name,
             schema=generated_data_schema,
             pqt_path=pqt_path,
             csv_path=csv_path,
         )
-
-        # Clear dataset cache
-        dataset.clear_cache()
 
 
 def export_data_to_excel(delivery_dir: Path, output_dir: Path):
