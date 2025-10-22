@@ -217,14 +217,12 @@ def filter_and_order_columns(data: pd.DataFrame, table_name: str, schema: Schema
 def write_batch_outputs(
     data: pd.DataFrame, table_name: str, batch_counter: int, pqt_path: Path, csv_path: Path | None
 ) -> None:
-    """Write batch to both parquet and CSV."""
-    # store data as PQT files
+    """Write batch to parquet and optionally CSV."""
     batch_filename = f"part.{batch_counter:06d}.parquet"
     _LOG.info(f"store post-processed batch {batch_counter} ({len(data)} rows) as PQT")
     pqt_post = ParquetDataTable(path=pqt_path / batch_filename, name=table_name)
     pqt_post.write_data(data)
 
-    # store data as single CSV file
     if csv_path:
         _LOG.info(f"store post-processed batch {batch_counter} as CSV")
         csv_post = CsvDataTable(path=csv_path / f"{table_name}.csv", name=table_name)
@@ -232,7 +230,7 @@ def write_batch_outputs(
 
 
 def setup_output_paths(delivery_dir: Path, target_table_name: str, export_csv: bool) -> tuple[Path, Path | None]:
-    """Setup output directories."""
+    """Create output directories for parquet and optionally CSV."""
     pqt_path = delivery_dir / target_table_name / "parquet"
     pqt_path.mkdir(exist_ok=True, parents=True)
     _LOG.info(f"prepared {pqt_path=} for storing post-processed data as PQT files")
@@ -263,7 +261,6 @@ def process_table_with_random_fk_assignment(
     table = schema.tables[table_name]
     dataset = PartitionedDataset(table)
 
-    # Calculate reasonable batch size based on dataset size
     total_rows = len(dataset)
     batch_size = max(total_rows // 100, FK_MIN_CHILDREN_BATCH_SIZE)
 
@@ -272,25 +269,20 @@ def process_table_with_random_fk_assignment(
     for start_idx in range(0, len(dataset), batch_size):
         end_idx = min(start_idx + batch_size, len(dataset))
 
-        # Get batch data
         batch_data = dataset[start_idx:end_idx]
 
-        # Apply non-FK processing
         processed_data = postproc_non_context(
             tgt_data=batch_data,
             generated_data_schema=schema,
             tgt=table_name,
         )
 
-        # Apply filtering and column ordering
         processed_data = filter_and_order_columns(processed_data, table_name, schema)
 
-        # Write output
         write_batch_outputs(processed_data, table_name, batch_counter, pqt_path, csv_path)
 
         batch_counter += 1
 
-        # Clear dataset cache
         dataset.clear_cache()
 
         del processed_data
@@ -303,18 +295,17 @@ def calculate_optimal_child_batch_size_for_relation(
     relation_name: str,
 ) -> int:
     """Calculate optimal child batch size for a specific FK relationship."""
-
     total_children = len(children_dataset)
     parent_size = len(parent_dataset)
     num_parent_batches = math.ceil(parent_size / parent_batch_size)
 
-    # Calculate ideal batch size for full parent utilization
+    # ideal batch size for full parent utilization
     ideal_batch_size = total_children // num_parent_batches
 
-    # Apply constraints: respect minimum batch size only
+    # apply minimum batch size constraint
     optimal_batch_size = max(ideal_batch_size, FK_MIN_CHILDREN_BATCH_SIZE)
 
-    # Calculate utilization metrics for logging
+    # log utilization metrics
     num_child_batches = total_children // optimal_batch_size
     parent_utilization = min(num_child_batches / num_parent_batches * 100, 100)
 
@@ -342,9 +333,8 @@ def assign_parent_partition_round_robin(
     start_idx = (child_batch_idx * parent_batch_size) % parent_dataset_size
     end_idx = min(start_idx + parent_batch_size, parent_dataset_size)
 
-    # Handle wrap-around if needed
+    # handle wrap-around to beginning if batch spans end boundary
     if end_idx - start_idx < parent_batch_size and parent_dataset_size > parent_batch_size:
-        # Need to wrap around to beginning
         first_part = parent_dataset[start_idx:end_idx]
         remaining_needed = parent_batch_size - (end_idx - start_idx)
         second_part = parent_dataset[0:remaining_needed]
@@ -377,7 +367,7 @@ def process_table_with_fk_models(
             parent_table = schema.tables[parent_table_name]
             parent_datasets[parent_table_name] = PartitionedDataset(parent_table)
 
-    # Calculate optimal batch size for each relationship
+    # calculate optimal batch size for each relationship
     relationship_batch_sizes = {}
     for relation in non_ctx_relations:
         parent_table_name = relation.parent.table
@@ -392,11 +382,9 @@ def process_table_with_fk_models(
         )
         relationship_batch_sizes[relation] = optimal_batch_size
 
-    # Process data using natural dataset partitions with buffering
-    relationship_batch_indices = {
-        relation: 0 for relation in non_ctx_relations
-    }  # Each relationship has its own batch counter
-    leftover_buffers = {}  # Buffer per relationship for incomplete batches
+    # process data using natural dataset partitions with buffering
+    relationship_batch_indices = {relation: 0 for relation in non_ctx_relations}
+    leftover_buffers = {}  # incomplete batches buffered for next partition
 
     total_partitions = len(children_dataset.files)
 
@@ -405,14 +393,12 @@ def process_table_with_fk_models(
 
         _LOG.info(f"Processing partition {partition_idx + 1} ({len(partition_data)} rows)")
 
-        # Process each relationship on this partition
         for relation in non_ctx_relations:
             parent_table_name = relation.parent.table
             parent_dataset = parent_datasets[parent_table_name]
             relation_name = f"{relation.child.table}.{relation.child.column}->{parent_table_name}"
             optimal_batch_size = relationship_batch_sizes[relation]
 
-            # Combine with leftover buffer from previous partition (if any)
             current_data = partition_data.copy()
             if relation in leftover_buffers:
                 current_data = pd.concat([leftover_buffers[relation], current_data], ignore_index=True)
@@ -420,19 +406,17 @@ def process_table_with_fk_models(
 
             _LOG.info(f"  Processing relationship {relation_name} with batch size {optimal_batch_size}")
 
-            # Process relationship in optimal-sized batches
             processed_chunks = []
 
             for chunk_start in range(0, len(current_data), optimal_batch_size):
                 chunk_end = min(chunk_start + optimal_batch_size, len(current_data))
                 chunk_data = current_data.iloc[chunk_start:chunk_end].copy()
 
-                # Check if complete batch OR final batch
+                # process complete batches and final batches; buffer incomplete batches
                 is_complete_batch = chunk_end - chunk_start == optimal_batch_size
                 is_final_batch = is_final_partition and (chunk_end == len(current_data))
 
                 if is_complete_batch or is_final_batch:
-                    # Process as complete batch using relationship-specific batch index
                     current_batch_idx = relationship_batch_indices[relation]
                     assigned_parent_data = assign_parent_partition_round_robin(
                         parent_dataset, current_batch_idx, parent_batch_size
@@ -448,26 +432,20 @@ def process_table_with_fk_models(
                     )
 
                     processed_chunks.append(processed_chunk)
-                    relationship_batch_indices[relation] += 1  # Increment this relationship's batch counter
+                    relationship_batch_indices[relation] += 1
                 else:
-                    # Incomplete batch - buffer for next partition
                     leftover_buffers[relation] = chunk_data
                     break
 
-            # Update partition data with results from this relationship
             if processed_chunks:
                 partition_data = pd.concat(processed_chunks, ignore_index=True)
 
-            # Clear parent dataset cache after processing this relationship
             parent_datasets[parent_table_name].clear_cache()
 
-        # Apply final filtering and column ordering to partition
         partition_data = filter_and_order_columns(partition_data, table_name, schema)
 
-        # Write the fully-processed partition
         write_batch_outputs(partition_data, table_name, partition_idx, pqt_path, csv_path)
 
-        # Free partition memory
         del partition_data
 
 
@@ -491,7 +469,6 @@ def finalize_table_generation(
     fk_models_failed = False
 
     if fk_models_available:
-        # non context FKs of the table will be smartly assigned with FK models
         try:
             _LOG.info(f"Assigning non context FKs (if exists) through FK models for table {target_table_name}")
             process_table_with_fk_models(
