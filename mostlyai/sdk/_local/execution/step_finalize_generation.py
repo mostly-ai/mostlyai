@@ -276,7 +276,7 @@ def calculate_optimal_child_batch_size_for_relation(
     """Calculate optimal child batch size for a specific FK relationship."""
     total_children = len(children_dataset)
     parent_size = len(parent_dataset)
-    num_parent_batches = math.ceil(parent_size / parent_batch_size)
+    num_parent_batches = max(1, math.ceil(parent_size / parent_batch_size))
 
     # ideal batch size for full parent utilization
     ideal_batch_size = total_children // num_parent_batches
