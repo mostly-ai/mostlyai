@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import math
+import traceback
 import uuid
 import zipfile
 from pathlib import Path
@@ -375,7 +376,7 @@ def process_table_with_fk_models(
 
     # instantiate container outside of loop to avoid memory to pile up
     children_container = type(children_dataset.table.container)()
-    for partition_idx, partition_file in enumerate(children_dataset.files):
+    for partition_idx, partition_file in enumerate(children_dataset.table.dataset.files):
         children_container.set_location(partition_file)
         partition_table = ParquetDataTable(container=children_container)
         partition_data = partition_table.read_data(do_coerce_dtypes=True)
@@ -470,7 +471,9 @@ def finalize_table_generation(
                 job_workspace_dir=job_workspace_dir,
             )
         except Exception as e:
-            _LOG.error(f"Non context FKs assignment through FK models failed for table {target_table_name}: {e}")
+            _LOG.error(
+                f"Non context FKs assignment through FK models failed for table {target_table_name}: {e}\n{traceback.format_exc()}"
+            )
             fk_models_failed = True
 
     if not fk_models_available or fk_models_failed:
