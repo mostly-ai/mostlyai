@@ -19,7 +19,7 @@ from pathlib import Path
 from torch import Generator
 
 from mostlyai.sdk._data.base import NonContextRelation, Schema
-from mostlyai.sdk._data.fk_models import (
+from mostlyai.sdk._data.non_context import (
     ParentChildMatcher,
     analyze_df,
     encode_df,
