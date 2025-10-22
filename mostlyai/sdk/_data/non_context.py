@@ -86,6 +86,7 @@ MAX_TGT_PER_PARENT = 2
 # Inference Parameters
 TEMPERATURE = 1.0
 TOP_K = 20
+TOP_P = 0.95
 
 
 # =============================================================================
@@ -913,6 +914,9 @@ def build_parent_child_probabilities(
         probs = torch.sigmoid(similarity * PEAKEDNESS_SCALER)
 
         prob_matrix = probs.view(n_tgt, n_parent_batch)
+
+        # normalize probability matrix rows to sum to 1 for each child
+        prob_matrix = prob_matrix / (prob_matrix.sum(dim=1, keepdim=True) + NUMERICAL_STABILITY_EPSILON)
         return prob_matrix
 
 
@@ -921,6 +925,7 @@ def sample_best_parents(
     prob_matrix: torch.Tensor,
     temperature: float,
     top_k: int | None,
+    top_p: float | None,
 ) -> np.ndarray:
     """
     Sample best parent for each child based on match probabilities.
@@ -935,6 +940,11 @@ def sample_best_parents(
         top_k: If specified, only sample from top-K most probable parents per child.
                This prevents unrealistic outlier matches while maintaining variance.
                Recommended: 10-50 depending on parent pool size.
+        top_p: If specified, use nucleus sampling - only sample from the smallest set
+               of parents whose cumulative probability exceeds p (0.0 < p <= 1.0).
+               This dynamically adjusts the candidate pool size based on probability mass.
+               If both top_k and top_p are specified, top_k is applied first, then top_p.
+               Recommended: 0.9-0.95 for high quality matches with adaptive diversity.
 
     Returns:
         best_parent_indices: Array of parent indices for each child
@@ -951,10 +961,28 @@ def sample_best_parents(
             probs = prob_matrix[i]
             candidate_indices = torch.arange(len(probs))
 
+            # apply top_k filtering first if specified
             if top_k is not None and top_k < len(probs):
                 top_k_values, top_k_indices = torch.topk(probs, k=top_k)
                 probs = top_k_values
                 candidate_indices = top_k_indices
+
+            # apply top_p (nucleus) filtering if specified
+            if top_p is not None and 0.0 < top_p < 1.0:
+                # sort probabilities in descending order
+                sorted_probs, sorted_indices = torch.sort(probs, descending=True)
+
+                # compute cumulative probabilities
+                cumsum_probs = torch.cumsum(sorted_probs, dim=0)
+
+                # find the cutoff index where cumulative probability exceeds top_p
+                # keep at least one candidate
+                cutoff_idx = torch.searchsorted(cumsum_probs, top_p, right=False).item() + 1
+                cutoff_idx = max(1, min(cutoff_idx, len(sorted_probs)))
+
+                # filter to nucleus candidates
+                probs = sorted_probs[:cutoff_idx]
+                candidate_indices = candidate_indices[sorted_indices[:cutoff_idx]]
 
             # apply temperature scaling (higher = more uniform sampling)
             logits = torch.log(probs + NUMERICAL_STABILITY_EPSILON) / temperature
@@ -975,7 +1003,8 @@ def match_non_context(
     parent_primary_key: str,
     parent_table_name: str,
     temperature: float = TEMPERATURE,
-    top_k: int = TOP_K,
+    top_k: int | None = TOP_K,
+    top_p: float | None = TOP_P,
 ) -> pd.DataFrame:
     """
     Match non-context foreign keys using trained ML models.
@@ -992,6 +1021,7 @@ def match_non_context(
         parent_table_name: Name of parent table
         temperature: Sampling temperature (0=greedy, 1=normal, >1=diverse)
         top_k: Number of top candidates to consider per match
+        top_p: Nucleus sampling threshold (0.0 < p <= 1.0) for dynamic candidate filtering
 
     Returns:
         Target data with FK column populated
@@ -1051,7 +1081,7 @@ def match_non_context(
 
     fk_parent_sample_size = len(parent_encoded)
     _LOG.info(
-        f"FK model matching | temperature: {temperature} | top_k: {top_k} | parent_sample_size: {fk_parent_sample_size}"
+        f"FK model matching | temperature: {temperature} | top_k: {top_k} | top_p: {top_p} | parent_sample_size: {fk_parent_sample_size}"
     )
 
     prob_matrix = build_parent_child_probabilities(
@@ -1064,6 +1094,7 @@ def match_non_context(
         prob_matrix=prob_matrix,
         temperature=temperature,
         top_k=top_k,
+        top_p=top_p,
     )
 
     best_parent_ids = parent_data.iloc[best_parent_indices][parent_primary_key].values
