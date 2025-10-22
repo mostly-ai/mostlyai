@@ -65,6 +65,7 @@ def test_finalize_table_generation(tmp_path, tgt_data):
         target_table_name="tgt",
         delivery_dir=tmp_path,
         export_csv=True,
+        job_workspace_dir=tmp_path,
     )
     # check post-processed data
     df_expected = tgt_data

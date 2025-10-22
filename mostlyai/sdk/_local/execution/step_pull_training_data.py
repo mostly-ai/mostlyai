@@ -31,7 +31,7 @@ def execute_step_pull_training_data(
     workspace_dir: Path,
     update_progress: Callable,
 ) -> tuple[list[str], int]:
-    schema = _create_training_schema(generator=generator, connectors=connectors)
+    schema = create_training_schema(generator=generator, connectors=connectors)
 
     # fetch total rows
     tgt_table_total_rows = schema.tables[target_table_name].row_count
@@ -54,11 +54,10 @@ def execute_step_pull_training_data(
         workspace_dir=workspace_dir,
         update_progress=update_progress,
     )
-
     return tgt_table_columns, tgt_table_total_rows
 
 
-def _create_training_schema(generator: Generator, connectors: list[Connector]) -> Schema:
+def create_training_schema(generator: Generator, connectors: list[Connector]) -> Schema:
     tables = {}
     for table in generator.tables:
         # create DataContainer
