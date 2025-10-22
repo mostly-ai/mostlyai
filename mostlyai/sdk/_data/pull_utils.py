@@ -46,7 +46,7 @@ from mostlyai.sdk._data.language_model import (
     drop_language_columns_in_target,
     split_language_model,
 )
-from mostlyai.sdk._data.non_context import handle_non_context_relations
+from mostlyai.sdk._data.non_context import add_is_null_for_non_context_relations
 from mostlyai.sdk._data.progress_callback import ProgressCallbackWrapper
 from mostlyai.sdk._data.util.common import TEMPORARY_PRIMARY_KEY
 from mostlyai.sdk.domain import ModelEncodingType, ModelType
@@ -774,7 +774,7 @@ def split_context(
                 ]
                 chunk = chunk.drop(columns=non_ctx_cols)
             else:
-                chunk = handle_non_context_relations(
+                chunk = add_is_null_for_non_context_relations(
                     schema=schema,
                     table_name=table.name,
                     data=chunk,
@@ -869,7 +869,7 @@ def split_target(
             return chunk.index
 
         for idx, chunk in enumerate(iterator):
-            chunk = handle_non_context_relations(
+            chunk = add_is_null_for_non_context_relations(
                 schema=schema,
                 table_name=table.name,
                 data=chunk,

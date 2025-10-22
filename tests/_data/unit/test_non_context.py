@@ -17,9 +17,9 @@ import pandas as pd
 from mostlyai.sdk._data.base import DataIdentifier, ForeignKey, NonContextRelation, Schema
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.non_context import (
-    handle_non_context_relation,
-    handle_non_context_relations,
-    postproc_non_context,
+    add_is_null_for_non_context_relation,
+    add_is_null_for_non_context_relations,
+    assign_non_context_fks_randomly,
     sample_non_context_keys,
 )
 
@@ -46,7 +46,7 @@ def test_handle_non_context_relation(tmp_path):
         parent=DataIdentifier(table="non_ctx", column="int"),
         child=DataIdentifier(table="tgt", column="non_ctx_id"),
     )
-    enriched_data = handle_non_context_relation(
+    enriched_data = add_is_null_for_non_context_relation(
         data=data,
         table=non_context_table,
         relation=relation,
@@ -101,7 +101,7 @@ def test_handle_non_context_relations(tmp_path):
     schema = Schema(tables=tables)
 
     data = schema.tables["tgt"].read_data_prefixed(include_table_prefix=False)
-    data = handle_non_context_relations(
+    data = add_is_null_for_non_context_relations(
         schema=schema,
         table_name="tgt",
         data=data,
@@ -164,7 +164,7 @@ def test_postproc_non_context(tmp_path):
     )
 
     # sample non-context keys
-    tgt_postprocessed_data = postproc_non_context(
+    tgt_postprocessed_data = assign_non_context_fks_randomly(
         tgt_data=tgt_data,
         generated_data_schema=schema,
         tgt="tgt",

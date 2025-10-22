@@ -87,7 +87,7 @@ TOP_K = 200
 # =============================================================================
 
 
-def handle_non_context_relations(
+def add_is_null_for_non_context_relations(
     schema: Schema,
     table_name: str,
     data: pd.DataFrame,
@@ -99,7 +99,7 @@ def handle_non_context_relations(
         relations_to=[table_name],
     ).relations
     for relation in non_context_relations:
-        data = handle_non_context_relation(
+        data = add_is_null_for_non_context_relation(
             data=data,
             table=schema.tables[relation.parent.table],
             relation=relation,
@@ -108,7 +108,7 @@ def handle_non_context_relations(
     return data
 
 
-def handle_non_context_relation(
+def add_is_null_for_non_context_relation(
     data: pd.DataFrame,
     table: DataTable,
     relation: NonContextRelation,
@@ -174,7 +174,7 @@ def sample_non_context_keys(
     return sampled_keys
 
 
-def postproc_non_context(
+def assign_non_context_fks_randomly(
     tgt_data: pd.DataFrame,
     generated_data_schema: Schema,
     tgt: str,
@@ -207,13 +207,6 @@ def postproc_non_context(
 # =============================================================================
 # ML-BASED FK MODELS: NEURAL NETWORK ARCHITECTURE
 # =============================================================================
-
-
-def safe_name(text: str) -> str:
-    """Generate a safe filename with hash suffix."""
-    safe = sanitize_filename(text)
-    digest = hashlib.md5(safe.encode("utf-8")).hexdigest()[:8]
-    return f"{safe}-{digest}"
 
 
 class EntityEncoder(nn.Module):
@@ -296,6 +289,13 @@ class ParentChildMatcher(nn.Module):
 # =============================================================================
 # ML-BASED FK MODELS: DATA ENCODING & STATISTICS
 # =============================================================================
+
+
+def safe_name(text: str) -> str:
+    """Generate a safe filename with hash suffix."""
+    safe = sanitize_filename(text)
+    digest = hashlib.md5(safe.encode("utf-8")).hexdigest()[:8]
+    return f"{safe}-{digest}"
 
 
 def get_cardinalities(*, stats_dir: Path) -> dict[str, int]:
