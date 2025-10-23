@@ -164,21 +164,21 @@ class PartitionedDataset:
     def __len__(self) -> int:
         return self.table.row_count
 
-    def _get_row_count_fast(self, file_path: Path) -> int:
+    def _get_row_count_fast(self, file_path: str) -> int:
         """Get row count from parquet metadata without reading data."""
         if len(self.table.files) == 1:
             return self.table.row_count
 
         filesystem = self.table.container.file_system
-        parquet_file = pq.ParquetFile(str(file_path), filesystem=filesystem)
+        parquet_file = pq.ParquetFile(file_path, filesystem=filesystem)
         return parquet_file.metadata.num_rows
 
-    def _load_partition_uncached(self, file_path: Path) -> pd.DataFrame:
+    def _load_partition_uncached(self, file_path: str) -> pd.DataFrame:
         """Load partition data from disk or remote storage (no caching)."""
         filesystem = self.table.container.file_system
-        return pd.read_parquet(str(file_path), filesystem=filesystem)
+        return pd.read_parquet(file_path, filesystem=filesystem)
 
-    def _load_partition(self, file_path: Path) -> pd.DataFrame:
+    def _load_partition(self, file_path: str) -> pd.DataFrame:
         """Load partition with caching."""
         return self._load_partition_cached(file_path).copy()
 
@@ -217,8 +217,8 @@ class PartitionedDataset:
         yield from self.table.iter_partitions()
 
     @property
-    def files(self) -> list[Path]:
-        """Access partition files using table's files."""
+    def files(self) -> list[str]:
+        """Access partition files using table's files (scheme-less paths)."""
         return self.table.files
 
     def clear_cache(self) -> None:
