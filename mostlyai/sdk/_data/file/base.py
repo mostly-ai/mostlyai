@@ -379,13 +379,9 @@ class FileDataTable(DataTable, abc.ABC):
         """Iterate over dataset partitions yielding (index, file_path, dataframe)."""
         filesystem = self.container.file_system
         for idx, file_path in enumerate(self.dataset.files):
+            _LOG.info(f"DEBUG FILE PATH: {file_path}")
             data = pd.read_parquet(file_path, filesystem=filesystem)
             yield idx, Path(file_path), data
-
-    @property
-    def files(self) -> list[str]:
-        """Get the list of partition files as strings (scheme-less paths for remote filesystems)."""
-        return self.dataset.files
 
 
 class FileContainer(DataContainer):

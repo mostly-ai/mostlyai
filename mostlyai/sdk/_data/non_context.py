@@ -109,9 +109,9 @@ class PartitionedDataset:
         self._build_partition_index()
 
     def _build_partition_index(self):
-        """Build partition index using table's files."""
+        """Build partition index using table's dataset files."""
         current_total = 0
-        for file in self.table.files:
+        for file in self.table.dataset.files:
             partition_size = self._get_row_count_fast(file)
             self.partition_info.append(
                 {
@@ -166,7 +166,7 @@ class PartitionedDataset:
 
     def _get_row_count_fast(self, file_path: str) -> int:
         """Get row count from parquet metadata without reading data."""
-        if len(self.table.files) == 1:
+        if len(self.table.dataset.files) == 1:
             return self.table.row_count
 
         filesystem = self.table.container.file_system
@@ -215,11 +215,6 @@ class PartitionedDataset:
     def iter_partitions(self) -> Iterator[tuple[int, Path, pd.DataFrame]]:
         """Iterate over partitions using table's method."""
         yield from self.table.iter_partitions()
-
-    @property
-    def files(self) -> list[str]:
-        """Access partition files using table's files (scheme-less paths)."""
-        return self.table.files
 
     def clear_cache(self) -> None:
         """Clear the partition cache."""
