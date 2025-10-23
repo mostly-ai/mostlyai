@@ -567,6 +567,47 @@ class MostlyAI(_MostlyBaseClient):
             }, start=True, wait=True)
             ```
 
+        Example of a multi-table relational dataset with non-context foreign key:
+            ```python
+            # read original data
+            import pandas as pd
+            repo_url = 'https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/berka/data'
+            accounts_df = pd.read_csv(f'{repo_url}/account.csv.gz')
+            disp_df = pd.read_csv(f'{repo_url}/disp.csv.gz')
+            clients_df = pd.read_csv(f'{repo_url}/client.csv.gz')
+            # instantiate client
+            from mostlyai.sdk import MostlyAI
+            mostly = MostlyAI()
+            # train generator
+            g = mostly.train(config={
+                'name': 'BERKA',
+                'tables': [{
+                    'name': 'clients',
+                    'data': clients_df,
+                    'primary_key': 'client_id',       # define PK column
+                }, {
+                    'name': 'accounts',
+                    'data': accounts_df,
+                    'primary_key': 'account_id',      # define PK column
+                }, {
+                    'name': 'disp',
+                    'data': disp_df,
+                    'primary_key': 'disp_id',         # define PK column
+                    'foreign_keys': [{                # define FK columns: max 1 Context FK allowed
+                        'column': 'client_id',
+                        'referenced_table': 'clients',
+                        'is_context': True            # Context FK: the `disp` records that belong to the same `client` will be learned and generated together - with the context of the parent;
+                                                      # -> patterns between child and parent (and grand-parent) and between siblings belonging to the same parent will all be retained;
+                    }, {
+                        'column': 'account_id',
+                        'referenced_table': 'accounts',
+                        'is_context': False           # Non-Context FK: a dedicated model will be trained to learn matching a `disp` record with a suitable `account` record;
+                                                      # -> patterns between child and parent will be retained, but not between siblings belonging to the same parent;
+                    }],
+                }],
+            }, start=True, wait=True)
+            ```
+
         Example of a single flat table with TABULAR and LANGUAGE models:
             ```python
             # read original data
