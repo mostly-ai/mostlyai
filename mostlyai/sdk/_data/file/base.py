@@ -379,7 +379,7 @@ class FileDataTable(DataTable, abc.ABC):
         """Iterate over dataset partitions yielding (index, file_path, dataframe)."""
         filesystem = self.container.file_system
         for idx, file_path in enumerate(self.dataset.files):
-            data = pd.read_parquet(file_path, filesystem=filesystem)
+            data = pd.read_parquet(str(file_path), filesystem=filesystem)
             yield idx, Path(file_path), data
 
     @property

@@ -170,13 +170,13 @@ class PartitionedDataset:
             return self.table.row_count
 
         filesystem = self.table.container.file_system
-        parquet_file = pq.ParquetFile(file_path, filesystem=filesystem)
+        parquet_file = pq.ParquetFile(str(file_path), filesystem=filesystem)
         return parquet_file.metadata.num_rows
 
     def _load_partition_uncached(self, file_path: Path) -> pd.DataFrame:
         """Load partition data from disk or remote storage (no caching)."""
         filesystem = self.table.container.file_system
-        return pd.read_parquet(file_path, filesystem=filesystem)
+        return pd.read_parquet(str(file_path), filesystem=filesystem)
 
     def _load_partition(self, file_path: Path) -> pd.DataFrame:
         """Load partition with caching."""
