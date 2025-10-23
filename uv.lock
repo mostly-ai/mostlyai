@@ -3726,8 +3726,8 @@ requires-dist = [
     { name = "joblib", marker = "extra == 'local'", specifier = ">=1.4.2" },
     { name = "joblib", marker = "extra == 'local-gpu'", specifier = ">=1.4.2" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
-    { name = "mostlyai-engine", marker = "extra == 'local'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-cond-gen-imput-seed-null" },
-    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-cond-gen-imput-seed-null" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-cond-gen-impute-seed" },
+    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-cond-gen-impute-seed" },
     { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.9.8" },
     { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.9.8" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
@@ -3804,8 +3804,8 @@ docs = [
 
 [[package]]
 name = "mostlyai-engine"
-version = "1.5.8"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-cond-gen-imput-seed-null#929ac4a094c3fe739e12c0176eebec8fe4273dc1" }
+version = "1.6.0"
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-cond-gen-impute-seed#8f5432e19645d7a3c56b8b3be6dcb5f5412bf70c" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
