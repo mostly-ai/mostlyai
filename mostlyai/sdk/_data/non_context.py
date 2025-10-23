@@ -216,6 +216,11 @@ class PartitionedDataset:
         """Iterate over partitions using table's method."""
         yield from self.table.iter_partitions()
 
+    @property
+    def files(self) -> list[str]:
+        """Get partition file paths."""
+        return self.table.dataset.files
+
     def clear_cache(self) -> None:
         """Clear the partition cache."""
         self._load_partition_cached.cache_clear()

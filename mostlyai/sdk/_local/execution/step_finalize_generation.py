@@ -365,7 +365,7 @@ def process_table_with_fk_models(
     relationship_batch_indices = {relation: 0 for relation in non_ctx_relations}
     leftover_buffers = {}  # incomplete batches buffered for next partition
 
-    total_partitions = len(children_dataset.table.dataset.files)
+    total_partitions = len(children_dataset.files)
 
     for partition_idx, _, partition_data in children_dataset.iter_partitions():
         is_final_partition = partition_idx == total_partitions - 1
