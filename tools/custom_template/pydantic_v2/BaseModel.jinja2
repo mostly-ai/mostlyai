@@ -1191,9 +1191,7 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
         if config and config.imputation:
             has_tabular_model = self.source_table.tabular_model_configuration is not None
             if not has_tabular_model:
-                raise ValueError(
-                    f"Table '{self.source_table.name}' specifies imputation but has no tabular model"
-                )
+                raise ValueError(f"Table '{self.source_table.name}' specifies imputation but has no tabular model")
 
             for col in config.imputation.columns:
                 if not any(gcol.name == col for gcol in self.source_table.columns or []):
@@ -1210,15 +1208,11 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
 
             target_col = config.fairness.target_column
             if not any(col.name == target_col for col in self.source_table.columns or []):
-                raise ValueError(
-                    f"Fairness target column '{target_col}' not found in table '{self.source_table.name}'"
-                )
+                raise ValueError(f"Fairness target column '{target_col}' not found in table '{self.source_table.name}'")
 
             for col in config.fairness.sensitive_columns:
                 if not any(gcol.name == col for gcol in self.source_table.columns or []):
-                    raise ValueError(
-                        f"Fairness sensitive column '{col}' not found in table '{self.source_table.name}'"
-                    )
+                    raise ValueError(f"Fairness sensitive column '{col}' not found in table '{self.source_table.name}'")
 
             if target_col in config.fairness.sensitive_columns:
                 raise ValueError(f"Target column '{target_col}' cannot be a sensitive column")
