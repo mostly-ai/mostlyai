@@ -117,6 +117,30 @@ syn = mostly.probe(g, size=1000)
 syn['purchases'].sort_values(['users_id', 'date'])
 ```
 
+Conditionally generate 100 synthetic simulations for a specific customer profile with their first 2 purchases.
+
+> **Note:** For multi-table seeds, you must provide unique PK/FK values to match records between the seed tables.
+
+```python
+# define seed for 100 simulations for a specific user and her first 2 purchases
+user_ids = [f"sim-{i:03d}" for i in range(100)]
+seed_users = pd.DataFrame({
+    'users_id': user_ids,
+})
+seed_purchases = pd.DataFrame({
+    'users_id': [uid for uid in user_ids for _ in range(2)],
+    'date': pd.to_datetime(['1997-01-12', '1997-01-12'] * 100),
+    'cds': [1, 5] * 100,
+    'amt': [12.00, 77.00] * 100,
+})
+syn = mostly.probe(g, seed={
+    'users': seed_users,
+    'purchases': seed_purchases,
+})
+syn['purchases'] = syn['purchases'].sort_values(['users_id', 'date'])
+syn
+```
+
 
 ## Multi-table tabular data
 

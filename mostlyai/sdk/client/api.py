@@ -593,7 +593,7 @@ class MostlyAI(_MostlyBaseClient):
                     'name': 'disp',
                     'data': disp_df,
                     'primary_key': 'disp_id',         # define PK column
-                    'foreign_keys': [{                # define FK columns: max 1 Context FK allowed
+                    'foreign_keys': [{                # define FK columns: max 1 Context FK allowed; referenced context tables must NOT result in circular references;
                         'column': 'client_id',
                         'referenced_table': 'clients',
                         'is_context': True            # Context FK: the `disp` records that belong to the same `client` will be learned and generated together - with the context of the parent;
@@ -824,6 +824,24 @@ class MostlyAI(_MostlyBaseClient):
                 },
                 return_type="dict"
             )
+            ```
+
+        Example for multi-table conditional probing (e.g., time-series with 100 simulations):
+            ```python
+            # create 100 simulations for a specific user profile and first 2 purchases
+            user_ids = [f"sim-{i:03d}" for i in range(100)]
+            seed_users = pd.DataFrame({'users_id': user_ids})
+            seed_purchases = pd.DataFrame({
+                'users_id': [uid for uid in user_ids for _ in range(2)],
+                'date': pd.to_datetime(['1997-01-12', '1997-01-12'] * 100),
+                'cds': [1, 5] * 100,
+                'amt': [12.00, 77.00] * 100,
+            })
+            data = mostly.probe(
+                'INSERT_YOUR_GENERATOR_ID',
+                seed={'users': seed_users, 'purchases': seed_purchases}
+            )
+            # Note: For multi-table seeds, provide unique PK/FK values to match records between tables
             ```
         """
         config = harmonize_sd_config(
