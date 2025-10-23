@@ -39,6 +39,7 @@ https://github.com/user-attachments/assets/9e233213-a259-455c-b8ed-d1f1548b492f
   - Single-table, multi-table, and time-series
 - **Multiple Model Types**
   - State-of-the-art performance via TabularARGN
+  - DNN-based match making for graph relations
   - Fine-tune Hugging Face hosted language models
   - Efficient LSTM for text synthesis from scratch
 - **Advanced Training Options**

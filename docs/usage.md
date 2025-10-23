@@ -179,6 +179,80 @@ display(syn['batting'].sort_values('players_id'))
 display(syn['fielding'].sort_values('players_id'))
 ```
 
+## Multi-table relational data with non-context foreign keys
+
+Train a 3-table relational generator on the BERKA dataset with both context and non-context foreign keys.
+
+**Understanding Foreign Key Types:**
+
+- **Context FK** (`is_context: True`): Child records that belong to the same parent are learned and generated together with the context of the parent. This preserves patterns between child and parent (and grand-parent) as well as between siblings belonging to the same parent.
+
+- **Non-Context FK** (`is_context: False`): A dedicated model is trained to learn matching a child record with a suitable parent record. This preserves patterns between child and parent, but not between siblings belonging to the same parent.
+
+**Subject Tables:** Tables that do not have a context foreign key are considered subject tables. In the BERKA example below, `clients` and `accounts` are subject tables, while `disp` is a child table with a context FK to `clients`.
+
+```python
+import pandas as pd
+from mostlyai.sdk import MostlyAI
+
+# load original data from BERKA dataset
+repo_url = 'https://github.com/mostly-ai/public-demo-data/raw/refs/heads/dev/berka/data'
+accounts_df = pd.read_csv(f'{repo_url}/account.csv.gz')
+disp_df = pd.read_csv(f'{repo_url}/disp.csv.gz')
+clients_df = pd.read_csv(f'{repo_url}/client.csv.gz')
+
+# instantiate SDK
+mostly = MostlyAI()
+
+# train a generator
+g = mostly.train(config={
+    'name': 'BERKA',                      # name of the generator
+    'tables': [{                          # provide list of table(s)
+        'name': 'clients',                # name of the table
+        'data': clients_df,               # the original data as pd.DataFrame
+        'primary_key': 'client_id',       # define PK column
+        'tabular_model_configuration': {
+            'max_training_time': 2,       # cap runtime for demo; set None for max accuracy
+        },
+    }, {
+        'name': 'accounts',               # name of the table
+        'data': accounts_df,              # the original data as pd.DataFrame
+        'primary_key': 'account_id',      # define PK column
+        'tabular_model_configuration': {
+            'max_training_time': 2,       # cap runtime for demo; set None for max accuracy
+        },
+    }, {
+        'name': 'disp',                   # name of the table
+        'data': disp_df,                  # the original data as pd.DataFrame
+        'primary_key': 'disp_id',         # define PK column
+        'foreign_keys': [{                # define FK columns: max 1 Context FK allowed
+            'column': 'client_id',
+            'referenced_table': 'clients',
+            'is_context': True            # Context FK
+        }, {
+            'column': 'account_id',
+            'referenced_table': 'accounts',
+            'is_context': False           # Non-Context FK
+        }],
+        'tabular_model_configuration': {
+            'max_training_time': 2,       # cap runtime for demo; set None for max accuracy
+        },
+    }],
+})
+
+# show Model QA reports
+g.reports(display=True)
+```
+
+Generate a new dataset with 1000 synthetic clients and 800 synthetic accounts, along with their related dispositions.
+```python
+sd = mostly.generate(g, size={'clients': 1_000, 'accounts': 800})
+syn = sd.data()
+display(syn['clients'].sort_values('client_id'))
+display(syn['accounts'].sort_values('account_id'))
+display(syn['disp'].sort_values('disp_id'))
+```
+
 ## Tabular and textual data
 
 Train a multi-model generator on a single flat table, that consists both of tabular and of textual columns.
