@@ -212,7 +212,7 @@ class PartitionedDataset:
 
         return pd.concat(result_dfs, ignore_index=True) if result_dfs else pd.DataFrame()
 
-    def iter_partitions(self) -> Iterator[tuple[int, Path, pd.DataFrame]]:
+    def iter_partitions(self) -> Iterator[tuple[int, str, pd.DataFrame]]:
         """Iterate over partitions using table's method."""
         yield from self.table.iter_partitions()
 
