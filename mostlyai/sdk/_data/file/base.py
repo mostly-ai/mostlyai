@@ -375,13 +375,6 @@ class FileDataTable(DataTable, abc.ABC):
                 return "a"
         return "w"
 
-    def iter_partitions(self) -> Iterator[tuple[int, str, pd.DataFrame]]:
-        """Iterate over dataset partitions yielding (index, file_path, dataframe)."""
-        filesystem = self.container.file_system
-        for idx, file_path in enumerate(self.dataset.files):
-            data = pd.read_parquet(file_path, filesystem=filesystem)
-            yield idx, file_path, data
-
 
 class FileContainer(DataContainer):
     SCHEMES = ["http", "https"]

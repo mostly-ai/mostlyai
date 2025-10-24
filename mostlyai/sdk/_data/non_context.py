@@ -213,8 +213,11 @@ class PartitionedDataset:
         return pd.concat(result_dfs, ignore_index=True) if result_dfs else pd.DataFrame()
 
     def iter_partitions(self) -> Iterator[tuple[int, str, pd.DataFrame]]:
-        """Iterate over partitions using table's method."""
-        yield from self.table.iter_partitions()
+        """Iterate over partitions yielding (index, file_path, dataframe)."""
+        for idx, partition in enumerate(self.partition_info):
+            file_path = partition["file"]
+            data = self._load_partition(file_path)
+            yield idx, file_path, data
 
     @property
     def files(self) -> list[str]:
