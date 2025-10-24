@@ -552,7 +552,8 @@ class Execution:
         generator_dir = self._home_dir / "generators" / generator.id
         job_workspace_dir = self._job_workspace_dir
 
-        _copy_fk_models(generator_dir=generator_dir, job_workspace_dir=self._job_workspace_dir)
+        # copy FK models to job workspace
+        _copy_fk_models(generator_dir=generator_dir, job_workspace_dir=job_workspace_dir)
 
         schema = create_generation_schema(
             generator=self._generator,
@@ -595,16 +596,23 @@ class Execution:
         )
 
     def execute_finalize_probing(self):
+        generator = self._generator
+        generator_dir = self._home_dir / "generators" / generator.id
+        job_workspace_dir = self._job_workspace_dir
+
+        # copy FK models to job workspace
+        _copy_fk_models(generator_dir=generator_dir, job_workspace_dir=job_workspace_dir)
+
         schema = create_generation_schema(
             generator=self._generator,
-            job_workspace_dir=self._job_workspace_dir,
+            job_workspace_dir=job_workspace_dir,
             step="finalize_generation",
         )
         # step: FINALIZE_GENERATION
         _ = execute_step_finalize_generation(
             schema=schema,
             is_probe=True,
-            job_workspace_dir=self._job_workspace_dir,
+            job_workspace_dir=job_workspace_dir,
         )
 
 
