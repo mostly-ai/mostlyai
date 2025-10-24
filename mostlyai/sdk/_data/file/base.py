@@ -18,7 +18,7 @@ import logging
 import re
 import time
 from abc import abstractmethod
-from collections.abc import Generator, Iterable, Iterator
+from collections.abc import Generator, Iterable
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -374,18 +374,6 @@ class FileDataTable(DataTable, abc.ABC):
             elif if_exists == "append" and self.IS_WRITE_APPEND_ALLOWED:
                 return "a"
         return "w"
-
-    def iter_partitions(self) -> Iterator[tuple[int, Path, pd.DataFrame]]:
-        """Iterate over dataset partitions yielding (index, file_path, dataframe)."""
-        filesystem = self.container.file_system
-        for idx, file_path in enumerate(self.dataset.files):
-            data = pd.read_parquet(file_path, filesystem=filesystem)
-            yield idx, Path(file_path), data
-
-    @property
-    def files(self) -> list[Path]:
-        """Get the list of partition files."""
-        return [Path(f) for f in self.dataset.files]
 
 
 class FileContainer(DataContainer):

@@ -255,8 +255,9 @@ def process_table_with_random_fk_assignment(
 ) -> None:
     """Process table with random FK assignment, partition by partition."""
     table = schema.tables[table_name]
+    dataset = PartitionedDataset(table)
 
-    for partition_idx, _, partition_data in table.iter_partitions():
+    for partition_idx, _, partition_data in dataset.iter_partitions():
         _LOG.info(f"Processing partition {partition_idx + 1} ({len(partition_data)} rows)")
         processed_data = assign_non_context_fks_randomly(
             tgt_data=partition_data,
