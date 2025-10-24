@@ -14,6 +14,7 @@
 
 
 import logging
+import traceback
 from pathlib import Path
 
 from mostlyai.sdk._data.base import NonContextRelation, Schema
@@ -28,6 +29,7 @@ from mostlyai.sdk._data.non_context import (
     store_fk_model,
     train,
 )
+from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._local.execution.step_pull_training_data import create_training_schema
 from mostlyai.sdk.domain import Connector, Generator
 
@@ -39,6 +41,7 @@ def execute_train_fk_models_for_single_table(
     tgt_table_name: str,
     schema: Schema,
     fk_models_workspace_dir: Path,
+    update_progress: ProgressCallback,
 ):
     non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == tgt_table_name]
     if not non_ctx_relations:
@@ -57,6 +60,9 @@ def execute_train_fk_models_for_single_table(
             schema=schema,
             fk_model_workspace_dir=fk_model_workspace_dir,
         )
+
+        # report progress after each FK model training
+        update_progress(advance=1)
 
 
 def execute_train_fk_model_for_single_relation(
@@ -153,16 +159,29 @@ def execute_step_finalize_training(
     generator: Generator,
     connectors: list[Connector],
     job_workspace_dir: Path,
+    update_progress: ProgressCallback | None = None,
 ):
     schema = create_training_schema(generator=generator, connectors=connectors)
-    for tgt_table_name in schema.tables:
-        fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / tgt_table_name
-        try:
-            execute_train_fk_models_for_single_table(
-                tgt_table_name=tgt_table_name,
-                schema=schema,
-                fk_models_workspace_dir=fk_models_workspace_dir,
-            )
-        except Exception as e:
-            _LOG.error(f"FK model training failed for table {tgt_table_name}: {e}")
-            continue
+
+    # calculate total number of non-context relations to train
+    total_non_ctx_relations = sum(
+        len([rel for rel in schema.non_context_relations if rel.child.table == tgt_table_name])
+        for tgt_table_name in schema.tables
+    )
+
+    with ProgressCallbackWrapper(update_progress, description="Finalize training") as progress:
+        # initialize progress with total count
+        progress.update(completed=0, total=max(1, total_non_ctx_relations))
+
+        for tgt_table_name in schema.tables:
+            fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / tgt_table_name
+            try:
+                execute_train_fk_models_for_single_table(
+                    tgt_table_name=tgt_table_name,
+                    schema=schema,
+                    fk_models_workspace_dir=fk_models_workspace_dir,
+                    update_progress=progress.update,
+                )
+            except Exception as e:
+                _LOG.error(f"FK model training failed for table {tgt_table_name}: {e}\n{traceback.format_exc()}")
+                continue

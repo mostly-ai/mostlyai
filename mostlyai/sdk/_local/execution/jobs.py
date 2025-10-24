@@ -443,11 +443,17 @@ class Execution:
 
     def execute_task_finalize_training(self, task: Task):
         generator = self._generator
+        generator_dir = self._home_dir / "generators" / generator.id
         connectors = [
             read_connector_from_json(self._home_dir / "connectors" / t.source_connector_id) for t in generator.tables
         ]
         execute_step_finalize_training(
-            generator=generator, connectors=connectors, job_workspace_dir=self._job_workspace_dir
+            generator=generator,
+            connectors=connectors,
+            job_workspace_dir=self._job_workspace_dir,
+            update_progress=LocalProgressCallback(
+                resource_path=generator_dir, model_label=None, step_code=StepCode.finalize_training
+            ),
         )
 
     def execute_task_generate(self, task: Task):
