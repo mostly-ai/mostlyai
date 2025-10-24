@@ -109,9 +109,9 @@ class PartitionedDataset:
         self._build_partition_index()
 
     def _build_partition_index(self):
-        """Build partition index using table's files."""
+        """Build partition index using table's dataset files."""
         current_total = 0
-        for file in self.table.files:
+        for file in self.table.dataset.files:
             partition_size = self._get_row_count_fast(file)
             self.partition_info.append(
                 {
@@ -164,21 +164,21 @@ class PartitionedDataset:
     def __len__(self) -> int:
         return self.table.row_count
 
-    def _get_row_count_fast(self, file_path: Path) -> int:
+    def _get_row_count_fast(self, file_path: str) -> int:
         """Get row count from parquet metadata without reading data."""
-        if len(self.table.files) == 1:
+        if len(self.table.dataset.files) == 1:
             return self.table.row_count
 
         filesystem = self.table.container.file_system
         parquet_file = pq.ParquetFile(file_path, filesystem=filesystem)
         return parquet_file.metadata.num_rows
 
-    def _load_partition_uncached(self, file_path: Path) -> pd.DataFrame:
+    def _load_partition_uncached(self, file_path: str) -> pd.DataFrame:
         """Load partition data from disk or remote storage (no caching)."""
         filesystem = self.table.container.file_system
         return pd.read_parquet(file_path, filesystem=filesystem)
 
-    def _load_partition(self, file_path: Path) -> pd.DataFrame:
+    def _load_partition(self, file_path: str) -> pd.DataFrame:
         """Load partition with caching."""
         return self._load_partition_cached(file_path).copy()
 
@@ -212,14 +212,17 @@ class PartitionedDataset:
 
         return pd.concat(result_dfs, ignore_index=True) if result_dfs else pd.DataFrame()
 
-    def iter_partitions(self) -> Iterator[tuple[int, Path, pd.DataFrame]]:
-        """Iterate over partitions using table's method."""
-        yield from self.table.iter_partitions()
+    def iter_partitions(self) -> Iterator[tuple[int, str, pd.DataFrame]]:
+        """Iterate over partitions yielding (index, file_path, dataframe)."""
+        for idx, partition in enumerate(self.partition_info):
+            file_path = partition["file"]
+            data = self._load_partition(file_path)
+            yield idx, file_path, data
 
     @property
-    def files(self) -> list[Path]:
-        """Access partition files using table's files."""
-        return self.table.files
+    def files(self) -> list[str]:
+        """Get partition file paths."""
+        return self.table.dataset.files
 
     def clear_cache(self) -> None:
         """Clear the partition cache."""
