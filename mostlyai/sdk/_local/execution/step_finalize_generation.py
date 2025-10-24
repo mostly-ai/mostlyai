@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import math
+import traceback
 import uuid
 import zipfile
 from pathlib import Path
@@ -458,7 +459,9 @@ def finalize_table_generation(
                 job_workspace_dir=job_workspace_dir,
             )
         except Exception as e:
-            _LOG.error(f"Non context FKs assignment through FK models failed for table {target_table_name}: {e}")
+            _LOG.error(
+                f"Non context FKs assignment through FK models failed for table {target_table_name}: {e}\n{traceback.format_exc()}"
+            )
             fk_models_failed = True
 
     if not fk_models_available or fk_models_failed:
