@@ -768,19 +768,16 @@ def train_fk_model(
     *,
     model: ParentChildMatcher,
     parent_pd: pd.DataFrame,
-    child_pd: pd.DataFrame,
+    tgt_pd: pd.DataFrame,
     labels: pd.Series,
 ) -> None:
     """Train the parent-child matching model."""
-    patience = PATIENCE
-    best_val_loss = float("inf")
-    epochs_no_improve = 0
-    max_epochs = MAX_EPOCHS
+    t0 = time.time()
 
     X_parent = torch.tensor(parent_pd.values, dtype=torch.int64)
-    X_child = torch.tensor(child_pd.values, dtype=torch.int64)
+    X_tgt = torch.tensor(tgt_pd.values, dtype=torch.int64)
     y = torch.tensor(labels.values, dtype=torch.float32).unsqueeze(1)
-    dataset = TensorDataset(X_parent, X_child, y)
+    dataset = TensorDataset(X_parent, X_tgt, y)
 
     val_size = int(VAL_SPLIT * len(dataset))
     train_size = len(dataset) - val_size
@@ -794,15 +791,18 @@ def train_fk_model(
 
     train_losses, val_losses = [], []
     best_model_state = None
+    best_val_loss = float("inf")
+    best_epoch = 0
+    epochs_no_improve = 0
 
-    for epoch in range(max_epochs):
+    for epoch in range(1, MAX_EPOCHS + 1):
         model.train()
-        train_loss = 0
-        for batch_parent, batch_child, batch_y in train_loader:
+        train_loss = 0.0
+        for batch_parent, batch_tgt, batch_y in train_loader:
             batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
-            batch_child = {col: batch_child[:, i] for i, col in enumerate(child_pd.columns)}
+            batch_tgt = {col: batch_tgt[:, i] for i, col in enumerate(tgt_pd.columns)}
             optimizer.zero_grad()
-            pred = model(batch_parent, batch_child)
+            pred = model(batch_parent, batch_tgt)
             loss = loss_fn(pred, batch_y)
             loss.backward()
             optimizer.step()
@@ -811,32 +811,40 @@ def train_fk_model(
         train_losses.append(train_loss)
 
         model.eval()
-        val_loss = 0
+        val_loss = 0.0
         with torch.no_grad():
-            for batch_parent, batch_child, batch_y in val_loader:
+            for batch_parent, batch_tgt, batch_y in val_loader:
                 batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
-                batch_child = {col: batch_child[:, i] for i, col in enumerate(child_pd.columns)}
-                pred = model(batch_parent, batch_child)
+                batch_tgt = {col: batch_tgt[:, i] for i, col in enumerate(tgt_pd.columns)}
+                pred = model(batch_parent, batch_tgt)
                 loss = loss_fn(pred, batch_y)
                 val_loss += loss.item() * batch_y.size(0)
         val_loss /= val_size
         val_losses.append(val_loss)
 
-        _LOG.info(f"Epoch {epoch + 1}/{max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+        progress_msg = {
+            "epoch": epoch,
+            "train_loss": round(train_loss, 4),
+            "val_loss": round(val_loss, 4),
+        }
+        _LOG.info(progress_msg)
 
         if val_loss < best_val_loss - EARLY_STOPPING_DELTA:
-            best_val_loss = val_loss
             epochs_no_improve = 0
+            best_val_loss = val_loss
+            best_epoch = epoch
             best_model_state = deepcopy(model.state_dict())
         else:
             epochs_no_improve += 1
-            if epochs_no_improve >= patience:
-                _LOG.info(f"Early stopping at epoch {epoch + 1}")
+            if epochs_no_improve >= PATIENCE:
+                _LOG.info("early stopping: val_loss stopped improving")
                 break
 
     assert best_model_state is not None
     model.load_state_dict(best_model_state)
-    _LOG.info("Best model restored (lowest validation loss).")
+    _LOG.info(
+        f"train_fk_model() | time: {time.time() - t0:.2f}s | best_epoch: {best_epoch} | best_val_loss: {best_val_loss:.4f}"
+    )
 
 
 # =============================================================================

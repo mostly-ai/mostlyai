@@ -137,7 +137,7 @@ def execute_train_fk_model_for_single_non_context_relation(
         child_cardinalities=tgt_cardinalities,
     )
 
-    parent_pd, child_pd, labels_pd = prepare_training_pairs(
+    parent_pd, tgt_pd, labels_pd = prepare_training_pairs(
         parent_encoded_data=parent_encoded_data,
         tgt_encoded_data=tgt_encoded_data,
         parent_primary_key=parent_primary_key,
@@ -147,7 +147,7 @@ def execute_train_fk_model_for_single_non_context_relation(
     train_fk_model(
         model=model,
         parent_pd=parent_pd,
-        child_pd=child_pd,
+        tgt_pd=tgt_pd,
         labels=labels_pd,
     )
 
