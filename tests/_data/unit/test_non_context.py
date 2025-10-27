@@ -25,6 +25,7 @@ from mostlyai.sdk._data.non_context import (
     add_is_null_for_non_context_relation,
     add_is_null_for_non_context_relations,
     assign_non_context_fks_randomly,
+    prepare_training_pairs,
     sample_non_context_keys,
 )
 
@@ -178,6 +179,72 @@ def test_postproc_non_context(tmp_path):
     assert tgt_postprocessed_data["uncle"].isna()[0]
     assert not tgt_postprocessed_data["uncle"].isna()[1]
     assert "uncle._is_null" not in tgt_postprocessed_data.columns
+
+
+def test_prepare_training_pairs():
+    """Test prepare_training_pairs creates positive and negative samples correctly."""
+    import numpy as np
+
+    np.random.seed(42)
+
+    parent_data = pd.DataFrame(
+        {
+            "parent_id": [1, 2, 3, 4, 5],
+            "feat_0": [10, 20, 30, 40, 50],
+            "feat_1": [100, 200, 300, 400, 500],
+        }
+    )
+    child_data = pd.DataFrame(
+        {
+            "parent_fk": [1, pd.NA, 2, 3],  # 3 non-null, 1 null
+            "child_feat": [15, 25, 35, 45],
+        }
+    )
+
+    parent_X, child_X, labels = prepare_training_pairs(
+        parent_encoded_data=parent_data,
+        tgt_encoded_data=child_data,
+        parent_primary_key="parent_id",
+        tgt_parent_key="parent_fk",
+        n_negative=2,
+    )
+
+    # 3 non-null children * (1 positive + 2 negatives) = 9 pairs
+    assert len(parent_X) == 9
+    assert len(child_X) == 9
+    assert len(labels) == 9
+
+    # First 3 are positive (label=1), next 6 are negative (label=0)
+    assert labels.sum() == 3.0
+    assert (labels[:3] == 1.0).all()
+    assert (labels[3:] == 0.0).all()
+
+    # Keys removed from features
+    assert "parent_id" not in parent_X.columns
+    assert "parent_fk" not in child_X.columns
+    assert list(parent_X.columns) == ["feat_0", "feat_1"]
+    assert list(child_X.columns) == ["child_feat"]
+
+    # Test error case: all null children
+    with pytest.raises(ValueError, match="No non-null children"):
+        prepare_training_pairs(
+            parent_encoded_data=parent_data,
+            tgt_encoded_data=pd.DataFrame({"parent_fk": [pd.NA, pd.NA], "feat": [1, 2]}),
+            parent_primary_key="parent_id",
+            tgt_parent_key="parent_fk",
+            n_negative=1,
+        )
+
+    # Test case: invalid FK gets dropped with warning (not error)
+    parent_X_partial, child_X_partial, labels_partial = prepare_training_pairs(
+        parent_encoded_data=parent_data,
+        tgt_encoded_data=pd.DataFrame({"parent_fk": [1, 999, 2], "feat": [10, 20, 30]}),  # 999 invalid
+        parent_primary_key="parent_id",
+        tgt_parent_key="parent_fk",
+        n_negative=1,
+    )
+    # Should only have 2 valid children (1 and 2), dropping the invalid 999
+    assert len(parent_X_partial) == 4  # 2 children * (1 positive + 1 negative)
 
 
 class TestPartitionedDatasetBasic:

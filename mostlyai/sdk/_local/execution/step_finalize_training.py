@@ -23,7 +23,7 @@ from mostlyai.sdk._data.non_context import (
     analyze_df,
     encode_df,
     get_cardinalities,
-    prepare_training_data,
+    prepare_training_pairs,
     pull_fk_model_training_data,
     safe_name,
     store_fk_model,
@@ -54,7 +54,7 @@ def execute_train_fk_models_for_single_table(
         tgt_parent_key = non_ctx_relation.child.column
         fk_model_workspace_dir = fk_models_workspace_dir / safe_name(tgt_parent_key)
 
-        execute_train_fk_model_for_single_relation(
+        execute_train_fk_model_for_single_non_context_relation(
             tgt_table_name=tgt_table_name,
             non_ctx_relation=non_ctx_relation,
             schema=schema,
@@ -65,7 +65,7 @@ def execute_train_fk_models_for_single_table(
         update_progress(advance=1)
 
 
-def execute_train_fk_model_for_single_relation(
+def execute_train_fk_model_for_single_non_context_relation(
     *,
     tgt_table_name: str,
     non_ctx_relation: NonContextRelation,
@@ -134,12 +134,11 @@ def execute_train_fk_model_for_single_relation(
         child_cardinalities=tgt_cardinalities,
     )
 
-    parent_pd, child_pd, labels_pd = prepare_training_data(
+    parent_pd, child_pd, labels_pd = prepare_training_pairs(
         parent_encoded_data=parent_encoded_data,
         tgt_encoded_data=tgt_encoded_data,
         parent_primary_key=parent_primary_key,
         tgt_parent_key=tgt_parent_key,
-        sample_size=None,  # no additional sampling - already done in data pull phase
     )
 
     train(
@@ -151,7 +150,11 @@ def execute_train_fk_model_for_single_relation(
 
     store_fk_model(model=model, fk_model_workspace_dir=fk_model_workspace_dir)
 
-    _LOG.info(f"Child-parent matcher model trained and stored for parent table: {parent_table_name}")
+    _LOG.info(
+        f"Successfully trained and saved child-parent matcher model "
+        f"for relation: parent table '{parent_table_name}', child table '{tgt_table_name}'. "
+        f"Model artifacts stored at: {fk_model_workspace_dir}"
+    )
 
 
 def execute_step_finalize_training(
