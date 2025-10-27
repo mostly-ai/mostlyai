@@ -14,6 +14,7 @@
 
 
 import logging
+import time
 import traceback
 from pathlib import Path
 
@@ -27,7 +28,7 @@ from mostlyai.sdk._data.non_context import (
     pull_fk_model_training_data,
     safe_name,
     store_fk_model,
-    train,
+    train_fk_model,
 )
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._local.execution.step_pull_training_data import create_training_schema
@@ -72,6 +73,8 @@ def execute_train_fk_model_for_single_non_context_relation(
     schema: Schema,
     fk_model_workspace_dir: Path,
 ):
+    t0 = time.time()
+
     tgt_table = schema.tables[tgt_table_name]
     tgt_primary_key = tgt_table.primary_key
     tgt_parent_key = non_ctx_relation.child.column
@@ -141,7 +144,7 @@ def execute_train_fk_model_for_single_non_context_relation(
         tgt_parent_key=tgt_parent_key,
     )
 
-    train(
+    train_fk_model(
         model=model,
         parent_pd=parent_pd,
         child_pd=child_pd,
@@ -151,9 +154,8 @@ def execute_train_fk_model_for_single_non_context_relation(
     store_fk_model(model=model, fk_model_workspace_dir=fk_model_workspace_dir)
 
     _LOG.info(
-        f"Successfully trained and saved child-parent matcher model "
-        f"for relation: parent table '{parent_table_name}', child table '{tgt_table_name}'. "
-        f"Model artifacts stored at: {fk_model_workspace_dir}"
+        f"Trained FK model for relation: {tgt_table_name}.{tgt_parent_key} -> {parent_table_name}.{parent_primary_key} | "
+        f"time: {time.time() - t0:.2f}s | model saved: {fk_model_workspace_dir}"
     )
 
 

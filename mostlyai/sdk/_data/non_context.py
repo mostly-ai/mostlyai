@@ -27,6 +27,7 @@ Also includes PartitionedDataset for efficient handling of large partitioned dat
 import hashlib
 import json
 import logging
+import time
 from collections import defaultdict
 from collections.abc import Iterator
 from copy import copy as shallow_copy
@@ -569,6 +570,7 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT
         DataFrame containing complete parent records with all columns.
         Records are unique by primary key.
     """
+    t0 = time.time()
     primary_key = parent_table.primary_key
     seen_keys = set()
     collected_rows = []
@@ -588,6 +590,7 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT
             break
 
     parent_data = pd.DataFrame(collected_rows).reset_index(drop=True)
+    _LOG.info(f"fetch_parent_data | fetched: {len(parent_data)} | time: {time.time() - t0:.2f}s")
     return parent_data
 
 
@@ -613,6 +616,7 @@ def fetch_tgt_data(
     Returns:
         DataFrame containing target records, limited by max_tgt_per_parent constraint.
     """
+    t0 = time.time()
     parent_counts = defaultdict(int)
     collected_rows = []
     where = {tgt_parent_key: parent_keys}
@@ -628,9 +632,9 @@ def fetch_tgt_data(
                 collected_rows.append(row)
                 parent_counts[parent_id] += 1
 
-    child_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-    _LOG.info(f"fetch_child_data | fetched: {len(child_data)}")
-    return child_data
+    tgt_data = pd.DataFrame(collected_rows).reset_index(drop=True)
+    _LOG.info(f"fetch_tgt_data | fetched: {len(tgt_data)} | time: {time.time() - t0:.2f}s")
+    return tgt_data
 
 
 def pull_fk_model_training_data(
@@ -687,6 +691,8 @@ def prepare_training_pairs(
         tgt_parent_key: Foreign key of children
         n_negative: Number of negative samples per child
     """
+    t0 = time.time()
+
     parent_keys = parent_encoded_data[parent_primary_key].to_numpy()
     parents_X = parent_encoded_data.drop(columns=[parent_primary_key]).to_numpy(dtype=np.float32)
     n_parents = parents_X.shape[0]
@@ -748,6 +754,8 @@ def prepare_training_pairs(
     tgt_pd = pd.DataFrame(tgt_vecs, columns=tgt_encoded_data.drop(columns=[tgt_parent_key]).columns)
     labels_pd = pd.Series(labels_vec, name="labels")
 
+    n_pairs = len(parent_pd)
+    _LOG.info(f"prepare_training_pairs | n_pairs: {n_pairs} | time: {time.time() - t0:.2f}s")
     return parent_pd, tgt_pd, labels_pd
 
 
@@ -756,7 +764,7 @@ def prepare_training_pairs(
 # =============================================================================
 
 
-def train(
+def train_fk_model(
     *,
     model: ParentChildMatcher,
     parent_pd: pd.DataFrame,
