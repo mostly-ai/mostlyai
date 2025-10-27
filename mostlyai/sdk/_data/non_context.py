@@ -637,12 +637,76 @@ def fetch_tgt_data(
     return tgt_data
 
 
+def add_context_parent_data(
+    *,
+    tgt_data: pd.DataFrame,
+    tgt_table: DataTable,
+    schema: Schema,
+) -> pd.DataFrame:
+    """
+    Add context parent data to tgt_data by joining with parent table through context relations.
+
+    Args:
+        tgt_data: Target/child data
+        tgt_table: Target/child table
+        schema: Schema containing table relationships
+
+    Returns:
+        tgt_data with additional columns from context parent tables
+    """
+    # Get the context parent relation for the target table
+    ctx_rel = schema.get_parent_context_relation(tgt_table.name)
+    if ctx_rel is None:
+        # No context parent, return as is
+        return tgt_data
+
+    ctx_parent_table_name = ctx_rel.parent.table
+    ctx_parent_table = schema.tables[ctx_parent_table_name]
+    ctx_parent_pk = ctx_rel.parent.column
+    tgt_ctx_fk = ctx_rel.child.column
+
+    # Get unique context parent keys from tgt_data
+    ctx_parent_keys = tgt_data[tgt_ctx_fk].dropna().unique().tolist()
+    if not ctx_parent_keys:
+        _LOG.info(f"No context parent keys found in tgt_data for {tgt_table.name}")
+        return tgt_data
+
+    # Fetch context parent data with prefixed columns
+    ctx_parent_data = ctx_parent_table.read_data_prefixed(
+        columns=ctx_parent_table.columns,
+        where={ctx_parent_pk: ctx_parent_keys},
+        do_coerce_dtypes=True,
+    )
+
+    if ctx_parent_data.empty:
+        _LOG.info(f"No context parent data found for {tgt_table.name}")
+        return tgt_data
+
+    # Join context parent data with tgt_data
+    ctx_parent_pk_prefixed = DataIdentifier(ctx_parent_table_name, ctx_parent_pk).ref_name()
+    tgt_data = pd.merge(
+        tgt_data,
+        ctx_parent_data,
+        left_on=tgt_ctx_fk,
+        right_on=ctx_parent_pk_prefixed,
+        how="left",
+    )
+
+    _LOG.info(
+        f"Added context parent data from {ctx_parent_table_name} to {tgt_table.name} | "
+        f"context_columns: {list(ctx_parent_data.columns)}"
+    )
+
+    return tgt_data
+
+
 def pull_fk_model_training_data(
     *,
     tgt_table: DataTable,
     tgt_parent_key: str,
     parent_table: DataTable,
     parent_primary_key: str,
+    schema: Schema | None = None,
     max_parent_sample_size: int = MAX_PARENT_SAMPLE_SIZE,
     max_tgt_per_parent: int = MAX_TGT_PER_PARENT,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -654,11 +718,12 @@ def pull_fk_model_training_data(
         tgt_parent_key: Foreign key column in target table
         parent_table: Parent table
         parent_primary_key: Primary key column in parent table
+        schema: Optional schema to fetch context parent data for tgt_table
         max_parent_sample_size: Maximum parent keys to sample
         max_tgt_per_parent: Maximum target records per parent
 
     Returns:
-        Tuple of (parent_data, tgt_data)
+        Tuple of (parent_data, tgt_data). tgt_data includes columns from context parents if schema is provided.
     """
     parent_data = fetch_parent_data(parent_table=parent_table, max_sample_size=max_parent_sample_size)
     parent_keys_list = parent_data[parent_primary_key].tolist() if not parent_data.empty else []
@@ -668,6 +733,15 @@ def pull_fk_model_training_data(
         parent_keys=parent_keys_list,
         max_tgt_per_parent=max_tgt_per_parent,
     )
+
+    # If schema is provided, fetch and join context parent data
+    if schema is not None and not tgt_data.empty:
+        tgt_data = add_context_parent_data(
+            tgt_data=tgt_data,
+            tgt_table=tgt_table,
+            schema=schema,
+        )
+
     return parent_data, tgt_data
 
 
