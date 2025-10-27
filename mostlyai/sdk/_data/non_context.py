@@ -27,6 +27,7 @@ Also includes PartitionedDataset for efficient handling of large partitioned dat
 import hashlib
 import json
 import logging
+import time
 from collections import defaultdict
 from collections.abc import Iterator
 from copy import copy as shallow_copy
@@ -569,6 +570,7 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT
         DataFrame containing complete parent records with all columns.
         Records are unique by primary key.
     """
+    t0 = time.time()
     primary_key = parent_table.primary_key
     seen_keys = set()
     collected_rows = []
@@ -588,6 +590,7 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT
             break
 
     parent_data = pd.DataFrame(collected_rows).reset_index(drop=True)
+    _LOG.info(f"fetch_parent_data | fetched: {len(parent_data)} | time: {time.time() - t0:.2f}s")
     return parent_data
 
 
@@ -613,6 +616,7 @@ def fetch_tgt_data(
     Returns:
         DataFrame containing target records, limited by max_tgt_per_parent constraint.
     """
+    t0 = time.time()
     parent_counts = defaultdict(int)
     collected_rows = []
     where = {tgt_parent_key: parent_keys}
@@ -628,9 +632,9 @@ def fetch_tgt_data(
                 collected_rows.append(row)
                 parent_counts[parent_id] += 1
 
-    child_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-    _LOG.info(f"fetch_child_data | fetched: {len(child_data)}")
-    return child_data
+    tgt_data = pd.DataFrame(collected_rows).reset_index(drop=True)
+    _LOG.info(f"fetch_tgt_data | fetched: {len(tgt_data)} | time: {time.time() - t0:.2f}s")
+    return tgt_data
 
 
 def pull_fk_model_training_data(
@@ -667,12 +671,11 @@ def pull_fk_model_training_data(
     return parent_data, tgt_data
 
 
-def prepare_training_data(
+def prepare_training_pairs(
     parent_encoded_data: pd.DataFrame,
     tgt_encoded_data: pd.DataFrame,
     parent_primary_key: str,
     tgt_parent_key: str,
-    sample_size: int | None = None,
     n_negative: int = N_NEGATIVE_SAMPLES,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
@@ -681,75 +684,79 @@ def prepare_training_data(
     - One positive pair (correct parent) with label=1
     - Multiple negative pairs (wrong parents) with label=0
 
-    Null children are excluded from training - nulls will be handled via _is_null column during inference.
-
     Args:
         parent_encoded_data: Encoded parent data
         tgt_encoded_data: Encoded child data
         parent_primary_key: Primary key of parents
         tgt_parent_key: Foreign key of children
-        sample_size: Number of children to sample (None = use all)
         n_negative: Number of negative samples per child
     """
-    if sample_size is None:
-        sample_size = len(tgt_encoded_data)
+    t0 = time.time()
 
     parent_keys = parent_encoded_data[parent_primary_key].to_numpy()
     parents_X = parent_encoded_data.drop(columns=[parent_primary_key]).to_numpy(dtype=np.float32)
     n_parents = parents_X.shape[0]
     parent_index_by_key = pd.Series(np.arange(n_parents), index=parent_keys)
 
-    child_keys = tgt_encoded_data[tgt_parent_key].to_numpy()
-    children_X = tgt_encoded_data.drop(columns=[tgt_parent_key]).to_numpy(dtype=np.float32)
-    n_children = children_X.shape[0]
+    tgt_keys = tgt_encoded_data[tgt_parent_key].to_numpy()
+    tgt_X = tgt_encoded_data.drop(columns=[tgt_parent_key]).to_numpy(dtype=np.float32)
+    n_tgt = tgt_X.shape[0]
 
-    sample_size = min(int(sample_size), n_children)
-    rng = np.random.default_rng()
-    sampled_child_indices = rng.choice(n_children, size=sample_size, replace=False)
-    children_X = children_X[sampled_child_indices]
-    child_keys = child_keys[sampled_child_indices]
+    # shuffle tgt keys
+    shuffled = np.random.permutation(n_tgt)
+    tgt_X = tgt_X[shuffled]
+    tgt_keys = tgt_keys[shuffled]
 
-    # null children excluded from training - handled via _is_null column during inference
-    non_null_mask = ~pd.isna(child_keys)
-    children_X = children_X[non_null_mask]
-    child_keys = child_keys[non_null_mask]
-    n_non_null = len(children_X)
+    # exclude null tgt keys from training
+    non_null_mask = ~pd.isna(tgt_keys)
+    tgt_X = tgt_X[non_null_mask]
+    tgt_keys = tgt_keys[non_null_mask]
+    n_non_null = len(tgt_X)
 
     if n_non_null == 0:
         raise ValueError("No non-null children found in training data")
 
-    true_parent_pos = parent_index_by_key.loc[child_keys].to_numpy()
-    if np.any(pd.isna(true_parent_pos)):
-        raise ValueError("Some child foreign keys do not match any parent primary key")
+    # exclude tgt keys that don't match any parent
+    valid_parent_mask = pd.Series(tgt_keys).isin(parent_keys).to_numpy()
+    if not valid_parent_mask.all():
+        n_invalid = (~valid_parent_mask).sum()
+        _LOG.warning(f"Dropping {n_invalid} child records with foreign keys not matching any parent primary key")
+    tgt_X = tgt_X[valid_parent_mask]
+    tgt_keys = tgt_keys[valid_parent_mask]
+    n_valid = len(tgt_X)
 
-    # positive pairs (label=1) - one per non-null child
+    if n_valid == 0:
+        raise ValueError("No valid children found in training data (all foreign keys are null or invalid)")
+
+    true_parent_pos = parent_index_by_key.loc[tgt_keys].to_numpy()
+
+    # positive pairs (label=1) - one per valid tgt
     pos_parents = parents_X[true_parent_pos]
-    pos_labels = np.ones(n_non_null, dtype=np.float32)
+    pos_labels = np.ones(n_valid, dtype=np.float32)
 
-    # negative pairs (label=0) - n_negative per non-null child (vectorized)
-    neg_indices = rng.integers(0, n_parents, size=(n_non_null, n_negative))
-
-    # ensure negatives are not the true parent if there is more than one parent
-    true_parent_pos_expanded = true_parent_pos[:, np.newaxis]
-    mask = neg_indices == true_parent_pos_expanded
-
-    while mask.any() and n_parents > 1:
-        neg_indices[mask] = rng.integers(0, n_parents, size=mask.sum())
+    # negative pairs (label=0) - n_negative per valid tgt
+    neg_indices = np.random.randint(0, n_parents, size=(n_valid, n_negative))
+    if n_parents > 1:
+        true_parent_pos_expanded = true_parent_pos[:, np.newaxis]
         mask = neg_indices == true_parent_pos_expanded
-
+        while mask.any():
+            neg_indices[mask] = np.random.randint(0, n_parents, size=mask.sum())
+            mask = neg_indices == true_parent_pos_expanded
     neg_parents = parents_X[neg_indices.ravel()]
-    neg_children = np.repeat(children_X, n_negative, axis=0)
-    neg_labels = np.zeros(n_non_null * n_negative, dtype=np.float32)
+    neg_tgt = np.repeat(tgt_X, n_negative, axis=0)
+    neg_labels = np.zeros(n_valid * n_negative, dtype=np.float32)
 
     parent_vecs = np.vstack([pos_parents, neg_parents]).astype(np.float32, copy=False)
-    child_vecs = np.vstack([children_X, neg_children]).astype(np.float32, copy=False)
+    tgt_vecs = np.vstack([tgt_X, neg_tgt]).astype(np.float32, copy=False)
     labels_vec = np.concatenate([pos_labels, neg_labels]).astype(np.float32, copy=False)
 
     parent_pd = pd.DataFrame(parent_vecs, columns=parent_encoded_data.drop(columns=[parent_primary_key]).columns)
-    child_pd = pd.DataFrame(child_vecs, columns=tgt_encoded_data.drop(columns=[tgt_parent_key]).columns)
+    tgt_pd = pd.DataFrame(tgt_vecs, columns=tgt_encoded_data.drop(columns=[tgt_parent_key]).columns)
     labels_pd = pd.Series(labels_vec, name="labels")
 
-    return parent_pd, child_pd, labels_pd
+    n_pairs = len(parent_pd)
+    _LOG.info(f"prepare_training_pairs | n_pairs: {n_pairs} | time: {time.time() - t0:.2f}s")
+    return parent_pd, tgt_pd, labels_pd
 
 
 # =============================================================================
@@ -757,23 +764,20 @@ def prepare_training_data(
 # =============================================================================
 
 
-def train(
+def train_fk_model(
     *,
     model: ParentChildMatcher,
     parent_pd: pd.DataFrame,
-    child_pd: pd.DataFrame,
+    tgt_pd: pd.DataFrame,
     labels: pd.Series,
 ) -> None:
     """Train the parent-child matching model."""
-    patience = PATIENCE
-    best_val_loss = float("inf")
-    epochs_no_improve = 0
-    max_epochs = MAX_EPOCHS
+    t0 = time.time()
 
     X_parent = torch.tensor(parent_pd.values, dtype=torch.int64)
-    X_child = torch.tensor(child_pd.values, dtype=torch.int64)
+    X_tgt = torch.tensor(tgt_pd.values, dtype=torch.int64)
     y = torch.tensor(labels.values, dtype=torch.float32).unsqueeze(1)
-    dataset = TensorDataset(X_parent, X_child, y)
+    dataset = TensorDataset(X_parent, X_tgt, y)
 
     val_size = int(VAL_SPLIT * len(dataset))
     train_size = len(dataset) - val_size
@@ -787,15 +791,18 @@ def train(
 
     train_losses, val_losses = [], []
     best_model_state = None
+    best_val_loss = float("inf")
+    best_epoch = 0
+    epochs_no_improve = 0
 
-    for epoch in range(max_epochs):
+    for epoch in range(1, MAX_EPOCHS + 1):
         model.train()
-        train_loss = 0
-        for batch_parent, batch_child, batch_y in train_loader:
+        train_loss = 0.0
+        for batch_parent, batch_tgt, batch_y in train_loader:
             batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
-            batch_child = {col: batch_child[:, i] for i, col in enumerate(child_pd.columns)}
+            batch_tgt = {col: batch_tgt[:, i] for i, col in enumerate(tgt_pd.columns)}
             optimizer.zero_grad()
-            pred = model(batch_parent, batch_child)
+            pred = model(batch_parent, batch_tgt)
             loss = loss_fn(pred, batch_y)
             loss.backward()
             optimizer.step()
@@ -804,32 +811,40 @@ def train(
         train_losses.append(train_loss)
 
         model.eval()
-        val_loss = 0
+        val_loss = 0.0
         with torch.no_grad():
-            for batch_parent, batch_child, batch_y in val_loader:
+            for batch_parent, batch_tgt, batch_y in val_loader:
                 batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
-                batch_child = {col: batch_child[:, i] for i, col in enumerate(child_pd.columns)}
-                pred = model(batch_parent, batch_child)
+                batch_tgt = {col: batch_tgt[:, i] for i, col in enumerate(tgt_pd.columns)}
+                pred = model(batch_parent, batch_tgt)
                 loss = loss_fn(pred, batch_y)
                 val_loss += loss.item() * batch_y.size(0)
         val_loss /= val_size
         val_losses.append(val_loss)
 
-        _LOG.info(f"Epoch {epoch + 1}/{max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+        progress_msg = {
+            "epoch": epoch,
+            "train_loss": round(train_loss, 4),
+            "val_loss": round(val_loss, 4),
+        }
+        _LOG.info(progress_msg)
 
         if val_loss < best_val_loss - EARLY_STOPPING_DELTA:
-            best_val_loss = val_loss
             epochs_no_improve = 0
+            best_val_loss = val_loss
+            best_epoch = epoch
             best_model_state = deepcopy(model.state_dict())
         else:
             epochs_no_improve += 1
-            if epochs_no_improve >= patience:
-                _LOG.info(f"Early stopping at epoch {epoch + 1}")
+            if epochs_no_improve >= PATIENCE:
+                _LOG.info("early stopping: val_loss stopped improving")
                 break
 
     assert best_model_state is not None
     model.load_state_dict(best_model_state)
-    _LOG.info("Best model restored (lowest validation loss).")
+    _LOG.info(
+        f"train_fk_model() | time: {time.time() - t0:.2f}s | best_epoch: {best_epoch} | best_val_loss: {best_val_loss:.4f}"
+    )
 
 
 # =============================================================================
