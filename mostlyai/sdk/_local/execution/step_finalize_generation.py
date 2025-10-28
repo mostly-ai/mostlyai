@@ -410,6 +410,8 @@ def process_table_with_fk_models(
                         tgt_parent_key=relation.child.column,
                         parent_primary_key=relation.parent.column,
                         parent_table_name=parent_table_name,
+                        tgt_table_name=table_name,
+                        schema=schema,
                     )
 
                     processed_chunks.append(processed_chunk)
