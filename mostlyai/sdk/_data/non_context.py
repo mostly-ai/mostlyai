@@ -740,7 +740,9 @@ def pull_fk_model_training_data(
         tgt_table=tgt_table,
         schema=schema,
     )
-
+    _LOG.info(
+        f"pull_fk_model_training_data | parent_data columns: {list(parent_data.columns)} | tgt_data columns: {list(tgt_data.columns)}"
+    )
     return parent_data, tgt_data
 
 

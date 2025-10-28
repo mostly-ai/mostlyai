@@ -101,10 +101,8 @@ def execute_train_fk_model_for_single_non_context_relation(
 
     fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
 
-    # Compute tgt_data_columns based on actual columns in tgt_data after context parent data is added
-    # Exclude primary key and all foreign keys
-    all_fk_columns = [fk.column for fk in tgt_table.foreign_keys]
-    tgt_data_columns = [c for c in tgt_data.columns if c != tgt_primary_key and c not in all_fk_columns]
+    tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
+    tgt_data_columns = [c for c in tgt_data.columns if c != tgt_primary_key and c not in tgt_foreign_keys]
 
     tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
     analyze_df(
