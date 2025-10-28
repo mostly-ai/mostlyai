@@ -1129,30 +1129,37 @@ class SqlAlchemyTable(DBTable, abc.ABC):
             chunk_idx = 0
             total_time = 0
             session = sessionmaker(bind=sa_engine)()
-            conn = session.connection()
-            results_generator = pd.read_sql_query(stmt, conn, dtype_backend="pyarrow", chunksize=fetch_chunk_size)
-            chunks_df = pd.DataFrame()
-            for chunk_df in results_generator:
-                t0 = time.time()
-                if where is not None:
-                    where_column, where_values = next(iter(where.items()))
-                    chunk_df = chunk_df[chunk_df[where_column].isin(where_values)]
-                if do_coerce_dtypes:
-                    chunk_df = coerce_dtypes_by_encoding(chunk_df, self.encoding_types)
-                # accumulate chunks
-                chunks_df = pd.concat([chunks_df, chunk_df], ignore_index=True)
-                if len(chunks_df) >= yield_chunk_size:
-                    # yield data once it reaches the yield_chunk_size
+            results_generator = None
+            try:
+                conn = session.connection()
+                results_generator = pd.read_sql_query(stmt, conn, dtype_backend="pyarrow", chunksize=fetch_chunk_size)
+                chunks_df = pd.DataFrame()
+                for chunk_df in results_generator:
+                    t0 = time.time()
+                    if where is not None:
+                        where_column, where_values = next(iter(where.items()))
+                        chunk_df = chunk_df[chunk_df[where_column].isin(where_values)]
+                    if do_coerce_dtypes:
+                        chunk_df = coerce_dtypes_by_encoding(chunk_df, self.encoding_types)
+                    # accumulate chunks
+                    chunks_df = pd.concat([chunks_df, chunk_df], ignore_index=True)
+                    if len(chunks_df) >= yield_chunk_size:
+                        # yield data once it reaches the yield_chunk_size
+                        yield chunks_df
+                        chunks_df = pd.DataFrame()
+                    chunk_idx += 1
+                    total_time += time.time() - t0
+                    if chunk_idx % 10 == 0:
+                        _LOG.info(f"processed {chunk_idx} chunks in {total_time:.2f}s")
+                if len(chunks_df) > 0 or len(chunks_df.columns) > 0:
+                    # yield the remaining data
                     yield chunks_df
-                    chunks_df = pd.DataFrame()
-                chunk_idx += 1
-                total_time += time.time() - t0
-                if chunk_idx % 10 == 0:
-                    _LOG.info(f"processed {chunk_idx} chunks in {total_time:.2f}s")
-            if len(chunks_df) > 0 or len(chunks_df.columns) > 0:
-                # yield the remaining data
-                yield chunks_df
-            _LOG.info(f"finished reading {chunk_idx} chunks in {time.time() - t00:.2f}s (strategy=scan)")
+                _LOG.info(f"finished reading {chunk_idx} chunks in {time.time() - t00:.2f}s (strategy=scan)")
+            finally:
+                # explicitly close resources to prevent connection leaks
+                if results_generator is not None:
+                    results_generator.close()
+                session.close()
 
     def is_column_indexed(self, column: str) -> bool:
         with self.container.use_sa_engine() as sa_engine:
