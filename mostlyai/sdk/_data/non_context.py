@@ -1092,8 +1092,6 @@ def match_non_context(
     tgt_parent_key: str,
     parent_primary_key: str,
     parent_table_name: str,
-    tgt_table_name: str,
-    schema: Schema,
     temperature: float = TEMPERATURE,
     top_k: int | None = TOP_K,
     top_p: float | None = TOP_P,
@@ -1111,8 +1109,6 @@ def match_non_context(
         tgt_parent_key: Foreign key column name in target table
         parent_primary_key: Primary key column name in parent table
         parent_table_name: Name of parent table
-        tgt_table_name: Name of target table
-        schema: Schema containing table relationships
         temperature: Sampling temperature (0=greedy, 1=normal, >1=diverse)
         top_k: Number of top candidates to consider per match
         top_p: Nucleus sampling threshold (0.0 < p <= 1.0) for dynamic candidate filtering
@@ -1120,13 +1116,6 @@ def match_non_context(
     Returns:
         Target data with FK column populated
     """
-    # add context parent data to enable context-aware FK matching
-    tgt_data = add_context_parent_data(
-        tgt_data=tgt_data,
-        tgt_table_name=tgt_table_name,
-        schema=schema,
-    )
-
     # check for _is_null column (format: {fk_name}.{parent_table_name}._is_null)
     is_null_col = NON_CONTEXT_COLUMN_INFIX.join([tgt_parent_key, parent_table_name, IS_NULL])
     has_is_null = is_null_col in tgt_data.columns

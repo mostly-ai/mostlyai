@@ -26,7 +26,12 @@ from mostlyai.sdk._data.dtype import is_timestamp_dtype
 from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
-from mostlyai.sdk._data.non_context import PartitionedDataset, assign_non_context_fks_randomly, match_non_context
+from mostlyai.sdk._data.non_context import (
+    PartitionedDataset,
+    add_context_parent_data,
+    assign_non_context_fks_randomly,
+    match_non_context,
+)
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._data.util.common import (
     IS_NULL,
@@ -403,6 +408,12 @@ def process_table_with_fk_models(
                         parent_dataset, current_batch_idx, parent_batch_size
                     )
 
+                    chunk_data = add_context_parent_data(
+                        tgt_data=chunk_data,
+                        tgt_table=children_table,
+                        schema=schema,
+                    )
+
                     processed_chunk = match_non_context(
                         fk_models_workspace_dir=fk_models_workspace_dir,
                         tgt_data=chunk_data,
@@ -410,8 +421,6 @@ def process_table_with_fk_models(
                         tgt_parent_key=relation.child.column,
                         parent_primary_key=relation.parent.column,
                         parent_table_name=parent_table_name,
-                        tgt_table_name=table_name,
-                        schema=schema,
                     )
 
                     processed_chunks.append(processed_chunk)
