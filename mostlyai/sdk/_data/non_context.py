@@ -640,24 +640,19 @@ def fetch_tgt_data(
 def add_context_parent_data(
     *,
     tgt_data: pd.DataFrame,
-    tgt_table: DataTable,
+    tgt_table_name: str,
     schema: Schema,
 ) -> pd.DataFrame:
     """
-    Add context parent data to tgt_data by joining with parent table through context relations.
-
-    Args:
-        tgt_data: Target/child data
-        tgt_table: Target/child table
-        schema: Schema containing table relationships
-
-    Returns:
-        tgt_data with additional columns from context parent tables
+    Add context parent data to tgt_data by joining with parent table through context relation.
+    Returns tgt_data with additional columns from context parent tables
     """
-    # Get the context parent relation for the target table
-    ctx_rel = schema.get_parent_context_relation(tgt_table.name)
+    t0 = time.time()
+
+    # get the context parent relation for the target table
+    ctx_rel = schema.get_parent_context_relation(tgt_table_name)
     if ctx_rel is None:
-        # No context parent, return as is
+        # no context parent, return as is
         return tgt_data
 
     ctx_parent_table_name = ctx_rel.parent.table
@@ -665,24 +660,34 @@ def add_context_parent_data(
     ctx_parent_pk = ctx_rel.parent.column
     tgt_ctx_fk = ctx_rel.child.column
 
-    # Get unique context parent keys from tgt_data
+    # get unique context parent keys from tgt_data
     ctx_parent_keys = tgt_data[tgt_ctx_fk].dropna().unique().tolist()
     if not ctx_parent_keys:
-        _LOG.info(f"No context parent keys found in tgt_data for {tgt_table.name}")
+        _LOG.info(f"No context parent keys found in tgt_data for {tgt_table_name}")
         return tgt_data
 
-    # Fetch context parent data with prefixed columns
+    # identify key columns to exclude (primary key + foreign keys)
+    key_columns = {ctx_parent_pk}
+    for rel in schema.relations:
+        if rel.child.table == ctx_parent_table_name:
+            key_columns.add(rel.child.column)
+
+    # get non-key columns only
+    non_key_columns = [col for col in ctx_parent_table.columns if col not in key_columns]
+
+    # fetch context parent data with prefixed columns (only non-key columns + PK for join)
+    columns_to_fetch = [ctx_parent_pk] + non_key_columns
     ctx_parent_data = ctx_parent_table.read_data_prefixed(
-        columns=ctx_parent_table.columns,
+        columns=columns_to_fetch,
         where={ctx_parent_pk: ctx_parent_keys},
         do_coerce_dtypes=True,
     )
 
     if ctx_parent_data.empty:
-        _LOG.info(f"No context parent data found for {tgt_table.name}")
+        _LOG.info(f"No context parent data found for {tgt_table_name}")
         return tgt_data
 
-    # Join context parent data with tgt_data
+    # join context parent data with tgt_data
     ctx_parent_pk_prefixed = DataIdentifier(ctx_parent_table_name, ctx_parent_pk).ref_name()
     tgt_data = pd.merge(
         tgt_data,
@@ -692,11 +697,12 @@ def add_context_parent_data(
         how="left",
     )
 
-    _LOG.info(
-        f"Added context parent data from {ctx_parent_table_name} to {tgt_table.name} | "
-        f"context_columns: {list(ctx_parent_data.columns)}"
-    )
+    # drop the primary key column after join (only keep non-key columns)
+    if ctx_parent_pk_prefixed in tgt_data.columns:
+        tgt_data = tgt_data.drop(columns=[ctx_parent_pk_prefixed])
 
+    added_columns = [c for c in tgt_data.columns if c in ctx_parent_data.columns]
+    _LOG.info(f"add_context_parent_data | time: {time.time() - t0:.2f}s | added_columns: {added_columns}")
     return tgt_data
 
 
@@ -738,7 +744,7 @@ def pull_fk_model_training_data(
     if schema is not None and not tgt_data.empty:
         tgt_data = add_context_parent_data(
             tgt_data=tgt_data,
-            tgt_table=tgt_table,
+            tgt_table_name=tgt_table.name,
             schema=schema,
         )
 
