@@ -86,7 +86,7 @@ MAX_TGT_PER_PARENT = 2
 
 # Inference Parameters
 TEMPERATURE = 1.0
-TOP_K = 20
+TOP_K = None
 TOP_P = 0.95
 
 
