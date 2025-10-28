@@ -78,8 +78,6 @@ def execute_train_fk_model_for_single_non_context_relation(
     tgt_table = schema.tables[tgt_table_name]
     tgt_primary_key = tgt_table.primary_key
     tgt_parent_key = non_ctx_relation.child.column
-    tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
-    tgt_data_columns = [c for c in tgt_table.columns if c != tgt_table.primary_key and c not in tgt_foreign_keys]
 
     parent_table = schema.tables[non_ctx_relation.parent.table]
     parent_primary_key = non_ctx_relation.parent.column
@@ -94,6 +92,7 @@ def execute_train_fk_model_for_single_non_context_relation(
         tgt_parent_key=tgt_parent_key,
         parent_table=parent_table,
         parent_primary_key=parent_primary_key,
+        schema=schema,
     )
 
     if parent_data.empty or tgt_data.empty:
@@ -101,6 +100,9 @@ def execute_train_fk_model_for_single_non_context_relation(
         return
 
     fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
+
+    tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
+    tgt_data_columns = [c for c in tgt_data.columns if c != tgt_primary_key and c not in tgt_foreign_keys]
 
     tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
     analyze_df(

@@ -86,7 +86,7 @@ MAX_TGT_PER_PARENT = 2
 
 # Inference Parameters
 TEMPERATURE = 1.0
-TOP_K = 20
+TOP_K = None
 TOP_P = 0.95
 
 
@@ -637,12 +637,78 @@ def fetch_tgt_data(
     return tgt_data
 
 
+def add_context_parent_data(
+    *,
+    tgt_data: pd.DataFrame,
+    tgt_table: DataTable,
+    schema: Schema,
+) -> pd.DataFrame:
+    t0 = time.time()
+
+    # get the context parent relation for the target table
+    ctx_rel = schema.get_parent_context_relation(tgt_table.name)
+    if ctx_rel is None:
+        # no context parent, return as is
+        return tgt_data
+
+    ctx_parent_table_name = ctx_rel.parent.table
+    ctx_parent_table = schema.tables[ctx_parent_table_name]
+    ctx_parent_pk = ctx_rel.parent.column
+    tgt_ctx_fk = ctx_rel.child.column
+
+    # get unique context parent keys from tgt_data
+    ctx_parent_keys = tgt_data[tgt_ctx_fk].dropna().unique().tolist()
+    if not ctx_parent_keys:
+        _LOG.info(f"No context parent keys found in tgt_data for {tgt_table.name}")
+        return tgt_data
+
+    # identify key columns to exclude (primary key + foreign keys)
+    key_columns = {ctx_parent_pk}
+    for rel in schema.relations:
+        if rel.child.table == ctx_parent_table_name:
+            key_columns.add(rel.child.column)
+
+    # get non-key columns only
+    non_key_columns = [col for col in ctx_parent_table.columns if col not in key_columns]
+
+    # fetch context parent data with prefixed columns (only non-key columns + PK for join)
+    columns_to_fetch = [ctx_parent_pk] + non_key_columns
+    ctx_parent_data = ctx_parent_table.read_data_prefixed(
+        columns=columns_to_fetch,
+        where={ctx_parent_pk: ctx_parent_keys},
+        do_coerce_dtypes=True,
+    )
+
+    if ctx_parent_data.empty:
+        _LOG.info(f"No context parent data found for {tgt_table.name}")
+        return tgt_data
+
+    # join context parent data with tgt_data
+    ctx_parent_pk_prefixed = DataIdentifier(ctx_parent_table_name, ctx_parent_pk).ref_name()
+    tgt_data = pd.merge(
+        tgt_data,
+        ctx_parent_data,
+        left_on=tgt_ctx_fk,
+        right_on=ctx_parent_pk_prefixed,
+        how="left",
+    )
+
+    # drop the primary key column after join (only keep non-key columns)
+    if ctx_parent_pk_prefixed in tgt_data.columns:
+        tgt_data = tgt_data.drop(columns=[ctx_parent_pk_prefixed])
+
+    added_columns = [c for c in tgt_data.columns if c in ctx_parent_data.columns]
+    _LOG.info(f"add_context_parent_data | time: {time.time() - t0:.2f}s | added_columns: {added_columns}")
+    return tgt_data
+
+
 def pull_fk_model_training_data(
     *,
     tgt_table: DataTable,
     tgt_parent_key: str,
     parent_table: DataTable,
     parent_primary_key: str,
+    schema: Schema,
     max_parent_sample_size: int = MAX_PARENT_SAMPLE_SIZE,
     max_tgt_per_parent: int = MAX_TGT_PER_PARENT,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -654,19 +720,28 @@ def pull_fk_model_training_data(
         tgt_parent_key: Foreign key column in target table
         parent_table: Parent table
         parent_primary_key: Primary key column in parent table
+        schema: Schema to fetch context parent data for tgt_table
         max_parent_sample_size: Maximum parent keys to sample
         max_tgt_per_parent: Maximum target records per parent
 
     Returns:
-        Tuple of (parent_data, tgt_data)
+        Tuple of (parent_data, tgt_data). tgt_data includes columns from context parent table.
     """
     parent_data = fetch_parent_data(parent_table=parent_table, max_sample_size=max_parent_sample_size)
-    parent_keys_list = parent_data[parent_primary_key].tolist() if not parent_data.empty else []
+    parent_keys = parent_data[parent_primary_key].tolist() if not parent_data.empty else []
     tgt_data = fetch_tgt_data(
         tgt_table=tgt_table,
         tgt_parent_key=tgt_parent_key,
-        parent_keys=parent_keys_list,
+        parent_keys=parent_keys,
         max_tgt_per_parent=max_tgt_per_parent,
+    )
+    tgt_data = add_context_parent_data(
+        tgt_data=tgt_data,
+        tgt_table=tgt_table,
+        schema=schema,
+    )
+    _LOG.info(
+        f"pull_fk_model_training_data | parent_data columns: {list(parent_data.columns)} | tgt_data columns: {list(tgt_data.columns)}"
     )
     return parent_data, tgt_data
 
