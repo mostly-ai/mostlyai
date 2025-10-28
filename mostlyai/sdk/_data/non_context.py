@@ -640,17 +640,13 @@ def fetch_tgt_data(
 def add_context_parent_data(
     *,
     tgt_data: pd.DataFrame,
-    tgt_table_name: str,
+    tgt_table: DataTable,
     schema: Schema,
 ) -> pd.DataFrame:
-    """
-    Add context parent data to tgt_data by joining with parent table through context relation.
-    Returns tgt_data with additional columns from context parent tables
-    """
     t0 = time.time()
 
     # get the context parent relation for the target table
-    ctx_rel = schema.get_parent_context_relation(tgt_table_name)
+    ctx_rel = schema.get_parent_context_relation(tgt_table.name)
     if ctx_rel is None:
         # no context parent, return as is
         return tgt_data
@@ -663,7 +659,7 @@ def add_context_parent_data(
     # get unique context parent keys from tgt_data
     ctx_parent_keys = tgt_data[tgt_ctx_fk].dropna().unique().tolist()
     if not ctx_parent_keys:
-        _LOG.info(f"No context parent keys found in tgt_data for {tgt_table_name}")
+        _LOG.info(f"No context parent keys found in tgt_data for {tgt_table.name}")
         return tgt_data
 
     # identify key columns to exclude (primary key + foreign keys)
@@ -684,7 +680,7 @@ def add_context_parent_data(
     )
 
     if ctx_parent_data.empty:
-        _LOG.info(f"No context parent data found for {tgt_table_name}")
+        _LOG.info(f"No context parent data found for {tgt_table.name}")
         return tgt_data
 
     # join context parent data with tgt_data
@@ -712,7 +708,7 @@ def pull_fk_model_training_data(
     tgt_parent_key: str,
     parent_table: DataTable,
     parent_primary_key: str,
-    schema: Schema | None = None,
+    schema: Schema,
     max_parent_sample_size: int = MAX_PARENT_SAMPLE_SIZE,
     max_tgt_per_parent: int = MAX_TGT_PER_PARENT,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -724,29 +720,26 @@ def pull_fk_model_training_data(
         tgt_parent_key: Foreign key column in target table
         parent_table: Parent table
         parent_primary_key: Primary key column in parent table
-        schema: Optional schema to fetch context parent data for tgt_table
+        schema: Schema to fetch context parent data for tgt_table
         max_parent_sample_size: Maximum parent keys to sample
         max_tgt_per_parent: Maximum target records per parent
 
     Returns:
-        Tuple of (parent_data, tgt_data). tgt_data includes columns from context parents if schema is provided.
+        Tuple of (parent_data, tgt_data). tgt_data includes columns from context parent table.
     """
     parent_data = fetch_parent_data(parent_table=parent_table, max_sample_size=max_parent_sample_size)
-    parent_keys_list = parent_data[parent_primary_key].tolist() if not parent_data.empty else []
+    parent_keys = parent_data[parent_primary_key].tolist() if not parent_data.empty else []
     tgt_data = fetch_tgt_data(
         tgt_table=tgt_table,
         tgt_parent_key=tgt_parent_key,
-        parent_keys=parent_keys_list,
+        parent_keys=parent_keys,
         max_tgt_per_parent=max_tgt_per_parent,
     )
-
-    # If schema is provided, fetch and join context parent data
-    if schema is not None and not tgt_data.empty:
-        tgt_data = add_context_parent_data(
-            tgt_data=tgt_data,
-            tgt_table_name=tgt_table.name,
-            schema=schema,
-        )
+    tgt_data = add_context_parent_data(
+        tgt_data=tgt_data,
+        tgt_table=tgt_table,
+        schema=schema,
+    )
 
     return parent_data, tgt_data
 
