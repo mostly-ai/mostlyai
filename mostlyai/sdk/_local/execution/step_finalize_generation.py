@@ -44,7 +44,7 @@ _LOG = logging.getLogger(__name__)
 
 # FK processing constants
 FK_MIN_CHILDREN_BATCH_SIZE = 10
-FK_PARENT_BATCH_SIZE = 1000
+FK_PARENT_BATCH_SIZE = 5_000
 
 
 def execute_step_finalize_generation(
