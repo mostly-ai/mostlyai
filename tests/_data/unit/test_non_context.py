@@ -206,7 +206,8 @@ def test_prepare_training_pairs():
         tgt_encoded_data=child_data,
         parent_primary_key="parent_id",
         tgt_parent_key="parent_fk",
-        n_negative=2,
+        n_positive_samples=1,
+        n_negative_samples=2,
     )
 
     # 3 non-null children * (1 positive + 2 negatives) = 9 pairs
@@ -214,10 +215,10 @@ def test_prepare_training_pairs():
     assert len(child_X) == 9
     assert len(labels) == 9
 
-    # First 3 are positive (label=1), next 6 are negative (label=0)
-    assert labels.sum() == 3.0
-    assert (labels[:3] == 1.0).all()
-    assert (labels[3:] == 0.0).all()
+    # Should have 3 positive samples (1 per child) and 6 negative samples (2 per child)
+    # Note: pairs are shuffled, so we check totals rather than order
+    assert labels.sum() == 3.0  # 3 positive samples
+    assert (labels == 0.0).sum() == 6  # 6 negative samples
 
     # Keys removed from features
     assert "parent_id" not in parent_X.columns
@@ -232,7 +233,8 @@ def test_prepare_training_pairs():
             tgt_encoded_data=pd.DataFrame({"parent_fk": [pd.NA, pd.NA], "feat": [1, 2]}),
             parent_primary_key="parent_id",
             tgt_parent_key="parent_fk",
-            n_negative=1,
+            n_positive_samples=1,
+            n_negative_samples=1,
         )
 
     # Test case: invalid FK gets dropped with warning (not error)
@@ -241,7 +243,8 @@ def test_prepare_training_pairs():
         tgt_encoded_data=pd.DataFrame({"parent_fk": [1, 999, 2], "feat": [10, 20, 30]}),  # 999 invalid
         parent_primary_key="parent_id",
         tgt_parent_key="parent_fk",
-        n_negative=1,
+        n_positive_samples=1,
+        n_negative_samples=1,
     )
     # Should only have 2 valid children (1 and 2), dropping the invalid 999
     assert len(parent_X_partial) == 4  # 2 children * (1 positive + 1 negative)

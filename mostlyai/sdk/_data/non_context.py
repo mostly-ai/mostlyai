@@ -75,7 +75,8 @@ BATCH_SIZE = 128
 LEARNING_RATE = 0.0003
 MAX_EPOCHS = 1000
 PATIENCE = 5
-N_NEGATIVE_SAMPLES = 2
+N_POSITIVE_SAMPLES = 2
+N_NEGATIVE_SAMPLES = 3
 VAL_SPLIT = 0.2
 DROPOUT_RATE = 0.2
 EARLY_STOPPING_DELTA = 1e-5
@@ -755,12 +756,13 @@ def prepare_training_pairs(
     tgt_encoded_data: pd.DataFrame,
     parent_primary_key: str,
     tgt_parent_key: str,
-    n_negative: int = N_NEGATIVE_SAMPLES,
+    n_positive_samples: int = N_POSITIVE_SAMPLES,
+    n_negative_samples: int = N_NEGATIVE_SAMPLES,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
     Prepare training data for a parent-child matching model.
     For each non-null child, samples will include:
-    - One positive pair (correct parent) with label=1
+    - Multiple positive pairs (correct parent) with label=1
     - Multiple negative pairs (wrong parents) with label=0
 
     Args:
@@ -768,7 +770,8 @@ def prepare_training_pairs(
         tgt_encoded_data: Encoded child data
         parent_primary_key: Primary key of parents
         tgt_parent_key: Foreign key of children
-        n_negative: Number of negative samples per child
+        n_positive_samples: Number of positive samples per child
+        n_negative_samples: Number of negative samples per child
     """
     t0 = time.time()
 
@@ -809,14 +812,14 @@ def prepare_training_pairs(
 
     true_parent_pos = parent_index_by_key.loc[tgt_keys].to_numpy()
 
-    # positive pairs (label=1) - one per valid tgt, duplicated n_negative times
+    # positive pairs (label=1) - n_positive_samples per valid tgt
     pos_parents = parents_X[true_parent_pos]
-    pos_parents_repeated = np.repeat(pos_parents, n_negative, axis=0)
-    pos_tgt_repeated = np.repeat(tgt_X, n_negative, axis=0)
-    pos_labels_repeated = np.ones(n_valid * n_negative, dtype=np.float32)
+    pos_parents_repeated = np.repeat(pos_parents, n_positive_samples, axis=0)
+    pos_tgt_repeated = np.repeat(tgt_X, n_positive_samples, axis=0)
+    pos_labels_repeated = np.ones(n_valid * n_positive_samples, dtype=np.float32)
 
-    # negative pairs (label=0) - n_negative per valid tgt
-    neg_indices = np.random.randint(0, n_parents, size=(n_valid, n_negative))
+    # negative pairs (label=0) - n_negative_samples per valid tgt
+    neg_indices = np.random.randint(0, n_parents, size=(n_valid, n_negative_samples))
     if n_parents > 1:
         true_parent_pos_expanded = true_parent_pos[:, np.newaxis]
         mask = neg_indices == true_parent_pos_expanded
@@ -824,8 +827,8 @@ def prepare_training_pairs(
             neg_indices[mask] = np.random.randint(0, n_parents, size=mask.sum())
             mask = neg_indices == true_parent_pos_expanded
     neg_parents = parents_X[neg_indices.ravel()]
-    neg_tgt = np.repeat(tgt_X, n_negative, axis=0)
-    neg_labels = np.zeros(n_valid * n_negative, dtype=np.float32)
+    neg_tgt = np.repeat(tgt_X, n_negative_samples, axis=0)
+    neg_labels = np.zeros(n_valid * n_negative_samples, dtype=np.float32)
 
     parent_vecs = np.vstack([pos_parents_repeated, neg_parents]).astype(np.float32, copy=False)
     tgt_vecs = np.vstack([pos_tgt_repeated, neg_tgt]).astype(np.float32, copy=False)
