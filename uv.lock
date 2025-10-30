@@ -3807,7 +3807,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.6.1"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-cond-gen-impute-seed#c8240df78cb8d6450279e88e14ccf9cd29dd5b2b" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-cond-gen-impute-seed#4124b0fdda2bf196b197f531aaa37df282617789" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
