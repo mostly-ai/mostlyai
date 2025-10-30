@@ -820,7 +820,7 @@ class MostlyAI(_MostlyBaseClient):
                             'sampling_temperature': 1.0,
                             'sampling_top_p': 1.0,
                             'rebalancing': {'column': 'country', 'probabilities': {'US': 0.5, 'CA': 0.3}},
-                            'imputation': {'columns': ['age', 'income']},  # impute null values in seed
+                            'imputation': {'columns': ['age']},  # impute age nulls; income null stays as-is
                             'fairness': {'target_column': 'income', 'sensitive_columns': ['gender']},
                         }
                     }]
