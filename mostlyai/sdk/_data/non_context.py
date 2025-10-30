@@ -831,6 +831,13 @@ def prepare_training_pairs(
     tgt_vecs = np.vstack([pos_tgt_repeated, neg_tgt]).astype(np.float32, copy=False)
     labels_vec = np.concatenate([pos_labels_repeated, neg_labels]).astype(np.float32, copy=False)
 
+    # shuffle pairs for training robustness
+    n_pairs = len(parent_vecs)
+    shuffle_indices = np.random.permutation(n_pairs)
+    parent_vecs = parent_vecs[shuffle_indices]
+    tgt_vecs = tgt_vecs[shuffle_indices]
+    labels_vec = labels_vec[shuffle_indices]
+
     parent_pd = pd.DataFrame(parent_vecs, columns=parent_encoded_data.drop(columns=[parent_primary_key]).columns)
     tgt_pd = pd.DataFrame(tgt_vecs, columns=tgt_encoded_data.drop(columns=[tgt_parent_key]).columns)
     labels_pd = pd.Series(labels_vec, name="labels")
