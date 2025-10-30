@@ -32,7 +32,7 @@ from collections import defaultdict
 from collections.abc import Iterator
 from copy import copy as shallow_copy
 from copy import deepcopy
-from functools import lru_cache
+from functools import lru_cache, partial
 from pathlib import Path
 
 import numpy as np
@@ -51,6 +51,7 @@ from mostlyai.engine._encoding_types.tabular.categorical import (
 )
 from mostlyai.engine._encoding_types.tabular.datetime import analyze_datetime, analyze_reduce_datetime, encode_datetime
 from mostlyai.engine._encoding_types.tabular.numeric import analyze_numeric, analyze_reduce_numeric, encode_numeric
+from mostlyai.engine.domain import ModelEncodingType
 from mostlyai.sdk._data.base import DataIdentifier, DataTable, NonContextRelation, Schema
 from mostlyai.sdk._data.file.base import FileDataTable
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
@@ -74,7 +75,7 @@ BATCH_SIZE = 128
 LEARNING_RATE = 0.0003
 MAX_EPOCHS = 1000
 PATIENCE = 5
-N_NEGATIVE_SAMPLES = 10
+N_NEGATIVE_SAMPLES = 2
 VAL_SPLIT = 0.2
 DROPOUT_RATE = 0.2
 EARLY_STOPPING_DELTA = 1e-5
@@ -498,7 +499,10 @@ def analyze_df(
         if col in cat_columns:
             analyze, reduce = analyze_categorical, analyze_reduce_categorical
         elif col in num_columns:
-            analyze, reduce = analyze_numeric, analyze_reduce_numeric
+            analyze, reduce = (
+                partial(analyze_numeric, encoding_type=ModelEncodingType.tabular_numeric_digit),
+                partial(analyze_reduce_numeric, encoding_type=ModelEncodingType.tabular_numeric_digit),
+            )
         elif col in dt_columns:
             analyze, reduce = analyze_datetime, analyze_reduce_datetime
         else:
@@ -805,9 +809,11 @@ def prepare_training_pairs(
 
     true_parent_pos = parent_index_by_key.loc[tgt_keys].to_numpy()
 
-    # positive pairs (label=1) - one per valid tgt
+    # positive pairs (label=1) - one per valid tgt, duplicated n_negative times
     pos_parents = parents_X[true_parent_pos]
-    pos_labels = np.ones(n_valid, dtype=np.float32)
+    pos_parents_repeated = np.repeat(pos_parents, n_negative, axis=0)
+    pos_tgt_repeated = np.repeat(tgt_X, n_negative, axis=0)
+    pos_labels_repeated = np.ones(n_valid * n_negative, dtype=np.float32)
 
     # negative pairs (label=0) - n_negative per valid tgt
     neg_indices = np.random.randint(0, n_parents, size=(n_valid, n_negative))
@@ -821,9 +827,9 @@ def prepare_training_pairs(
     neg_tgt = np.repeat(tgt_X, n_negative, axis=0)
     neg_labels = np.zeros(n_valid * n_negative, dtype=np.float32)
 
-    parent_vecs = np.vstack([pos_parents, neg_parents]).astype(np.float32, copy=False)
-    tgt_vecs = np.vstack([tgt_X, neg_tgt]).astype(np.float32, copy=False)
-    labels_vec = np.concatenate([pos_labels, neg_labels]).astype(np.float32, copy=False)
+    parent_vecs = np.vstack([pos_parents_repeated, neg_parents]).astype(np.float32, copy=False)
+    tgt_vecs = np.vstack([pos_tgt_repeated, neg_tgt]).astype(np.float32, copy=False)
+    labels_vec = np.concatenate([pos_labels_repeated, neg_labels]).astype(np.float32, copy=False)
 
     parent_pd = pd.DataFrame(parent_vecs, columns=parent_encoded_data.drop(columns=[parent_primary_key]).columns)
     tgt_pd = pd.DataFrame(tgt_vecs, columns=tgt_encoded_data.drop(columns=[tgt_parent_key]).columns)
