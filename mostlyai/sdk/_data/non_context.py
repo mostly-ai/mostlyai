@@ -91,6 +91,16 @@ TEMPERATURE = 1.0
 TOP_K = None
 TOP_P = 0.95
 
+# Supported Encoding Types
+FK_MODEL_ENCODING_TYPES = [
+    ModelEncodingType.tabular_categorical,
+    ModelEncodingType.tabular_numeric_auto,
+    ModelEncodingType.tabular_numeric_discrete,
+    ModelEncodingType.tabular_numeric_binned,
+    ModelEncodingType.tabular_numeric_digit,
+    ModelEncodingType.tabular_datetime,
+]
+
 
 # =============================================================================
 # PARTITIONED DATASET FOR EFFICIENT DATA HANDLING
@@ -673,11 +683,19 @@ def add_context_parent_data(
         if rel.child.table == ctx_parent_table_name:
             key_columns.add(rel.child.column)
 
-    # get non-key columns only
-    non_key_columns = [col for col in ctx_parent_table.columns if col not in key_columns]
+    # get non-key columns that are supported by FK models
+    include_columns = []
+    for col in ctx_parent_table.columns:
+        if col in key_columns:
+            continue
+        # only include columns with encoding types supported by FK models
+        encoding_type = ctx_parent_table.encoding_types.get(col)
+        if encoding_type not in FK_MODEL_ENCODING_TYPES:
+            continue
+        include_columns.append(col)
 
     # fetch context parent data with prefixed columns (only non-key columns + PK for join)
-    columns_to_fetch = [ctx_parent_pk] + non_key_columns
+    columns_to_fetch = [ctx_parent_pk] + include_columns
     ctx_parent_data = ctx_parent_table.read_data_prefixed(
         columns=columns_to_fetch,
         where={ctx_parent_pk: ctx_parent_keys},
