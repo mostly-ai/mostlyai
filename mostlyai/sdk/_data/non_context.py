@@ -725,7 +725,7 @@ def add_context_parent_data(
         return tgt_data
 
     # join context parent data with tgt_data
-    ctx_parent_pk_prefixed = DataIdentifier(ctx_parent_table.name, ctx_parent_pk).ref_name()
+    ctx_parent_pk_prefixed = DataIdentifier(ctx_parent_table_name, ctx_parent_pk).ref_name()
     tgt_data = pd.merge(
         tgt_data,
         ctx_parent_data,
