@@ -684,7 +684,8 @@ def add_context_parent_data(
         # no context parent, return as is
         return tgt_data
 
-    ctx_parent_table = schema.tables[ctx_relation.parent.table]
+    ctx_parent_table_name = ctx_relation.parent.table
+    ctx_parent_table = schema.tables[ctx_parent_table_name]
     ctx_parent_pk = ctx_relation.parent.column
     tgt_ctx_fk = ctx_relation.child.column
 
@@ -697,7 +698,7 @@ def add_context_parent_data(
     # identify key columns to exclude (primary key + foreign keys)
     key_columns = {ctx_parent_pk}
     for rel in schema.relations:
-        if rel.child.table == ctx_parent_table.name:
+        if rel.child.table == ctx_parent_table_name:
             key_columns.add(rel.child.column)
 
     # get non-key columns that are supported by FK models
