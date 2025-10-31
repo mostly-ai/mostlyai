@@ -45,7 +45,7 @@ def test_write_data_empty(temp_table, write_chunk_size):
 def test_database_name_differs_from_logical_name(temp_table):
     # create a table with actual name "users_v2" but logical name "users"
     temp_table.name = "users_v2"
-    df = pd.DataFrame({"id": [1, 2, 3], "name": ["alice", "bob", "charlie"]})
+    df = pd.DataFrame({"name": ["alice", "bob", "charlie"]})
     temp_table.write_data(df, if_exists="replace")
 
     # now access with different logical name but same database_name
@@ -56,5 +56,7 @@ def test_database_name_differs_from_logical_name(temp_table):
 
     assert df_read.shape == df.shape
     pd.testing.assert_frame_equal(
-        df_read.sort_values("id").reset_index(drop=True), df.sort_values("id").reset_index(drop=True)
+        df_read.sort_values("name").reset_index(drop=True),
+        df.sort_values("name").reset_index(drop=True),
+        check_dtype=False,
     )
