@@ -623,6 +623,7 @@ def fetch_tgt_data(
     tgt_table: DataTable,
     tgt_parent_key: str,
     parent_keys: list,
+    schema: Schema,
     max_tgt_per_parent: int = MAX_TGT_PER_PARENT,
 ) -> pd.DataFrame:
     """
@@ -635,6 +636,7 @@ def fetch_tgt_data(
         tgt_table: Target table to fetch from.
         tgt_parent_key: Foreign key column in target table.
         parent_keys: List of parent key values to filter by.
+        schema: Schema to fetch context parent data for tgt_table
         max_tgt_per_parent: Maximum target records per parent.
 
     Returns:
@@ -645,6 +647,7 @@ def fetch_tgt_data(
     collected_rows = []
     where = {tgt_parent_key: parent_keys}
     tgt_primary_key = tgt_table.primary_key
+    tgt_context_key = schema.get_context_key(tgt_table.name)
     tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
     data_columns = [
         c
@@ -653,7 +656,10 @@ def fetch_tgt_data(
         and c not in tgt_foreign_keys  # data column is not a foreign key
         and tgt_table.encoding_types.get(c) in FK_MODEL_ENCODING_TYPES  # encoding type is supported by FK models
     ]
-    columns = [tgt_parent_key] + data_columns
+    columns = [tgt_parent_key]
+    if tgt_context_key is not None:
+        columns += [tgt_context_key.column]
+    columns += data_columns
 
     for chunk_df in tgt_table.read_chunks(columns=columns, where=where, do_coerce_dtypes=True):
         if len(chunk_df) == 0:
@@ -676,6 +682,7 @@ def add_context_parent_data(
     tgt_data: pd.DataFrame,
     tgt_table: DataTable,
     schema: Schema,
+    drop_context_key: bool = False,
 ) -> pd.DataFrame:
     t0 = time.time()
 
@@ -725,7 +732,7 @@ def add_context_parent_data(
         return tgt_data
 
     # join context parent data with tgt_data
-    ctx_parent_pk_prefixed = DataIdentifier(ctx_parent_table_name, ctx_parent_pk).ref_name()
+    ctx_parent_pk_prefixed = DataIdentifier(ctx_parent_table.name, ctx_parent_pk).ref_name()
     tgt_data = pd.merge(
         tgt_data,
         ctx_parent_data,
@@ -737,6 +744,10 @@ def add_context_parent_data(
     # drop the primary key column after join (only keep non-key columns)
     if ctx_parent_pk_prefixed in tgt_data.columns:
         tgt_data = tgt_data.drop(columns=[ctx_parent_pk_prefixed])
+
+    # drop the context key column if requested
+    if drop_context_key:
+        tgt_data = tgt_data.drop(columns=[tgt_ctx_fk])
 
     added_columns = [c for c in tgt_data.columns if c in ctx_parent_data.columns]
     _LOG.info(f"add_context_parent_data | time: {time.time() - t0:.2f}s | added_columns: {added_columns}")
@@ -769,11 +780,13 @@ def pull_fk_model_training_data(
         tgt_table=tgt_table,
         tgt_parent_key=tgt_parent_key,
         parent_keys=parent_keys,
+        schema=schema,
     )
     tgt_data = add_context_parent_data(
         tgt_data=tgt_data,
         tgt_table=tgt_table,
         schema=schema,
+        drop_context_key=True,  # after this step, tgt_context_key is dropped
     )
     _LOG.info(
         f"pull_fk_model_training_data | parent_data columns: {list(parent_data.columns)} | tgt_data columns: {list(tgt_data.columns)}"
