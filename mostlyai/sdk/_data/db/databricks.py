@@ -293,7 +293,7 @@ class DatabricksTable(SqlAlchemyTable):
             # create an empty table without schema
             query = f"CREATE TABLE IF NOT EXISTS {self.container.dbname}.{self.container.dbschema}.{self.db_table_name}"
             cursor.execute(query)
-            _LOG.info(f"created table `{self.name}` under schema `{self.container.dbschema}`")
+            _LOG.info(f"created table `{self.db_table_name}` under schema `{self.container.dbschema}`")
 
     def create_volume(self, volume_name) -> None:
         self.drop_volume_if_exists(volume_name)
