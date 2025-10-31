@@ -440,8 +440,6 @@ class ParentChildMatcher(nn.Module):
         child_encoded = self.child_encoder(child_inputs)
 
         similarity = F.cosine_similarity(parent_encoded, child_encoded, dim=1)
-        # Return logits for training (BCEWithLogitsLoss expects logits)
-        # For inference, probabilities are computed separately in build_parent_child_probabilities
         logits = (similarity * PEAKEDNESS_SCALER).unsqueeze(1)
 
         return logits
@@ -880,15 +878,6 @@ def train_fk_model(
     y = torch.tensor(labels.values, dtype=torch.float32).unsqueeze(1)
     dataset = TensorDataset(X_parent, X_tgt, y)
 
-    # Calculate class imbalance for loss weighting
-    # pos_weight = num_negatives / num_positives to balance classes
-    num_positives = int(labels.sum())
-    num_negatives = len(labels) - num_positives
-    pos_weight = torch.tensor([num_negatives / num_positives]) if num_positives > 0 else torch.tensor([1.0])
-    _LOG.info(
-        f"train_fk_model | class imbalance: {num_positives} positives, {num_negatives} negatives, pos_weight: {pos_weight.item():.2f}"
-    )
-
     val_size = int(VAL_SPLIT * len(dataset))
     train_size = len(dataset) - val_size
     train_ds, val_ds = random_split(dataset, [train_size, val_size])
@@ -897,7 +886,11 @@ def train_fk_model(
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    # Use BCEWithLogitsLoss with pos_weight to handle class imbalance without cloning positive pairs
+
+    # calculate class imbalance for loss weighting
+    num_positives = int(labels.sum())
+    num_negatives = len(labels) - num_positives
+    pos_weight = torch.tensor([num_negatives / num_positives]) if num_positives > 0 else torch.tensor([1.0])
     loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     train_losses, val_losses = [], []
