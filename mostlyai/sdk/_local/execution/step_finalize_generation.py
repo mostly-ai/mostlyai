@@ -353,7 +353,6 @@ def process_table_with_fk_models(
 
     # Process children chunk by chunk
     for chunk_idx, chunk_data in enumerate(children_table.read_chunks(
-        columns=children_table.columns,
         do_coerce_dtypes=True
     )):
         _LOG.info(f"Processing chunk {chunk_idx} ({len(chunk_data)} rows)")
