@@ -40,3 +40,21 @@ def test_write_data_empty(temp_table, write_chunk_size):
     temp_table.write_data(df, if_exists="replace")
     df_read = temp_table.read_data()
     assert df_read.empty
+
+
+def test_database_name_differs_from_logical_name(temp_table):
+    # create a table with actual name "users_v2" but logical name "users"
+    temp_table.name = "users_v2"
+    df = pd.DataFrame({"id": [1, 2, 3], "name": ["alice", "bob", "charlie"]})
+    temp_table.write_data(df, if_exists="replace")
+
+    # now access with different logical name but same database_name
+    table_with_alias = SqliteTable(
+        name="users", container=temp_table.container, database_name="users_v2", is_output=False
+    )
+    df_read = table_with_alias.read_data()
+
+    assert df_read.shape == df.shape
+    pd.testing.assert_frame_equal(
+        df_read.sort_values("id").reset_index(drop=True), df.sort_values("id").reset_index(drop=True)
+    )

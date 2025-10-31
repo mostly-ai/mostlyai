@@ -282,7 +282,7 @@ class DatabricksTable(SqlAlchemyTable):
         if_exists = kwargs.get("if_exists", "append")
         with self.container.init_sa_connection() as connection:
             cursor = connection.connection.cursor()
-            cursor.columns(schema_name=self.container.dbschema, table_name=self.name)
+            cursor.columns(schema_name=self.container.dbschema, table_name=self.db_table_name)
             result = cursor.fetchall()
             if result:  # the table already exists
                 if if_exists == "replace":
@@ -291,7 +291,7 @@ class DatabricksTable(SqlAlchemyTable):
                 elif if_exists == "fail":
                     raise MostlyDataException("Destination location already exists.")
             # create an empty table without schema
-            query = f"CREATE TABLE IF NOT EXISTS {self.container.dbname}.{self.container.dbschema}.{self.name}"
+            query = f"CREATE TABLE IF NOT EXISTS {self.container.dbname}.{self.container.dbschema}.{self.db_table_name}"
             cursor.execute(query)
             _LOG.info(f"created table `{self.name}` under schema `{self.container.dbschema}`")
 
@@ -307,13 +307,13 @@ class DatabricksTable(SqlAlchemyTable):
         _LOG.info(f"dropped temporary volume `{volume_name}` if existed")
 
     def drop_table_if_exists(self) -> None:
-        query = f"DROP TABLE IF EXISTS {self.container.dbname}.{self.container.dbschema}.{self.name};"
+        query = f"DROP TABLE IF EXISTS {self.container.dbname}.{self.container.dbschema}.{self.db_table_name};"
         self._execute(query)
         _LOG.info(f"dropped table `{self.name}` if existed")
 
     def copy_data_from_volume_to_table(self, volume_name: str) -> None:
         query = (
-            f"COPY INTO {self.container.dbname}.{self.container.dbschema}.{self.name} "
+            f"COPY INTO {self.container.dbname}.{self.container.dbschema}.{self.db_table_name} "
             f"FROM '/Volumes/{self.container.dbname}/{self.container.dbschema}/{volume_name}/' "
             "FILEFORMAT = PARQUET "
             "FORMAT_OPTIONS ('inferSchema' = 'true') "
