@@ -75,7 +75,6 @@ BATCH_SIZE = 128
 LEARNING_RATE = 0.0003
 MAX_EPOCHS = 1000
 PATIENCE = 5
-N_POSITIVE_SAMPLES = 1  # Use only unique positive pairs, handle imbalance via loss weighting
 N_NEGATIVE_SAMPLES = 5
 VAL_SPLIT = 0.2
 DROPOUT_RATE = 0.2
@@ -768,13 +767,12 @@ def prepare_training_pairs(
     tgt_encoded_data: pd.DataFrame,
     parent_primary_key: str,
     tgt_parent_key: str,
-    n_positive_samples: int = N_POSITIVE_SAMPLES,
     n_negative_samples: int = N_NEGATIVE_SAMPLES,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
     Prepare training data for a parent-child matching model.
     For each non-null child, samples will include:
-    - One unique positive pair (correct parent) with label=1 (by default, to avoid duplication)
+    - One unique positive pair (correct parent) with label=1
     - Multiple negative pairs (wrong parents) with label=0
 
     Class imbalance is handled at the loss level using BCEWithLogitsLoss with pos_weight,
@@ -785,7 +783,6 @@ def prepare_training_pairs(
         tgt_encoded_data: Encoded child data
         parent_primary_key: Primary key of parents
         tgt_parent_key: Foreign key of children
-        n_positive_samples: Number of positive samples per child (default=1 to avoid duplication)
         n_negative_samples: Number of negative samples per child
     """
     t0 = time.time()
@@ -827,11 +824,9 @@ def prepare_training_pairs(
 
     true_parent_pos = parent_index_by_key.loc[tgt_keys].to_numpy()
 
-    # positive pairs (label=1) - n_positive_samples per valid tgt
+    # positive pairs (label=1) - one per valid tgt
     pos_parents = parents_X[true_parent_pos]
-    pos_parents_repeated = np.repeat(pos_parents, n_positive_samples, axis=0)
-    pos_tgt_repeated = np.repeat(tgt_X, n_positive_samples, axis=0)
-    pos_labels_repeated = np.ones(n_valid * n_positive_samples, dtype=np.float32)
+    pos_labels = np.ones(n_valid, dtype=np.float32)
 
     # negative pairs (label=0) - n_negative_samples per valid tgt
     neg_indices = np.random.randint(0, n_parents, size=(n_valid, n_negative_samples))
@@ -845,9 +840,9 @@ def prepare_training_pairs(
     neg_tgt = np.repeat(tgt_X, n_negative_samples, axis=0)
     neg_labels = np.zeros(n_valid * n_negative_samples, dtype=np.float32)
 
-    parent_vecs = np.vstack([pos_parents_repeated, neg_parents]).astype(np.float32, copy=False)
-    tgt_vecs = np.vstack([pos_tgt_repeated, neg_tgt]).astype(np.float32, copy=False)
-    labels_vec = np.concatenate([pos_labels_repeated, neg_labels]).astype(np.float32, copy=False)
+    parent_vecs = np.vstack([pos_parents, neg_parents]).astype(np.float32, copy=False)
+    tgt_vecs = np.vstack([tgt_X, neg_tgt]).astype(np.float32, copy=False)
+    labels_vec = np.concatenate([pos_labels, neg_labels]).astype(np.float32, copy=False)
 
     # shuffle pairs for training robustness
     n_pairs = len(parent_vecs)
