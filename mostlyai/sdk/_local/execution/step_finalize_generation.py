@@ -307,29 +307,6 @@ def calculate_optimal_child_batch_size_for_relation(
     return optimal_batch_size
 
 
-def assign_parent_keys_round_robin(
-    parent_keys: pd.DataFrame,
-    pk_column: str,
-    child_batch_idx: int,
-    parent_batch_size: int,
-) -> list:
-    """Select parent keys using round robin strategy."""
-    parent_count = len(parent_keys)
-    start_idx = (child_batch_idx * parent_batch_size) % parent_count
-    end_idx = min(start_idx + parent_batch_size, parent_count)
-
-    # handle wrap-around to beginning if batch spans end boundary
-    if end_idx - start_idx < parent_batch_size and parent_count > parent_batch_size:
-        first_part = parent_keys.iloc[start_idx:end_idx]
-        remaining_needed = parent_batch_size - (end_idx - start_idx)
-        second_part = parent_keys.iloc[0:remaining_needed]
-        selected_keys = pd.concat([first_part, second_part], ignore_index=True)
-    else:
-        selected_keys = parent_keys.iloc[start_idx:end_idx]
-
-    return selected_keys[pk_column].tolist()
-
-
 def process_table_with_fk_models(
     *,
     table_name: str,
@@ -339,7 +316,7 @@ def process_table_with_fk_models(
     parent_batch_size: int = FK_PARENT_BATCH_SIZE,
     job_workspace_dir: Path,
 ) -> None:
-    """Process table with ML model-based FK assignment using chunks and per-relationship batch sizes."""
+    """Process table with ML model-based FK assignment using logical child batches."""
 
     fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / table_name
     non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == table_name]
@@ -359,7 +336,7 @@ def process_table_with_fk_models(
                 do_coerce_dtypes=True,
             )
 
-    # calculate optimal batch size for each relationship
+    # Calculate optimal batch size for each relationship
     relationship_batch_sizes = {}
     for relation in non_ctx_relations:
         parent_table_name = relation.parent.table
@@ -374,141 +351,67 @@ def process_table_with_fk_models(
         )
         relationship_batch_sizes[relation] = optimal_batch_size
 
-    # process data using chunks with buffering
-    relationship_batch_indices = {relation: 0 for relation in non_ctx_relations}
-    leftover_buffers = {}  # incomplete batches buffered for next chunk
-    chunk_idx = 0
-    is_final_chunk = False
-
-    for chunk_data in children_table.read_chunks(columns=children_table.columns, do_coerce_dtypes=True):
-        chunk_idx += 1
+    # Process children chunk by chunk
+    for chunk_idx, chunk_data in enumerate(children_table.read_chunks(
+        columns=children_table.columns,
+        do_coerce_dtypes=True
+    )):
         _LOG.info(f"Processing chunk {chunk_idx} ({len(chunk_data)} rows)")
 
-        # Check if this is the final chunk by peeking ahead
-        # We'll handle this by tracking if we've processed all data at the end
-
+        # Process each relation independently
         for relation in non_ctx_relations:
             parent_table_name = relation.parent.table
             parent_table = parent_tables[parent_table_name]
             parent_pk = relation.parent.column
-            relation_name = f"{relation.child.table}.{relation.child.column}->{parent_table_name}"
             optimal_batch_size = relationship_batch_sizes[relation]
-
-            current_data = chunk_data.copy()
-            if relation in leftover_buffers:
-                current_data = pd.concat([leftover_buffers[relation], current_data], ignore_index=True)
-                del leftover_buffers[relation]
+            relation_name = f"{relation.child.table}.{relation.child.column}->{parent_table_name}"
 
             _LOG.info(f"  Processing relationship {relation_name} with batch size {optimal_batch_size}")
 
-            processed_chunks = []
+            processed_batches = []
 
-            for batch_start in range(0, len(current_data), optimal_batch_size):
-                batch_end = min(batch_start + optimal_batch_size, len(current_data))
-                batch_data = current_data.iloc[batch_start:batch_end].copy()
+            # Slice chunk into logical batches
+            for batch_start in range(0, len(chunk_data), optimal_batch_size):
+                batch_end = min(batch_start + optimal_batch_size, len(chunk_data))
+                batch_data = chunk_data.iloc[batch_start:batch_end].copy()
 
-                # process complete batches; buffer incomplete batches unless it's the final chunk
-                is_complete_batch = batch_end - batch_start == optimal_batch_size
+                # Sample parents randomly for this logical batch
+                sampled_parent_keys_df = parent_keys_cache[parent_table_name].sample(
+                    n=parent_batch_size,
+                    replace=False
+                )
+                sampled_parent_keys = sampled_parent_keys_df[parent_pk].tolist()
 
-                if is_complete_batch:
-                    current_batch_idx = relationship_batch_indices[relation]
+                # Fetch full parent data for sampled keys on-demand
+                parent_data = parent_table.read_data(
+                    where={parent_pk: sampled_parent_keys},
+                    columns=parent_table.columns,
+                    do_coerce_dtypes=True,
+                )
 
-                    # Select parent keys using round-robin
-                    selected_parent_keys = assign_parent_keys_round_robin(
-                        parent_keys=parent_keys_cache[parent_table_name],
-                        pk_column=parent_pk,
-                        child_batch_idx=current_batch_idx,
-                        parent_batch_size=parent_batch_size,
-                    )
+                batch_data = add_context_parent_data(
+                    tgt_data=batch_data,
+                    tgt_table=children_table,
+                    schema=schema,
+                )
 
-                    # Fetch full parent data for selected keys on-demand
-                    assigned_parent_data = parent_table.read_data(
-                        where={parent_pk: selected_parent_keys},
-                        columns=parent_table.columns,
-                        do_coerce_dtypes=True,
-                    )
+                processed_batch = match_non_context(
+                    fk_models_workspace_dir=fk_models_workspace_dir,
+                    tgt_data=batch_data,
+                    parent_data=parent_data,
+                    tgt_parent_key=relation.child.column,
+                    parent_primary_key=relation.parent.column,
+                    parent_table_name=parent_table_name,
+                )
 
-                    batch_data = add_context_parent_data(
-                        tgt_data=batch_data,
-                        tgt_table=children_table,
-                        schema=schema,
-                    )
+                processed_batches.append(processed_batch)
 
-                    processed_chunk = match_non_context(
-                        fk_models_workspace_dir=fk_models_workspace_dir,
-                        tgt_data=batch_data,
-                        parent_data=assigned_parent_data,
-                        tgt_parent_key=relation.child.column,
-                        parent_primary_key=relation.parent.column,
-                        parent_table_name=parent_table_name,
-                    )
+            # Reassemble chunk from processed batches
+            chunk_data = pd.concat(processed_batches, ignore_index=True)
 
-                    processed_chunks.append(processed_chunk)
-                    relationship_batch_indices[relation] += 1
-                else:
-                    # Buffer incomplete batch for next chunk
-                    leftover_buffers[relation] = batch_data
-                    break
-
-            if processed_chunks:
-                chunk_data = pd.concat(processed_chunks, ignore_index=True)
-
+        # Write processed chunk
         chunk_data = filter_and_order_columns(chunk_data, table_name, schema)
-        write_batch_outputs(chunk_data, table_name, chunk_idx - 1, pqt_path, csv_path)
-        del chunk_data
-
-    # Process any remaining leftover buffers after all chunks are processed
-    if leftover_buffers:
-        _LOG.info("Processing final leftover buffers")
-        final_data = None
-
-        for relation in non_ctx_relations:
-            if relation not in leftover_buffers:
-                continue
-
-            parent_table_name = relation.parent.table
-            parent_table = parent_tables[parent_table_name]
-            parent_pk = relation.parent.column
-            batch_data = leftover_buffers[relation]
-
-            current_batch_idx = relationship_batch_indices[relation]
-
-            # Select parent keys using round-robin
-            selected_parent_keys = assign_parent_keys_round_robin(
-                parent_keys=parent_keys_cache[parent_table_name],
-                pk_column=parent_pk,
-                child_batch_idx=current_batch_idx,
-                parent_batch_size=parent_batch_size,
-            )
-
-            # Fetch full parent data for selected keys
-            assigned_parent_data = parent_table.read_data(
-                where={parent_pk: selected_parent_keys},
-                columns=parent_table.columns,
-                do_coerce_dtypes=True,
-            )
-
-            batch_data = add_context_parent_data(
-                tgt_data=batch_data,
-                tgt_table=children_table,
-                schema=schema,
-            )
-
-            batch_data = match_non_context(
-                fk_models_workspace_dir=fk_models_workspace_dir,
-                tgt_data=batch_data,
-                parent_data=assigned_parent_data,
-                tgt_parent_key=relation.child.column,
-                parent_primary_key=relation.parent.column,
-                parent_table_name=parent_table_name,
-            )
-
-            final_data = batch_data
-
-        if final_data is not None:
-            final_data = filter_and_order_columns(final_data, table_name, schema)
-            write_batch_outputs(final_data, table_name, chunk_idx, pqt_path, csv_path)
-            del final_data
+        write_batch_outputs(chunk_data, table_name, chunk_idx, pqt_path, csv_path)
 
 
 def finalize_table_generation(
