@@ -51,6 +51,7 @@ from mostlyai.engine._encoding_types.tabular.categorical import (
 )
 from mostlyai.engine._encoding_types.tabular.datetime import analyze_datetime, analyze_reduce_datetime, encode_datetime
 from mostlyai.engine._encoding_types.tabular.numeric import analyze_numeric, analyze_reduce_numeric, encode_numeric
+from mostlyai.engine.domain import ModelEncodingType
 from mostlyai.sdk._data.base import DataIdentifier, DataTable, NonContextRelation, Schema
 from mostlyai.sdk._data.file.base import FileDataTable
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
@@ -73,8 +74,9 @@ PEAKEDNESS_SCALER = 7.0
 BATCH_SIZE = 128
 LEARNING_RATE = 0.0003
 MAX_EPOCHS = 1000
-PATIENCE = 20
-N_NEGATIVE_SAMPLES = 10
+PATIENCE = 5
+N_POSITIVE_SAMPLES = 2
+N_NEGATIVE_SAMPLES = 3
 VAL_SPLIT = 0.2
 DROPOUT_RATE = 0.2
 EARLY_STOPPING_DELTA = 1e-5
@@ -82,12 +84,22 @@ NUMERICAL_STABILITY_EPSILON = 1e-10
 
 # Data Sampling Parameters
 MAX_PARENT_SAMPLE_SIZE = 10000
-MAX_TGT_PER_PARENT = 2
+MAX_TGT_PER_PARENT = 10
 
 # Inference Parameters
 TEMPERATURE = 1.0
 TOP_K = None
 TOP_P = 0.95
+
+# Supported Encoding Types
+FK_MODEL_ENCODING_TYPES = [
+    ModelEncodingType.tabular_categorical,
+    ModelEncodingType.tabular_numeric_auto,
+    ModelEncodingType.tabular_numeric_discrete,
+    ModelEncodingType.tabular_numeric_binned,
+    ModelEncodingType.tabular_numeric_digit,
+    ModelEncodingType.tabular_datetime,
+]
 
 
 # =============================================================================
@@ -668,11 +680,19 @@ def add_context_parent_data(
         if rel.child.table == ctx_parent_table_name:
             key_columns.add(rel.child.column)
 
-    # get non-key columns only
-    non_key_columns = [col for col in ctx_parent_table.columns if col not in key_columns]
+    # get non-key columns that are supported by FK models
+    include_columns = []
+    for col in ctx_parent_table.columns:
+        if col in key_columns:
+            continue
+        # only include columns with encoding types supported by FK models
+        encoding_type = ctx_parent_table.encoding_types.get(col)
+        if encoding_type not in FK_MODEL_ENCODING_TYPES:
+            continue
+        include_columns.append(col)
 
     # fetch context parent data with prefixed columns (only non-key columns + PK for join)
-    columns_to_fetch = [ctx_parent_pk] + non_key_columns
+    columns_to_fetch = [ctx_parent_pk] + include_columns
     ctx_parent_data = ctx_parent_table.read_data_prefixed(
         columns=columns_to_fetch,
         where={ctx_parent_pk: ctx_parent_keys},
@@ -751,12 +771,13 @@ def prepare_training_pairs(
     tgt_encoded_data: pd.DataFrame,
     parent_primary_key: str,
     tgt_parent_key: str,
-    n_negative: int = N_NEGATIVE_SAMPLES,
+    n_positive_samples: int = N_POSITIVE_SAMPLES,
+    n_negative_samples: int = N_NEGATIVE_SAMPLES,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
     Prepare training data for a parent-child matching model.
     For each non-null child, samples will include:
-    - One positive pair (correct parent) with label=1
+    - Multiple positive pairs (correct parent) with label=1
     - Multiple negative pairs (wrong parents) with label=0
 
     Args:
@@ -764,7 +785,8 @@ def prepare_training_pairs(
         tgt_encoded_data: Encoded child data
         parent_primary_key: Primary key of parents
         tgt_parent_key: Foreign key of children
-        n_negative: Number of negative samples per child
+        n_positive_samples: Number of positive samples per child
+        n_negative_samples: Number of negative samples per child
     """
     t0 = time.time()
 
@@ -805,12 +827,14 @@ def prepare_training_pairs(
 
     true_parent_pos = parent_index_by_key.loc[tgt_keys].to_numpy()
 
-    # positive pairs (label=1) - one per valid tgt
+    # positive pairs (label=1) - n_positive_samples per valid tgt
     pos_parents = parents_X[true_parent_pos]
-    pos_labels = np.ones(n_valid, dtype=np.float32)
+    pos_parents_repeated = np.repeat(pos_parents, n_positive_samples, axis=0)
+    pos_tgt_repeated = np.repeat(tgt_X, n_positive_samples, axis=0)
+    pos_labels_repeated = np.ones(n_valid * n_positive_samples, dtype=np.float32)
 
-    # negative pairs (label=0) - n_negative per valid tgt
-    neg_indices = np.random.randint(0, n_parents, size=(n_valid, n_negative))
+    # negative pairs (label=0) - n_negative_samples per valid tgt
+    neg_indices = np.random.randint(0, n_parents, size=(n_valid, n_negative_samples))
     if n_parents > 1:
         true_parent_pos_expanded = true_parent_pos[:, np.newaxis]
         mask = neg_indices == true_parent_pos_expanded
@@ -818,12 +842,19 @@ def prepare_training_pairs(
             neg_indices[mask] = np.random.randint(0, n_parents, size=mask.sum())
             mask = neg_indices == true_parent_pos_expanded
     neg_parents = parents_X[neg_indices.ravel()]
-    neg_tgt = np.repeat(tgt_X, n_negative, axis=0)
-    neg_labels = np.zeros(n_valid * n_negative, dtype=np.float32)
+    neg_tgt = np.repeat(tgt_X, n_negative_samples, axis=0)
+    neg_labels = np.zeros(n_valid * n_negative_samples, dtype=np.float32)
 
-    parent_vecs = np.vstack([pos_parents, neg_parents]).astype(np.float32, copy=False)
-    tgt_vecs = np.vstack([tgt_X, neg_tgt]).astype(np.float32, copy=False)
-    labels_vec = np.concatenate([pos_labels, neg_labels]).astype(np.float32, copy=False)
+    parent_vecs = np.vstack([pos_parents_repeated, neg_parents]).astype(np.float32, copy=False)
+    tgt_vecs = np.vstack([pos_tgt_repeated, neg_tgt]).astype(np.float32, copy=False)
+    labels_vec = np.concatenate([pos_labels_repeated, neg_labels]).astype(np.float32, copy=False)
+
+    # shuffle pairs for training robustness
+    n_pairs = len(parent_vecs)
+    shuffle_indices = np.random.permutation(n_pairs)
+    parent_vecs = parent_vecs[shuffle_indices]
+    tgt_vecs = tgt_vecs[shuffle_indices]
+    labels_vec = labels_vec[shuffle_indices]
 
     parent_pd = pd.DataFrame(parent_vecs, columns=parent_encoded_data.drop(columns=[parent_primary_key]).columns)
     tgt_pd = pd.DataFrame(tgt_vecs, columns=tgt_encoded_data.drop(columns=[tgt_parent_key]).columns)
