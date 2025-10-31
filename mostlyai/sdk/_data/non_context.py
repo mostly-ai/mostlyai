@@ -439,10 +439,10 @@ class ParentChildMatcher(nn.Module):
         parent_encoded = self.parent_encoder(parent_inputs)
         child_encoded = self.child_encoder(child_inputs)
 
-        similarity = F.cosine_similarity(parent_encoded, child_encoded, dim=1)
-        similarity = (similarity * PEAKEDNESS_SCALER).unsqueeze(1)
+        logits = F.cosine_similarity(parent_encoded, child_encoded, dim=1)
+        logits = (logits * PEAKEDNESS_SCALER).unsqueeze(1)
 
-        return similarity
+        return logits
 
 
 # =============================================================================
