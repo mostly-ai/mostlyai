@@ -898,12 +898,15 @@ class SqlAlchemyTable(DBTable, abc.ABC):
     #################### READ QUERY BUILDING & UTILS ####################
 
     @property
+    def db_table_name(self) -> str:
+        # use database_name (actual db table name) if set, otherwise fall back to self.name
+        return self.database_name or self.name
+
+    @property
     def _sa_table(self):
         with self.container.use_sa_engine() as sa_engine:
-            # use database_name (actual db table name) if set, otherwise fall back to self.name
-            table_name_to_use = self.database_name or self.name
             return sa.Table(
-                table_name_to_use,
+                self.db_table_name,
                 self.container.sa_metadata,
                 autoload_with=sa_engine,
             )
@@ -1255,7 +1258,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
         with self.container.use_sa_engine(mode="write_data") as sa_engine:
             try:
                 df.head(0).to_sql(
-                    name=self.name,
+                    name=self.db_table_name,
                     con=sa_engine,
                     schema=self.container.dbschema,
                     index=False,
@@ -1267,7 +1270,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
                 raise
 
         dtypes_msg = f"with dtypes=`{kwargs['dtype']}`" if "dtype" in kwargs else ""
-        _LOG.info(f"Successfully created table `{self.name}` schema {dtypes_msg}")
+        _LOG.info(f"Successfully created table `{self.db_table_name}` schema {dtypes_msg}")
 
     def write_chunks(self, chunks: Iterable[pd.DataFrame], dtypes: dict[str, Any], **kwargs) -> None:
         _LOG.info(f"write data in {len(chunks)} chunks (n_jobs={self.WRITE_CHUNKS_N_JOBS})")
@@ -1279,7 +1282,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
                     sa_create_engine_kwargs=self.container.sa_create_engine_kwargs,
                     sa_create_engine_connect_kwargs=self.container.sa_engine_connection_kwargs,
                     sa_multiple_inserts=self.SA_MULTIPLE_INSERTS,
-                    table_name=self.name,
+                    table_name=self.db_table_name,
                     table_schema=self.container.dbschema,
                     table_dtypes=dtypes,
                     chunk_init=self.INIT_WRITE_CHUNK,
