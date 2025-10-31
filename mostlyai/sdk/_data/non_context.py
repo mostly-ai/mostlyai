@@ -32,7 +32,7 @@ from collections import defaultdict
 from collections.abc import Iterator
 from copy import copy as shallow_copy
 from copy import deepcopy
-from functools import lru_cache
+from functools import lru_cache, partial
 from pathlib import Path
 
 import numpy as np
@@ -75,8 +75,8 @@ BATCH_SIZE = 128
 LEARNING_RATE = 0.0003
 MAX_EPOCHS = 1000
 PATIENCE = 5
-N_POSITIVE_SAMPLES = 2
-N_NEGATIVE_SAMPLES = 3
+N_POSITIVE_SAMPLES = 5
+N_NEGATIVE_SAMPLES = 10
 VAL_SPLIT = 0.2
 DROPOUT_RATE = 0.2
 EARLY_STOPPING_DELTA = 1e-5
@@ -510,7 +510,10 @@ def analyze_df(
         if col in cat_columns:
             analyze, reduce = analyze_categorical, analyze_reduce_categorical
         elif col in num_columns:
-            analyze, reduce = analyze_numeric, analyze_reduce_numeric
+            analyze, reduce = (
+                partial(analyze_numeric, encoding_type=ModelEncodingType.tabular_numeric_digit),
+                partial(analyze_reduce_numeric, encoding_type=ModelEncodingType.tabular_numeric_digit),
+            )
         elif col in dt_columns:
             analyze, reduce = analyze_datetime, analyze_reduce_datetime
         else:
