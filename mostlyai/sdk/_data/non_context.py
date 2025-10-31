@@ -773,8 +773,7 @@ def prepare_training_pairs(
     - One unique positive pair (correct parent) with label=1
     - Multiple negative pairs (wrong parents) with label=0
 
-    Class imbalance is handled at the loss level using BCEWithLogitsLoss with pos_weight,
-    rather than by duplicating positive pairs.
+    Class imbalance is handled at the loss level using BCEWithLogitsLoss with pos_weight.
 
     Args:
         parent_encoded_data: Encoded parent data
