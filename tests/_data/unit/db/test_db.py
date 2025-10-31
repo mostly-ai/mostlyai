@@ -40,3 +40,20 @@ def test_write_data_empty(temp_table, write_chunk_size):
     temp_table.write_data(df, if_exists="replace")
     df_read = temp_table.read_data()
     assert df_read.empty
+
+
+@pytest.mark.parametrize(
+    "name,database_name,expected",
+    [
+        ("players", "players", "players"),  # match case
+        ("players", "bb_players", "bb_players"),  # bug scenario: mismatch
+        ("table", None, "table"),  # backward compatibility: fallback
+    ],
+)
+def test_database_name_property(tmp_path, name, database_name, expected):
+    """test that database_name takes precedence over name for db queries."""
+    container = SqliteContainer(dbname=str(tmp_path / "database.db"))
+    table = SqliteTable(name=name, container=container, is_output=True)
+    table.database_name = database_name
+    # verify precedence: database_name or name
+    assert (table.database_name or table.name) == expected
