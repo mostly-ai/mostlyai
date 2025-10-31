@@ -1169,7 +1169,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
 
     def is_column_indexed(self, column: str) -> bool:
         with self.container.use_sa_engine() as sa_engine:
-            indexes = sa.inspect(sa_engine).get_indexes(table_name=self.name, schema=self.container.dbschema)
+            indexes = sa.inspect(sa_engine).get_indexes(table_name=self.db_table_name, schema=self.container.dbschema)
         for index in indexes:
             if column in index.get("column_names", []):
                 return True
