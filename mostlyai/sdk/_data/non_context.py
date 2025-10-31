@@ -586,10 +586,20 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT
     """
     t0 = time.time()
     primary_key = parent_table.primary_key
+    assert primary_key is not None
+    foreign_keys = [fk.column for fk in parent_table.foreign_keys]
+    data_columns = [
+        c
+        for c in parent_table.columns
+        if c != primary_key  # data column is not the primary key
+        and c not in foreign_keys  # data column is not a foreign key
+        and parent_table.encoding_types.get(c) in FK_MODEL_ENCODING_TYPES  # encoding type is supported by FK models
+    ]
+    columns = [primary_key] + data_columns
     seen_keys = set()
     collected_rows = []
 
-    for chunk_df in parent_table.read_chunks(columns=parent_table.columns, do_coerce_dtypes=True):
+    for chunk_df in parent_table.read_chunks(columns=columns, do_coerce_dtypes=True):
         chunk_df = chunk_df.drop_duplicates(subset=[primary_key])
 
         for _, row in chunk_df.iterrows():
@@ -625,7 +635,7 @@ def fetch_tgt_data(
         tgt_table: Target table to fetch from.
         tgt_parent_key: Foreign key column in target table.
         parent_keys: List of parent key values to filter by.
-        max_tgt_per_parent: Maximum target records per parent. Defaults to 1.
+        max_tgt_per_parent: Maximum target records per parent.
 
     Returns:
         DataFrame containing target records, limited by max_tgt_per_parent constraint.
@@ -634,8 +644,18 @@ def fetch_tgt_data(
     parent_counts = defaultdict(int)
     collected_rows = []
     where = {tgt_parent_key: parent_keys}
+    tgt_primary_key = tgt_table.primary_key
+    tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
+    data_columns = [
+        c
+        for c in tgt_table.columns
+        if c != tgt_primary_key  # data column is not the primary key
+        and c not in tgt_foreign_keys  # data column is not a foreign key
+        and tgt_table.encoding_types.get(c) in FK_MODEL_ENCODING_TYPES  # encoding type is supported by FK models
+    ]
+    columns = [tgt_parent_key] + data_columns
 
-    for chunk_df in tgt_table.read_chunks(where=where, columns=tgt_table.columns, do_coerce_dtypes=True):
+    for chunk_df in tgt_table.read_chunks(columns=columns, where=where, do_coerce_dtypes=True):
         if len(chunk_df) == 0:
             continue
 
@@ -659,16 +679,14 @@ def add_context_parent_data(
 ) -> pd.DataFrame:
     t0 = time.time()
 
-    # get the context parent relation for the target table
-    ctx_rel = schema.get_parent_context_relation(tgt_table.name)
-    if ctx_rel is None:
+    ctx_relation = schema.get_parent_context_relation(tgt_table.name)
+    if ctx_relation is None:
         # no context parent, return as is
         return tgt_data
 
-    ctx_parent_table_name = ctx_rel.parent.table
-    ctx_parent_table = schema.tables[ctx_parent_table_name]
-    ctx_parent_pk = ctx_rel.parent.column
-    tgt_ctx_fk = ctx_rel.child.column
+    ctx_parent_table = schema.tables[ctx_relation.parent.table]
+    ctx_parent_pk = ctx_relation.parent.column
+    tgt_ctx_fk = ctx_relation.child.column
 
     # get unique context parent keys from tgt_data
     ctx_parent_keys = tgt_data[tgt_ctx_fk].dropna().unique().tolist()
@@ -679,14 +697,22 @@ def add_context_parent_data(
     # identify key columns to exclude (primary key + foreign keys)
     key_columns = {ctx_parent_pk}
     for rel in schema.relations:
-        if rel.child.table == ctx_parent_table_name:
+        if rel.child.table == ctx_parent_table.name:
             key_columns.add(rel.child.column)
 
-    # get non-key columns only
-    non_key_columns = [col for col in ctx_parent_table.columns if col not in key_columns]
+    # get non-key columns that are supported by FK models
+    include_columns = []
+    for col in ctx_parent_table.columns:
+        if col in key_columns:
+            continue
+        # only include columns with encoding types supported by FK models
+        encoding_type = ctx_parent_table.encoding_types.get(col)
+        if encoding_type not in FK_MODEL_ENCODING_TYPES:
+            continue
+        include_columns.append(col)
 
     # fetch context parent data with prefixed columns (only non-key columns + PK for join)
-    columns_to_fetch = [ctx_parent_pk] + non_key_columns
+    columns_to_fetch = [ctx_parent_pk] + include_columns
     ctx_parent_data = ctx_parent_table.read_data_prefixed(
         columns=columns_to_fetch,
         where={ctx_parent_pk: ctx_parent_keys},
@@ -698,7 +724,7 @@ def add_context_parent_data(
         return tgt_data
 
     # join context parent data with tgt_data
-    ctx_parent_pk_prefixed = DataIdentifier(ctx_parent_table_name, ctx_parent_pk).ref_name()
+    ctx_parent_pk_prefixed = DataIdentifier(ctx_parent_table.name, ctx_parent_pk).ref_name()
     tgt_data = pd.merge(
         tgt_data,
         ctx_parent_data,
@@ -719,35 +745,29 @@ def add_context_parent_data(
 def pull_fk_model_training_data(
     *,
     tgt_table: DataTable,
-    tgt_parent_key: str,
     parent_table: DataTable,
-    parent_primary_key: str,
+    tgt_parent_key: str,
     schema: Schema,
-    max_parent_sample_size: int = MAX_PARENT_SAMPLE_SIZE,
-    max_tgt_per_parent: int = MAX_TGT_PER_PARENT,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Pull training data for a specific non-context FK relation.
 
     Args:
         tgt_table: Target/child table
-        tgt_parent_key: Foreign key column in target table
         parent_table: Parent table
-        parent_primary_key: Primary key column in parent table
+        tgt_parent_key: Foreign key column in target table
         schema: Schema to fetch context parent data for tgt_table
-        max_parent_sample_size: Maximum parent keys to sample
-        max_tgt_per_parent: Maximum target records per parent
 
     Returns:
         Tuple of (parent_data, tgt_data). tgt_data includes columns from context parent table.
     """
-    parent_data = fetch_parent_data(parent_table=parent_table, max_sample_size=max_parent_sample_size)
-    parent_keys = parent_data[parent_primary_key].tolist() if not parent_data.empty else []
+    parent_data = fetch_parent_data(parent_table=parent_table)
+
+    parent_keys = parent_data[parent_table.primary_key].tolist() if not parent_data.empty else []
     tgt_data = fetch_tgt_data(
         tgt_table=tgt_table,
         tgt_parent_key=tgt_parent_key,
         parent_keys=parent_keys,
-        max_tgt_per_parent=max_tgt_per_parent,
     )
     tgt_data = add_context_parent_data(
         tgt_data=tgt_data,
@@ -930,7 +950,7 @@ def train_fk_model(
             "train_loss": round(train_loss, 4),
             "val_loss": round(val_loss, 4),
         }
-        print(progress_msg)
+        _LOG.info(progress_msg)
 
         if val_loss < best_val_loss - EARLY_STOPPING_DELTA:
             epochs_no_improve = 0
