@@ -206,7 +206,6 @@ def test_prepare_training_pairs():
         tgt_encoded_data=child_data,
         parent_primary_key="parent_id",
         tgt_parent_key="parent_fk",
-        n_positive_samples=1,
         n_negative_samples=2,
     )
 
@@ -233,7 +232,6 @@ def test_prepare_training_pairs():
             tgt_encoded_data=pd.DataFrame({"parent_fk": [pd.NA, pd.NA], "feat": [1, 2]}),
             parent_primary_key="parent_id",
             tgt_parent_key="parent_fk",
-            n_positive_samples=1,
             n_negative_samples=1,
         )
 
@@ -243,7 +241,6 @@ def test_prepare_training_pairs():
         tgt_encoded_data=pd.DataFrame({"parent_fk": [1, 999, 2], "feat": [10, 20, 30]}),  # 999 invalid
         parent_primary_key="parent_id",
         tgt_parent_key="parent_fk",
-        n_positive_samples=1,
         n_negative_samples=1,
     )
     # Should only have 2 valid children (1 and 2), dropping the invalid 999
