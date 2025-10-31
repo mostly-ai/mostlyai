@@ -75,8 +75,8 @@ BATCH_SIZE = 128
 LEARNING_RATE = 0.0003
 MAX_EPOCHS = 1000
 PATIENCE = 5
-N_POSITIVE_SAMPLES = 5
-N_NEGATIVE_SAMPLES = 10
+N_POSITIVE_SAMPLES = 1  # Use only unique positive pairs, handle imbalance via loss weighting
+N_NEGATIVE_SAMPLES = 5
 VAL_SPLIT = 0.2
 DROPOUT_RATE = 0.2
 EARLY_STOPPING_DELTA = 1e-5
@@ -441,9 +441,11 @@ class ParentChildMatcher(nn.Module):
         child_encoded = self.child_encoder(child_inputs)
 
         similarity = F.cosine_similarity(parent_encoded, child_encoded, dim=1)
-        probability = torch.sigmoid(similarity * PEAKEDNESS_SCALER).unsqueeze(1)
+        # Return logits for training (BCEWithLogitsLoss expects logits)
+        # For inference, probabilities are computed separately in build_parent_child_probabilities
+        logits = (similarity * PEAKEDNESS_SCALER).unsqueeze(1)
 
-        return probability
+        return logits
 
 
 # =============================================================================
@@ -683,19 +685,11 @@ def add_context_parent_data(
         if rel.child.table == ctx_parent_table_name:
             key_columns.add(rel.child.column)
 
-    # get non-key columns that are supported by FK models
-    include_columns = []
-    for col in ctx_parent_table.columns:
-        if col in key_columns:
-            continue
-        # only include columns with encoding types supported by FK models
-        encoding_type = ctx_parent_table.encoding_types.get(col)
-        if encoding_type not in FK_MODEL_ENCODING_TYPES:
-            continue
-        include_columns.append(col)
+    # get non-key columns only
+    non_key_columns = [col for col in ctx_parent_table.columns if col not in key_columns]
 
     # fetch context parent data with prefixed columns (only non-key columns + PK for join)
-    columns_to_fetch = [ctx_parent_pk] + include_columns
+    columns_to_fetch = [ctx_parent_pk] + non_key_columns
     ctx_parent_data = ctx_parent_table.read_data_prefixed(
         columns=columns_to_fetch,
         where={ctx_parent_pk: ctx_parent_keys},
@@ -780,15 +774,18 @@ def prepare_training_pairs(
     """
     Prepare training data for a parent-child matching model.
     For each non-null child, samples will include:
-    - Multiple positive pairs (correct parent) with label=1
+    - One unique positive pair (correct parent) with label=1 (by default, to avoid duplication)
     - Multiple negative pairs (wrong parents) with label=0
+
+    Class imbalance is handled at the loss level using BCEWithLogitsLoss with pos_weight,
+    rather than by duplicating positive pairs.
 
     Args:
         parent_encoded_data: Encoded parent data
         tgt_encoded_data: Encoded child data
         parent_primary_key: Primary key of parents
         tgt_parent_key: Foreign key of children
-        n_positive_samples: Number of positive samples per child
+        n_positive_samples: Number of positive samples per child (default=1 to avoid duplication)
         n_negative_samples: Number of negative samples per child
     """
     t0 = time.time()
@@ -888,6 +885,15 @@ def train_fk_model(
     y = torch.tensor(labels.values, dtype=torch.float32).unsqueeze(1)
     dataset = TensorDataset(X_parent, X_tgt, y)
 
+    # Calculate class imbalance for loss weighting
+    # pos_weight = num_negatives / num_positives to balance classes
+    num_positives = int(labels.sum())
+    num_negatives = len(labels) - num_positives
+    pos_weight = torch.tensor([num_negatives / num_positives]) if num_positives > 0 else torch.tensor([1.0])
+    _LOG.info(
+        f"train_fk_model | class imbalance: {num_positives} positives, {num_negatives} negatives, pos_weight: {pos_weight.item():.2f}"
+    )
+
     val_size = int(VAL_SPLIT * len(dataset))
     train_size = len(dataset) - val_size
     train_ds, val_ds = random_split(dataset, [train_size, val_size])
@@ -896,7 +902,8 @@ def train_fk_model(
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    loss_fn = nn.BCELoss()
+    # Use BCEWithLogitsLoss with pos_weight to handle class imbalance without cloning positive pairs
+    loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     train_losses, val_losses = [], []
     best_model_state = None
@@ -936,7 +943,7 @@ def train_fk_model(
             "train_loss": round(train_loss, 4),
             "val_loss": round(val_loss, 4),
         }
-        _LOG.info(progress_msg)
+        print(progress_msg)
 
         if val_loss < best_val_loss - EARLY_STOPPING_DELTA:
             epochs_no_improve = 0

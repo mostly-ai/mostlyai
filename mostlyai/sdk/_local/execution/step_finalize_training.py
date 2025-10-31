@@ -20,7 +20,6 @@ from pathlib import Path
 
 from mostlyai.sdk._data.base import NonContextRelation, Schema
 from mostlyai.sdk._data.non_context import (
-    FK_MODEL_ENCODING_TYPES,
     ParentChildMatcher,
     analyze_df,
     encode_df,
@@ -84,11 +83,7 @@ def execute_train_fk_model_for_single_non_context_relation(
     parent_primary_key = non_ctx_relation.parent.column
     parent_foreign_keys = [fk.column for fk in parent_table.foreign_keys]
     parent_data_columns = [
-        c
-        for c in parent_table.columns
-        if c != parent_table.primary_key  # column is not the primary key
-        and c not in parent_foreign_keys  # column is not a foreign key
-        and parent_table.encoding_types.get(c) in FK_MODEL_ENCODING_TYPES  # encoding type is supported by FK models
+        c for c in parent_table.columns if c != parent_table.primary_key and c not in parent_foreign_keys
     ]
     parent_table_name = non_ctx_relation.parent.table
 
@@ -107,13 +102,7 @@ def execute_train_fk_model_for_single_non_context_relation(
     fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
 
     tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
-    tgt_data_columns = [
-        c
-        for c in tgt_data.columns
-        if c != tgt_primary_key  # column is not the primary key
-        and c not in tgt_foreign_keys  # column is not a foreign key
-        and tgt_table.encoding_types.get(c) in FK_MODEL_ENCODING_TYPES  # encoding type is supported by FK models
-    ]
+    tgt_data_columns = [c for c in tgt_data.columns if c != tgt_primary_key and c not in tgt_foreign_keys]
 
     tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
     analyze_df(
