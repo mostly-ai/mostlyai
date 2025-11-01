@@ -351,6 +351,9 @@ def process_table_with_fk_models(
         )
         relationship_batch_sizes[relation] = optimal_batch_size
 
+    # Initialize batch counter for sequential window selection per relation
+    relation_batch_counters = {relation: 0 for relation in non_ctx_relations}
+
     # Process children chunk by chunk
     for chunk_idx, chunk_data in enumerate(children_table.read_chunks(do_coerce_dtypes=True)):
         _LOG.info(f"Processing chunk {chunk_idx} ({len(chunk_data)} rows)")
@@ -372,12 +375,13 @@ def process_table_with_fk_models(
                 batch_end = min(batch_start + optimal_batch_size, len(chunk_data))
                 batch_data = chunk_data.iloc[batch_start:batch_end].copy()
 
-                # Sample parents randomly for this logical batch
+                # Select next sequential window of parents
                 parent_key_count = len(parent_keys_cache[parent_table_name])
-                replace = parent_key_count < parent_batch_size
-                sampled_parent_keys_df = parent_keys_cache[parent_table_name].sample(
-                    n=parent_batch_size, replace=replace
-                )
+                num_windows = math.ceil(parent_key_count / parent_batch_size)
+                window_idx = relation_batch_counters[relation] % num_windows
+                start_idx = window_idx * parent_batch_size
+                end_idx = min(start_idx + parent_batch_size, parent_key_count)
+                sampled_parent_keys_df = parent_keys_cache[parent_table_name].iloc[start_idx:end_idx]
                 sampled_parent_keys = sampled_parent_keys_df[parent_pk].tolist()
 
                 # Fetch full parent data for sampled keys on-demand
@@ -403,6 +407,9 @@ def process_table_with_fk_models(
                 )
 
                 processed_batches.append(processed_batch)
+
+                # Increment batch counter for next window
+                relation_batch_counters[relation] += 1
 
             # Reassemble chunk from processed batches
             chunk_data = pd.concat(processed_batches, ignore_index=True)
