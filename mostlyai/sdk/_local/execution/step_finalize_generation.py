@@ -352,9 +352,7 @@ def process_table_with_fk_models(
         relationship_batch_sizes[relation] = optimal_batch_size
 
     # Process children chunk by chunk
-    for chunk_idx, chunk_data in enumerate(children_table.read_chunks(
-        do_coerce_dtypes=True
-    )):
+    for chunk_idx, chunk_data in enumerate(children_table.read_chunks(do_coerce_dtypes=True)):
         _LOG.info(f"Processing chunk {chunk_idx} ({len(chunk_data)} rows)")
 
         # Process each relation independently
@@ -375,9 +373,10 @@ def process_table_with_fk_models(
                 batch_data = chunk_data.iloc[batch_start:batch_end].copy()
 
                 # Sample parents randomly for this logical batch
+                parent_key_count = len(parent_keys_cache[parent_table_name])
+                replace = parent_key_count < parent_batch_size
                 sampled_parent_keys_df = parent_keys_cache[parent_table_name].sample(
-                    n=parent_batch_size,
-                    replace=False
+                    n=parent_batch_size, replace=replace
                 )
                 sampled_parent_keys = sampled_parent_keys_df[parent_pk].tolist()
 
