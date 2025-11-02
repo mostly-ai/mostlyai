@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 import math
-import traceback
 import uuid
 import zipfile
 from pathlib import Path
