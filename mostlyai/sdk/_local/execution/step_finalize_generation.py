@@ -19,6 +19,7 @@ import zipfile
 from pathlib import Path
 from typing import Literal
 
+import numpy as np
 import pandas as pd
 
 from mostlyai.sdk._data.base import ForeignKey, NonContextRelation, Schema
@@ -44,6 +45,8 @@ _LOG = logging.getLogger(__name__)
 # FK processing constants
 FK_MIN_CHILDREN_BATCH_SIZE = 10
 FK_PARENT_BATCH_SIZE = 1_000
+FK_TARGET_MEAN_CHILDREN_PER_PARENT = 2.0
+FK_TARGET_STD_CHILDREN_PER_PARENT = 1.0
 
 
 def execute_step_finalize_generation(
@@ -261,7 +264,7 @@ def process_table_with_random_fk_assignment(
     """Process table with random FK assignment, chunk by chunk."""
     table = schema.tables[table_name]
 
-    for chunk_idx, chunk_data in enumerate(table.read_chunks(columns=table.columns, do_coerce_dtypes=True)):
+    for chunk_idx, chunk_data in enumerate(table.read_chunks(do_coerce_dtypes=True)):
         _LOG.info(f"Processing chunk {chunk_idx + 1} ({len(chunk_data)} rows)")
         processed_data = assign_non_context_fks_randomly(
             tgt_data=chunk_data,
@@ -336,6 +339,28 @@ def process_table_with_fk_models(
                 do_coerce_dtypes=True,
             )
 
+    # Sample individual target counts for each parent (per relation)
+    # Use dict for fast lookup and in-place mutation during sampling
+    remaining_capacity = {}
+    for relation in non_ctx_relations:
+        parent_table_name = relation.parent.table
+        pk_col = relation.parent.column
+        parent_keys = parent_keys_cache[parent_table_name][pk_col].tolist()
+
+        # Sample target from N(mean, std²) for each parent
+        n_parents = len(parent_keys)
+        targets = np.random.normal(
+            loc=FK_TARGET_MEAN_CHILDREN_PER_PARENT,
+            scale=FK_TARGET_STD_CHILDREN_PER_PARENT,
+            size=n_parents,
+        )
+        targets = np.maximum(targets, 0)  # clip negatives
+        targets = np.round(targets).astype(int)  # round to integers
+
+        # Store as dict: {parent_id: remaining_slots}
+        # This will be mutated inside match_non_context() during sampling
+        remaining_capacity[relation] = {pk: int(target) for pk, target in zip(parent_keys, targets)}
+
     # Calculate optimal batch size for each relationship
     relationship_batch_sizes = {}
     for relation in non_ctx_relations:
@@ -397,6 +422,8 @@ def process_table_with_fk_models(
                     schema=schema,
                 )
 
+                # Process batch with dynamic quota enforcement
+                # remaining_capacity is mutated inside match_non_context() during sampling
                 processed_batch = match_non_context(
                     fk_models_workspace_dir=fk_models_workspace_dir,
                     tgt_data=batch_data,
@@ -404,6 +431,7 @@ def process_table_with_fk_models(
                     tgt_parent_key=relation.child.column,
                     parent_primary_key=relation.parent.column,
                     parent_table_name=parent_table_name,
+                    remaining_capacity=remaining_capacity[relation],
                 )
 
                 processed_batches.append(processed_batch)
@@ -436,25 +464,17 @@ def finalize_table_generation(
 
     pqt_path, csv_path = setup_output_paths(delivery_dir, target_table_name, export_csv)
     fk_models_available = are_fk_models_available(job_workspace_dir, target_table_name)
-    fk_models_failed = False
 
     if fk_models_available:
-        try:
-            _LOG.info(f"Assigning non context FKs (if exists) through FK models for table {target_table_name}")
-            process_table_with_fk_models(
-                table_name=target_table_name,
-                schema=generated_data_schema,
-                pqt_path=pqt_path,
-                csv_path=csv_path,
-                job_workspace_dir=job_workspace_dir,
-            )
-        except Exception as e:
-            _LOG.error(
-                f"Non context FKs assignment through FK models failed for table {target_table_name}: {e}\n{traceback.format_exc()}"
-            )
-            fk_models_failed = True
-
-    if not fk_models_available or fk_models_failed:
+        _LOG.info(f"Assigning non context FKs (if exists) through FK models for table {target_table_name}")
+        process_table_with_fk_models(
+            table_name=target_table_name,
+            schema=generated_data_schema,
+            pqt_path=pqt_path,
+            csv_path=csv_path,
+            job_workspace_dir=job_workspace_dir,
+        )
+    else:
         _LOG.info(f"Assigning non context FKs (if exists) through random assignment for table {target_table_name}")
         process_table_with_random_fk_assignment(
             table_name=target_table_name,
