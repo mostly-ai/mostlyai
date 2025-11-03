@@ -279,24 +279,22 @@ def calculate_optimal_child_batch_size_for_relation(
     relation_name: str,
 ) -> int:
     """Calculate optimal child batch size for a specific FK relationship."""
-    total_children = children_row_count
-    parent_size = parent_key_count
-    num_parent_batches = max(1, math.ceil(parent_size / parent_batch_size))
+    num_parent_batches = max(1, math.ceil(parent_key_count / parent_batch_size))
 
     # ideal batch size for full parent utilization
-    ideal_batch_size = total_children // num_parent_batches
+    ideal_batch_size = children_row_count // num_parent_batches
 
     # apply minimum batch size constraint
     optimal_batch_size = max(ideal_batch_size, FK_MIN_CHILDREN_BATCH_SIZE)
 
     # log utilization metrics
-    num_child_batches = total_children // optimal_batch_size
+    num_child_batches = children_row_count // optimal_batch_size
     parent_utilization = min(num_child_batches / num_parent_batches * 100, 100)
 
     _LOG.info(
         f"[{relation_name}] Batch size optimization | "
-        f"total_children: {total_children} | "
-        f"parent_size: {parent_size} | "
+        f"total_children: {children_row_count} | "
+        f"parent_size: {parent_key_count} | "
         f"parent_batch_size: {parent_batch_size} | "
         f"parent_batches: {num_parent_batches} | "
         f"ideal_child_batch: {ideal_batch_size} | "
