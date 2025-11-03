@@ -261,7 +261,7 @@ def process_table_with_random_fk_assignment(
     """Process table with random FK assignment, chunk by chunk."""
     table = schema.tables[table_name]
 
-    for chunk_idx, chunk_data in enumerate(table.read_chunks(columns=table.columns, do_coerce_dtypes=True)):
+    for chunk_idx, chunk_data in enumerate(table.read_chunks(do_coerce_dtypes=True)):
         _LOG.info(f"Processing chunk {chunk_idx + 1} ({len(chunk_data)} rows)")
         processed_data = assign_non_context_fks_randomly(
             tgt_data=chunk_data,
