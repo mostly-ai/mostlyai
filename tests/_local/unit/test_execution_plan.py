@@ -195,9 +195,7 @@ def test_make_generator_execution_plan():
     expected_execution_plan.add_task(
         TaskType.train_language, parent=sync_task, target_table_name="comments", include_report=False
     )
-    post_training_sync = expected_execution_plan.add_task(TaskType.sync)
-    finalize_task = expected_execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
-    expected_execution_plan.add_task(TaskType.sync, parent=finalize_task)
+    expected_execution_plan.add_task(TaskType.sync)
 
     assert len(execution_plan.tasks) == len(expected_execution_plan.tasks)
     for actual, expected in zip(execution_plan.tasks, expected_execution_plan.tasks):
@@ -221,6 +219,61 @@ def test_make_generator_execution_plan():
                     assert actual_step_codes == TRAINING_TASK_STEPS
                 else:
                     assert actual_step_codes == TRAINING_TASK_STEPS + TRAINING_TASK_REPORT_STEPS
+
+
+def test_make_generator_execution_plan_with_non_context_relationships():
+    model_config = arbitrary_model_config()
+    config = Generator(
+        name="test_generator_with_non_context_foreign_keys",
+        training_status=ProgressStatus.in_progress,
+        tables=[
+            SourceTable(
+                name="users",
+                columns=[
+                    SourceColumn(
+                        name="age",
+                        model_encoding_type=ModelEncodingType.tabular_numeric_digit,
+                        included=True,
+                    )
+                ],
+                tabular_model_configuration=model_config,
+            ),
+            SourceTable(
+                name="orders",
+                columns=[
+                    SourceColumn(
+                        name="total",
+                        model_encoding_type=ModelEncodingType.tabular_numeric_digit,
+                        included=True,
+                    )
+                ],
+                tabular_model_configuration=model_config,
+                foreign_keys=[
+                    SourceForeignKey(
+                        column="user_id",
+                        referenced_table="users",
+                        is_context=False,
+                    )
+                ],
+            ),
+        ],
+    )
+
+    execution_plan = make_generator_execution_plan(config)
+
+    expected_execution_plan = ExecutionPlan(tasks=[])
+    sync_task = expected_execution_plan.add_task(TaskType.sync)
+    expected_execution_plan.add_task(TaskType.train_tabular, parent=sync_task, target_table_name="users")
+    expected_execution_plan.add_task(TaskType.train_tabular, parent=sync_task, target_table_name="orders")
+    post_training_sync = expected_execution_plan.add_task(TaskType.sync)
+    # FINALIZE_TRAINING should be included because there's a non-context foreign key
+    expected_execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
+    expected_execution_plan.add_task(TaskType.sync)
+
+    assert len(execution_plan.tasks) == len(expected_execution_plan.tasks)
+    for actual, expected in zip(execution_plan.tasks, expected_execution_plan.tasks):
+        assert actual.type == expected.type
+        assert actual.target_table_name == expected.target_table_name
 
 
 def test_make_synthetic_dataset_execution_plan_with_probe():
