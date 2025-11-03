@@ -18,6 +18,7 @@ from pathlib import Path
 from mostlyai.sdk import _data as data
 from mostlyai.sdk._data.base import ForeignKey, Schema
 from mostlyai.sdk._data.conversions import create_container_from_connector
+from mostlyai.sdk._data.db.base import SqlAlchemyContainer
 from mostlyai.sdk._data.file.utils import make_data_table_from_container
 from mostlyai.sdk.domain import Connector, Generator, ModelType
 
@@ -68,7 +69,7 @@ def create_training_schema(generator: Generator, connectors: list[Connector]) ->
         # create DataTable
         data_table = make_data_table_from_container(container, lazy_fetch_primary_key=False)
         # preserve actual database table name for database containers
-        if meta is not None and hasattr(container, "dbname") and "table_name" in meta:
+        if isinstance(container, SqlAlchemyContainer) and meta and "table_name" in meta:
             data_table.database_name = meta["table_name"]
         data_table.name = table.name
         data_table.primary_key = table.primary_key
