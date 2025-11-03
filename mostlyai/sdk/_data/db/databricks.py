@@ -309,7 +309,7 @@ class DatabricksTable(SqlAlchemyTable):
     def drop_table_if_exists(self) -> None:
         query = f"DROP TABLE IF EXISTS {self.container.dbname}.{self.container.dbschema}.{self.db_table_name};"
         self._execute(query)
-        _LOG.info(f"dropped table `{self.name}` if existed")
+        _LOG.info(f"dropped table `{self.db_table_name}` if existed")
 
     def copy_data_from_volume_to_table(self, volume_name: str) -> None:
         query = (
@@ -320,7 +320,7 @@ class DatabricksTable(SqlAlchemyTable):
             "COPY_OPTIONS ('mergeSchema' = 'true');"
         )
         self._execute(query)
-        _LOG.info(f"copied data from volume `{volume_name}` to table `{self.name}`")
+        _LOG.info(f"copied data from volume `{volume_name}` to table `{self.db_table_name}`")
 
     def write_data(
         self,
@@ -330,7 +330,7 @@ class DatabricksTable(SqlAlchemyTable):
     ) -> None:
         t0 = time.time()
         assert self.is_output
-        _LOG.info(f"write data {df.shape} to table `{self.name}` started")
+        _LOG.info(f"write data {df.shape} to table `{self.db_table_name}` started")
         # include a unique timestamp in the volume name to avoid conflicts
         volume_name = f"{self.name}_temp_{time.time_ns()}"
         try:
@@ -340,7 +340,7 @@ class DatabricksTable(SqlAlchemyTable):
             self.write_data_to_volume(df=df, volume_name=volume_name)
             self.copy_data_from_volume_to_table(volume_name)
 
-            _LOG.info(f"write to table `{self.name}` finished in {time.time() - t0:.2f}s")
+            _LOG.info(f"write to table `{self.db_table_name}` finished in {time.time() - t0:.2f}s")
         except Exception as e:
             if if_exists != "append":
                 self.drop_table_if_exists()

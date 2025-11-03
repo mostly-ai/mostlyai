@@ -1227,7 +1227,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
         do_coerce_dtypes: bool | None = False,
     ) -> pd.DataFrame:
         t0 = time.time()
-        _LOG.info(f"read from table `{self.name}` started")
+        _LOG.info(f"read from table `{self.db_table_name}` started")
         columns = columns if columns is not None else self.columns
         stmt = self._sa_select(columns)
         stmts = self._sa_where(stmt, where)
@@ -1245,7 +1245,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
             df = self._df_limit(df, limit)
         if do_coerce_dtypes:
             df = coerce_dtypes_by_encoding(df, self.encoding_types)
-        _LOG.info(f"read DB data `{self.name}` {df.shape} in {time.time() - t0:.2f}s")
+        _LOG.info(f"read DB data `{self.db_table_name}` {df.shape} in {time.time() - t0:.2f}s")
         return df
 
     def create_table(self, df: pd.DataFrame | None = None, **kwargs) -> None:
@@ -1302,7 +1302,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
     ) -> None:
         t0 = time.time()
         assert self.is_output
-        _LOG.info(f"write data {df.shape} to table `{self.name}` started")
+        _LOG.info(f"write data {df.shape} to table `{self.db_table_name}` started")
 
         df = _normalize_for_sql(df)
 
@@ -1319,7 +1319,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
         chunks = [df[i : i + write_chunk_size] for i in range(0, len(df), write_chunk_size)]
         self.write_chunks(chunks, dtypes)
 
-        _LOG.info(f"write to table `{self.name}` finished in {time.time() - t0:.2f}s")
+        _LOG.info(f"write to table `{self.db_table_name}` finished in {time.time() - t0:.2f}s")
 
     def has_child(self) -> bool:
         return len(self.container.schema.get_relations_from_table(str(self.name))) > 0
