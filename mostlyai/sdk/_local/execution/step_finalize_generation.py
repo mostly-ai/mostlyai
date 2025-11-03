@@ -320,69 +320,41 @@ def process_table_with_fk_models(
     non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == table_name]
     children_table = schema.tables[table_name]
 
-    # Load parent keys upfront (memory efficient)
-    parent_keys_cache = {}
-    parent_tables = {}
-    for relation in non_ctx_relations:
-        parent_table_name = relation.parent.table
-        if parent_table_name not in parent_keys_cache:
-            parent_table = schema.tables[parent_table_name]
-            parent_tables[parent_table_name] = parent_table
-            pk_col = relation.parent.column
-            parent_keys_cache[parent_table_name] = parent_table.read_data(
-                columns=[pk_col],
-                do_coerce_dtypes=True,
-            )
-
-    # Calculate optimal batch size for each relationship
-    relationship_batch_sizes = {}
-    for relation in non_ctx_relations:
-        parent_table_name = relation.parent.table
-        parent_key_count = len(parent_keys_cache[parent_table_name])
-        relation_name = f"{relation.child.table}.{relation.child.column}->{parent_table_name}"
-
-        optimal_batch_size = calculate_optimal_child_batch_size_for_relation(
-            parent_key_count=parent_key_count,
-            children_row_count=children_table.row_count,
-            parent_batch_size=parent_batch_size,
-            relation_name=relation_name,
-        )
-        relationship_batch_sizes[relation] = optimal_batch_size
-
-    # Initialize batch counter for sequential window selection per relation
     relation_batch_counters = {relation: 0 for relation in non_ctx_relations}
 
-    # Process children chunk by chunk
     for chunk_idx, chunk_data in enumerate(children_table.read_chunks(do_coerce_dtypes=True)):
         _LOG.info(f"Processing chunk {chunk_idx} ({len(chunk_data)} rows)")
 
-        # Process each relation independently
         for relation in non_ctx_relations:
             parent_table_name = relation.parent.table
-            parent_table = parent_tables[parent_table_name]
+            parent_table = schema.tables[parent_table_name]
             parent_pk = relation.parent.column
-            optimal_batch_size = relationship_batch_sizes[relation]
             relation_name = f"{relation.child.table}.{relation.child.column}->{parent_table_name}"
+
+            optimal_batch_size = calculate_optimal_child_batch_size_for_relation(
+                parent_key_count=parent_table.row_count,
+                children_row_count=children_table.row_count,
+                parent_batch_size=parent_batch_size,
+                relation_name=relation_name,
+            )
 
             _LOG.info(f"  Processing relationship {relation_name} with batch size {optimal_batch_size}")
 
+            parent_keys_df = parent_table.read_data(
+                columns=[parent_pk],
+                do_coerce_dtypes=True,
+            )
+
             processed_batches = []
 
-            # Slice chunk into logical batches
             for batch_start in range(0, len(chunk_data), optimal_batch_size):
                 batch_end = min(batch_start + optimal_batch_size, len(chunk_data))
                 batch_data = chunk_data.iloc[batch_start:batch_end].copy()
 
-                # Select next sequential window of parents
-                parent_key_count = len(parent_keys_cache[parent_table_name])
-                num_windows = math.ceil(parent_key_count / parent_batch_size)
-                window_idx = relation_batch_counters[relation] % num_windows
-                start_idx = window_idx * parent_batch_size
-                end_idx = min(start_idx + parent_batch_size, parent_key_count)
-                sampled_parent_keys_df = parent_keys_cache[parent_table_name].iloc[start_idx:end_idx]
-                sampled_parent_keys = sampled_parent_keys_df[parent_pk].tolist()
+                sampled_parent_keys = parent_keys_df.sample(
+                    n=parent_batch_size, replace=len(parent_keys_df) < parent_batch_size
+                )[parent_pk].tolist()
 
-                # Fetch full parent data for sampled keys on-demand
                 parent_data = parent_table.read_data(
                     where={parent_pk: sampled_parent_keys},
                     columns=parent_table.columns,
@@ -406,13 +378,10 @@ def process_table_with_fk_models(
 
                 processed_batches.append(processed_batch)
 
-                # Increment batch counter for next window
                 relation_batch_counters[relation] += 1
 
-            # Reassemble chunk from processed batches
             chunk_data = pd.concat(processed_batches, ignore_index=True)
 
-        # Write processed chunk
         chunk_data = filter_and_order_columns(chunk_data, table_name, schema)
         write_batch_outputs(chunk_data, table_name, chunk_idx, pqt_path, csv_path)
 
