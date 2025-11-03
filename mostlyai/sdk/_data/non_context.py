@@ -20,8 +20,6 @@ This module provides functionality for handling non-context foreign keys in two 
 2. Assignment phase:
    - ML-based: Use trained neural network models for intelligent FK matching
    - Random: Fallback random sampling when ML models are not available
-
-Also includes PartitionedDataset for efficient handling of large partitioned datasets.
 """
 
 import hashlib
@@ -29,15 +27,13 @@ import json
 import logging
 import time
 from collections import defaultdict
-from collections.abc import Iterator
 from copy import copy as shallow_copy
 from copy import deepcopy
-from functools import lru_cache, partial
+from functools import partial
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pyarrow.parquet as pq
 import torch
 import torch.nn.functional as F
 from pathvalidate import sanitize_filename
@@ -53,7 +49,6 @@ from mostlyai.engine._encoding_types.tabular.datetime import analyze_datetime, a
 from mostlyai.engine._encoding_types.tabular.numeric import analyze_numeric, analyze_reduce_numeric, encode_numeric
 from mostlyai.engine.domain import ModelEncodingType
 from mostlyai.sdk._data.base import DataIdentifier, DataTable, NonContextRelation, Schema
-from mostlyai.sdk._data.file.base import FileDataTable
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
 _LOG = logging.getLogger(__name__)
@@ -99,146 +94,6 @@ FK_MODEL_ENCODING_TYPES = [
     ModelEncodingType.tabular_numeric_digit,
     ModelEncodingType.tabular_datetime,
 ]
-
-
-# =============================================================================
-# PARTITIONED DATASET FOR EFFICIENT DATA HANDLING
-# =============================================================================
-
-
-class PartitionedDataset:
-    """Cached wrapper for FileDataTable with slicing and random sampling capabilities."""
-
-    def __init__(self, table: FileDataTable, max_cached_partitions: int = 1):
-        self.table = table
-        self.max_cached_partitions = max_cached_partitions
-        self.partition_info = []
-
-        # unlimited cache if max_cached_partitions is -1
-        cache_maxsize = None if max_cached_partitions == -1 else max_cached_partitions
-        self._load_partition_cached = lru_cache(maxsize=cache_maxsize)(self._load_partition_uncached)
-
-        self._build_partition_index()
-
-    def _build_partition_index(self):
-        """Build partition index using table's dataset files."""
-        current_total = 0
-        for file in self.table.dataset.files:
-            partition_size = self._get_row_count_fast(file)
-            self.partition_info.append(
-                {
-                    "file": file,
-                    "start_idx": current_total,
-                    "end_idx": current_total + partition_size,
-                    "size": partition_size,
-                }
-            )
-            current_total += partition_size
-
-    def __getitem__(self, key) -> pd.DataFrame:
-        """Support slicing: dataset[start:end]"""
-        if isinstance(key, slice):
-            return self._slice_data(key.start or 0, key.stop or len(self))
-        else:
-            raise TypeError("Key must be slice")
-
-    def random_sample(self, n_items: int) -> pd.DataFrame:
-        """Randomly sample n_items from the dataset."""
-        if n_items <= 0:
-            return pd.DataFrame()
-
-        selected_partitions = set()
-        total_available = 0
-        available_partitions = list(range(len(self.partition_info)))
-        np.random.shuffle(available_partitions)
-
-        for partition_idx in available_partitions:
-            if total_available >= n_items:
-                break
-            selected_partitions.add(partition_idx)
-            total_available += self.partition_info[partition_idx]["size"]
-
-        all_data = []
-        for partition_idx in selected_partitions:
-            partition = self.partition_info[partition_idx]
-            df = self._load_partition(partition["file"])
-            all_data.append(df)
-
-        combined_df = pd.concat(all_data, ignore_index=True)
-
-        if len(combined_df) >= n_items:
-            sampled_df = combined_df.sample(n=n_items, replace=False).reset_index(drop=True)
-        else:
-            sampled_df = combined_df.sample(n=n_items, replace=True).reset_index(drop=True)
-
-        return sampled_df
-
-    def __len__(self) -> int:
-        return self.table.row_count
-
-    def _get_row_count_fast(self, file_path: str) -> int:
-        """Get row count from parquet metadata without reading data."""
-        if len(self.table.dataset.files) == 1:
-            return self.table.row_count
-
-        filesystem = self.table.container.file_system
-        parquet_file = pq.ParquetFile(file_path, filesystem=filesystem)
-        return parquet_file.metadata.num_rows
-
-    def _load_partition_uncached(self, file_path: str) -> pd.DataFrame:
-        """Load partition data from disk or remote storage (no caching)."""
-        filesystem = self.table.container.file_system
-        return pd.read_parquet(file_path, filesystem=filesystem)
-
-    def _load_partition(self, file_path: str) -> pd.DataFrame:
-        """Load partition with caching."""
-        return self._load_partition_cached(file_path).copy()
-
-    def _find_partition_for_index(self, global_idx: int) -> dict:
-        """Find which partition contains the given global index."""
-        for partition in self.partition_info:
-            if partition["start_idx"] <= global_idx < partition["end_idx"]:
-                return partition
-        raise IndexError(f"Index {global_idx} out of range [0, {len(self)}")
-
-    def _slice_data(self, start: int, end: int) -> pd.DataFrame:
-        """Load data for slice range [start:end]"""
-        if start >= len(self) or end <= 0:
-            return pd.DataFrame()
-
-        start = max(0, start)
-        end = min(len(self), end)
-
-        needed_partitions = []
-        for partition in self.partition_info:
-            if partition["end_idx"] > start and partition["start_idx"] < end:
-                local_start = max(0, start - partition["start_idx"])
-                local_end = min(partition["size"], end - partition["start_idx"])
-                needed_partitions.append((partition, local_start, local_end))
-
-        result_dfs = []
-        for partition, local_start, local_end in needed_partitions:
-            df = self._load_partition(partition["file"])
-            slice_df = df.iloc[local_start:local_end]
-            result_dfs.append(slice_df)
-
-        return pd.concat(result_dfs, ignore_index=True) if result_dfs else pd.DataFrame()
-
-    def iter_partitions(self) -> Iterator[tuple[int, str, pd.DataFrame]]:
-        """Iterate over partitions yielding (index, file_path, dataframe)."""
-        for idx, partition in enumerate(self.partition_info):
-            file_path = partition["file"]
-            data = self._load_partition(file_path)
-            yield idx, file_path, data
-
-    @property
-    def files(self) -> list[str]:
-        """Get partition file paths."""
-        return self.table.dataset.files
-
-    def clear_cache(self) -> None:
-        """Clear the partition cache."""
-        self._load_partition_cached.cache_clear()
 
 
 # =============================================================================

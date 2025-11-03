@@ -19,6 +19,7 @@ from mostlyai.sdk._local.execution.plan import (
     TRAINING_TASK_REPORT_STEPS,
     TRAINING_TASK_STEPS,
     has_language_model,
+    has_non_context_relationships,
     has_tabular_model,
 )
 from mostlyai.sdk._local.storage import (
@@ -123,16 +124,17 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                         status=ProgressStatus.new,
                     )
                 )
-    for step in FINALIZE_TRAINING_TASK_STEPS:
-        progress_steps.append(
-            ProgressStep(
-                task_type=TaskType.finalize_training,
-                model_label=None,
-                step_code=step,
-                progress=ProgressValue(value=0, max=1),
-                status=ProgressStatus.new,
+    if has_non_context_relationships(generator):
+        for step in FINALIZE_TRAINING_TASK_STEPS:
+            progress_steps.append(
+                ProgressStep(
+                    task_type=TaskType.finalize_training,
+                    model_label=None,
+                    step_code=step,
+                    progress=ProgressValue(value=0, max=1),
+                    status=ProgressStatus.new,
+                )
             )
-        )
     job_progress = JobProgress(
         id=generator.id,
         progress=ProgressValue(value=0, max=len(progress_steps)),
