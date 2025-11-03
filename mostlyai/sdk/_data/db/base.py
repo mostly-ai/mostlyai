@@ -877,6 +877,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
     def __init__(self, *args, **kwargs):
         self.is_view = kwargs.get("is_view", False)
         self.lazy_fetch_primary_key = kwargs.get("lazy_fetch_primary_key", True)
+        self.name_in_db = kwargs.get("name_in_db")  # actual db table name, may differ from self.name
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
@@ -897,10 +898,15 @@ class SqlAlchemyTable(DBTable, abc.ABC):
     #################### READ QUERY BUILDING & UTILS ####################
 
     @property
+    def db_table_name(self) -> str:
+        # use name_in_db (actual db table name) if set, otherwise fall back to self.name
+        return self.name_in_db or self.name
+
+    @property
     def _sa_table(self):
         with self.container.use_sa_engine() as sa_engine:
             return sa.Table(
-                self.name,
+                self.db_table_name,
                 self.container.sa_metadata,
                 autoload_with=sa_engine,
             )
@@ -1163,7 +1169,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
 
     def is_column_indexed(self, column: str) -> bool:
         with self.container.use_sa_engine() as sa_engine:
-            indexes = sa.inspect(sa_engine).get_indexes(table_name=self.name, schema=self.container.dbschema)
+            indexes = sa.inspect(sa_engine).get_indexes(table_name=self.db_table_name, schema=self.container.dbschema)
         for index in indexes:
             if column in index.get("column_names", []):
                 return True
@@ -1221,7 +1227,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
         do_coerce_dtypes: bool | None = False,
     ) -> pd.DataFrame:
         t0 = time.time()
-        _LOG.info(f"read from table `{self.name}` started")
+        _LOG.info(f"read from table `{self.db_table_name}` started")
         columns = columns if columns is not None else self.columns
         stmt = self._sa_select(columns)
         stmts = self._sa_where(stmt, where)
@@ -1239,7 +1245,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
             df = self._df_limit(df, limit)
         if do_coerce_dtypes:
             df = coerce_dtypes_by_encoding(df, self.encoding_types)
-        _LOG.info(f"read DB data `{self.name}` {df.shape} in {time.time() - t0:.2f}s")
+        _LOG.info(f"read DB data `{self.db_table_name}` {df.shape} in {time.time() - t0:.2f}s")
         return df
 
     def create_table(self, df: pd.DataFrame | None = None, **kwargs) -> None:
@@ -1252,7 +1258,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
         with self.container.use_sa_engine(mode="write_data") as sa_engine:
             try:
                 df.head(0).to_sql(
-                    name=self.name,
+                    name=self.db_table_name,
                     con=sa_engine,
                     schema=self.container.dbschema,
                     index=False,
@@ -1264,7 +1270,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
                 raise
 
         dtypes_msg = f"with dtypes=`{kwargs['dtype']}`" if "dtype" in kwargs else ""
-        _LOG.info(f"Successfully created table `{self.name}` schema {dtypes_msg}")
+        _LOG.info(f"Successfully created table `{self.db_table_name}` schema {dtypes_msg}")
 
     def write_chunks(self, chunks: Iterable[pd.DataFrame], dtypes: dict[str, Any], **kwargs) -> None:
         _LOG.info(f"write data in {len(chunks)} chunks (n_jobs={self.WRITE_CHUNKS_N_JOBS})")
@@ -1276,7 +1282,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
                     sa_create_engine_kwargs=self.container.sa_create_engine_kwargs,
                     sa_create_engine_connect_kwargs=self.container.sa_engine_connection_kwargs,
                     sa_multiple_inserts=self.SA_MULTIPLE_INSERTS,
-                    table_name=self.name,
+                    table_name=self.db_table_name,
                     table_schema=self.container.dbschema,
                     table_dtypes=dtypes,
                     chunk_init=self.INIT_WRITE_CHUNK,
@@ -1296,7 +1302,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
     ) -> None:
         t0 = time.time()
         assert self.is_output
-        _LOG.info(f"write data {df.shape} to table `{self.name}` started")
+        _LOG.info(f"write data {df.shape} to table `{self.db_table_name}` started")
 
         df = _normalize_for_sql(df)
 
@@ -1313,7 +1319,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
         chunks = [df[i : i + write_chunk_size] for i in range(0, len(df), write_chunk_size)]
         self.write_chunks(chunks, dtypes)
 
-        _LOG.info(f"write to table `{self.name}` finished in {time.time() - t0:.2f}s")
+        _LOG.info(f"write to table `{self.db_table_name}` finished in {time.time() - t0:.2f}s")
 
     def has_child(self) -> bool:
         return len(self.container.schema.get_relations_from_table(str(self.name))) > 0
