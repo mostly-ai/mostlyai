@@ -320,6 +320,36 @@ def process_table_with_fk_models(
     non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == table_name]
     children_table = schema.tables[table_name]
 
+    # Load parent keys upfront (memory efficient)
+    parent_keys_cache = {}
+    parent_tables = {}
+    for relation in non_ctx_relations:
+        parent_table_name = relation.parent.table
+        if parent_table_name not in parent_keys_cache:
+            parent_table = schema.tables[parent_table_name]
+            parent_tables[parent_table_name] = parent_table
+            pk_col = relation.parent.column
+            parent_keys_cache[parent_table_name] = parent_table.read_data(
+                columns=[pk_col],
+                do_coerce_dtypes=True,
+            )
+
+    # Calculate optimal batch size for each relationship
+    optimal_batch_sizes = {}
+    for relation in non_ctx_relations:
+        parent_table_name = relation.parent.table
+        parent_key_count = len(parent_keys_cache[parent_table_name])
+        relation_name = f"{relation.child.table}.{relation.child.column}->{parent_table_name}"
+
+        optimal_batch_size = calculate_optimal_child_batch_size_for_relation(
+            parent_key_count=parent_key_count,
+            children_row_count=children_table.row_count,
+            parent_batch_size=parent_batch_size,
+            relation_name=relation_name,
+        )
+        optimal_batch_sizes[relation] = optimal_batch_size
+
+    # Initialize batch counter for sequential window selection per relation
     relation_batch_counters = {relation: 0 for relation in non_ctx_relations}
 
     for chunk_idx, chunk_data in enumerate(children_table.read_chunks(do_coerce_dtypes=True)):
@@ -327,23 +357,14 @@ def process_table_with_fk_models(
 
         for relation in non_ctx_relations:
             parent_table_name = relation.parent.table
-            parent_table = schema.tables[parent_table_name]
+            parent_table = parent_tables[parent_table_name]
             parent_pk = relation.parent.column
+            optimal_batch_size = optimal_batch_sizes[relation]
             relation_name = f"{relation.child.table}.{relation.child.column}->{parent_table_name}"
-
-            optimal_batch_size = calculate_optimal_child_batch_size_for_relation(
-                parent_key_count=parent_table.row_count,
-                children_row_count=children_table.row_count,
-                parent_batch_size=parent_batch_size,
-                relation_name=relation_name,
-            )
 
             _LOG.info(f"  Processing relationship {relation_name} with batch size {optimal_batch_size}")
 
-            parent_keys_df = parent_table.read_data(
-                columns=[parent_pk],
-                do_coerce_dtypes=True,
-            )
+            parent_keys_df = parent_keys_cache[parent_table_name]
 
             processed_batches = []
 
