@@ -58,6 +58,15 @@ def has_language_model(table: SourceTable) -> bool:
     return table.language_model_configuration is not None
 
 
+def has_non_context_relationships(generator: Generator) -> bool:
+    for table in generator.tables:
+        if table.foreign_keys:
+            for fk in table.foreign_keys:
+                if not fk.is_context:
+                    return True
+    return False
+
+
 def get_model_type_generation_steps_map(
     enable_data_report: bool, table: SourceTable
 ) -> dict[ModelType, list[StepCode]]:
@@ -156,8 +165,9 @@ def make_generator_execution_plan(generator: Generator) -> ExecutionPlan:
                 include_report=table.language_model_configuration.enable_model_report,
             )
     post_training_sync = execution_plan.add_task(TaskType.sync)
-    finalize_task = execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
-    execution_plan.add_task(TaskType.sync, parent=finalize_task)
+    if has_non_context_relationships(generator):
+        execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
+        execution_plan.add_task(TaskType.sync)
     return execution_plan
 
 
