@@ -76,22 +76,16 @@ def execute_train_fk_model_for_single_non_context_relation(
     t0 = time.time()
 
     tgt_table = schema.tables[tgt_table_name]
-    tgt_primary_key = tgt_table.primary_key
     tgt_parent_key = non_ctx_relation.child.column
 
     parent_table = schema.tables[non_ctx_relation.parent.table]
     parent_primary_key = non_ctx_relation.parent.column
-    parent_foreign_keys = [fk.column for fk in parent_table.foreign_keys]
-    parent_data_columns = [
-        c for c in parent_table.columns if c != parent_table.primary_key and c not in parent_foreign_keys
-    ]
     parent_table_name = non_ctx_relation.parent.table
 
     parent_data, tgt_data = pull_fk_model_training_data(
         tgt_table=tgt_table,
-        tgt_parent_key=tgt_parent_key,
         parent_table=parent_table,
-        parent_primary_key=parent_primary_key,
+        tgt_parent_key=tgt_parent_key,
         schema=schema,
     )
 
@@ -99,15 +93,14 @@ def execute_train_fk_model_for_single_non_context_relation(
         # no data to train matcher model, so skip
         return
 
-    fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
+    tgt_data_columns = [c for c in tgt_data.columns if c != tgt_parent_key]
+    parent_data_columns = [c for c in parent_data.columns if c != parent_primary_key]
 
-    tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
-    tgt_data_columns = [c for c in tgt_data.columns if c != tgt_primary_key and c not in tgt_foreign_keys]
+    fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
 
     tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
     analyze_df(
         df=tgt_data,
-        primary_key=tgt_primary_key,
         parent_key=tgt_parent_key,
         data_columns=tgt_data_columns,
         stats_dir=tgt_stats_dir,

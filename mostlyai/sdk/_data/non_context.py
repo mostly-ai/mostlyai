@@ -20,8 +20,6 @@ This module provides functionality for handling non-context foreign keys in two 
 2. Assignment phase:
    - ML-based: Use trained neural network models for intelligent FK matching
    - Random: Fallback random sampling when ML models are not available
-
-Also includes PartitionedDataset for efficient handling of large partitioned datasets.
 """
 
 import hashlib
@@ -29,15 +27,13 @@ import json
 import logging
 import time
 from collections import defaultdict
-from collections.abc import Iterator
 from copy import copy as shallow_copy
 from copy import deepcopy
-from functools import lru_cache
+from functools import partial
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pyarrow.parquet as pq
 import torch
 import torch.nn.functional as F
 from pathvalidate import sanitize_filename
@@ -51,8 +47,8 @@ from mostlyai.engine._encoding_types.tabular.categorical import (
 )
 from mostlyai.engine._encoding_types.tabular.datetime import analyze_datetime, analyze_reduce_datetime, encode_datetime
 from mostlyai.engine._encoding_types.tabular.numeric import analyze_numeric, analyze_reduce_numeric, encode_numeric
+from mostlyai.engine.domain import ModelEncodingType
 from mostlyai.sdk._data.base import DataIdentifier, DataTable, NonContextRelation, Schema
-from mostlyai.sdk._data.file.base import FileDataTable
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
 _LOG = logging.getLogger(__name__)
@@ -73,8 +69,8 @@ PEAKEDNESS_SCALER = 7.0
 BATCH_SIZE = 128
 LEARNING_RATE = 0.0003
 MAX_EPOCHS = 1000
-PATIENCE = 20
-N_NEGATIVE_SAMPLES = 10
+PATIENCE = 5
+N_NEGATIVE_SAMPLES = 5
 VAL_SPLIT = 0.2
 DROPOUT_RATE = 0.2
 EARLY_STOPPING_DELTA = 1e-5
@@ -82,152 +78,22 @@ NUMERICAL_STABILITY_EPSILON = 1e-10
 
 # Data Sampling Parameters
 MAX_PARENT_SAMPLE_SIZE = 10000
-MAX_TGT_PER_PARENT = 2
+MAX_TGT_PER_PARENT = 10
 
 # Inference Parameters
 TEMPERATURE = 1.0
 TOP_K = None
 TOP_P = 0.95
 
-
-# =============================================================================
-# PARTITIONED DATASET FOR EFFICIENT DATA HANDLING
-# =============================================================================
-
-
-class PartitionedDataset:
-    """Cached wrapper for FileDataTable with slicing and random sampling capabilities."""
-
-    def __init__(self, table: FileDataTable, max_cached_partitions: int = 1):
-        self.table = table
-        self.max_cached_partitions = max_cached_partitions
-        self.partition_info = []
-
-        # unlimited cache if max_cached_partitions is -1
-        cache_maxsize = None if max_cached_partitions == -1 else max_cached_partitions
-        self._load_partition_cached = lru_cache(maxsize=cache_maxsize)(self._load_partition_uncached)
-
-        self._build_partition_index()
-
-    def _build_partition_index(self):
-        """Build partition index using table's dataset files."""
-        current_total = 0
-        for file in self.table.dataset.files:
-            partition_size = self._get_row_count_fast(file)
-            self.partition_info.append(
-                {
-                    "file": file,
-                    "start_idx": current_total,
-                    "end_idx": current_total + partition_size,
-                    "size": partition_size,
-                }
-            )
-            current_total += partition_size
-
-    def __getitem__(self, key) -> pd.DataFrame:
-        """Support slicing: dataset[start:end]"""
-        if isinstance(key, slice):
-            return self._slice_data(key.start or 0, key.stop or len(self))
-        else:
-            raise TypeError("Key must be slice")
-
-    def random_sample(self, n_items: int) -> pd.DataFrame:
-        """Randomly sample n_items from the dataset."""
-        if n_items <= 0:
-            return pd.DataFrame()
-
-        selected_partitions = set()
-        total_available = 0
-        available_partitions = list(range(len(self.partition_info)))
-        np.random.shuffle(available_partitions)
-
-        for partition_idx in available_partitions:
-            if total_available >= n_items:
-                break
-            selected_partitions.add(partition_idx)
-            total_available += self.partition_info[partition_idx]["size"]
-
-        all_data = []
-        for partition_idx in selected_partitions:
-            partition = self.partition_info[partition_idx]
-            df = self._load_partition(partition["file"])
-            all_data.append(df)
-
-        combined_df = pd.concat(all_data, ignore_index=True)
-
-        if len(combined_df) >= n_items:
-            sampled_df = combined_df.sample(n=n_items, replace=False).reset_index(drop=True)
-        else:
-            sampled_df = combined_df.sample(n=n_items, replace=True).reset_index(drop=True)
-
-        return sampled_df
-
-    def __len__(self) -> int:
-        return self.table.row_count
-
-    def _get_row_count_fast(self, file_path: str) -> int:
-        """Get row count from parquet metadata without reading data."""
-        if len(self.table.dataset.files) == 1:
-            return self.table.row_count
-
-        filesystem = self.table.container.file_system
-        parquet_file = pq.ParquetFile(file_path, filesystem=filesystem)
-        return parquet_file.metadata.num_rows
-
-    def _load_partition_uncached(self, file_path: str) -> pd.DataFrame:
-        """Load partition data from disk or remote storage (no caching)."""
-        filesystem = self.table.container.file_system
-        return pd.read_parquet(file_path, filesystem=filesystem)
-
-    def _load_partition(self, file_path: str) -> pd.DataFrame:
-        """Load partition with caching."""
-        return self._load_partition_cached(file_path).copy()
-
-    def _find_partition_for_index(self, global_idx: int) -> dict:
-        """Find which partition contains the given global index."""
-        for partition in self.partition_info:
-            if partition["start_idx"] <= global_idx < partition["end_idx"]:
-                return partition
-        raise IndexError(f"Index {global_idx} out of range [0, {len(self)}")
-
-    def _slice_data(self, start: int, end: int) -> pd.DataFrame:
-        """Load data for slice range [start:end]"""
-        if start >= len(self) or end <= 0:
-            return pd.DataFrame()
-
-        start = max(0, start)
-        end = min(len(self), end)
-
-        needed_partitions = []
-        for partition in self.partition_info:
-            if partition["end_idx"] > start and partition["start_idx"] < end:
-                local_start = max(0, start - partition["start_idx"])
-                local_end = min(partition["size"], end - partition["start_idx"])
-                needed_partitions.append((partition, local_start, local_end))
-
-        result_dfs = []
-        for partition, local_start, local_end in needed_partitions:
-            df = self._load_partition(partition["file"])
-            slice_df = df.iloc[local_start:local_end]
-            result_dfs.append(slice_df)
-
-        return pd.concat(result_dfs, ignore_index=True) if result_dfs else pd.DataFrame()
-
-    def iter_partitions(self) -> Iterator[tuple[int, str, pd.DataFrame]]:
-        """Iterate over partitions yielding (index, file_path, dataframe)."""
-        for idx, partition in enumerate(self.partition_info):
-            file_path = partition["file"]
-            data = self._load_partition(file_path)
-            yield idx, file_path, data
-
-    @property
-    def files(self) -> list[str]:
-        """Get partition file paths."""
-        return self.table.dataset.files
-
-    def clear_cache(self) -> None:
-        """Clear the partition cache."""
-        self._load_partition_cached.cache_clear()
+# Supported Encoding Types
+FK_MODEL_ENCODING_TYPES = [
+    ModelEncodingType.tabular_categorical,
+    ModelEncodingType.tabular_numeric_auto,
+    ModelEncodingType.tabular_numeric_discrete,
+    ModelEncodingType.tabular_numeric_binned,
+    ModelEncodingType.tabular_numeric_digit,
+    ModelEncodingType.tabular_datetime,
+]
 
 
 # =============================================================================
@@ -428,10 +294,10 @@ class ParentChildMatcher(nn.Module):
         parent_encoded = self.parent_encoder(parent_inputs)
         child_encoded = self.child_encoder(child_inputs)
 
-        similarity = F.cosine_similarity(parent_encoded, child_encoded, dim=1)
-        probability = torch.sigmoid(similarity * PEAKEDNESS_SCALER).unsqueeze(1)
+        logits = F.cosine_similarity(parent_encoded, child_encoded, dim=1)
+        logits = (logits * PEAKEDNESS_SCALER).unsqueeze(1)
 
-        return probability
+        return logits
 
 
 # =============================================================================
@@ -498,7 +364,10 @@ def analyze_df(
         if col in cat_columns:
             analyze, reduce = analyze_categorical, analyze_reduce_categorical
         elif col in num_columns:
-            analyze, reduce = analyze_numeric, analyze_reduce_numeric
+            analyze, reduce = (
+                partial(analyze_numeric, encoding_type=ModelEncodingType.tabular_numeric_digit),
+                partial(analyze_reduce_numeric, encoding_type=ModelEncodingType.tabular_numeric_digit),
+            )
         elif col in dt_columns:
             analyze, reduce = analyze_datetime, analyze_reduce_datetime
         else:
@@ -572,10 +441,20 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT
     """
     t0 = time.time()
     primary_key = parent_table.primary_key
+    assert primary_key is not None
+    foreign_keys = [fk.column for fk in parent_table.foreign_keys]
+    data_columns = [
+        c
+        for c in parent_table.columns
+        if c != primary_key  # data column is not the primary key
+        and c not in foreign_keys  # data column is not a foreign key
+        and parent_table.encoding_types.get(c) in FK_MODEL_ENCODING_TYPES  # encoding type is supported by FK models
+    ]
+    columns = [primary_key] + data_columns
     seen_keys = set()
     collected_rows = []
 
-    for chunk_df in parent_table.read_chunks(columns=parent_table.columns, do_coerce_dtypes=True):
+    for chunk_df in parent_table.read_chunks(columns=columns, do_coerce_dtypes=True):
         chunk_df = chunk_df.drop_duplicates(subset=[primary_key])
 
         for _, row in chunk_df.iterrows():
@@ -599,6 +478,7 @@ def fetch_tgt_data(
     tgt_table: DataTable,
     tgt_parent_key: str,
     parent_keys: list,
+    schema: Schema,
     max_tgt_per_parent: int = MAX_TGT_PER_PARENT,
 ) -> pd.DataFrame:
     """
@@ -611,7 +491,8 @@ def fetch_tgt_data(
         tgt_table: Target table to fetch from.
         tgt_parent_key: Foreign key column in target table.
         parent_keys: List of parent key values to filter by.
-        max_tgt_per_parent: Maximum target records per parent. Defaults to 1.
+        schema: Schema to fetch context parent data for tgt_table
+        max_tgt_per_parent: Maximum target records per parent.
 
     Returns:
         DataFrame containing target records, limited by max_tgt_per_parent constraint.
@@ -620,8 +501,22 @@ def fetch_tgt_data(
     parent_counts = defaultdict(int)
     collected_rows = []
     where = {tgt_parent_key: parent_keys}
+    tgt_primary_key = tgt_table.primary_key
+    tgt_context_key = schema.get_context_key(tgt_table.name)
+    tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
+    data_columns = [
+        c
+        for c in tgt_table.columns
+        if c != tgt_primary_key  # data column is not the primary key
+        and c not in tgt_foreign_keys  # data column is not a foreign key
+        and tgt_table.encoding_types.get(c) in FK_MODEL_ENCODING_TYPES  # encoding type is supported by FK models
+    ]
+    columns = [tgt_parent_key]
+    if tgt_context_key is not None:
+        columns += [tgt_context_key.column]
+    columns += data_columns
 
-    for chunk_df in tgt_table.read_chunks(where=where, columns=tgt_table.columns, do_coerce_dtypes=True):
+    for chunk_df in tgt_table.read_chunks(columns=columns, where=where, do_coerce_dtypes=True):
         if len(chunk_df) == 0:
             continue
 
@@ -642,19 +537,19 @@ def add_context_parent_data(
     tgt_data: pd.DataFrame,
     tgt_table: DataTable,
     schema: Schema,
+    drop_context_key: bool = False,
 ) -> pd.DataFrame:
     t0 = time.time()
 
-    # get the context parent relation for the target table
-    ctx_rel = schema.get_parent_context_relation(tgt_table.name)
-    if ctx_rel is None:
+    ctx_relation = schema.get_parent_context_relation(tgt_table.name)
+    if ctx_relation is None:
         # no context parent, return as is
         return tgt_data
 
-    ctx_parent_table_name = ctx_rel.parent.table
+    ctx_parent_table_name = ctx_relation.parent.table
     ctx_parent_table = schema.tables[ctx_parent_table_name]
-    ctx_parent_pk = ctx_rel.parent.column
-    tgt_ctx_fk = ctx_rel.child.column
+    ctx_parent_pk = ctx_relation.parent.column
+    tgt_ctx_fk = ctx_relation.child.column
 
     # get unique context parent keys from tgt_data
     ctx_parent_keys = tgt_data[tgt_ctx_fk].dropna().unique().tolist()
@@ -668,11 +563,19 @@ def add_context_parent_data(
         if rel.child.table == ctx_parent_table_name:
             key_columns.add(rel.child.column)
 
-    # get non-key columns only
-    non_key_columns = [col for col in ctx_parent_table.columns if col not in key_columns]
+    # get non-key columns that are supported by FK models
+    include_columns = []
+    for col in ctx_parent_table.columns:
+        if col in key_columns:
+            continue
+        # only include columns with encoding types supported by FK models
+        encoding_type = ctx_parent_table.encoding_types.get(col)
+        if encoding_type not in FK_MODEL_ENCODING_TYPES:
+            continue
+        include_columns.append(col)
 
     # fetch context parent data with prefixed columns (only non-key columns + PK for join)
-    columns_to_fetch = [ctx_parent_pk] + non_key_columns
+    columns_to_fetch = [ctx_parent_pk] + include_columns
     ctx_parent_data = ctx_parent_table.read_data_prefixed(
         columns=columns_to_fetch,
         where={ctx_parent_pk: ctx_parent_keys},
@@ -684,7 +587,7 @@ def add_context_parent_data(
         return tgt_data
 
     # join context parent data with tgt_data
-    ctx_parent_pk_prefixed = DataIdentifier(ctx_parent_table_name, ctx_parent_pk).ref_name()
+    ctx_parent_pk_prefixed = DataIdentifier(ctx_parent_table.name, ctx_parent_pk).ref_name()
     tgt_data = pd.merge(
         tgt_data,
         ctx_parent_data,
@@ -697,6 +600,10 @@ def add_context_parent_data(
     if ctx_parent_pk_prefixed in tgt_data.columns:
         tgt_data = tgt_data.drop(columns=[ctx_parent_pk_prefixed])
 
+    # drop the context key column if requested
+    if drop_context_key:
+        tgt_data = tgt_data.drop(columns=[tgt_ctx_fk])
+
     added_columns = [c for c in tgt_data.columns if c in ctx_parent_data.columns]
     _LOG.info(f"add_context_parent_data | time: {time.time() - t0:.2f}s | added_columns: {added_columns}")
     return tgt_data
@@ -705,40 +612,36 @@ def add_context_parent_data(
 def pull_fk_model_training_data(
     *,
     tgt_table: DataTable,
-    tgt_parent_key: str,
     parent_table: DataTable,
-    parent_primary_key: str,
+    tgt_parent_key: str,
     schema: Schema,
-    max_parent_sample_size: int = MAX_PARENT_SAMPLE_SIZE,
-    max_tgt_per_parent: int = MAX_TGT_PER_PARENT,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Pull training data for a specific non-context FK relation.
 
     Args:
         tgt_table: Target/child table
-        tgt_parent_key: Foreign key column in target table
         parent_table: Parent table
-        parent_primary_key: Primary key column in parent table
+        tgt_parent_key: Foreign key column in target table
         schema: Schema to fetch context parent data for tgt_table
-        max_parent_sample_size: Maximum parent keys to sample
-        max_tgt_per_parent: Maximum target records per parent
 
     Returns:
         Tuple of (parent_data, tgt_data). tgt_data includes columns from context parent table.
     """
-    parent_data = fetch_parent_data(parent_table=parent_table, max_sample_size=max_parent_sample_size)
-    parent_keys = parent_data[parent_primary_key].tolist() if not parent_data.empty else []
+    parent_data = fetch_parent_data(parent_table=parent_table)
+
+    parent_keys = parent_data[parent_table.primary_key].tolist() if not parent_data.empty else []
     tgt_data = fetch_tgt_data(
         tgt_table=tgt_table,
         tgt_parent_key=tgt_parent_key,
         parent_keys=parent_keys,
-        max_tgt_per_parent=max_tgt_per_parent,
+        schema=schema,
     )
     tgt_data = add_context_parent_data(
         tgt_data=tgt_data,
         tgt_table=tgt_table,
         schema=schema,
+        drop_context_key=True,  # after this step, tgt_context_key is dropped
     )
     _LOG.info(
         f"pull_fk_model_training_data | parent_data columns: {list(parent_data.columns)} | tgt_data columns: {list(tgt_data.columns)}"
@@ -751,20 +654,22 @@ def prepare_training_pairs(
     tgt_encoded_data: pd.DataFrame,
     parent_primary_key: str,
     tgt_parent_key: str,
-    n_negative: int = N_NEGATIVE_SAMPLES,
+    n_negative_samples: int = N_NEGATIVE_SAMPLES,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
     Prepare training data for a parent-child matching model.
     For each non-null child, samples will include:
-    - One positive pair (correct parent) with label=1
+    - One unique positive pair (correct parent) with label=1
     - Multiple negative pairs (wrong parents) with label=0
+
+    Class imbalance is handled at the loss level using BCEWithLogitsLoss with pos_weight.
 
     Args:
         parent_encoded_data: Encoded parent data
         tgt_encoded_data: Encoded child data
         parent_primary_key: Primary key of parents
         tgt_parent_key: Foreign key of children
-        n_negative: Number of negative samples per child
+        n_negative_samples: Number of negative samples per child
     """
     t0 = time.time()
 
@@ -809,8 +714,8 @@ def prepare_training_pairs(
     pos_parents = parents_X[true_parent_pos]
     pos_labels = np.ones(n_valid, dtype=np.float32)
 
-    # negative pairs (label=0) - n_negative per valid tgt
-    neg_indices = np.random.randint(0, n_parents, size=(n_valid, n_negative))
+    # negative pairs (label=0) - n_negative_samples per valid tgt
+    neg_indices = np.random.randint(0, n_parents, size=(n_valid, n_negative_samples))
     if n_parents > 1:
         true_parent_pos_expanded = true_parent_pos[:, np.newaxis]
         mask = neg_indices == true_parent_pos_expanded
@@ -818,12 +723,19 @@ def prepare_training_pairs(
             neg_indices[mask] = np.random.randint(0, n_parents, size=mask.sum())
             mask = neg_indices == true_parent_pos_expanded
     neg_parents = parents_X[neg_indices.ravel()]
-    neg_tgt = np.repeat(tgt_X, n_negative, axis=0)
-    neg_labels = np.zeros(n_valid * n_negative, dtype=np.float32)
+    neg_tgt = np.repeat(tgt_X, n_negative_samples, axis=0)
+    neg_labels = np.zeros(n_valid * n_negative_samples, dtype=np.float32)
 
     parent_vecs = np.vstack([pos_parents, neg_parents]).astype(np.float32, copy=False)
     tgt_vecs = np.vstack([tgt_X, neg_tgt]).astype(np.float32, copy=False)
     labels_vec = np.concatenate([pos_labels, neg_labels]).astype(np.float32, copy=False)
+
+    # shuffle pairs for training robustness
+    n_pairs = len(parent_vecs)
+    shuffle_indices = np.random.permutation(n_pairs)
+    parent_vecs = parent_vecs[shuffle_indices]
+    tgt_vecs = tgt_vecs[shuffle_indices]
+    labels_vec = labels_vec[shuffle_indices]
 
     parent_pd = pd.DataFrame(parent_vecs, columns=parent_encoded_data.drop(columns=[parent_primary_key]).columns)
     tgt_pd = pd.DataFrame(tgt_vecs, columns=tgt_encoded_data.drop(columns=[tgt_parent_key]).columns)
@@ -862,7 +774,12 @@ def train_fk_model(
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    loss_fn = nn.BCELoss()
+
+    # calculate class imbalance for loss weighting
+    num_positives = int(labels.sum())
+    num_negatives = len(labels) - num_positives
+    pos_weight = torch.tensor([num_negatives / num_positives]) if num_positives > 0 else torch.tensor([1.0])
+    loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     train_losses, val_losses = [], []
     best_model_state = None
