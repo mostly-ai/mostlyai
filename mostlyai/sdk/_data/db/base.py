@@ -877,7 +877,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
     def __init__(self, *args, **kwargs):
         self.is_view = kwargs.get("is_view", False)
         self.lazy_fetch_primary_key = kwargs.get("lazy_fetch_primary_key", True)
-        self.database_name = kwargs.get("database_name")  # actual db table name, may differ from self.name
+        self.name_in_db = kwargs.get("name_in_db")  # actual db table name, may differ from self.name
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
@@ -899,8 +899,8 @@ class SqlAlchemyTable(DBTable, abc.ABC):
 
     @property
     def db_table_name(self) -> str:
-        # use database_name (actual db table name) if set, otherwise fall back to self.name
-        return self.database_name or self.name
+        # use name_in_db (actual db table name) if set, otherwise fall back to self.name
+        return self.name_in_db or self.name
 
     @property
     def _sa_table(self):

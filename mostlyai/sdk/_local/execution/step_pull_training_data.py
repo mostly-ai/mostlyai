@@ -70,7 +70,7 @@ def create_training_schema(generator: Generator, connectors: list[Connector]) ->
         data_table = make_data_table_from_container(container, lazy_fetch_primary_key=False)
         # preserve actual database table name for database containers
         if isinstance(data_table, SqlAlchemyTable) and meta and "table_name" in meta:
-            data_table.database_name = meta["table_name"]
+            data_table.name_in_db = meta["table_name"]
         data_table.name = table.name
         data_table.primary_key = table.primary_key
         if table.columns:
