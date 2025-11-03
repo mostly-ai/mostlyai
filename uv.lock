@@ -3727,8 +3727,8 @@ requires-dist = [
     { name = "joblib", marker = "extra == 'local'", specifier = ">=1.4.2" },
     { name = "joblib", marker = "extra == 'local-gpu'", specifier = ">=1.4.2" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
-    { name = "mostlyai-engine", marker = "extra == 'local'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-cond-gen-impute-seed" },
-    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-cond-gen-impute-seed" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==1.6.1" },
+    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==1.6.1" },
     { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.9.8" },
     { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.9.8" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
@@ -3807,7 +3807,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "1.6.1"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=feat-cond-gen-impute-seed#4124b0fdda2bf196b197f531aaa37df282617789" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
@@ -3827,6 +3827,10 @@ dependencies = [
     { name = "torchvision" },
     { name = "transformers" },
     { name = "xgrammar" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/86/31/addf86bf6d2a9feb06c9a82c6c0f96f66864f20ed07065f08515c0cf0a0c/mostlyai_engine-1.6.1.tar.gz", hash = "sha256:259c1621c5996bf73c8fe8368a9eb598cb9c99f3b59ec5d7fbde5bb526154326", size = 117300, upload-time = "2025-10-24T08:27:14.608Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1a/00/a6c79c852573736ba342161cbcde164f3c3632f8826a3ba7708d50e24d69/mostlyai_engine-1.6.1-py3-none-any.whl", hash = "sha256:c75d135d11fd5970238d041c186e0962ab492e7ddd62b1e8aeb066146e3b18f4", size = 156914, upload-time = "2025-10-24T08:27:12.895Z" },
 ]
 
 [package.optional-dependencies]
