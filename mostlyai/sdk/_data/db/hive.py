@@ -172,6 +172,10 @@ class HiveContainer(SqlAlchemyContainer):
     def table_class(cls):
         return HiveTable
 
+    def use_sa_engine(self, mode="read_data", dispose=False):
+        # always keep the engine alive to reuse the cached connection
+        return super().use_sa_engine(mode=mode, dispose=dispose)
+
     def does_database_exist(self) -> bool:
         with self.init_sa_connection("db_exist_check") as connection:
             result = connection.execute(sa.text("SHOW DATABASES"))
