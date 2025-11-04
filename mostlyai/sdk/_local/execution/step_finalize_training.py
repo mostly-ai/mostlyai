@@ -18,6 +18,8 @@ import time
 import traceback
 from pathlib import Path
 
+import pandas as pd
+
 from mostlyai.sdk._data.base import NonContextRelation, Schema
 from mostlyai.sdk._data.non_context import (
     ParentChildMatcher,
@@ -27,6 +29,7 @@ from mostlyai.sdk._data.non_context import (
     prepare_training_pairs,
     pull_fk_model_training_data,
     safe_name,
+    store_cardinality_stats,
     store_fk_model,
     train_fk_model,
 )
@@ -35,6 +38,22 @@ from mostlyai.sdk._local.execution.step_pull_training_data import create_trainin
 from mostlyai.sdk.domain import Connector, Generator
 
 _LOG = logging.getLogger(__name__)
+
+
+def compute_fk_cardinality_stats(
+    parent_data: pd.DataFrame,
+    tgt_data: pd.DataFrame,
+    parent_primary_key: str,
+    tgt_parent_key: str,
+) -> dict:
+    children_counts = tgt_data[tgt_parent_key].value_counts()
+    all_parents = parent_data[parent_primary_key]
+    children_per_parent = all_parents.map(children_counts).fillna(0)
+
+    return {
+        "mean_children_per_parent": float(children_per_parent.mean()),
+        "std_children_per_parent": float(children_per_parent.std()),
+    }
 
 
 def execute_train_fk_models_for_single_table(
@@ -90,8 +109,14 @@ def execute_train_fk_model_for_single_non_context_relation(
     )
 
     if parent_data.empty or tgt_data.empty:
-        # no data to train matcher model, so skip
         return
+
+    cardinality_stats = compute_fk_cardinality_stats(
+        parent_data=parent_data,
+        tgt_data=tgt_data,
+        parent_primary_key=parent_primary_key,
+        tgt_parent_key=tgt_parent_key,
+    )
 
     tgt_data_columns = [c for c in tgt_data.columns if c != tgt_parent_key]
     parent_data_columns = [c for c in parent_data.columns if c != parent_primary_key]
@@ -146,7 +171,15 @@ def execute_train_fk_model_for_single_non_context_relation(
         labels=labels_pd,
     )
 
-    store_fk_model(model=model, fk_model_workspace_dir=fk_model_workspace_dir)
+    store_fk_model(
+        model=model,
+        fk_model_workspace_dir=fk_model_workspace_dir,
+    )
+
+    store_cardinality_stats(
+        fk_model_workspace_dir=fk_model_workspace_dir,
+        cardinality_stats=cardinality_stats,
+    )
 
     _LOG.info(
         f"Trained FK model for relation: {tgt_table_name}.{tgt_parent_key} -> {parent_table_name}.{parent_primary_key} | "

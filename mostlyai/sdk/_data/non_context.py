@@ -869,6 +869,16 @@ def store_fk_model(*, model: ParentChildMatcher, fk_model_workspace_dir: Path) -
     torch.save(model.state_dict(), model_state_path)
 
 
+def store_cardinality_stats(*, fk_model_workspace_dir: Path, cardinality_stats: dict) -> None:
+    stats_path = fk_model_workspace_dir / "cardinality_stats.json"
+    stats_path.write_text(json.dumps(cardinality_stats, indent=4))
+
+
+def load_cardinality_stats(*, fk_model_workspace_dir: Path) -> dict:
+    stats_path = fk_model_workspace_dir / "cardinality_stats.json"
+    return json.loads(stats_path.read_text())
+
+
 def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
     """Load FK model from disk."""
     model_config_path = fk_model_workspace_dir / "model_config.json"

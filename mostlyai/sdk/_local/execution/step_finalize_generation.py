@@ -29,7 +29,9 @@ from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.non_context import (
     add_context_parent_data,
     assign_non_context_fks_randomly,
+    load_cardinality_stats,
     match_non_context,
+    safe_name,
 )
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._data.util.common import (
@@ -44,8 +46,6 @@ _LOG = logging.getLogger(__name__)
 # FK processing constants
 FK_MIN_CHILDREN_BATCH_SIZE = 10
 FK_PARENT_BATCH_SIZE = 1_000
-FK_TARGET_MEAN_CHILDREN_PER_PARENT = 2.0
-FK_TARGET_STD_CHILDREN_PER_PARENT = 1.0
 
 
 def execute_step_finalize_generation(
@@ -351,25 +351,24 @@ def process_table_with_fk_models(
         )
         optimal_batch_sizes[relation] = optimal_batch_size
 
-    # Initialize remaining capacity for each parent key using cached parent keys
     remaining_capacity = {}
     for relation in non_ctx_relations:
         parent_table_name = relation.parent.table
         pk_col = relation.parent.column
 
+        fk_model_dir = fk_models_workspace_dir / safe_name(relation.child.column)
+        cardinality_stats = load_cardinality_stats(fk_model_workspace_dir=fk_model_dir)
+
+        mean_children = cardinality_stats["mean_children_per_parent"]
+        std_children = cardinality_stats["std_children_per_parent"]
+
         parent_keys_df = parent_keys_cache[parent_table_name]
         parent_keys = parent_keys_df[pk_col].tolist()
 
-        # Sample target from N(mean, std²) for each parent
         n_parents = len(parent_keys)
-        targets = np.random.normal(
-            loc=FK_TARGET_MEAN_CHILDREN_PER_PARENT,
-            scale=FK_TARGET_STD_CHILDREN_PER_PARENT,
-            size=n_parents,
-        )
+        targets = np.random.normal(loc=mean_children, scale=std_children, size=n_parents)
         targets = np.round(np.maximum(targets, 0)).astype(int)
 
-        # This will be mutated inside match_non_context() during sampling
         remaining_capacity[relation] = {pk: int(target) for pk, target in zip(parent_keys, targets)}
 
     for chunk_idx, chunk_data in enumerate(children_table.read_chunks(do_coerce_dtypes=True)):
