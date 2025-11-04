@@ -1131,10 +1131,13 @@ class SqlAlchemyTable(DBTable, abc.ABC):
         fetch_chunk_size = fetch_chunk_size if fetch_chunk_size is not None else 100_000
         yield_chunk_size = yield_chunk_size if yield_chunk_size is not None else fetch_chunk_size
         stmt = self._sa_select(columns)
-        with self.container.use_sa_engine() as sa_engine:
-            chunk_idx = 0
-            total_time = 0
-            session = sessionmaker(bind=sa_engine)()
+        chunk_idx = 0
+        total_time = 0
+        # use context managers to ensure proper cleanup of engine and session
+        with (
+            self.container.use_sa_engine() as sa_engine,
+            sessionmaker(bind=sa_engine)() as session,
+        ):
             results_generator = None
             try:
                 conn = session.connection()
@@ -1162,10 +1165,9 @@ class SqlAlchemyTable(DBTable, abc.ABC):
                     yield chunks_df
                 _LOG.info(f"finished reading {chunk_idx} chunks in {time.time() - t00:.2f}s (strategy=scan)")
             finally:
-                # explicitly close resources to prevent connection leaks
+                # explicitly close the results generator to prevent connection leaks
                 if results_generator is not None:
                     results_generator.close()
-                session.close()
 
     def is_column_indexed(self, column: str) -> bool:
         with self.container.use_sa_engine() as sa_engine:
