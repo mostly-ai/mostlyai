@@ -211,7 +211,7 @@ class BigQueryTable(SqlAlchemyTable):
                     _write_chunk,
                     credentials_info=self.container.sa_create_engine_kwargs["credentials_info"],
                     dataframe=chunk,
-                    table_id=f"{self.container.dbschema}.{self.name}",
+                    table_id=f"{self.container.dbschema}.{self.db_table_name}",
                     if_exists=True,
                 )
 

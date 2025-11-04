@@ -379,9 +379,9 @@ class RedshiftTable(PostgresqlTable):
             available_tables = inspector.get_table_names(schema=schema)
 
             # redshift dialect's has_table is case-insensitive, so match accordingly
-            actual_table_name = self.name
+            actual_table_name = self.db_table_name
             for table in available_tables:
-                if table.lower() == self.name.lower():
+                if table.lower() == self.db_table_name.lower():
                     actual_table_name = table
                     break
 
@@ -407,7 +407,7 @@ class RedshiftTable(PostgresqlTable):
 
                 # find table case-insensitively and drop using sqlalchemy
                 for t in existing_tables:
-                    if t.lower() == self.name.lower():
+                    if t.lower() == self.db_table_name.lower():
                         # use sqlalchemy Table object for safe drop operation
                         table_to_drop = sa.Table(t, sa.MetaData(), schema=schema)
                         table_to_drop.drop(sa_engine, checkfirst=False)
