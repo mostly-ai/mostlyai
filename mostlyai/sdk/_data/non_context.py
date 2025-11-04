@@ -250,9 +250,6 @@ class EntityEncoder(nn.Module):
             nn.ReLU(),
             nn.Dropout(DROPOUT_RATE),
             nn.Linear(self.entity_hidden_dim, self.entity_embedding_dim),
-            nn.ReLU(),
-            nn.Dropout(DROPOUT_RATE),
-            nn.Linear(self.entity_embedding_dim, self.entity_embedding_dim),
         )
 
     def forward(self, inputs: dict[str, torch.Tensor]) -> torch.Tensor:
