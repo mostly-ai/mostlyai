@@ -32,7 +32,7 @@ from collections import defaultdict
 from collections.abc import Iterator
 from copy import copy as shallow_copy
 from copy import deepcopy
-from functools import lru_cache, partial
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -44,6 +44,7 @@ from pathvalidate import sanitize_filename
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
+from mostlyai.engine._common import read_json, write_json
 from mostlyai.engine._encoding_types.tabular.categorical import (
     analyze_categorical,
     analyze_reduce_categorical,
@@ -509,10 +510,7 @@ def analyze_df(
         if col in cat_columns:
             analyze, reduce = analyze_categorical, analyze_reduce_categorical
         elif col in num_columns:
-            analyze, reduce = (
-                partial(analyze_numeric, encoding_type=ModelEncodingType.tabular_numeric_digit),
-                partial(analyze_reduce_numeric, encoding_type=ModelEncodingType.tabular_numeric_digit),
-            )
+            analyze, reduce = analyze_numeric, analyze_reduce_numeric
         elif col in dt_columns:
             analyze, reduce = analyze_datetime, analyze_reduce_datetime
         else:
@@ -522,7 +520,7 @@ def analyze_df(
         stats["columns"][col] = col_stats
 
     stats_path = stats_dir / "stats.json"
-    stats_path.write_text(json.dumps(stats, indent=4))
+    write_json(stats, stats_path)
 
 
 def encode_df(
@@ -530,7 +528,7 @@ def encode_df(
 ) -> pd.DataFrame:
     """Encode dataframe using pre-computed statistics."""
     stats_path = stats_dir / "stats.json"
-    stats = json.loads(stats_path.read_text())
+    stats = read_json(stats_path)
     primary_key = stats["primary_key"]
     parent_key = stats["parent_key"]
     cat_columns = stats["cat_columns"]
