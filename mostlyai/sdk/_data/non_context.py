@@ -84,7 +84,7 @@ MAX_TGT_PER_PARENT = 10
 TEMPERATURE = 1.0
 TOP_K = None
 TOP_P = 0.95
-QUOTA_PENALTY_FACTOR = 0.1
+QUOTA_PENALTY_FACTOR = 0.05
 
 # Supported Encoding Types
 FK_MODEL_ENCODING_TYPES = [
@@ -867,6 +867,30 @@ def store_fk_model(*, model: ParentChildMatcher, fk_model_workspace_dir: Path) -
     model_config_path.write_text(json.dumps(model_config, indent=4))
     model_state_path = fk_model_workspace_dir / "model_weights.pt"
     torch.save(model.state_dict(), model_state_path)
+
+
+def compute_fk_cardinality_stats(
+    tgt_data: pd.DataFrame,
+    tgt_parent_key: str,
+) -> dict:
+    """
+    Compute cardinality statistics for a foreign key relationship.
+
+    Returns statistics only for parents that have children (excludes parents with 0 children).
+
+    Args:
+        tgt_data: Target/child table data
+        tgt_parent_key: Foreign key column in target table
+
+    Returns:
+        Dictionary with mean and std of children per parent
+    """
+    children_counts = tgt_data[tgt_parent_key].value_counts()
+
+    return {
+        "mean_children_per_parent": float(children_counts.mean()),
+        "std_children_per_parent": float(children_counts.std()),
+    }
 
 
 def store_cardinality_stats(*, fk_model_workspace_dir: Path, cardinality_stats: dict) -> None:

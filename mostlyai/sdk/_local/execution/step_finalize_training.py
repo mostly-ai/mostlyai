@@ -24,6 +24,7 @@ from mostlyai.sdk._data.base import NonContextRelation, Schema
 from mostlyai.sdk._data.non_context import (
     ParentChildMatcher,
     analyze_df,
+    compute_fk_cardinality_stats,
     encode_df,
     get_cardinalities,
     prepare_training_pairs,
@@ -38,22 +39,6 @@ from mostlyai.sdk._local.execution.step_pull_training_data import create_trainin
 from mostlyai.sdk.domain import Connector, Generator
 
 _LOG = logging.getLogger(__name__)
-
-
-def compute_fk_cardinality_stats(
-    parent_data: pd.DataFrame,
-    tgt_data: pd.DataFrame,
-    parent_primary_key: str,
-    tgt_parent_key: str,
-) -> dict:
-    children_counts = tgt_data[tgt_parent_key].value_counts()
-    all_parents = parent_data[parent_primary_key]
-    children_per_parent = all_parents.map(children_counts).fillna(0)
-
-    return {
-        "mean_children_per_parent": float(children_per_parent.mean()),
-        "std_children_per_parent": float(children_per_parent.std()),
-    }
 
 
 def execute_train_fk_models_for_single_table(
@@ -112,9 +97,7 @@ def execute_train_fk_model_for_single_non_context_relation(
         return
 
     cardinality_stats = compute_fk_cardinality_stats(
-        parent_data=parent_data,
         tgt_data=tgt_data,
-        parent_primary_key=parent_primary_key,
         tgt_parent_key=tgt_parent_key,
     )
 
