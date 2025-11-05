@@ -309,10 +309,8 @@ class ParentCardinalityModel(nn.Module):
     """
     Neural network model for predicting parent cardinality (number of children per parent).
 
-    Uses Negative Binomial distribution to model count data, which handles overdispersion
-    (when variance > mean) better than Poisson. The model predicts two parameters:
-    - mu: mean number of children
-    - alpha: dispersion parameter (higher = more variance)
+    Directly regresses to the expected count (point estimate) instead of predicting
+    distribution parameters.
     """
 
     def __init__(
@@ -340,28 +338,26 @@ class ParentCardinalityModel(nn.Module):
             nn.Linear(self.entity_embedding_dim, self.cardinality_hidden_dim),
             nn.ReLU(),
             nn.Dropout(DROPOUT_RATE),
-            nn.Linear(self.cardinality_hidden_dim, 2),  # mu and log(alpha)
+            nn.Linear(self.cardinality_hidden_dim, 1),  # single output: predicted count
         )
 
-    def forward(self, parent_inputs: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, parent_inputs: dict[str, torch.Tensor]) -> torch.Tensor:
         """
-        Forward pass to predict Negative Binomial parameters.
+        Forward pass to predict cardinality count.
 
         Args:
             parent_inputs: Dictionary of encoded parent features
 
         Returns:
-            mu: Mean number of children (> 0)
-            alpha: Dispersion parameter (> 0)
+            count: Predicted number of children (> 0)
         """
         parent_encoded = self.parent_encoder(parent_inputs)
-        cardinality_params = self.cardinality_head(parent_encoded)
+        cardinality_output = self.cardinality_head(parent_encoded)
 
-        # Split into mu and alpha, ensure both are positive
-        mu = F.softplus(cardinality_params[:, 0]) + NUMERICAL_STABILITY_EPSILON
-        alpha = F.softplus(cardinality_params[:, 1]) + NUMERICAL_STABILITY_EPSILON
+        # Ensure positive counts using Softplus (smooth, differentiable, can approximate 0)
+        count = F.softplus(cardinality_output.squeeze(-1))
 
-        return mu, alpha
+        return count
 
 
 # =============================================================================
@@ -905,51 +901,24 @@ def train_fk_model(
 # =============================================================================
 
 
-def negative_binomial_nll(mu: torch.Tensor, alpha: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+def cardinality_mse_loss(predicted: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
-    Negative Binomial Negative Log-Likelihood loss.
-
-    Parameterization:
-    - mu: mean (> 0)
-    - alpha: dispersion parameter (> 0)
-    - variance = mu + alpha * mu^2
-
-    When alpha → 0, this approaches Poisson(mu).
-    Higher alpha = more overdispersion.
+    Mean Squared Error loss for cardinality prediction.
 
     Args:
-        mu: Predicted mean counts (batch_size,)
-        alpha: Predicted dispersion (batch_size,)
+        predicted: Predicted counts (batch_size,)
         target: Actual counts (batch_size,)
 
     Returns:
-        Negative log-likelihood loss (scalar)
+        Mean squared error loss (scalar)
     """
-    # Ensure numerical stability
-    mu = mu.clamp(min=NUMERICAL_STABILITY_EPSILON)
-    alpha = alpha.clamp(min=NUMERICAL_STABILITY_EPSILON)
+    # Ensure target is non-negative
     target = target.clamp(min=0)
 
-    # NB2 parameterization (commonly used in count regression)
-    # p = 1 / (1 + alpha * mu)
-    # r = 1 / alpha
-    p = 1.0 / (1.0 + alpha * mu)
-    r = 1.0 / alpha
+    # Compute MSE
+    loss = F.mse_loss(predicted, target)
 
-    # Log-likelihood components
-    # log P(y | mu, alpha) = log Gamma(y + r) - log Gamma(r) - log Gamma(y + 1)
-    #                        + r * log(p) + y * log(1 - p)
-
-    log_likelihood = (
-        torch.lgamma(target + r)
-        - torch.lgamma(r)
-        - torch.lgamma(target + 1.0)
-        + r * torch.log(p + NUMERICAL_STABILITY_EPSILON)
-        + target * torch.log(1.0 - p + NUMERICAL_STABILITY_EPSILON)
-    )
-
-    # Return mean negative log-likelihood
-    return -log_likelihood.mean()
+    return loss
 
 
 def prepare_cardinality_training_data(
@@ -1033,8 +1002,8 @@ def train_cardinality_model(
         for batch_parent, batch_y in train_loader:
             batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
             optimizer.zero_grad()
-            mu, alpha = model(batch_parent)
-            loss = negative_binomial_nll(mu, alpha, batch_y)
+            predicted = model(batch_parent)
+            loss = cardinality_mse_loss(predicted, batch_y)
             loss.backward()
             optimizer.step()
             train_loss += loss.item() * batch_y.size(0)
@@ -1046,8 +1015,8 @@ def train_cardinality_model(
         with torch.no_grad():
             for batch_parent, batch_y in val_loader:
                 batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
-                mu, alpha = model(batch_parent)
-                loss = negative_binomial_nll(mu, alpha, batch_y)
+                predicted = model(batch_parent)
+                loss = cardinality_mse_loss(predicted, batch_y)
                 val_loss += loss.item() * batch_y.size(0)
         val_loss /= val_size
         val_losses.append(val_loss)
@@ -1289,6 +1258,15 @@ def sample_best_parents(
         # Dynamic quota enforcement - iterative sampling with capacity updates
         available_mask = np.array([remaining_capacity.get(pid, 0) > 0 for pid in parent_ids], dtype=bool)
         assigned_parent_ids = []
+        total_initial_capacity = sum(remaining_capacity.get(pid, 0) for pid in parent_ids)
+
+        _LOG.info(
+            f"FK matching with capacity enforcement | "
+            f"n_children: {n_tgt} | "
+            f"n_parents: {len(parent_ids)} | "
+            f"total_capacity: {total_initial_capacity} | "
+            f"capacity_deficit: {n_tgt - total_initial_capacity}"
+        )
 
         for child_idx in range(n_tgt):
             # Get row probabilities for this child
@@ -1400,52 +1378,24 @@ def predict_cardinalities(
     *,
     model: ParentCardinalityModel,
     parent_encoded: pd.DataFrame,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """
-    Predict Negative Binomial parameters for parent cardinalities.
+    Predict cardinality counts for parents.
 
     Args:
         model: Trained ParentCardinalityModel
         parent_encoded: Encoded parent features (without PK column)
 
     Returns:
-        mu: Predicted mean counts (n_parents,)
-        alpha: Predicted dispersion parameters (n_parents,)
+        Predicted counts (n_parents,)
     """
     parent_inputs = {col: torch.tensor(parent_encoded[col].values.astype(np.int64)) for col in parent_encoded.columns}
 
     model.eval()
     with torch.no_grad():
-        mu, alpha = model(parent_inputs)
+        counts = model(parent_inputs)
 
-    return mu.cpu().numpy(), alpha.cpu().numpy()
-
-
-def sample_from_negative_binomial(mu: np.ndarray, alpha: np.ndarray) -> np.ndarray:
-    """
-    Sample counts from Negative Binomial distribution.
-
-    Uses NB2 parameterization:
-    - mu: mean
-    - alpha: dispersion parameter
-    - variance = mu + alpha * mu^2
-
-    Args:
-        mu: Mean parameters (n_parents,)
-        alpha: Dispersion parameters (n_parents,)
-
-    Returns:
-        Sampled counts (n_parents,)
-    """
-    # Convert to standard numpy NB parameterization (n, p)
-    # where n = 1/alpha, p = 1/(1 + alpha*mu)
-    n = 1.0 / (alpha + NUMERICAL_STABILITY_EPSILON)
-    p = 1.0 / (1.0 + alpha * mu + NUMERICAL_STABILITY_EPSILON)
-
-    # Sample from negative binomial
-    counts = np.random.negative_binomial(n, p)
-
-    return counts.astype(int)
+    return counts.cpu().numpy()
 
 
 def initialize_remaining_capacity_with_cardinality_model(
@@ -1453,6 +1403,7 @@ def initialize_remaining_capacity_with_cardinality_model(
     fk_model_workspace_dir: Path,
     parent_data: pd.DataFrame,
     parent_pk: str,
+    target_total_children: int | None = None,
 ) -> dict:
     """
     Initialize remaining_capacity dict using Cardinality Model predictions.
@@ -1461,6 +1412,8 @@ def initialize_remaining_capacity_with_cardinality_model(
         fk_model_workspace_dir: Directory containing trained models
         parent_data: Parent table data (with PK)
         parent_pk: Primary key column name
+        target_total_children: Optional target total number of children to assign.
+                              If provided, predictions are scaled proportionally to match this total.
 
     Returns:
         Dictionary {parent_id: predicted_capacity}
@@ -1478,21 +1431,47 @@ def initialize_remaining_capacity_with_cardinality_model(
         include_primary_key=False,
     )
 
-    # Predict cardinalities
-    mu, alpha = predict_cardinalities(model=cardinality_model, parent_encoded=parent_encoded)
+    # Predict cardinalities directly (no sampling needed)
+    predicted_counts = predict_cardinalities(model=cardinality_model, parent_encoded=parent_encoded)
 
-    # Sample target counts
-    predicted_counts = sample_from_negative_binomial(mu, alpha)
+    # Clamp to non-negative
+    predicted_counts = np.maximum(0, predicted_counts)  # Ensure non-negative
+
+    # Scale predictions if target total is provided
+    if target_total_children is not None:
+        current_total = predicted_counts.sum()
+        if current_total > 0:
+            scale_factor = target_total_children / current_total
+            predicted_counts = predicted_counts * scale_factor
+            _LOG.info(
+                f"Scaling cardinality predictions | "
+                f"original_total: {current_total:.0f} | "
+                f"target_total: {target_total_children} | "
+                f"scale_factor: {scale_factor:.4f}"
+            )
+        else:
+            # If all predictions are zero, distribute uniformly
+            predicted_counts = np.full(len(predicted_counts), target_total_children / len(predicted_counts))
+            _LOG.warning(
+                f"All cardinality predictions were zero, distributing {target_total_children} children uniformly"
+            )
+
+    # Round to integers
+    predicted_counts = np.round(predicted_counts).astype(int)
 
     # Create capacity dict
     parent_ids = parent_data[parent_pk].tolist()
     remaining_capacity = {pid: int(count) for pid, count in zip(parent_ids, predicted_counts)}
 
+    total_capacity = sum(remaining_capacity.values())
     _LOG.info(
         f"initialize_remaining_capacity_with_cardinality_model | "
         f"n_parents: {len(parent_ids)} | "
         f"mean_predicted: {predicted_counts.mean():.2f} | "
         f"std_predicted: {predicted_counts.std():.2f} | "
+        f"min_predicted: {predicted_counts.min():.2f} | "
+        f"max_predicted: {predicted_counts.max():.2f} | "
+        f"total_capacity: {total_capacity} | "
         f"time: {time.time() - t0:.2f}s"
     )
 

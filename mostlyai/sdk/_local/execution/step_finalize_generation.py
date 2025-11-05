@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import math
 import uuid
 import zipfile
 from pathlib import Path
@@ -282,28 +281,22 @@ def calculate_optimal_child_batch_size_for_relation(
     parent_batch_size: int,
     relation_name: str,
 ) -> int:
-    """Calculate optimal child batch size for a specific FK relationship."""
-    num_parent_batches = max(1, math.ceil(parent_key_count / parent_batch_size))
+    """
+    Calculate optimal child batch size for a specific FK relationship.
 
-    # ideal batch size for full parent utilization
-    ideal_batch_size = children_row_count // num_parent_batches
-
-    # apply minimum batch size constraint
-    optimal_batch_size = max(ideal_batch_size, FK_MIN_CHILDREN_BATCH_SIZE)
-
-    # log utilization metrics
-    num_child_batches = children_row_count // optimal_batch_size
-    parent_utilization = min(num_child_batches / num_parent_batches * 100, 100)
+    Note: parent_batch_size is deprecated as we now load all parents for each batch
+    to ensure correct capacity tracking. This function now returns a simple child
+    batch size based on the minimum constraint.
+    """
+    # Since we load all parents for each child batch, we just use the minimum batch size
+    # to control memory usage while processing children
+    optimal_batch_size = FK_MIN_CHILDREN_BATCH_SIZE
 
     _LOG.info(
-        f"[{relation_name}] Batch size optimization | "
+        f"[{relation_name}] Batch size configuration | "
         f"total_children: {children_row_count} | "
         f"parent_size: {parent_key_count} | "
-        f"parent_batch_size: {parent_batch_size} | "
-        f"parent_batches: {num_parent_batches} | "
-        f"ideal_child_batch: {ideal_batch_size} | "
-        f"optimal_child_batch: {optimal_batch_size} | "
-        f"parent_utilization: {parent_utilization:.1f}%"
+        f"child_batch_size: {optimal_batch_size}"
     )
 
     return optimal_batch_size
@@ -370,10 +363,14 @@ def process_table_with_fk_models(
                 where={pk_col: parent_keys_df[pk_col].tolist()},
                 do_coerce_dtypes=True,
             )
+            # Pass target total children to ensure capacity matches the number of children to assign
+            # This prevents capacity deficit which would force quota violations
+            target_total = children_table.row_count
             capacity_dict = initialize_remaining_capacity_with_cardinality_model(
                 fk_model_workspace_dir=fk_model_dir,
                 parent_data=parent_data,
                 parent_pk=pk_col,
+                target_total_children=target_total,
             )
             remaining_capacity[relation] = capacity_dict
         else:
@@ -386,7 +383,24 @@ def process_table_with_fk_models(
             parent_keys = parent_keys_df[pk_col].tolist()
             n_parents = len(parent_keys)
             targets = np.random.normal(loc=mean_children, scale=std_children, size=n_parents)
-            targets = np.round(np.maximum(targets, 0)).astype(int)
+            targets = np.maximum(targets, 0)  # Ensure non-negative
+
+            # Scale to match target total
+            target_total = children_table.row_count
+            current_total = targets.sum()
+            if current_total > 0:
+                scale_factor = target_total / current_total
+                targets = targets * scale_factor
+                _LOG.info(
+                    f"Scaling Gaussian predictions | "
+                    f"original_total: {current_total:.0f} | "
+                    f"target_total: {target_total} | "
+                    f"scale_factor: {scale_factor:.4f}"
+                )
+            else:
+                targets = np.full(n_parents, target_total / n_parents)
+
+            targets = np.round(targets).astype(int)
 
             remaining_capacity[relation] = {pk: int(target) for pk, target in zip(parent_keys, targets)}
 
@@ -396,11 +410,14 @@ def process_table_with_fk_models(
         for relation in non_ctx_relations:
             parent_table_name = relation.parent.table
             parent_table = parent_tables[parent_table_name]
-            parent_pk = relation.parent.column
             optimal_batch_size = optimal_batch_sizes[relation]
             relation_name = f"{relation.child.table}.{relation.child.column}->{parent_table_name}"
 
-            _LOG.info(f"  Processing relationship {relation_name} with batch size {optimal_batch_size}")
+            _LOG.info(
+                f"  Processing relationship {relation_name} | "
+                f"child_batch_size: {optimal_batch_size} | "
+                f"loading all {len(parent_keys_df)} parents per batch for accurate capacity tracking"
+            )
 
             parent_keys_df = parent_keys_cache[parent_table_name]
 
@@ -410,12 +427,11 @@ def process_table_with_fk_models(
                 batch_end = min(batch_start + optimal_batch_size, len(chunk_data))
                 batch_data = chunk_data.iloc[batch_start:batch_end].copy()
 
-                sampled_parent_keys = parent_keys_df.sample(
-                    n=parent_batch_size, replace=len(parent_keys_df) < parent_batch_size
-                )[parent_pk].tolist()
-
+                # Load all parents to ensure capacity tracking works correctly across batches
+                # Previously sampled only parent_batch_size parents, which caused capacity
+                # tracking to fail - parents not in the sample kept full capacity and could
+                # accumulate more children than predicted when sampled in later batches
                 parent_data = parent_table.read_data(
-                    where={parent_pk: sampled_parent_keys},
                     do_coerce_dtypes=True,
                 )
 
