@@ -29,6 +29,8 @@ from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.non_context import (
     add_context_parent_data,
     assign_non_context_fks_randomly,
+    cardinality_model_exists,
+    initialize_remaining_capacity_with_cardinality_model,
     load_cardinality_stats,
     match_non_context,
     safe_name,
@@ -355,21 +357,38 @@ def process_table_with_fk_models(
     for relation in non_ctx_relations:
         parent_table_name = relation.parent.table
         pk_col = relation.parent.column
-
         fk_model_dir = fk_models_workspace_dir / safe_name(relation.child.column)
-        cardinality_stats = load_cardinality_stats(fk_model_workspace_dir=fk_model_dir)
-
-        mean_children = cardinality_stats["mean_children_per_parent"]
-        std_children = cardinality_stats["std_children_per_parent"]
 
         parent_keys_df = parent_keys_cache[parent_table_name]
-        parent_keys = parent_keys_df[pk_col].tolist()
+        parent_table = parent_tables[parent_table_name]
 
-        n_parents = len(parent_keys)
-        targets = np.random.normal(loc=mean_children, scale=std_children, size=n_parents)
-        targets = np.round(np.maximum(targets, 0)).astype(int)
+        # Check if Cardinality Model exists
+        if cardinality_model_exists(fk_model_workspace_dir=fk_model_dir):
+            _LOG.info(f"Using Cardinality Model for {relation.child.table}.{relation.child.column}")
+            # Use Cardinality Model to predict capacities
+            parent_data = parent_table.read_data(
+                where={pk_col: parent_keys_df[pk_col].tolist()},
+                do_coerce_dtypes=True,
+            )
+            capacity_dict = initialize_remaining_capacity_with_cardinality_model(
+                fk_model_workspace_dir=fk_model_dir,
+                parent_data=parent_data,
+                parent_pk=pk_col,
+            )
+            remaining_capacity[relation] = capacity_dict
+        else:
+            _LOG.info(f"Using Gaussian fallback for {relation.child.table}.{relation.child.column}")
+            # Fallback to Gaussian model
+            cardinality_stats = load_cardinality_stats(fk_model_workspace_dir=fk_model_dir)
+            mean_children = cardinality_stats["mean_children_per_parent"]
+            std_children = cardinality_stats["std_children_per_parent"]
 
-        remaining_capacity[relation] = {pk: int(target) for pk, target in zip(parent_keys, targets)}
+            parent_keys = parent_keys_df[pk_col].tolist()
+            n_parents = len(parent_keys)
+            targets = np.random.normal(loc=mean_children, scale=std_children, size=n_parents)
+            targets = np.round(np.maximum(targets, 0)).astype(int)
+
+            remaining_capacity[relation] = {pk: int(target) for pk, target in zip(parent_keys, targets)}
 
     for chunk_idx, chunk_data in enumerate(children_table.read_chunks(do_coerce_dtypes=True)):
         _LOG.info(f"Processing chunk {chunk_idx} ({len(chunk_data)} rows)")

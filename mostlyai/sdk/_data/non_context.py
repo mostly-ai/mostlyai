@@ -86,6 +86,13 @@ TOP_K = None
 TOP_P = 0.95
 QUOTA_PENALTY_FACTOR = 0.05
 
+# Cardinality Model Parameters
+CARDINALITY_HIDDEN_DIM = 128
+CARDINALITY_MAX_EPOCHS = 500
+CARDINALITY_PATIENCE = 10
+CARDINALITY_LEARNING_RATE = 0.001
+CARDINALITY_BATCH_SIZE = 64
+
 # Supported Encoding Types
 FK_MODEL_ENCODING_TYPES = [
     ModelEncodingType.tabular_categorical,
@@ -296,6 +303,65 @@ class ParentChildMatcher(nn.Module):
         logits = (logits * PEAKEDNESS_SCALER).unsqueeze(1)
 
         return logits
+
+
+class ParentCardinalityModel(nn.Module):
+    """
+    Neural network model for predicting parent cardinality (number of children per parent).
+
+    Uses Negative Binomial distribution to model count data, which handles overdispersion
+    (when variance > mean) better than Poisson. The model predicts two parameters:
+    - mu: mean number of children
+    - alpha: dispersion parameter (higher = more variance)
+    """
+
+    def __init__(
+        self,
+        parent_cardinalities: dict[str, int],
+        sub_column_embedding_dim: int = SUB_COLUMN_EMBEDDING_DIM,
+        entity_hidden_dim: int = ENTITY_HIDDEN_DIM,
+        entity_embedding_dim: int = ENTITY_EMBEDDING_DIM,
+        cardinality_hidden_dim: int = CARDINALITY_HIDDEN_DIM,
+    ):
+        super().__init__()
+        self.entity_embedding_dim = entity_embedding_dim
+        self.cardinality_hidden_dim = cardinality_hidden_dim
+
+        # Reuse EntityEncoder architecture for parent features
+        self.parent_encoder = EntityEncoder(
+            cardinalities=parent_cardinalities,
+            sub_column_embedding_dim=sub_column_embedding_dim,
+            entity_hidden_dim=entity_hidden_dim,
+            entity_embedding_dim=self.entity_embedding_dim,
+        )
+
+        # Cardinality prediction head
+        self.cardinality_head = nn.Sequential(
+            nn.Linear(self.entity_embedding_dim, self.cardinality_hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT_RATE),
+            nn.Linear(self.cardinality_hidden_dim, 2),  # mu and log(alpha)
+        )
+
+    def forward(self, parent_inputs: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Forward pass to predict Negative Binomial parameters.
+
+        Args:
+            parent_inputs: Dictionary of encoded parent features
+
+        Returns:
+            mu: Mean number of children (> 0)
+            alpha: Dispersion parameter (> 0)
+        """
+        parent_encoded = self.parent_encoder(parent_inputs)
+        cardinality_params = self.cardinality_head(parent_encoded)
+
+        # Split into mu and alpha, ensure both are positive
+        mu = F.softplus(cardinality_params[:, 0]) + NUMERICAL_STABILITY_EPSILON
+        alpha = F.softplus(cardinality_params[:, 1]) + NUMERICAL_STABILITY_EPSILON
+
+        return mu, alpha
 
 
 # =============================================================================
@@ -835,6 +901,184 @@ def train_fk_model(
 
 
 # =============================================================================
+# CARDINALITY MODELS: TRAINING
+# =============================================================================
+
+
+def negative_binomial_nll(mu: torch.Tensor, alpha: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    """
+    Negative Binomial Negative Log-Likelihood loss.
+
+    Parameterization:
+    - mu: mean (> 0)
+    - alpha: dispersion parameter (> 0)
+    - variance = mu + alpha * mu^2
+
+    When alpha → 0, this approaches Poisson(mu).
+    Higher alpha = more overdispersion.
+
+    Args:
+        mu: Predicted mean counts (batch_size,)
+        alpha: Predicted dispersion (batch_size,)
+        target: Actual counts (batch_size,)
+
+    Returns:
+        Negative log-likelihood loss (scalar)
+    """
+    # Ensure numerical stability
+    mu = mu.clamp(min=NUMERICAL_STABILITY_EPSILON)
+    alpha = alpha.clamp(min=NUMERICAL_STABILITY_EPSILON)
+    target = target.clamp(min=0)
+
+    # NB2 parameterization (commonly used in count regression)
+    # p = 1 / (1 + alpha * mu)
+    # r = 1 / alpha
+    p = 1.0 / (1.0 + alpha * mu)
+    r = 1.0 / alpha
+
+    # Log-likelihood components
+    # log P(y | mu, alpha) = log Gamma(y + r) - log Gamma(r) - log Gamma(y + 1)
+    #                        + r * log(p) + y * log(1 - p)
+
+    log_likelihood = (
+        torch.lgamma(target + r)
+        - torch.lgamma(r)
+        - torch.lgamma(target + 1.0)
+        + r * torch.log(p + NUMERICAL_STABILITY_EPSILON)
+        + target * torch.log(1.0 - p + NUMERICAL_STABILITY_EPSILON)
+    )
+
+    # Return mean negative log-likelihood
+    return -log_likelihood.mean()
+
+
+def prepare_cardinality_training_data(
+    parent_encoded_data: pd.DataFrame,
+    tgt_data: pd.DataFrame,
+    parent_primary_key: str,
+    tgt_parent_key: str,
+) -> tuple[pd.DataFrame, pd.Series]:
+    """
+    Prepare training data for cardinality model.
+
+    Args:
+        parent_encoded_data: Encoded parent features
+        tgt_data: Target/child data (unencoded, only need FK column)
+        parent_primary_key: Primary key column in parent data
+        tgt_parent_key: Foreign key column in target data
+
+    Returns:
+        parent_features: Parent features (without PK column)
+        cardinality_counts: Number of children per parent
+    """
+    t0 = time.time()
+
+    # Count children per parent
+    cardinality_counts = tgt_data[tgt_parent_key].value_counts()
+
+    # Merge with parent data to get counts for all parents (fill 0 for parents with no children)
+    parent_keys = parent_encoded_data[parent_primary_key]
+    counts_series = parent_keys.map(cardinality_counts).fillna(0).astype(int)
+
+    # Remove primary key from features
+    parent_features = parent_encoded_data.drop(columns=[parent_primary_key])
+
+    _LOG.info(
+        f"prepare_cardinality_training_data | n_parents: {len(parent_features)} | "
+        f"mean_children: {counts_series.mean():.2f} | std_children: {counts_series.std():.2f} | "
+        f"time: {time.time() - t0:.2f}s"
+    )
+
+    return parent_features, counts_series
+
+
+def train_cardinality_model(
+    *,
+    model: ParentCardinalityModel,
+    parent_pd: pd.DataFrame,
+    cardinality_counts: pd.Series,
+) -> None:
+    """
+    Train the parent cardinality prediction model.
+
+    Args:
+        model: ParentCardinalityModel to train
+        parent_pd: Encoded parent features (columns = encoded feature names)
+        cardinality_counts: Target counts (number of children per parent)
+    """
+    t0 = time.time()
+
+    X_parent = torch.tensor(parent_pd.values, dtype=torch.int64)
+    y_counts = torch.tensor(cardinality_counts.values, dtype=torch.float32)
+    dataset = TensorDataset(X_parent, y_counts)
+
+    val_size = int(VAL_SPLIT * len(dataset))
+    train_size = len(dataset) - val_size
+    train_ds, val_ds = random_split(dataset, [train_size, val_size])
+
+    train_loader = DataLoader(train_ds, batch_size=CARDINALITY_BATCH_SIZE, shuffle=True)
+    val_loader = DataLoader(val_ds, batch_size=CARDINALITY_BATCH_SIZE, shuffle=False)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=CARDINALITY_LEARNING_RATE)
+
+    train_losses, val_losses = [], []
+    best_model_state = None
+    best_val_loss = float("inf")
+    best_epoch = 0
+    epochs_no_improve = 0
+
+    for epoch in range(1, CARDINALITY_MAX_EPOCHS + 1):
+        model.train()
+        train_loss = 0.0
+        for batch_parent, batch_y in train_loader:
+            batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
+            optimizer.zero_grad()
+            mu, alpha = model(batch_parent)
+            loss = negative_binomial_nll(mu, alpha, batch_y)
+            loss.backward()
+            optimizer.step()
+            train_loss += loss.item() * batch_y.size(0)
+        train_loss /= train_size
+        train_losses.append(train_loss)
+
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for batch_parent, batch_y in val_loader:
+                batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
+                mu, alpha = model(batch_parent)
+                loss = negative_binomial_nll(mu, alpha, batch_y)
+                val_loss += loss.item() * batch_y.size(0)
+        val_loss /= val_size
+        val_losses.append(val_loss)
+
+        progress_msg = {
+            "epoch": epoch,
+            "train_loss": round(train_loss, 4),
+            "val_loss": round(val_loss, 4),
+        }
+        _LOG.info(progress_msg)
+
+        if val_loss < best_val_loss - EARLY_STOPPING_DELTA:
+            epochs_no_improve = 0
+            best_val_loss = val_loss
+            best_epoch = epoch
+            best_model_state = deepcopy(model.state_dict())
+        else:
+            epochs_no_improve += 1
+            if epochs_no_improve >= CARDINALITY_PATIENCE:
+                _LOG.info("early stopping: val_loss stopped improving")
+                break
+
+    assert best_model_state is not None
+    model.load_state_dict(best_model_state)
+    _LOG.info(
+        f"train_cardinality_model() | time: {time.time() - t0:.2f}s | "
+        f"best_epoch: {best_epoch} | best_val_loss: {best_val_loss:.4f}"
+    )
+
+
+# =============================================================================
 # ML-BASED FK MODELS: PERSISTENCE
 # =============================================================================
 
@@ -895,6 +1139,52 @@ def store_cardinality_stats(*, fk_model_workspace_dir: Path, cardinality_stats: 
 def load_cardinality_stats(*, fk_model_workspace_dir: Path) -> dict:
     stats_path = fk_model_workspace_dir / "cardinality_stats.json"
     return json.loads(stats_path.read_text())
+
+
+def store_cardinality_model(*, model: ParentCardinalityModel, fk_model_workspace_dir: Path) -> None:
+    """Save Cardinality model to disk."""
+    cardinality_model_dir = fk_model_workspace_dir / "cardinality_model"
+    cardinality_model_dir.mkdir(parents=True, exist_ok=True)
+
+    model_config = {
+        "parent_encoder": {
+            "cardinalities": model.parent_encoder.cardinalities,
+            "sub_column_embedding_dim": model.parent_encoder.sub_column_embedding_dim,
+            "entity_hidden_dim": model.parent_encoder.entity_hidden_dim,
+            "entity_embedding_dim": model.parent_encoder.entity_embedding_dim,
+        },
+        "cardinality_hidden_dim": model.cardinality_hidden_dim,
+    }
+    model_config_path = cardinality_model_dir / "model_config.json"
+    model_config_path.write_text(json.dumps(model_config, indent=4))
+    model_state_path = cardinality_model_dir / "model_weights.pt"
+    torch.save(model.state_dict(), model_state_path)
+
+
+def load_cardinality_model(*, fk_model_workspace_dir: Path) -> ParentCardinalityModel:
+    """Load Cardinality model from disk."""
+    cardinality_model_dir = fk_model_workspace_dir / "cardinality_model"
+    model_config_path = cardinality_model_dir / "model_config.json"
+    model_config = json.loads(model_config_path.read_text())
+
+    model = ParentCardinalityModel(
+        parent_cardinalities=model_config["parent_encoder"]["cardinalities"],
+        sub_column_embedding_dim=model_config["parent_encoder"]["sub_column_embedding_dim"],
+        entity_hidden_dim=model_config["parent_encoder"]["entity_hidden_dim"],
+        entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
+        cardinality_hidden_dim=model_config["cardinality_hidden_dim"],
+    )
+    model_state_path = cardinality_model_dir / "model_weights.pt"
+    model.load_state_dict(torch.load(model_state_path))
+    return model
+
+
+def cardinality_model_exists(*, fk_model_workspace_dir: Path) -> bool:
+    """Check if a trained Cardinality model exists."""
+    cardinality_model_dir = fk_model_workspace_dir / "cardinality_model"
+    model_config_path = cardinality_model_dir / "model_config.json"
+    model_state_path = cardinality_model_dir / "model_weights.pt"
+    return model_config_path.exists() and model_state_path.exists()
 
 
 def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
@@ -1099,6 +1389,114 @@ def sample_single_parent(
 
     sampled_candidate = rng.choice(len(probs), p=probs)
     return candidate_indices[sampled_candidate].cpu().item()
+
+
+# =============================================================================
+# CARDINALITY MODELS: INFERENCE
+# =============================================================================
+
+
+def predict_cardinalities(
+    *,
+    model: ParentCardinalityModel,
+    parent_encoded: pd.DataFrame,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Predict Negative Binomial parameters for parent cardinalities.
+
+    Args:
+        model: Trained ParentCardinalityModel
+        parent_encoded: Encoded parent features (without PK column)
+
+    Returns:
+        mu: Predicted mean counts (n_parents,)
+        alpha: Predicted dispersion parameters (n_parents,)
+    """
+    parent_inputs = {col: torch.tensor(parent_encoded[col].values.astype(np.int64)) for col in parent_encoded.columns}
+
+    model.eval()
+    with torch.no_grad():
+        mu, alpha = model(parent_inputs)
+
+    return mu.cpu().numpy(), alpha.cpu().numpy()
+
+
+def sample_from_negative_binomial(mu: np.ndarray, alpha: np.ndarray) -> np.ndarray:
+    """
+    Sample counts from Negative Binomial distribution.
+
+    Uses NB2 parameterization:
+    - mu: mean
+    - alpha: dispersion parameter
+    - variance = mu + alpha * mu^2
+
+    Args:
+        mu: Mean parameters (n_parents,)
+        alpha: Dispersion parameters (n_parents,)
+
+    Returns:
+        Sampled counts (n_parents,)
+    """
+    # Convert to standard numpy NB parameterization (n, p)
+    # where n = 1/alpha, p = 1/(1 + alpha*mu)
+    n = 1.0 / (alpha + NUMERICAL_STABILITY_EPSILON)
+    p = 1.0 / (1.0 + alpha * mu + NUMERICAL_STABILITY_EPSILON)
+
+    # Sample from negative binomial
+    counts = np.random.negative_binomial(n, p)
+
+    return counts.astype(int)
+
+
+def initialize_remaining_capacity_with_cardinality_model(
+    *,
+    fk_model_workspace_dir: Path,
+    parent_data: pd.DataFrame,
+    parent_pk: str,
+) -> dict:
+    """
+    Initialize remaining_capacity dict using Cardinality Model predictions.
+
+    Args:
+        fk_model_workspace_dir: Directory containing trained models
+        parent_data: Parent table data (with PK)
+        parent_pk: Primary key column name
+
+    Returns:
+        Dictionary {parent_id: predicted_capacity}
+    """
+    t0 = time.time()
+
+    # Load cardinality model
+    cardinality_model = load_cardinality_model(fk_model_workspace_dir=fk_model_workspace_dir)
+
+    # Encode parent data
+    parent_stats_dir = fk_model_workspace_dir / "parent-stats"
+    parent_encoded = encode_df(
+        df=parent_data,
+        stats_dir=parent_stats_dir,
+        include_primary_key=False,
+    )
+
+    # Predict cardinalities
+    mu, alpha = predict_cardinalities(model=cardinality_model, parent_encoded=parent_encoded)
+
+    # Sample target counts
+    predicted_counts = sample_from_negative_binomial(mu, alpha)
+
+    # Create capacity dict
+    parent_ids = parent_data[parent_pk].tolist()
+    remaining_capacity = {pid: int(count) for pid, count in zip(parent_ids, predicted_counts)}
+
+    _LOG.info(
+        f"initialize_remaining_capacity_with_cardinality_model | "
+        f"n_parents: {len(parent_ids)} | "
+        f"mean_predicted: {predicted_counts.mean():.2f} | "
+        f"std_predicted: {predicted_counts.std():.2f} | "
+        f"time: {time.time() - t0:.2f}s"
+    )
+
+    return remaining_capacity
 
 
 def match_non_context(
