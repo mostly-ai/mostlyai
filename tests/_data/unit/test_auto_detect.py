@@ -85,6 +85,21 @@ class TestAutoDetectEncodingType:
         series = pd.Series(values)
         assert auto_detect_encoding_type(series) == ModelEncodingType.tabular_categorical
 
+    @pytest.mark.parametrize(
+        "values",
+        [
+            [None] * 100,  # all null values
+            [""] * 100,  # all empty strings
+            ["   "] * 100,  # all whitespace-only strings
+            [None, "", "   "] * 33,  # mix of null, empty, and whitespace
+            [None, "", "   ", "  \t  ", "  \n  "] * 20,  # mix with different whitespace
+        ],
+    )
+    def test_all_null_or_empty(self, values):
+        series = pd.Series(values)
+        # When all values are null or empty, default to tabular_categorical
+        assert auto_detect_encoding_type(series) == ModelEncodingType.tabular_categorical
+
 
 @pytest.fixture
 def data_table(tmp_path):

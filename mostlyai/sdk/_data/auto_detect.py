@@ -84,6 +84,10 @@ def auto_detect_encoding_type(x: pd.Series):
     x = x.astype(str)
     x = x[x.str.strip() != ""]  # filter out empty and whitespace-only strings
 
+    # if all values are null or empty, default to categorical
+    if len(x) == 0:
+        return ModelEncodingType.tabular_categorical
+
     # if all non-null values can be converted to datetime -> datetime encoding
     if safe_convert_datetime(x).notna().all():
         return ModelEncodingType.tabular_datetime
