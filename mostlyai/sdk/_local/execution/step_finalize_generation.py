@@ -30,6 +30,7 @@ from mostlyai.sdk._data.non_context import (
     assign_non_context_fks_randomly,
     cardinality_model_exists,
     initialize_remaining_capacity_with_cardinality_model,
+    initialize_remaining_capacity_with_engine,
     load_cardinality_stats,
     match_non_context,
     safe_name,
@@ -355,10 +356,38 @@ def process_table_with_fk_models(
         parent_keys_df = parent_keys_cache[parent_table_name]
         parent_table = parent_tables[parent_table_name]
 
-        # Check if Cardinality Model exists
-        if cardinality_model_exists(fk_model_workspace_dir=fk_model_dir):
-            _LOG.info(f"Using Cardinality Model for {relation.child.table}.{relation.child.column}")
-            # Use Cardinality Model to predict capacities
+        # Check if Engine-based Cardinality Model exists (preferred)
+        cardinality_engine_dir = fk_model_dir / "cardinality_engine"
+        if cardinality_engine_dir.exists() and (cardinality_engine_dir / "ModelStore").exists():
+            _LOG.info(f"Using Engine-based Cardinality Model for {relation.child.table}.{relation.child.column}")
+            try:
+                # Use Engine-based Cardinality Model to predict capacities
+                parent_data = parent_table.read_data(
+                    where={pk_col: parent_keys_df[pk_col].tolist()},
+                    do_coerce_dtypes=True,
+                )
+                target_total = children_table.row_count
+                capacity_dict = initialize_remaining_capacity_with_engine(
+                    fk_model_workspace_dir=fk_model_dir,
+                    parent_data=parent_data,
+                    parent_pk=pk_col,
+                    target_total_children=target_total,
+                )
+                remaining_capacity[relation] = capacity_dict
+            except Exception as e:
+                _LOG.error(f"Failed to use engine-based cardinality model: {e}")
+                _LOG.warning("Falling back to legacy cardinality model")
+                # Fall through to legacy model check below
+                cardinality_engine_dir = None  # Force fallback
+
+        # Check if legacy neural network Cardinality Model exists
+        if (cardinality_engine_dir is None or not cardinality_engine_dir.exists()) and cardinality_model_exists(
+            fk_model_workspace_dir=fk_model_dir
+        ):
+            _LOG.info(
+                f"Using legacy neural network Cardinality Model for {relation.child.table}.{relation.child.column}"
+            )
+            # Use legacy Cardinality Model to predict capacities
             parent_data = parent_table.read_data(
                 where={pk_col: parent_keys_df[pk_col].tolist()},
                 do_coerce_dtypes=True,
@@ -373,9 +402,11 @@ def process_table_with_fk_models(
                 target_total_children=target_total,
             )
             remaining_capacity[relation] = capacity_dict
-        else:
+        elif cardinality_engine_dir is None or not (
+            cardinality_engine_dir.exists() and (cardinality_engine_dir / "ModelStore").exists()
+        ):
             _LOG.info(f"Using Gaussian fallback for {relation.child.table}.{relation.child.column}")
-            # Fallback to Gaussian model
+            # Fallback to Gaussian model when no trained model exists
             cardinality_stats = load_cardinality_stats(fk_model_workspace_dir=fk_model_dir)
             mean_children = cardinality_stats["mean_children_per_parent"]
             std_children = cardinality_stats["std_children_per_parent"]

@@ -708,6 +708,55 @@ def pull_fk_model_training_data(
     return parent_data, tgt_data
 
 
+def prepare_cardinality_training_data_for_engine(
+    *,
+    parent_data: pd.DataFrame,
+    tgt_data: pd.DataFrame,
+    parent_primary_key: str,
+    tgt_parent_key: str,
+) -> pd.DataFrame:
+    """
+    Prepare parent data enriched with children count column for engine training.
+
+    This function adds a special '__children_count' column to the parent data that
+    represents how many children each parent has. This enriched dataset is then used
+    to train the mostlyai-engine model, which can later predict children counts for
+    new synthetic parents.
+
+    Args:
+        parent_data: Parent table data (unencoded, raw features)
+        tgt_data: Target/child table data (unencoded)
+        parent_primary_key: Primary key column in parent data
+        tgt_parent_key: Foreign key column in target data pointing to parent
+
+    Returns:
+        parent_data_with_counts: Parent data with added '__children_count' column
+    """
+    t0 = time.time()
+
+    # Count children per parent
+    children_counts = tgt_data[tgt_parent_key].value_counts()
+
+    # Add counts to parent data (0 for parents with no children)
+    parent_data_with_counts = parent_data.copy()
+    parent_data_with_counts["__children_count"] = (
+        parent_data[parent_primary_key].map(children_counts).fillna(0).astype(int)
+    )
+
+    mean_children = children_counts.mean() if len(children_counts) > 0 else 0
+    std_children = children_counts.std() if len(children_counts) > 0 else 0
+
+    _LOG.info(
+        f"prepare_cardinality_training_data_for_engine | "
+        f"n_parents: {len(parent_data_with_counts)} | "
+        f"mean_children: {mean_children:.2f} | "
+        f"std_children: {std_children:.2f} | "
+        f"time: {time.time() - t0:.2f}s"
+    )
+
+    return parent_data_with_counts
+
+
 def prepare_training_pairs(
     parent_encoded_data: pd.DataFrame,
     tgt_encoded_data: pd.DataFrame,
@@ -1500,6 +1549,111 @@ def initialize_remaining_capacity_with_cardinality_model(
     total_capacity = sum(remaining_capacity.values())
     _LOG.info(
         f"initialize_remaining_capacity_with_cardinality_model | "
+        f"n_parents: {len(parent_ids)} | "
+        f"mean_predicted: {predicted_counts.mean():.2f} | "
+        f"std_predicted: {predicted_counts.std():.2f} | "
+        f"min_predicted: {predicted_counts.min():.2f} | "
+        f"max_predicted: {predicted_counts.max():.2f} | "
+        f"total_capacity: {total_capacity} | "
+        f"time: {time.time() - t0:.2f}s"
+    )
+
+    return remaining_capacity
+
+
+def initialize_remaining_capacity_with_engine(
+    *,
+    fk_model_workspace_dir: Path,
+    parent_data: pd.DataFrame,
+    parent_pk: str,
+    target_total_children: int | None = None,
+) -> dict:
+    """
+    Initialize remaining_capacity dict using engine-based cardinality predictions.
+
+    This function uses the trained mostlyai-engine model to predict the number of children
+    each parent should have. The synthetic parent data is used as a seed to generate
+    predictions for the '__children_count' column.
+
+    Args:
+        fk_model_workspace_dir: Directory containing trained models
+        parent_data: Synthetic parent table data (with PK and all features)
+        parent_pk: Primary key column name
+        target_total_children: Optional target total number of children to assign.
+                              If provided, predictions are scaled proportionally to match this total.
+
+    Returns:
+        Dictionary {parent_id: predicted_capacity}
+    """
+    import mostlyai.engine as engine
+
+    t0 = time.time()
+    cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_engine"
+
+    if not cardinality_workspace_dir.exists():
+        raise ValueError(
+            f"Engine-based cardinality model not found at {cardinality_workspace_dir}. "
+            "Please train the cardinality model first."
+        )
+
+    # Generate children counts using engine with parent data as seed
+    # The engine will predict the __children_count column based on parent features
+    _LOG.info(f"Generating cardinality predictions using engine for {len(parent_data)} parents")
+
+    # Create a temporary context directory if needed by engine
+    ctx_data_dir = cardinality_workspace_dir / "OriginalData" / "ctx-data"
+    ctx_data_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save seed data (without __children_count column if present)
+    seed_columns = [col for col in parent_data.columns if col != "__children_count"]
+    seed_data = parent_data[seed_columns].copy()
+
+    engine.generate(
+        seed_data=seed_data,
+        workspace_dir=cardinality_workspace_dir,
+        update_progress=lambda **kwargs: None,
+    )
+
+    predicted_data = pd.read_parquet(cardinality_workspace_dir / "SyntheticData")
+
+    # Extract predicted counts
+    if "__children_count" not in predicted_data.columns:
+        raise ValueError(
+            f"Engine did not generate '__children_count' column. Available columns: {list(predicted_data.columns)}"
+        )
+
+    predicted_counts = predicted_data["__children_count"].values
+    predicted_counts = np.maximum(0, predicted_counts)  # Ensure non-negative
+
+    # Scale predictions if target total is provided
+    if target_total_children is not None:
+        current_total = predicted_counts.sum()
+        if current_total > 0:
+            scale_factor = target_total_children / current_total
+            predicted_counts = predicted_counts * scale_factor
+            _LOG.info(
+                f"Scaling cardinality predictions | "
+                f"original_total: {current_total:.0f} | "
+                f"target_total: {target_total_children} | "
+                f"scale_factor: {scale_factor:.4f}"
+            )
+        else:
+            # Uniform distribution fallback
+            predicted_counts = np.full(len(predicted_counts), target_total_children / len(predicted_counts))
+            _LOG.warning(
+                f"All cardinality predictions were zero, distributing {target_total_children} children uniformly"
+            )
+
+    # Round to integers
+    predicted_counts = np.round(predicted_counts).astype(int)
+
+    # Create capacity dict
+    parent_ids = parent_data[parent_pk].tolist()
+    remaining_capacity = {pid: int(count) for pid, count in zip(parent_ids, predicted_counts)}
+
+    total_capacity = sum(remaining_capacity.values())
+    _LOG.info(
+        f"initialize_remaining_capacity_with_engine | "
         f"n_parents: {len(parent_ids)} | "
         f"mean_predicted: {predicted_counts.mean():.2f} | "
         f"std_predicted: {predicted_counts.std():.2f} | "

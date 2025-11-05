@@ -27,6 +27,7 @@ from mostlyai.sdk._data.non_context import (
     encode_df,
     get_cardinalities,
     prepare_cardinality_training_data,
+    prepare_cardinality_training_data_for_engine,
     prepare_training_pairs,
     pull_fk_model_training_data,
     safe_name,
@@ -166,27 +167,81 @@ def execute_train_fk_model_for_single_non_context_relation(
         cardinality_stats=cardinality_stats,
     )
 
-    # Train Cardinality Model
-    _LOG.info(f"Training Cardinality Model for {tgt_table_name}.{tgt_parent_key}")
-    cardinality_model = ParentCardinalityModel(parent_cardinalities=parent_cardinalities)
+    # Train Cardinality Model using engine
+    _LOG.info(f"Training Cardinality Model with engine for {tgt_table_name}.{tgt_parent_key}")
 
-    parent_features_pd, cardinality_counts_pd = prepare_cardinality_training_data(
-        parent_encoded_data=parent_encoded_data,
+    # Prepare parent data with children count column
+    parent_data_with_counts = prepare_cardinality_training_data_for_engine(
+        parent_data=parent_data,
         tgt_data=tgt_data,
         parent_primary_key=parent_primary_key,
         tgt_parent_key=tgt_parent_key,
     )
 
-    train_cardinality_model(
-        model=cardinality_model,
-        parent_pd=parent_features_pd,
-        cardinality_counts=cardinality_counts_pd,
-    )
+    # Define cardinality workspace
+    cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_engine"
+    cardinality_workspace_dir.mkdir(parents=True, exist_ok=True)
 
-    store_cardinality_model(
-        model=cardinality_model,
-        fk_model_workspace_dir=fk_model_workspace_dir,
-    )
+    # Import engine here to avoid premature loading
+    import mostlyai.engine as engine
+
+    try:
+        # Run engine.split - Split data into train/validation sets
+        _LOG.info("Splitting cardinality training data")
+        engine.split(
+            tgt_data=parent_data_with_counts,
+            workspace_dir=cardinality_workspace_dir,
+            update_progress=lambda **kwargs: None,
+        )
+
+        # Run engine.analyze - Analyze training data statistics
+        _LOG.info("Analyzing cardinality training data")
+        engine.analyze(
+            workspace_dir=cardinality_workspace_dir,
+            update_progress=lambda **kwargs: None,
+        )
+
+        # Run engine.encode - Encode training data
+        _LOG.info("Encoding cardinality training data")
+        engine.encode(
+            workspace_dir=cardinality_workspace_dir,
+            update_progress=lambda **kwargs: None,
+        )
+
+        # Run engine.train - Train model on __children_count column
+        _LOG.info("Training cardinality model with engine")
+        engine.train(
+            model="MOSTLY_AI/Small",
+            workspace_dir=cardinality_workspace_dir,
+            update_progress=lambda **kwargs: None,
+        )
+
+        _LOG.info(f"Successfully trained engine-based cardinality model at {cardinality_workspace_dir}")
+
+    except Exception as e:
+        _LOG.error(f"Failed to train engine-based cardinality model: {e}")
+        _LOG.warning("Falling back to legacy neural network cardinality model")
+
+        # Fallback to old cardinality model training
+        cardinality_model = ParentCardinalityModel(parent_cardinalities=parent_cardinalities)
+
+        parent_features_pd, cardinality_counts_pd = prepare_cardinality_training_data(
+            parent_encoded_data=parent_encoded_data,
+            tgt_data=tgt_data,
+            parent_primary_key=parent_primary_key,
+            tgt_parent_key=tgt_parent_key,
+        )
+
+        train_cardinality_model(
+            model=cardinality_model,
+            parent_pd=parent_features_pd,
+            cardinality_counts=cardinality_counts_pd,
+        )
+
+        store_cardinality_model(
+            model=cardinality_model,
+            fk_model_workspace_dir=fk_model_workspace_dir,
+        )
 
     _LOG.info(
         f"Trained FK model and Cardinality model for relation: {tgt_table_name}.{tgt_parent_key} -> {parent_table_name}.{parent_primary_key} | "
