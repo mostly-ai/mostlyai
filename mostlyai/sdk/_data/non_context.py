@@ -309,8 +309,8 @@ class ParentCardinalityModel(nn.Module):
     """
     Neural network model for predicting parent cardinality (number of children per parent).
 
-    Directly regresses to the expected count (point estimate) instead of predicting
-    distribution parameters.
+    Predicts parameters of a Negative Binomial distribution instead of a point estimate,
+    allowing sampling from the full cardinality distribution.
     """
 
     def __init__(
@@ -333,31 +333,33 @@ class ParentCardinalityModel(nn.Module):
             entity_embedding_dim=self.entity_embedding_dim,
         )
 
-        # Cardinality prediction head
+        # Cardinality prediction head - outputs 2 parameters: mu and alpha
         self.cardinality_head = nn.Sequential(
             nn.Linear(self.entity_embedding_dim, self.cardinality_hidden_dim),
             nn.ReLU(),
             nn.Dropout(DROPOUT_RATE),
-            nn.Linear(self.cardinality_hidden_dim, 1),  # single output: predicted count
+            nn.Linear(self.cardinality_hidden_dim, 2),  # outputs: [mu, alpha]
         )
 
-    def forward(self, parent_inputs: dict[str, torch.Tensor]) -> torch.Tensor:
+    def forward(self, parent_inputs: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         """
-        Forward pass to predict cardinality count.
+        Forward pass to predict Negative Binomial distribution parameters.
 
         Args:
             parent_inputs: Dictionary of encoded parent features
 
         Returns:
-            count: Predicted number of children (> 0)
+            mu: Mean parameter of Negative Binomial (> 0)
+            alpha: Dispersion parameter of Negative Binomial (> 0)
         """
         parent_encoded = self.parent_encoder(parent_inputs)
         cardinality_output = self.cardinality_head(parent_encoded)
 
-        # Ensure positive counts using Softplus (smooth, differentiable, can approximate 0)
-        count = F.softplus(cardinality_output.squeeze(-1))
+        # Apply softplus to ensure positive parameters
+        mu = F.softplus(cardinality_output[:, 0])
+        alpha = F.softplus(cardinality_output[:, 1])
 
-        return count
+        return mu, alpha
 
 
 # =============================================================================
@@ -901,24 +903,40 @@ def train_fk_model(
 # =============================================================================
 
 
-def cardinality_mse_loss(predicted: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+def negative_binomial_loss(mu: torch.Tensor, alpha: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
-    Mean Squared Error loss for cardinality prediction.
+    Negative Binomial negative log-likelihood loss for cardinality prediction.
+
+    The Negative Binomial distribution is parameterized by:
+    - mu: mean (expected count)
+    - alpha: dispersion parameter (higher = more variance)
 
     Args:
-        predicted: Predicted counts (batch_size,)
+        mu: Predicted mean parameter (batch_size,)
+        alpha: Predicted dispersion parameter (batch_size,)
         target: Actual counts (batch_size,)
 
     Returns:
-        Mean squared error loss (scalar)
+        Mean negative log-likelihood loss (scalar)
     """
+    eps = NUMERICAL_STABILITY_EPSILON
+
     # Ensure target is non-negative
     target = target.clamp(min=0)
 
-    # Compute MSE
-    loss = F.mse_loss(predicted, target)
+    # Negative Binomial log-likelihood components
+    # log p(k | mu, alpha) = lgamma(k + alpha) - lgamma(alpha) - lgamma(k + 1)
+    #                       + alpha * log(alpha) - alpha * log(mu + alpha)
+    #                       + k * log(mu) - k * log(mu + alpha)
 
-    return loss
+    t1 = torch.lgamma(target + alpha + eps) - torch.lgamma(alpha + eps) - torch.lgamma(target + 1)
+    t2 = alpha * torch.log(alpha + eps) - alpha * torch.log(mu + alpha + eps)
+    t3 = target * torch.log(mu + eps) - target * torch.log(mu + alpha + eps)
+
+    log_likelihood = t1 + t2 + t3
+
+    # Return negative log-likelihood (minimize)
+    return -log_likelihood.mean()
 
 
 def prepare_cardinality_training_data(
@@ -1002,8 +1020,8 @@ def train_cardinality_model(
         for batch_parent, batch_y in train_loader:
             batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
             optimizer.zero_grad()
-            predicted = model(batch_parent)
-            loss = cardinality_mse_loss(predicted, batch_y)
+            mu, alpha = model(batch_parent)
+            loss = negative_binomial_loss(mu, alpha, batch_y)
             loss.backward()
             optimizer.step()
             train_loss += loss.item() * batch_y.size(0)
@@ -1015,8 +1033,8 @@ def train_cardinality_model(
         with torch.no_grad():
             for batch_parent, batch_y in val_loader:
                 batch_parent = {col: batch_parent[:, i] for i, col in enumerate(parent_pd.columns)}
-                predicted = model(batch_parent)
-                loss = cardinality_mse_loss(predicted, batch_y)
+                mu, alpha = model(batch_parent)
+                loss = negative_binomial_loss(mu, alpha, batch_y)
                 val_loss += loss.item() * batch_y.size(0)
         val_loss /= val_size
         val_losses.append(val_loss)
@@ -1378,13 +1396,16 @@ def predict_cardinalities(
     *,
     model: ParentCardinalityModel,
     parent_encoded: pd.DataFrame,
+    sample: bool = False,
 ) -> np.ndarray:
     """
-    Predict cardinality counts for parents.
+    Predict cardinality counts for parents by sampling from learned distribution.
 
     Args:
         model: Trained ParentCardinalityModel
         parent_encoded: Encoded parent features (without PK column)
+        sample: If True, sample from the Negative Binomial distribution.
+               If False, return the mean (mu) parameter.
 
     Returns:
         Predicted counts (n_parents,)
@@ -1393,7 +1414,20 @@ def predict_cardinalities(
 
     model.eval()
     with torch.no_grad():
-        counts = model(parent_inputs)
+        mu, alpha = model(parent_inputs)
+
+        if sample:
+            # Sample from Negative Binomial distribution
+            # PyTorch parameterization: NegativeBinomial(total_count, probs)
+            # where probs = alpha / (mu + alpha)
+            probs = alpha / (mu + alpha + NUMERICAL_STABILITY_EPSILON)
+            probs = torch.clamp(probs, min=NUMERICAL_STABILITY_EPSILON, max=1.0 - NUMERICAL_STABILITY_EPSILON)
+
+            dist = torch.distributions.NegativeBinomial(total_count=alpha, probs=probs)
+            counts = dist.sample()
+        else:
+            # Return mean of distribution
+            counts = mu
 
     return counts.cpu().numpy()
 
