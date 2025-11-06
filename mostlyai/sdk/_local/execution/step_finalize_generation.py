@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import math
 import uuid
 import zipfile
 from pathlib import Path
@@ -316,22 +317,28 @@ def calculate_optimal_child_batch_size_for_relation(
     parent_batch_size: int,
     relation_name: str,
 ) -> int:
-    """
-    Calculate optimal child batch size for a specific FK relationship.
+    """Calculate optimal child batch size for a specific FK relationship."""
+    num_parent_batches = max(1, math.ceil(parent_key_count / parent_batch_size))
 
-    Note: parent_batch_size is deprecated as we now load all parents for each batch
-    to ensure correct capacity tracking. This function now returns a simple child
-    batch size based on the minimum constraint.
-    """
-    # Since we load all parents for each child batch, we just use the minimum batch size
-    # to control memory usage while processing children
-    optimal_batch_size = FK_MIN_CHILDREN_BATCH_SIZE
+    # ideal batch size for full parent utilization
+    ideal_batch_size = children_row_count // num_parent_batches
+
+    # apply minimum batch size constraint
+    optimal_batch_size = max(ideal_batch_size, FK_MIN_CHILDREN_BATCH_SIZE)
+
+    # log utilization metrics
+    num_child_batches = children_row_count // optimal_batch_size
+    parent_utilization = min(num_child_batches / num_parent_batches * 100, 100)
 
     _LOG.info(
-        f"[{relation_name}] Batch size configuration | "
+        f"[{relation_name}] Batch size optimization | "
         f"total_children: {children_row_count} | "
         f"parent_size: {parent_key_count} | "
-        f"child_batch_size: {optimal_batch_size}"
+        f"parent_batch_size: {parent_batch_size} | "
+        f"parent_batches: {num_parent_batches} | "
+        f"ideal_child_batch: {ideal_batch_size} | "
+        f"optimal_child_batch: {optimal_batch_size} | "
+        f"parent_utilization: {parent_utilization:.1f}%"
     )
 
     return optimal_batch_size
@@ -367,7 +374,7 @@ def process_table_with_fk_models(
             )
 
     # Calculate optimal batch size for each relationship
-    optimal_batch_sizes = {}
+    relation_batch_sizes = {}
     for relation in non_ctx_relations:
         parent_table_name = relation.parent.table
         parent_key_count = len(parent_keys_cache[parent_table_name])
@@ -379,7 +386,7 @@ def process_table_with_fk_models(
             parent_batch_size=parent_batch_size,
             relation_name=relation_name,
         )
-        optimal_batch_sizes[relation] = optimal_batch_size
+        relation_batch_sizes[relation] = optimal_batch_size
 
     # Initialize remaining capacity for all relations
     # At this point, both FK models and cardinality models are guaranteed to exist
@@ -412,14 +419,11 @@ def process_table_with_fk_models(
         for relation in non_ctx_relations:
             parent_table_name = relation.parent.table
             parent_table = parent_tables[parent_table_name]
-            optimal_batch_size = optimal_batch_sizes[relation]
+            parent_pk = relation.parent.column
+            optimal_batch_size = relation_batch_sizes[relation]
             relation_name = f"{relation.child.table}.{relation.child.column}->{parent_table_name}"
 
-            _LOG.info(
-                f"  Processing relationship {relation_name} | "
-                f"child_batch_size: {optimal_batch_size} | "
-                f"loading all {len(parent_keys_df)} parents per batch for accurate capacity tracking"
-            )
+            _LOG.info(f"  Processing relationship {relation_name} with batch size {optimal_batch_size}")
 
             parent_keys_df = parent_keys_cache[parent_table_name]
 
@@ -429,11 +433,13 @@ def process_table_with_fk_models(
                 batch_end = min(batch_start + optimal_batch_size, len(chunk_data))
                 batch_data = chunk_data.iloc[batch_start:batch_end].copy()
 
-                # Load all parents to ensure capacity tracking works correctly across batches
-                # Previously sampled only parent_batch_size parents, which caused capacity
-                # tracking to fail - parents not in the sample kept full capacity and could
-                # accumulate more children than predicted when sampled in later batches
+                sampled_parent_keys = parent_keys_df.sample(
+                    n=parent_batch_size, replace=len(parent_keys_df) < parent_batch_size
+                )[parent_pk].tolist()
+
                 parent_data = parent_table.read_data(
+                    where={parent_pk: sampled_parent_keys},
+                    columns=parent_table.columns,
                     do_coerce_dtypes=True,
                 )
 
