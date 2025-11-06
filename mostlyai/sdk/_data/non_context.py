@@ -1149,16 +1149,7 @@ def initialize_remaining_capacity(
     remaining_capacity = {pid: int(count) for pid, count in zip(parent_ids, predicted_counts)}
 
     total_capacity = sum(remaining_capacity.values())
-    _LOG.info(
-        f"initialize_remaining_capacity_with_engine | "
-        f"n_parents: {len(parent_ids)} | "
-        f"mean_predicted: {predicted_counts.mean():.2f} | "
-        f"std_predicted: {predicted_counts.std():.2f} | "
-        f"min_predicted: {predicted_counts.min():.2f} | "
-        f"max_predicted: {predicted_counts.max():.2f} | "
-        f"total_capacity: {total_capacity} | "
-        f"time: {time.time() - t0:.2f}s"
-    )
+    _LOG.info(f"initialize_remaining_capacity | total_capacity: {total_capacity} | time: {time.time() - t0:.2f}s")
 
     return remaining_capacity
 
