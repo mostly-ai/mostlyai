@@ -1130,7 +1130,6 @@ def initialize_remaining_capacity_with_engine(
     fk_model_workspace_dir: Path,
     parent_data: pd.DataFrame,
     parent_pk: str,
-    target_total_children: int | None = None,
 ) -> dict:
     """
     Initialize remaining_capacity dict using engine-based cardinality predictions.
@@ -1143,8 +1142,6 @@ def initialize_remaining_capacity_with_engine(
         fk_model_workspace_dir: Directory containing trained models
         parent_data: Synthetic parent table data (with PK and all features)
         parent_pk: Primary key column name
-        target_total_children: Optional target total number of children to assign.
-                              If provided, predictions are scaled proportionally to match this total.
 
     Returns:
         Dictionary {parent_id: predicted_capacity}
@@ -1188,25 +1185,6 @@ def initialize_remaining_capacity_with_engine(
 
     predicted_counts = predicted_data["__children_count"].values
     predicted_counts = np.maximum(0, predicted_counts)  # Ensure non-negative
-
-    # Scale predictions if target total is provided
-    if target_total_children is not None:
-        current_total = predicted_counts.sum()
-        if current_total > 0:
-            scale_factor = target_total_children / current_total
-            predicted_counts = predicted_counts * scale_factor
-            _LOG.info(
-                f"Scaling cardinality predictions | "
-                f"original_total: {current_total:.0f} | "
-                f"target_total: {target_total_children} | "
-                f"scale_factor: {scale_factor:.4f}"
-            )
-        else:
-            # Uniform distribution fallback
-            predicted_counts = np.full(len(predicted_counts), target_total_children / len(predicted_counts))
-            _LOG.warning(
-                f"All cardinality predictions were zero, distributing {target_total_children} children uniformly"
-            )
 
     # Round to integers
     predicted_counts = np.round(predicted_counts).astype(int)

@@ -362,12 +362,10 @@ def process_table_with_fk_models(
                     where={pk_col: parent_keys_df[pk_col].tolist()},
                     do_coerce_dtypes=True,
                 )
-                target_total = children_table.row_count
                 capacity_dict = initialize_remaining_capacity_with_engine(
                     fk_model_workspace_dir=fk_model_dir,
                     parent_data=parent_data,
                     parent_pk=pk_col,
-                    target_total_children=target_total,
                 )
                 remaining_capacity[relation] = capacity_dict
             except Exception as e:
