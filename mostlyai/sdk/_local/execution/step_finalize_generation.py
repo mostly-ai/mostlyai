@@ -245,11 +245,49 @@ def setup_output_paths(delivery_dir: Path, target_table_name: str, export_csv: b
     return pqt_path, csv_path
 
 
-def are_fk_models_available(job_workspace_dir: Path, target_table_name: str) -> bool:
-    """Check if FK models are available for the given table."""
+def are_fk_models_available(job_workspace_dir: Path, target_table_name: str, schema: Schema) -> bool:
+    """
+    Check if both FK models and cardinality models are available for the given table.
+    Returns True only if ALL required models exist for ALL non-context relations.
+    Falls back to random assignment if any model is missing.
+    """
     fk_models_dir = job_workspace_dir / "FKModelsStore" / target_table_name
-    has_fk_models = fk_models_dir.exists() and any(fk_models_dir.glob("*/model_weights.pt"))
-    return has_fk_models
+
+    # Check if directory exists
+    if not fk_models_dir.exists():
+        return False
+
+    # Get all non-context relations for this table
+    non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == target_table_name]
+
+    # If no non-context relations, no models needed
+    if not non_ctx_relations:
+        return True
+
+    # Check that each relation has both FK model and cardinality model
+    for relation in non_ctx_relations:
+        fk_model_dir = fk_models_dir / safe_name(relation.child.column)
+
+        # Check FK model exists
+        fk_model_weights = fk_model_dir / "model_weights.pt"
+        if not fk_model_weights.exists():
+            _LOG.info(
+                f"FK model not found for {target_table_name}.{relation.child.column} "
+                f"at {fk_model_weights} - falling back to random assignment"
+            )
+            return False
+
+        # Check cardinality model exists
+        cardinality_engine_dir = fk_model_dir / "cardinality_engine"
+        cardinality_model_store = cardinality_engine_dir / "ModelStore"
+        if not (cardinality_engine_dir.exists() and cardinality_model_store.exists()):
+            _LOG.info(
+                f"Cardinality model not found for {target_table_name}.{relation.child.column} "
+                f"at {cardinality_engine_dir} - falling back to random assignment"
+            )
+            return False
+
+    return True
 
 
 def process_table_with_random_fk_assignment(
@@ -343,6 +381,9 @@ def process_table_with_fk_models(
         )
         optimal_batch_sizes[relation] = optimal_batch_size
 
+    # Initialize remaining capacity for all relations
+    # At this point, both FK models and cardinality models are guaranteed to exist
+    # (checked by are_fk_models_available)
     remaining_capacity = {}
     for relation in non_ctx_relations:
         parent_table_name = relation.parent.table
@@ -352,33 +393,18 @@ def process_table_with_fk_models(
         parent_keys_df = parent_keys_cache[parent_table_name]
         parent_table = parent_tables[parent_table_name]
 
-        # Check if Engine-based Cardinality Model exists
-        cardinality_engine_dir = fk_model_dir / "cardinality_engine"
-        if cardinality_engine_dir.exists() and (cardinality_engine_dir / "ModelStore").exists():
-            _LOG.info(f"Using Engine-based Cardinality Model for {relation.child.table}.{relation.child.column}")
-            try:
-                # Use Engine-based Cardinality Model to predict capacities
-                parent_data = parent_table.read_data(
-                    where={pk_col: parent_keys_df[pk_col].tolist()},
-                    do_coerce_dtypes=True,
-                )
-                capacity_dict = initialize_remaining_capacity_with_engine(
-                    fk_model_workspace_dir=fk_model_dir,
-                    parent_data=parent_data,
-                    parent_pk=pk_col,
-                )
-                remaining_capacity[relation] = capacity_dict
-            except Exception as e:
-                _LOG.error(f"Failed to use engine-based cardinality model: {e}")
-                _LOG.warning(
-                    f"No cardinality model available for {relation.child.table}.{relation.child.column} - "
-                    "FK matching will use ML model without capacity constraints"
-                )
-        else:
-            _LOG.info(
-                f"No cardinality model available for {relation.child.table}.{relation.child.column} - "
-                "FK matching will use ML model without capacity constraints"
-            )
+        _LOG.info(f"Using Engine-based Cardinality Model for {relation.child.table}.{relation.child.column}")
+        # Use Engine-based Cardinality Model to predict capacities
+        parent_data = parent_table.read_data(
+            where={pk_col: parent_keys_df[pk_col].tolist()},
+            do_coerce_dtypes=True,
+        )
+        capacity_dict = initialize_remaining_capacity_with_engine(
+            fk_model_workspace_dir=fk_model_dir,
+            parent_data=parent_data,
+            parent_pk=pk_col,
+        )
+        remaining_capacity[relation] = capacity_dict
 
     for chunk_idx, chunk_data in enumerate(children_table.read_chunks(do_coerce_dtypes=True)):
         _LOG.info(f"Processing chunk {chunk_idx} ({len(chunk_data)} rows)")
@@ -451,17 +477,27 @@ def finalize_table_generation(
     """
 
     pqt_path, csv_path = setup_output_paths(delivery_dir, target_table_name, export_csv)
-    fk_models_available = are_fk_models_available(job_workspace_dir, target_table_name)
+    fk_models_available = are_fk_models_available(job_workspace_dir, target_table_name, generated_data_schema)
 
     if fk_models_available:
         _LOG.info(f"Assigning non context FKs (if exists) through FK models for table {target_table_name}")
-        process_table_with_fk_models(
-            table_name=target_table_name,
-            schema=generated_data_schema,
-            pqt_path=pqt_path,
-            csv_path=csv_path,
-            job_workspace_dir=job_workspace_dir,
-        )
+        try:
+            process_table_with_fk_models(
+                table_name=target_table_name,
+                schema=generated_data_schema,
+                pqt_path=pqt_path,
+                csv_path=csv_path,
+                job_workspace_dir=job_workspace_dir,
+            )
+        except Exception as e:
+            _LOG.error(f"FK model processing failed for table {target_table_name}: {e}")
+            _LOG.warning(f"Falling back to random assignment for table {target_table_name}")
+            process_table_with_random_fk_assignment(
+                table_name=target_table_name,
+                schema=generated_data_schema,
+                pqt_path=pqt_path,
+                csv_path=csv_path,
+            )
     else:
         _LOG.info(f"Assigning non context FKs (if exists) through random assignment for table {target_table_name}")
         process_table_with_random_fk_assignment(

@@ -146,12 +146,8 @@ def execute_train_fk_model_for_single_non_context_relation(
         labels=labels_pd,
     )
 
-    store_fk_model(
-        model=model,
-        fk_model_workspace_dir=fk_model_workspace_dir,
-    )
-
-    # Train Cardinality Model using engine
+    # Train Cardinality Model using engine BEFORE saving FK model
+    # This ensures we only save FK models if cardinality training also succeeds
     _LOG.info(f"Training Cardinality Model with engine for {tgt_table_name}.{tgt_parent_key}")
 
     # Prepare parent data with children count column
@@ -169,43 +165,43 @@ def execute_train_fk_model_for_single_non_context_relation(
     # Import engine here to avoid premature loading
     import mostlyai.engine as engine
 
-    try:
-        # Run engine.split - Split data into train/validation sets
-        _LOG.info("Splitting cardinality training data")
-        engine.split(
-            tgt_data=parent_data_with_counts,
-            workspace_dir=cardinality_workspace_dir,
-            update_progress=lambda **kwargs: None,
-        )
+    # Run engine.split - Split data into train/validation sets
+    _LOG.info("Splitting cardinality training data")
+    engine.split(
+        tgt_data=parent_data_with_counts,
+        workspace_dir=cardinality_workspace_dir,
+        update_progress=lambda **kwargs: None,
+    )
 
-        # Run engine.analyze - Analyze training data statistics
-        _LOG.info("Analyzing cardinality training data")
-        engine.analyze(
-            workspace_dir=cardinality_workspace_dir,
-            update_progress=lambda **kwargs: None,
-        )
+    # Run engine.analyze - Analyze training data statistics
+    _LOG.info("Analyzing cardinality training data")
+    engine.analyze(
+        workspace_dir=cardinality_workspace_dir,
+        update_progress=lambda **kwargs: None,
+    )
 
-        # Run engine.encode - Encode training data
-        _LOG.info("Encoding cardinality training data")
-        engine.encode(
-            workspace_dir=cardinality_workspace_dir,
-            update_progress=lambda **kwargs: None,
-        )
+    # Run engine.encode - Encode training data
+    _LOG.info("Encoding cardinality training data")
+    engine.encode(
+        workspace_dir=cardinality_workspace_dir,
+        update_progress=lambda **kwargs: None,
+    )
 
-        # Run engine.train - Train model on __children_count column
-        _LOG.info("Training cardinality model with engine")
-        engine.train(
-            model="MOSTLY_AI/Small",
-            workspace_dir=cardinality_workspace_dir,
-            update_progress=lambda **kwargs: None,
-        )
+    # Run engine.train - Train model on __children_count column
+    _LOG.info("Training cardinality model with engine")
+    engine.train(
+        model="MOSTLY_AI/Small",
+        workspace_dir=cardinality_workspace_dir,
+        update_progress=lambda **kwargs: None,
+    )
 
-        _LOG.info(f"Successfully trained engine-based cardinality model at {cardinality_workspace_dir}")
+    _LOG.info(f"Successfully trained engine-based cardinality model at {cardinality_workspace_dir}")
 
-    except Exception as e:
-        _LOG.error(f"Failed to train engine-based cardinality model: {e}")
-        _LOG.error(f"Traceback: {traceback.format_exc()}")
-        raise
+    # Save FK model only after cardinality model training succeeds
+    store_fk_model(
+        model=model,
+        fk_model_workspace_dir=fk_model_workspace_dir,
+    )
 
     _LOG.info(
         f"Trained FK model and Cardinality model for relation: {tgt_table_name}.{tgt_parent_key} -> {parent_table_name}.{parent_primary_key} | "
