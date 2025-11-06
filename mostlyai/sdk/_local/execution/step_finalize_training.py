@@ -20,21 +20,17 @@ from pathlib import Path
 
 from mostlyai.sdk._data.base import NonContextRelation, Schema
 from mostlyai.sdk._data.non_context import (
-    ParentCardinalityModel,
     ParentChildMatcher,
     analyze_df,
     compute_fk_cardinality_stats,
     encode_df,
     get_cardinalities,
-    prepare_cardinality_training_data,
     prepare_cardinality_training_data_for_engine,
     prepare_training_pairs,
     pull_fk_model_training_data,
     safe_name,
-    store_cardinality_model,
     store_cardinality_stats,
     store_fk_model,
-    train_cardinality_model,
     train_fk_model,
 )
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
@@ -220,28 +216,8 @@ def execute_train_fk_model_for_single_non_context_relation(
 
     except Exception as e:
         _LOG.error(f"Failed to train engine-based cardinality model: {e}")
-        _LOG.warning("Falling back to legacy neural network cardinality model")
-
-        # Fallback to old cardinality model training
-        cardinality_model = ParentCardinalityModel(parent_cardinalities=parent_cardinalities)
-
-        parent_features_pd, cardinality_counts_pd = prepare_cardinality_training_data(
-            parent_encoded_data=parent_encoded_data,
-            tgt_data=tgt_data,
-            parent_primary_key=parent_primary_key,
-            tgt_parent_key=tgt_parent_key,
-        )
-
-        train_cardinality_model(
-            model=cardinality_model,
-            parent_pd=parent_features_pd,
-            cardinality_counts=cardinality_counts_pd,
-        )
-
-        store_cardinality_model(
-            model=cardinality_model,
-            fk_model_workspace_dir=fk_model_workspace_dir,
-        )
+        _LOG.error(f"Traceback: {traceback.format_exc()}")
+        raise
 
     _LOG.info(
         f"Trained FK model and Cardinality model for relation: {tgt_table_name}.{tgt_parent_key} -> {parent_table_name}.{parent_primary_key} | "

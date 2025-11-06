@@ -28,8 +28,6 @@ from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.non_context import (
     add_context_parent_data,
     assign_non_context_fks_randomly,
-    cardinality_model_exists,
-    initialize_remaining_capacity_with_cardinality_model,
     initialize_remaining_capacity_with_engine,
     load_cardinality_stats,
     match_non_context,
@@ -376,33 +374,12 @@ def process_table_with_fk_models(
                 remaining_capacity[relation] = capacity_dict
             except Exception as e:
                 _LOG.error(f"Failed to use engine-based cardinality model: {e}")
-                _LOG.warning("Falling back to legacy cardinality model")
-                # Fall through to legacy model check below
+                _LOG.warning("Falling back to Gaussian cardinality model")
+                # Fall through to Gaussian fallback below
                 cardinality_engine_dir = None  # Force fallback
 
-        # Check if legacy neural network Cardinality Model exists
-        if (cardinality_engine_dir is None or not cardinality_engine_dir.exists()) and cardinality_model_exists(
-            fk_model_workspace_dir=fk_model_dir
-        ):
-            _LOG.info(
-                f"Using legacy neural network Cardinality Model for {relation.child.table}.{relation.child.column}"
-            )
-            # Use legacy Cardinality Model to predict capacities
-            parent_data = parent_table.read_data(
-                where={pk_col: parent_keys_df[pk_col].tolist()},
-                do_coerce_dtypes=True,
-            )
-            # Pass target total children to ensure capacity matches the number of children to assign
-            # This prevents capacity deficit which would force quota violations
-            target_total = children_table.row_count
-            capacity_dict = initialize_remaining_capacity_with_cardinality_model(
-                fk_model_workspace_dir=fk_model_dir,
-                parent_data=parent_data,
-                parent_pk=pk_col,
-                target_total_children=target_total,
-            )
-            remaining_capacity[relation] = capacity_dict
-        elif cardinality_engine_dir is None or not (
+        # Gaussian fallback when engine model doesn't exist or fails
+        if cardinality_engine_dir is None or not (
             cardinality_engine_dir.exists() and (cardinality_engine_dir / "ModelStore").exists()
         ):
             _LOG.info(f"Using Gaussian fallback for {relation.child.table}.{relation.child.column}")
