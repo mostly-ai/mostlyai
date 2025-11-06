@@ -1100,7 +1100,7 @@ def sample_single_parent(
     return candidate_indices[sampled_candidate].cpu().item()
 
 
-def initialize_remaining_capacity_with_engine(
+def initialize_remaining_capacity(
     *,
     fk_model_workspace_dir: Path,
     parent_data: pd.DataFrame,

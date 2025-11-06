@@ -27,7 +27,7 @@ from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.non_context import (
     add_context_parent_data,
     assign_non_context_fks_randomly,
-    initialize_remaining_capacity_with_engine,
+    initialize_remaining_capacity,
     match_non_context,
     safe_name,
 )
@@ -399,7 +399,7 @@ def process_table_with_fk_models(
             where={pk_col: parent_keys_df[pk_col].tolist()},
             do_coerce_dtypes=True,
         )
-        capacity_dict = initialize_remaining_capacity_with_engine(
+        capacity_dict = initialize_remaining_capacity(
             fk_model_workspace_dir=fk_model_dir,
             parent_data=parent_data,
             parent_pk=pk_col,
