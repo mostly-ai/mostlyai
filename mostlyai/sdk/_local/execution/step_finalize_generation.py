@@ -316,7 +316,6 @@ def process_table_with_fk_models(
     schema: Schema,
     pqt_path: Path,
     csv_path: Path | None,
-    child_batch_size: int = FK_MATCHING_CHILD_BATCH_SIZE,
     job_workspace_dir: Path,
 ) -> None:
     """Process table with ML model-based FK assignment using fixed batch sizes."""
