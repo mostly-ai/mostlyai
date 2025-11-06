@@ -443,6 +443,7 @@ def process_table_with_fk_models(
                     schema=schema,
                 )
 
+                assert relation in remaining_capacity
                 processed_batch = match_non_context(
                     fk_models_workspace_dir=fk_models_workspace_dir,
                     tgt_data=batch_data,
@@ -450,7 +451,7 @@ def process_table_with_fk_models(
                     tgt_parent_key=relation.child.column,
                     parent_primary_key=relation.parent.column,
                     parent_table_name=parent_table_name,
-                    remaining_capacity=remaining_capacity.get(relation),
+                    remaining_capacity=remaining_capacity[relation],
                 )
 
                 processed_batches.append(processed_batch)

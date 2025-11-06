@@ -968,7 +968,7 @@ def sample_best_parents(
     *,
     prob_matrix: torch.Tensor,
     parent_ids: list,
-    remaining_capacity: dict | None = None,
+    remaining_capacity: dict,
     temperature: float,
     top_k: int | None,
     top_p: float | None,
@@ -979,8 +979,8 @@ def sample_best_parents(
     Args:
         prob_matrix: (n_tgt, n_parent) probability each parent is a match
         parent_ids: List of parent IDs corresponding to columns in prob_matrix
-        remaining_capacity: Optional mutable dict {parent_id: remaining_slots} for quota enforcement.
-                           When provided, enables dynamic quota enforcement - capacity is decremented
+        remaining_capacity: dict {parent_id: remaining_slots} for quota enforcement.
+                           Enables dynamic quota enforcement - capacity is decremented
                            during sampling to prevent parents from exceeding their target.
         temperature: Controls variance in parent selection (default=1.0)
                     - temperature=0.0: Always pick argmax (most confident match)
@@ -1001,70 +1001,54 @@ def sample_best_parents(
     """
     n_tgt = prob_matrix.shape[0]
 
-    if remaining_capacity is not None:
-        # Dynamic quota enforcement - iterative sampling with capacity updates
-        available_mask = np.array([remaining_capacity.get(pid, 0) > 0 for pid in parent_ids], dtype=bool)
-        assigned_parent_ids = []
-        total_initial_capacity = sum(remaining_capacity.get(pid, 0) for pid in parent_ids)
+    # Dynamic quota enforcement - iterative sampling with capacity updates
+    available_mask = np.array([remaining_capacity.get(pid, 0) > 0 for pid in parent_ids], dtype=bool)
+    assigned_parent_ids = []
+    total_initial_capacity = sum(remaining_capacity.get(pid, 0) for pid in parent_ids)
 
-        _LOG.info(
-            f"FK matching with capacity enforcement | "
-            f"n_children: {n_tgt} | "
-            f"n_parents: {len(parent_ids)} | "
-            f"total_capacity: {total_initial_capacity} | "
-            f"capacity_deficit: {n_tgt - total_initial_capacity}"
-        )
+    _LOG.info(
+        f"FK matching with capacity enforcement | "
+        f"n_children: {n_tgt} | "
+        f"n_parents: {len(parent_ids)} | "
+        f"total_capacity: {total_initial_capacity} | "
+        f"capacity_deficit: {n_tgt - total_initial_capacity}"
+    )
 
-        for child_idx in range(n_tgt):
-            # Get row probabilities for this child
+    for child_idx in range(n_tgt):
+        # Get row probabilities for this child
+        row_probs = prob_matrix[child_idx].clone()
+
+        # Apply penalty to parents at/over quota (instead of zeroing them out)
+        row_probs[~torch.tensor(available_mask)] *= QUOTA_PENALTY_FACTOR
+
+        # Renormalize
+        row_sum = row_probs.sum()
+        if row_sum > 0:
+            row_probs = row_probs / row_sum
+        else:
+            # Fallback: all parents at quota, reset availability
+            available_mask[:] = True
             row_probs = prob_matrix[child_idx].clone()
+            row_probs = row_probs / row_probs.sum()
 
-            # Apply penalty to parents at/over quota (instead of zeroing them out)
-            row_probs[~torch.tensor(available_mask)] *= QUOTA_PENALTY_FACTOR
+        # Sample parent for this child
+        parent_idx = sample_single_parent(
+            probs=row_probs,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+        )
+        parent_id = parent_ids[parent_idx]
+        assigned_parent_ids.append(parent_id)
 
-            # Renormalize
-            row_sum = row_probs.sum()
-            if row_sum > 0:
-                row_probs = row_probs / row_sum
-            else:
-                # Fallback: all parents at quota, reset availability
-                available_mask[:] = True
-                row_probs = prob_matrix[child_idx].clone()
-                row_probs = row_probs / row_probs.sum()
+        # DECREMENT remaining capacity immediately
+        remaining_capacity[parent_id] -= 1
 
-            # Sample parent for this child
-            parent_idx = sample_single_parent(
-                probs=row_probs,
-                temperature=temperature,
-                top_k=top_k,
-                top_p=top_p,
-            )
-            parent_id = parent_ids[parent_idx]
-            assigned_parent_ids.append(parent_id)
+        # Update mask if parent depleted
+        if remaining_capacity[parent_id] <= 0:
+            available_mask[parent_idx] = False
 
-            # DECREMENT remaining capacity immediately
-            remaining_capacity[parent_id] -= 1
-
-            # Update mask if parent depleted
-            if remaining_capacity[parent_id] <= 0:
-                available_mask[parent_idx] = False
-
-        return np.array(assigned_parent_ids)
-    else:
-        # Batch sampling (no quota enforcement)
-        best_parent_indices = []
-
-        for i in range(n_tgt):
-            parent_idx = sample_single_parent(
-                probs=prob_matrix[i],
-                temperature=temperature,
-                top_k=top_k,
-                top_p=top_p,
-            )
-            best_parent_indices.append(parent_idx)
-
-        # Convert indices to parent IDs
-        return np.array([parent_ids[idx] for idx in best_parent_indices])
+    return np.array(assigned_parent_ids)
 
 
 def sample_single_parent(
@@ -1207,7 +1191,7 @@ def match_non_context(
     tgt_parent_key: str,
     parent_primary_key: str,
     parent_table_name: str,
-    remaining_capacity: dict | None = None,
+    remaining_capacity: dict,
     temperature: float = TEMPERATURE,
     top_k: int | None = TOP_K,
     top_p: float | None = TOP_P,
@@ -1225,8 +1209,8 @@ def match_non_context(
         tgt_parent_key: Foreign key column name in target table
         parent_primary_key: Primary key column name in parent table
         parent_table_name: Name of parent table
-        remaining_capacity: Optional mutable dict {parent_id: remaining_slots} for quota enforcement.
-                           When provided, enables dynamic quota enforcement - capacity is decremented
+        remaining_capacity: dict {parent_id: remaining_slots} for quota enforcement.
+                           Enables dynamic quota enforcement - capacity is decremented
                            during sampling to prevent parents from exceeding their target.
         temperature: Sampling temperature (0=greedy, 1=normal, >1=diverse)
         top_k: Number of top candidates to consider per match
