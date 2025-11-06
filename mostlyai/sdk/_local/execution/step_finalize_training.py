@@ -18,6 +18,7 @@ import time
 import traceback
 from pathlib import Path
 
+import mostlyai.engine as engine
 from mostlyai.sdk._data.base import NonContextRelation, Schema
 from mostlyai.sdk._data.non_context import (
     ParentChildMatcher,
@@ -38,7 +39,7 @@ from mostlyai.sdk.domain import Connector, Generator
 _LOG = logging.getLogger(__name__)
 
 
-def execute_train_fk_models_for_single_table(
+def execute_train_non_context_models_for_single_table(
     *,
     tgt_table_name: str,
     schema: Schema,
@@ -56,7 +57,7 @@ def execute_train_fk_models_for_single_table(
         tgt_parent_key = non_ctx_relation.child.column
         fk_model_workspace_dir = fk_models_workspace_dir / safe_name(tgt_parent_key)
 
-        execute_train_fk_model_for_single_non_context_relation(
+        train_non_context_models_for_single_relation(
             tgt_table_name=tgt_table_name,
             non_ctx_relation=non_ctx_relation,
             schema=schema,
@@ -67,36 +68,29 @@ def execute_train_fk_models_for_single_table(
         update_progress(advance=1)
 
 
-def execute_train_fk_model_for_single_non_context_relation(
+def train_fk_matching_model(
     *,
-    tgt_table_name: str,
-    non_ctx_relation: NonContextRelation,
-    schema: Schema,
+    parent_data,
+    tgt_data,
+    parent_primary_key: str,
+    tgt_parent_key: str,
     fk_model_workspace_dir: Path,
 ):
-    t0 = time.time()
+    """
+    Train and save neural network model for parent-child matching.
 
-    tgt_table = schema.tables[tgt_table_name]
-    tgt_parent_key = non_ctx_relation.child.column
+    This trains a ParentChildMatcher that learns to match children to parents
+    based on feature similarity, then saves it to disk.
 
-    parent_table = schema.tables[non_ctx_relation.parent.table]
-    parent_primary_key = non_ctx_relation.parent.column
-    parent_table_name = non_ctx_relation.parent.table
-
-    parent_data, tgt_data = pull_fk_model_training_data(
-        tgt_table=tgt_table,
-        parent_table=parent_table,
-        tgt_parent_key=tgt_parent_key,
-        schema=schema,
-    )
-
-    if parent_data.empty or tgt_data.empty:
-        return
-
+    Args:
+        parent_data: Parent table data
+        tgt_data: Target/child table data
+        parent_primary_key: Primary key column in parent data
+        tgt_parent_key: Foreign key column in target data
+        fk_model_workspace_dir: Directory to save model artifacts
+    """
     tgt_data_columns = [c for c in tgt_data.columns if c != tgt_parent_key]
     parent_data_columns = [c for c in parent_data.columns if c != parent_primary_key]
-
-    fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
 
     tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
     analyze_df(
@@ -146,11 +140,34 @@ def execute_train_fk_model_for_single_non_context_relation(
         labels=labels_pd,
     )
 
-    # Train Cardinality Model using engine BEFORE saving FK model
-    # This ensures we only save FK models if cardinality training also succeeds
-    _LOG.info(f"Training Cardinality Model with engine for {tgt_table_name}.{tgt_parent_key}")
+    store_fk_model(
+        model=model,
+        fk_model_workspace_dir=fk_model_workspace_dir,
+    )
 
-    # Prepare parent data with children count column
+
+def train_cardinality_model(
+    *,
+    parent_data,
+    tgt_data,
+    parent_primary_key: str,
+    tgt_parent_key: str,
+    fk_model_workspace_dir: Path,
+):
+    """
+    Train engine-based model to predict number of children per parent.
+
+    This trains a TabularARGN model using mostlyai-engine to predict the
+    CHILDREN_COUNT_COLUMN_NAME column, which represents how many children
+    each parent should have.
+
+    Args:
+        parent_data: Parent table data
+        tgt_data: Target/child table data
+        parent_primary_key: Primary key column in parent data
+        tgt_parent_key: Foreign key column in target data
+        fk_model_workspace_dir: Directory to save model artifacts
+    """
     parent_data_with_counts = prepare_training_data_for_cardinality_model(
         parent_data=parent_data,
         tgt_data=tgt_data,
@@ -158,53 +175,93 @@ def execute_train_fk_model_for_single_non_context_relation(
         tgt_parent_key=tgt_parent_key,
     )
 
-    # Define cardinality workspace
     cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_engine"
     cardinality_workspace_dir.mkdir(parents=True, exist_ok=True)
 
-    # Import engine here to avoid premature loading
-    import mostlyai.engine as engine
-
-    # Run engine.split - Split data into train/validation sets
-    _LOG.info("Splitting cardinality training data")
     engine.split(
         tgt_data=parent_data_with_counts,
         workspace_dir=cardinality_workspace_dir,
         update_progress=lambda **kwargs: None,
     )
 
-    # Run engine.analyze - Analyze training data statistics
-    _LOG.info("Analyzing cardinality training data")
     engine.analyze(
         workspace_dir=cardinality_workspace_dir,
         update_progress=lambda **kwargs: None,
     )
 
-    # Run engine.encode - Encode training data
-    _LOG.info("Encoding cardinality training data")
     engine.encode(
         workspace_dir=cardinality_workspace_dir,
         update_progress=lambda **kwargs: None,
     )
 
-    # Run engine.train - Train model on __children_count column
-    _LOG.info("Training cardinality model with engine")
     engine.train(
         model="MOSTLY_AI/Small",
         workspace_dir=cardinality_workspace_dir,
         update_progress=lambda **kwargs: None,
     )
 
-    _LOG.info(f"Successfully trained engine-based cardinality model at {cardinality_workspace_dir}")
 
-    # Save FK model only after cardinality model training succeeds
-    store_fk_model(
-        model=model,
+def train_non_context_models_for_single_relation(
+    *,
+    tgt_table_name: str,
+    non_ctx_relation: NonContextRelation,
+    schema: Schema,
+    fk_model_workspace_dir: Path,
+):
+    """
+    Train both FK matching and cardinality models for a non-context relation.
+
+    This orchestrates training of:
+    1. FK matching model (ParentChildMatcher) - matches children to parents
+    2. Cardinality model (engine-based) - predicts children count per parent
+
+    Args:
+        tgt_table_name: Name of target/child table
+        non_ctx_relation: Non-context relation to train models for
+        schema: Schema containing table definitions
+        fk_model_workspace_dir: Directory to save model artifacts
+    """
+    t0 = time.time()
+
+    tgt_table = schema.tables[tgt_table_name]
+    tgt_parent_key = non_ctx_relation.child.column
+
+    parent_table = schema.tables[non_ctx_relation.parent.table]
+    parent_primary_key = non_ctx_relation.parent.column
+    parent_table_name = non_ctx_relation.parent.table
+
+    parent_data, tgt_data = pull_fk_model_training_data(
+        tgt_table=tgt_table,
+        parent_table=parent_table,
+        tgt_parent_key=tgt_parent_key,
+        schema=schema,
+    )
+
+    if parent_data.empty or tgt_data.empty:
+        return
+
+    fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
+
+    _LOG.info(f"Training FK matching model for {tgt_table_name}.{tgt_parent_key}")
+    train_fk_matching_model(
+        parent_data=parent_data,
+        tgt_data=tgt_data,
+        parent_primary_key=parent_primary_key,
+        tgt_parent_key=tgt_parent_key,
+        fk_model_workspace_dir=fk_model_workspace_dir,
+    )
+
+    _LOG.info(f"Training cardinality model for {tgt_table_name}.{tgt_parent_key}")
+    train_cardinality_model(
+        parent_data=parent_data,
+        tgt_data=tgt_data,
+        parent_primary_key=parent_primary_key,
+        tgt_parent_key=tgt_parent_key,
         fk_model_workspace_dir=fk_model_workspace_dir,
     )
 
     _LOG.info(
-        f"Trained FK model and Cardinality model for relation: {tgt_table_name}.{tgt_parent_key} -> {parent_table_name}.{parent_primary_key} | "
+        f"Trained FK matching and cardinality models for {tgt_table_name}.{tgt_parent_key} -> {parent_table_name}.{parent_primary_key} | "
         f"time: {time.time() - t0:.2f}s | models saved: {fk_model_workspace_dir}"
     )
 
@@ -231,7 +288,7 @@ def execute_step_finalize_training(
         for tgt_table_name in schema.tables:
             fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / tgt_table_name
             try:
-                execute_train_fk_models_for_single_table(
+                execute_train_non_context_models_for_single_table(
                     tgt_table_name=tgt_table_name,
                     schema=schema,
                     fk_models_workspace_dir=fk_models_workspace_dir,
