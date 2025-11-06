@@ -442,7 +442,9 @@ def process_table_with_fk_models(
                     do_coerce_dtypes=True,
                 )
 
-                parent_data[CHILDREN_COUNT_COLUMN_NAME] = parent_data[parent_pk].map(children_counts[relation]).fillna(0).astype(int)
+                parent_data[CHILDREN_COUNT_COLUMN_NAME] = (
+                    parent_data[parent_pk].map(children_counts[relation]).fillna(0).astype(int)
+                )
 
                 batch_data = add_context_parent_data(
                     tgt_data=batch_data,
