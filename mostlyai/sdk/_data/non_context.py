@@ -644,7 +644,7 @@ def pull_fk_model_training_data(
     return parent_data, tgt_data
 
 
-def prepare_cardinality_training_data_for_engine(
+def prepare_training_data_for_cardinality_model(
     *,
     parent_data: pd.DataFrame,
     tgt_data: pd.DataFrame,
@@ -683,7 +683,7 @@ def prepare_cardinality_training_data_for_engine(
     std_children = children_counts.std() if len(children_counts) > 0 else 0
 
     _LOG.info(
-        f"prepare_cardinality_training_data_for_engine | "
+        f"prepare_training_data_for_cardinality_model | "
         f"n_parents: {len(parent_data_with_counts)} | "
         f"mean_children: {mean_children:.2f} | "
         f"std_children: {std_children:.2f} | "
@@ -693,7 +693,7 @@ def prepare_cardinality_training_data_for_engine(
     return parent_data_with_counts
 
 
-def prepare_training_pairs(
+def prepare_training_pairs_for_fk_model(
     parent_encoded_data: pd.DataFrame,
     tgt_encoded_data: pd.DataFrame,
     parent_primary_key: str,
@@ -786,7 +786,7 @@ def prepare_training_pairs(
     labels_pd = pd.Series(labels_vec, name="labels")
 
     n_pairs = len(parent_pd)
-    _LOG.info(f"prepare_training_pairs | n_pairs: {n_pairs} | time: {time.time() - t0:.2f}s")
+    _LOG.info(f"prepare_training_pairs_for_fk_model | n_pairs: {n_pairs} | time: {time.time() - t0:.2f}s")
     return parent_pd, tgt_pd, labels_pd
 
 

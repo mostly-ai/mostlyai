@@ -24,8 +24,8 @@ from mostlyai.sdk._data.non_context import (
     analyze_df,
     encode_df,
     get_cardinalities,
-    prepare_cardinality_training_data_for_engine,
-    prepare_training_pairs,
+    prepare_training_data_for_cardinality_model,
+    prepare_training_pairs_for_fk_model,
     pull_fk_model_training_data,
     safe_name,
     store_fk_model,
@@ -132,7 +132,7 @@ def execute_train_fk_model_for_single_non_context_relation(
         child_cardinalities=tgt_cardinalities,
     )
 
-    parent_pd, tgt_pd, labels_pd = prepare_training_pairs(
+    parent_pd, tgt_pd, labels_pd = prepare_training_pairs_for_fk_model(
         parent_encoded_data=parent_encoded_data,
         tgt_encoded_data=tgt_encoded_data,
         parent_primary_key=parent_primary_key,
@@ -151,7 +151,7 @@ def execute_train_fk_model_for_single_non_context_relation(
     _LOG.info(f"Training Cardinality Model with engine for {tgt_table_name}.{tgt_parent_key}")
 
     # Prepare parent data with children count column
-    parent_data_with_counts = prepare_cardinality_training_data_for_engine(
+    parent_data_with_counts = prepare_training_data_for_cardinality_model(
         parent_data=parent_data,
         tgt_data=tgt_data,
         parent_primary_key=parent_primary_key,
