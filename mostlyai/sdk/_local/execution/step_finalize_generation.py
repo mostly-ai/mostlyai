@@ -26,6 +26,7 @@ from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.non_context import (
+    CHILDREN_COUNT_COLUMN_NAME,
     add_context_parent_data,
     assign_non_context_fks_randomly,
     initialize_remaining_capacity,
@@ -388,10 +389,8 @@ def process_table_with_fk_models(
         )
         relation_batch_sizes[relation] = optimal_batch_size
 
-    # Initialize remaining capacity for all relations
-    # At this point, both FK models and cardinality models are guaranteed to exist
-    # (checked by are_fk_models_available)
     remaining_capacity = {}
+    children_counts = {}
     for relation in non_ctx_relations:
         parent_table_name = relation.parent.table
         pk_col = relation.parent.column
@@ -401,17 +400,17 @@ def process_table_with_fk_models(
         parent_table = parent_tables[parent_table_name]
 
         _LOG.info(f"Using Engine-based Cardinality Model for {relation.child.table}.{relation.child.column}")
-        # Use Engine-based Cardinality Model to predict capacities
         parent_data = parent_table.read_data(
             where={pk_col: parent_keys_df[pk_col].tolist()},
             do_coerce_dtypes=True,
         )
-        capacity_dict = initialize_remaining_capacity(
+        capacity_dict, counts_dict = initialize_remaining_capacity(
             fk_model_workspace_dir=fk_model_dir,
             parent_data=parent_data,
             parent_pk=pk_col,
         )
         remaining_capacity[relation] = capacity_dict
+        children_counts[relation] = counts_dict
 
     for chunk_idx, chunk_data in enumerate(children_table.read_chunks(do_coerce_dtypes=True)):
         _LOG.info(f"Processing chunk {chunk_idx} ({len(chunk_data)} rows)")
@@ -442,6 +441,8 @@ def process_table_with_fk_models(
                     columns=parent_table.columns,
                     do_coerce_dtypes=True,
                 )
+
+                parent_data[CHILDREN_COUNT_COLUMN_NAME] = parent_data[parent_pk].map(children_counts[relation]).fillna(0).astype(int)
 
                 batch_data = add_context_parent_data(
                     tgt_data=batch_data,

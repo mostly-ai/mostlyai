@@ -1105,7 +1105,7 @@ def initialize_remaining_capacity(
     fk_model_workspace_dir: Path,
     parent_data: pd.DataFrame,
     parent_pk: str,
-) -> dict:
+) -> tuple[dict, dict]:
     """
     Initialize remaining_capacity dict using engine-based cardinality predictions.
 
@@ -1119,7 +1119,7 @@ def initialize_remaining_capacity(
         parent_pk: Primary key column name
 
     Returns:
-        Dictionary {parent_id: predicted_capacity}
+        Tuple of (remaining_capacity dict, children_counts dict mapping parent_id -> count)
     """
     import mostlyai.engine as engine
 
@@ -1139,19 +1139,19 @@ def initialize_remaining_capacity(
 
     predicted_data = pd.read_parquet(cardinality_workspace_dir / "SyntheticData")
     predicted_counts = predicted_data[CHILDREN_COUNT_COLUMN_NAME].values
-    predicted_counts = np.maximum(0, predicted_counts)
 
     # Ensure non-negative and round to integers
     predicted_counts = np.round(np.maximum(0, predicted_counts)).astype(int)
 
-    # Create capacity dict
+    # Create dicts
     parent_ids = parent_data[parent_pk].tolist()
     remaining_capacity = {pid: int(count) for pid, count in zip(parent_ids, predicted_counts)}
+    children_counts = remaining_capacity.copy()
 
     total_capacity = sum(remaining_capacity.values())
     _LOG.info(f"initialize_remaining_capacity | total_capacity: {total_capacity} | time: {time.time() - t0:.2f}s")
 
-    return remaining_capacity
+    return remaining_capacity, children_counts
 
 
 def match_non_context(
