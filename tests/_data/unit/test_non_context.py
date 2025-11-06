@@ -22,7 +22,7 @@ from mostlyai.sdk._data.non_context import (
     add_is_null_for_non_context_relation,
     add_is_null_for_non_context_relations,
     assign_non_context_fks_randomly,
-    prepare_training_pairs,
+    prepare_training_pairs_for_fk_model,
     sample_non_context_keys,
 )
 
@@ -198,7 +198,7 @@ def test_prepare_training_pairs():
         }
     )
 
-    parent_X, child_X, labels = prepare_training_pairs(
+    parent_X, child_X, labels = prepare_training_pairs_for_fk_model(
         parent_encoded_data=parent_data,
         tgt_encoded_data=child_data,
         parent_primary_key="parent_id",
@@ -224,7 +224,7 @@ def test_prepare_training_pairs():
 
     # Test error case: all null children
     with pytest.raises(ValueError, match="No non-null children"):
-        prepare_training_pairs(
+        prepare_training_pairs_for_fk_model(
             parent_encoded_data=parent_data,
             tgt_encoded_data=pd.DataFrame({"parent_fk": [pd.NA, pd.NA], "feat": [1, 2]}),
             parent_primary_key="parent_id",
@@ -233,7 +233,7 @@ def test_prepare_training_pairs():
         )
 
     # Test case: invalid FK gets dropped with warning (not error)
-    parent_X_partial, child_X_partial, labels_partial = prepare_training_pairs(
+    parent_X_partial, child_X_partial, labels_partial = prepare_training_pairs_for_fk_model(
         parent_encoded_data=parent_data,
         tgt_encoded_data=pd.DataFrame({"parent_fk": [1, 999, 2], "feat": [10, 20, 30]}),  # 999 invalid
         parent_primary_key="parent_id",

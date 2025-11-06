@@ -84,6 +84,7 @@ MAX_TGT_PER_PARENT = 10
 TEMPERATURE = 1.0
 TOP_K = None
 TOP_P = 0.95
+QUOTA_PENALTY_FACTOR = 0.05
 
 # Supported Encoding Types
 FK_MODEL_ENCODING_TYPES = [
@@ -94,6 +95,9 @@ FK_MODEL_ENCODING_TYPES = [
     ModelEncodingType.tabular_numeric_digit,
     ModelEncodingType.tabular_datetime,
 ]
+
+# Column name for children count in cardinality models
+CHILDREN_COUNT_COLUMN_NAME = "__CHILDREN_COUNT__"
 
 
 # =============================================================================
@@ -643,7 +647,44 @@ def pull_fk_model_training_data(
     return parent_data, tgt_data
 
 
-def prepare_training_pairs(
+def prepare_training_data_for_cardinality_model(
+    *,
+    parent_data: pd.DataFrame,
+    tgt_data: pd.DataFrame,
+    parent_primary_key: str,
+    tgt_parent_key: str,
+) -> pd.DataFrame:
+    """
+    Prepare parent data enriched with children count column for engine training.
+
+    This function adds a special '__CHILDREN_COUNT__' column to the parent data that
+    represents how many children each parent has. This enriched dataset is then used
+    to train the mostlyai-engine model, which can later predict children counts for
+    new synthetic parents.
+
+    Args:
+        parent_data: Parent table data (unencoded, raw features)
+        tgt_data: Target/child table data (unencoded)
+        parent_primary_key: Primary key column in parent data
+        tgt_parent_key: Foreign key column in target data pointing to parent
+
+    Returns:
+        Parent data with added '__CHILDREN_COUNT__' column
+    """
+    t0 = time.time()
+
+    children_counts = tgt_data[tgt_parent_key].value_counts()
+    children_counts = parent_data[parent_primary_key].map(children_counts).fillna(0).astype(int)
+    parent_data_enriched = parent_data.assign(**{CHILDREN_COUNT_COLUMN_NAME: children_counts})
+
+    _LOG.info(
+        f"prepare_training_data_for_cardinality_model | n_rows: {len(parent_data_enriched)} | time: {time.time() - t0:.2f}s"
+    )
+
+    return parent_data_enriched
+
+
+def prepare_training_pairs_for_fk_model(
     parent_encoded_data: pd.DataFrame,
     tgt_encoded_data: pd.DataFrame,
     parent_primary_key: str,
@@ -736,7 +777,7 @@ def prepare_training_pairs(
     labels_pd = pd.Series(labels_vec, name="labels")
 
     n_pairs = len(parent_pd)
-    _LOG.info(f"prepare_training_pairs | n_pairs: {n_pairs} | time: {time.time() - t0:.2f}s")
+    _LOG.info(f"prepare_training_pairs_for_fk_model | n_pairs: {n_pairs} | time: {time.time() - t0:.2f}s")
     return parent_pd, tgt_pd, labels_pd
 
 
@@ -926,6 +967,8 @@ def build_parent_child_probabilities(
 def sample_best_parents(
     *,
     prob_matrix: torch.Tensor,
+    parent_ids: list,
+    remaining_capacity: dict,
     temperature: float,
     top_k: int | None,
     top_p: float | None,
@@ -935,6 +978,10 @@ def sample_best_parents(
 
     Args:
         prob_matrix: (n_tgt, n_parent) probability each parent is a match
+        parent_ids: List of parent IDs corresponding to columns in prob_matrix
+        remaining_capacity: dict {parent_id: remaining_slots} for quota enforcement.
+                           Enables dynamic quota enforcement - capacity is decremented
+                           during sampling to prevent parents from exceeding their target.
         temperature: Controls variance in parent selection (default=1.0)
                     - temperature=0.0: Always pick argmax (most confident match)
                     - temperature=1.0: Sample from original probabilities
@@ -950,51 +997,161 @@ def sample_best_parents(
                Recommended: 0.9-0.95 for high quality matches with adaptive diversity.
 
     Returns:
-        best_parent_indices: Array of parent indices for each child
+        Array of parent IDs for each child
     """
     n_tgt = prob_matrix.shape[0]
-    best_parent_indices = np.full(n_tgt, -1, dtype=np.int64)
 
+    # Dynamic quota enforcement - iterative sampling with capacity updates
+    available_mask = np.array([remaining_capacity.get(pid, 0) > 0 for pid in parent_ids], dtype=bool)
+    assigned_parent_ids = []
+    total_initial_capacity = sum(remaining_capacity.get(pid, 0) for pid in parent_ids)
+
+    _LOG.info(
+        f"FK matching with capacity enforcement | "
+        f"n_children: {n_tgt} | "
+        f"n_parents: {len(parent_ids)} | "
+        f"total_capacity: {total_initial_capacity} | "
+        f"capacity_deficit: {n_tgt - total_initial_capacity}"
+    )
+
+    for child_idx in range(n_tgt):
+        # Get row probabilities for this child
+        row_probs = prob_matrix[child_idx].clone()
+
+        # Apply penalty to parents at/over quota (instead of zeroing them out)
+        row_probs[~torch.tensor(available_mask)] *= QUOTA_PENALTY_FACTOR
+
+        # Renormalize
+        row_sum = row_probs.sum()
+        if row_sum > 0:
+            row_probs = row_probs / row_sum
+        else:
+            # Fallback: all parents at quota, reset availability
+            available_mask[:] = True
+            row_probs = prob_matrix[child_idx].clone()
+            row_probs = row_probs / row_probs.sum()
+
+        # Sample parent for this child
+        parent_idx = sample_single_parent(
+            probs=row_probs,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+        )
+        parent_id = parent_ids[parent_idx]
+        assigned_parent_ids.append(parent_id)
+
+        # DECREMENT remaining capacity immediately
+        remaining_capacity[parent_id] -= 1
+
+        # Update mask if parent depleted
+        if remaining_capacity[parent_id] <= 0:
+            available_mask[parent_idx] = False
+
+    return np.array(assigned_parent_ids)
+
+
+def sample_single_parent(
+    *,
+    probs: torch.Tensor,
+    temperature: float,
+    top_k: int | None,
+    top_p: float | None,
+) -> int:
+    """
+    Sample a single parent index based on match probabilities.
+
+    Args:
+        probs: 1D tensor of probabilities for parent candidates
+        temperature: Controls variance in parent selection
+        top_k: Only sample from top-K most probable parents
+        top_p: Nucleus sampling threshold
+
+    Returns:
+        parent_index: Index of sampled parent
+    """
     rng = np.random.default_rng()
 
-    for i in range(n_tgt):
-        if temperature == 0.0:
-            best_parent_indices[i] = torch.argmax(prob_matrix[i]).cpu().numpy()
-        else:
-            probs = prob_matrix[i]
-            candidate_indices = torch.arange(len(probs))
+    if temperature == 0.0:
+        return torch.argmax(probs).cpu().item()
 
-            # apply top_k filtering first if specified
-            if top_k is not None and top_k < len(probs):
-                top_k_values, top_k_indices = torch.topk(probs, k=top_k)
-                probs = top_k_values
-                candidate_indices = top_k_indices
+    candidate_indices = torch.arange(len(probs))
 
-            # apply top_p (nucleus) filtering if specified
-            if top_p is not None and 0.0 < top_p < 1.0:
-                # sort probabilities in descending order
-                sorted_probs, sorted_indices = torch.sort(probs, descending=True)
+    # apply top_k filtering first if specified
+    if top_k is not None and top_k < len(probs):
+        top_k_values, top_k_indices = torch.topk(probs, k=top_k)
+        probs = top_k_values
+        candidate_indices = top_k_indices
 
-                # compute cumulative probabilities
-                cumsum_probs = torch.cumsum(sorted_probs, dim=0)
+    # apply top_p (nucleus) filtering if specified
+    if top_p is not None and 0.0 < top_p < 1.0:
+        sorted_probs, sorted_indices = torch.sort(probs, descending=True)
+        cumsum_probs = torch.cumsum(sorted_probs, dim=0)
+        cutoff_idx = torch.searchsorted(cumsum_probs, top_p, right=False).item() + 1
+        cutoff_idx = max(1, min(cutoff_idx, len(sorted_probs)))
+        probs = sorted_probs[:cutoff_idx]
+        candidate_indices = candidate_indices[sorted_indices[:cutoff_idx]]
 
-                # find the cutoff index where cumulative probability exceeds top_p
-                # keep at least one candidate
-                cutoff_idx = torch.searchsorted(cumsum_probs, top_p, right=False).item() + 1
-                cutoff_idx = max(1, min(cutoff_idx, len(sorted_probs)))
+    # apply temperature scaling
+    logits = torch.log(probs + NUMERICAL_STABILITY_EPSILON) / temperature
+    probs = torch.softmax(logits, dim=0).cpu().numpy()
 
-                # filter to nucleus candidates
-                probs = sorted_probs[:cutoff_idx]
-                candidate_indices = candidate_indices[sorted_indices[:cutoff_idx]]
+    sampled_candidate = rng.choice(len(probs), p=probs)
+    return candidate_indices[sampled_candidate].cpu().item()
 
-            # apply temperature scaling (higher = more uniform sampling)
-            logits = torch.log(probs + NUMERICAL_STABILITY_EPSILON) / temperature
-            probs = torch.softmax(logits, dim=0).cpu().numpy()
 
-            sampled_candidate = rng.choice(len(probs), p=probs)
-            best_parent_indices[i] = candidate_indices[sampled_candidate].cpu().numpy()
+def initialize_remaining_capacity(
+    *,
+    fk_model_workspace_dir: Path,
+    parent_data: pd.DataFrame,
+    parent_pk: str,
+) -> dict:
+    """
+    Initialize remaining_capacity dict using engine-based cardinality predictions.
 
-    return best_parent_indices
+    This function uses the trained mostlyai-engine model to predict the number of children
+    each parent should have. The synthetic parent data is used as a seed to generate
+    predictions for the '__CHILDREN_COUNT__' column.
+
+    Args:
+        fk_model_workspace_dir: Directory containing trained models
+        parent_data: Synthetic parent table data (with PK and all features)
+        parent_pk: Primary key column name
+
+    Returns:
+        Dictionary {parent_id: predicted_capacity}
+    """
+    import mostlyai.engine as engine
+
+    t0 = time.time()
+    cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_engine"
+    assert cardinality_workspace_dir.exists()
+
+    # Generate children counts using engine with parent data as seed
+    # The engine will predict the __CHILDREN_COUNT__ column based on parent features
+    _LOG.info(f"Generating cardinality predictions using engine for {len(parent_data)} parents")
+
+    engine.generate(
+        seed_data=parent_data,
+        workspace_dir=cardinality_workspace_dir,
+        update_progress=lambda **kwargs: None,
+    )
+
+    predicted_data = pd.read_parquet(cardinality_workspace_dir / "SyntheticData")
+    predicted_counts = predicted_data[CHILDREN_COUNT_COLUMN_NAME].values
+    predicted_counts = np.maximum(0, predicted_counts)
+
+    # Ensure non-negative and round to integers
+    predicted_counts = np.round(np.maximum(0, predicted_counts)).astype(int)
+
+    # Create capacity dict
+    parent_ids = parent_data[parent_pk].tolist()
+    remaining_capacity = {pid: int(count) for pid, count in zip(parent_ids, predicted_counts)}
+
+    total_capacity = sum(remaining_capacity.values())
+    _LOG.info(f"initialize_remaining_capacity | total_capacity: {total_capacity} | time: {time.time() - t0:.2f}s")
+
+    return remaining_capacity
 
 
 def match_non_context(
@@ -1005,6 +1162,7 @@ def match_non_context(
     tgt_parent_key: str,
     parent_primary_key: str,
     parent_table_name: str,
+    remaining_capacity: dict,
     temperature: float = TEMPERATURE,
     top_k: int | None = TOP_K,
     top_p: float | None = TOP_P,
@@ -1022,6 +1180,9 @@ def match_non_context(
         tgt_parent_key: Foreign key column name in target table
         parent_primary_key: Primary key column name in parent table
         parent_table_name: Name of parent table
+        remaining_capacity: dict {parent_id: remaining_slots} for quota enforcement.
+                           Enables dynamic quota enforcement - capacity is decremented
+                           during sampling to prevent parents from exceeding their target.
         temperature: Sampling temperature (0=greedy, 1=normal, >1=diverse)
         top_k: Number of top candidates to consider per match
         top_p: Nucleus sampling threshold (0.0 < p <= 1.0) for dynamic candidate filtering
@@ -1093,14 +1254,15 @@ def match_non_context(
         parent_encoded=parent_encoded,
     )
 
-    best_parent_indices = sample_best_parents(
+    parent_ids_list = parent_data[parent_primary_key].tolist()
+    best_parent_ids = sample_best_parents(
         prob_matrix=prob_matrix,
+        parent_ids=parent_ids_list,
+        remaining_capacity=remaining_capacity,
         temperature=temperature,
         top_k=top_k,
         top_p=top_p,
     )
-
-    best_parent_ids = parent_data.iloc[best_parent_indices][parent_primary_key].values
 
     parent_ids_series = pd.Series(best_parent_ids, index=non_null_indices)
 
