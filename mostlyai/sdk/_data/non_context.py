@@ -96,6 +96,9 @@ FK_MODEL_ENCODING_TYPES = [
     ModelEncodingType.tabular_datetime,
 ]
 
+# Column name for children count in cardinality models
+CHILDREN_COUNT_COLUMN_NAME = "__CHILDREN_COUNT__"
+
 
 # =============================================================================
 # PULL PHASE: MARK NON-CONTEXT FKS FOR NULL HANDLING
@@ -654,7 +657,7 @@ def prepare_training_data_for_cardinality_model(
     """
     Prepare parent data enriched with children count column for engine training.
 
-    This function adds a special '__children_count' column to the parent data that
+    This function adds a special '__CHILDREN_COUNT__' column to the parent data that
     represents how many children each parent has. This enriched dataset is then used
     to train the mostlyai-engine model, which can later predict children counts for
     new synthetic parents.
@@ -666,31 +669,21 @@ def prepare_training_data_for_cardinality_model(
         tgt_parent_key: Foreign key column in target data pointing to parent
 
     Returns:
-        parent_data_with_counts: Parent data with added '__children_count' column
+        Parent data with added '__CHILDREN_COUNT__' column
     """
     t0 = time.time()
 
-    # Count children per parent
     children_counts = tgt_data[tgt_parent_key].value_counts()
-
-    # Add counts to parent data (0 for parents with no children)
-    parent_data_with_counts = parent_data.copy()
-    parent_data_with_counts["__children_count"] = (
-        parent_data[parent_primary_key].map(children_counts).fillna(0).astype(int)
-    )
-
-    mean_children = children_counts.mean() if len(children_counts) > 0 else 0
-    std_children = children_counts.std() if len(children_counts) > 0 else 0
+    children_counts = parent_data[parent_primary_key].map(children_counts).fillna(0).astype(int)
+    parent_data_enriched = parent_data.assign(**{CHILDREN_COUNT_COLUMN_NAME: children_counts})
 
     _LOG.info(
         f"prepare_training_data_for_cardinality_model | "
-        f"n_parents: {len(parent_data_with_counts)} | "
-        f"mean_children: {mean_children:.2f} | "
-        f"std_children: {std_children:.2f} | "
+        f"n_parents: {len(parent_data_enriched)} | "
         f"time: {time.time() - t0:.2f}s"
     )
 
-    return parent_data_with_counts
+    return parent_data_enriched
 
 
 def prepare_training_pairs_for_fk_model(
@@ -1136,7 +1129,7 @@ def initialize_remaining_capacity_with_engine(
 
     This function uses the trained mostlyai-engine model to predict the number of children
     each parent should have. The synthetic parent data is used as a seed to generate
-    predictions for the '__children_count' column.
+    predictions for the '__CHILDREN_COUNT__' column.
 
     Args:
         fk_model_workspace_dir: Directory containing trained models
@@ -1158,15 +1151,15 @@ def initialize_remaining_capacity_with_engine(
         )
 
     # Generate children counts using engine with parent data as seed
-    # The engine will predict the __children_count column based on parent features
+    # The engine will predict the __CHILDREN_COUNT__ column based on parent features
     _LOG.info(f"Generating cardinality predictions using engine for {len(parent_data)} parents")
 
     # Create a temporary context directory if needed by engine
     ctx_data_dir = cardinality_workspace_dir / "OriginalData" / "ctx-data"
     ctx_data_dir.mkdir(parents=True, exist_ok=True)
 
-    # Save seed data (without __children_count column if present)
-    seed_columns = [col for col in parent_data.columns if col != "__children_count"]
+    # Save seed data (without __CHILDREN_COUNT__ column if present)
+    seed_columns = [col for col in parent_data.columns if col != CHILDREN_COUNT_COLUMN_NAME]
     seed_data = parent_data[seed_columns].copy()
 
     engine.generate(
@@ -1178,12 +1171,12 @@ def initialize_remaining_capacity_with_engine(
     predicted_data = pd.read_parquet(cardinality_workspace_dir / "SyntheticData")
 
     # Extract predicted counts
-    if "__children_count" not in predicted_data.columns:
+    if CHILDREN_COUNT_COLUMN_NAME not in predicted_data.columns:
         raise ValueError(
-            f"Engine did not generate '__children_count' column. Available columns: {list(predicted_data.columns)}"
+            f"Engine did not generate '{CHILDREN_COUNT_COLUMN_NAME}' column. Available columns: {list(predicted_data.columns)}"
         )
 
-    predicted_counts = predicted_data["__children_count"].values
+    predicted_counts = predicted_data[CHILDREN_COUNT_COLUMN_NAME].values
     predicted_counts = np.maximum(0, predicted_counts)  # Ensure non-negative
 
     # Round to integers
