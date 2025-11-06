@@ -1125,44 +1125,24 @@ def initialize_remaining_capacity(
 
     t0 = time.time()
     cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_engine"
-
-    if not cardinality_workspace_dir.exists():
-        raise ValueError(
-            f"Engine-based cardinality model not found at {cardinality_workspace_dir}. "
-            "Please train the cardinality model first."
-        )
+    assert cardinality_workspace_dir.exists()
 
     # Generate children counts using engine with parent data as seed
     # The engine will predict the __CHILDREN_COUNT__ column based on parent features
     _LOG.info(f"Generating cardinality predictions using engine for {len(parent_data)} parents")
 
-    # Create a temporary context directory if needed by engine
-    ctx_data_dir = cardinality_workspace_dir / "OriginalData" / "ctx-data"
-    ctx_data_dir.mkdir(parents=True, exist_ok=True)
-
-    # Save seed data (without __CHILDREN_COUNT__ column if present)
-    seed_columns = [col for col in parent_data.columns if col != CHILDREN_COUNT_COLUMN_NAME]
-    seed_data = parent_data[seed_columns].copy()
-
     engine.generate(
-        seed_data=seed_data,
+        seed_data=parent_data,
         workspace_dir=cardinality_workspace_dir,
         update_progress=lambda **kwargs: None,
     )
 
     predicted_data = pd.read_parquet(cardinality_workspace_dir / "SyntheticData")
-
-    # Extract predicted counts
-    if CHILDREN_COUNT_COLUMN_NAME not in predicted_data.columns:
-        raise ValueError(
-            f"Engine did not generate '{CHILDREN_COUNT_COLUMN_NAME}' column. Available columns: {list(predicted_data.columns)}"
-        )
-
     predicted_counts = predicted_data[CHILDREN_COUNT_COLUMN_NAME].values
-    predicted_counts = np.maximum(0, predicted_counts)  # Ensure non-negative
+    predicted_counts = np.maximum(0, predicted_counts)
 
-    # Round to integers
-    predicted_counts = np.round(predicted_counts).astype(int)
+    # Ensure non-negative and round to integers
+    predicted_counts = np.round(np.maximum(0, predicted_counts)).astype(int)
 
     # Create capacity dict
     parent_ids = parent_data[parent_pk].tolist()
