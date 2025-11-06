@@ -22,14 +22,12 @@ from mostlyai.sdk._data.base import NonContextRelation, Schema
 from mostlyai.sdk._data.non_context import (
     ParentChildMatcher,
     analyze_df,
-    compute_fk_cardinality_stats,
     encode_df,
     get_cardinalities,
     prepare_cardinality_training_data_for_engine,
     prepare_training_pairs,
     pull_fk_model_training_data,
     safe_name,
-    store_cardinality_stats,
     store_fk_model,
     train_fk_model,
 )
@@ -95,11 +93,6 @@ def execute_train_fk_model_for_single_non_context_relation(
     if parent_data.empty or tgt_data.empty:
         return
 
-    cardinality_stats = compute_fk_cardinality_stats(
-        tgt_data=tgt_data,
-        tgt_parent_key=tgt_parent_key,
-    )
-
     tgt_data_columns = [c for c in tgt_data.columns if c != tgt_parent_key]
     parent_data_columns = [c for c in parent_data.columns if c != parent_primary_key]
 
@@ -156,11 +149,6 @@ def execute_train_fk_model_for_single_non_context_relation(
     store_fk_model(
         model=model,
         fk_model_workspace_dir=fk_model_workspace_dir,
-    )
-
-    store_cardinality_stats(
-        fk_model_workspace_dir=fk_model_workspace_dir,
-        cardinality_stats=cardinality_stats,
     )
 
     # Train Cardinality Model using engine

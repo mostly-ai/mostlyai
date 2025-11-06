@@ -17,7 +17,6 @@ import zipfile
 from pathlib import Path
 from typing import Literal
 
-import numpy as np
 import pandas as pd
 
 from mostlyai.sdk._data.base import ForeignKey, NonContextRelation, Schema
@@ -29,7 +28,6 @@ from mostlyai.sdk._data.non_context import (
     add_context_parent_data,
     assign_non_context_fks_randomly,
     initialize_remaining_capacity_with_engine,
-    load_cardinality_stats,
     match_non_context,
     safe_name,
 )
@@ -354,7 +352,7 @@ def process_table_with_fk_models(
         parent_keys_df = parent_keys_cache[parent_table_name]
         parent_table = parent_tables[parent_table_name]
 
-        # Check if Engine-based Cardinality Model exists (preferred)
+        # Check if Engine-based Cardinality Model exists
         cardinality_engine_dir = fk_model_dir / "cardinality_engine"
         if cardinality_engine_dir.exists() and (cardinality_engine_dir / "ModelStore").exists():
             _LOG.info(f"Using Engine-based Cardinality Model for {relation.child.table}.{relation.child.column}")
@@ -374,43 +372,15 @@ def process_table_with_fk_models(
                 remaining_capacity[relation] = capacity_dict
             except Exception as e:
                 _LOG.error(f"Failed to use engine-based cardinality model: {e}")
-                _LOG.warning("Falling back to Gaussian cardinality model")
-                # Fall through to Gaussian fallback below
-                cardinality_engine_dir = None  # Force fallback
-
-        # Gaussian fallback when engine model doesn't exist or fails
-        if cardinality_engine_dir is None or not (
-            cardinality_engine_dir.exists() and (cardinality_engine_dir / "ModelStore").exists()
-        ):
-            _LOG.info(f"Using Gaussian fallback for {relation.child.table}.{relation.child.column}")
-            # Fallback to Gaussian model when no trained model exists
-            cardinality_stats = load_cardinality_stats(fk_model_workspace_dir=fk_model_dir)
-            mean_children = cardinality_stats["mean_children_per_parent"]
-            std_children = cardinality_stats["std_children_per_parent"]
-
-            parent_keys = parent_keys_df[pk_col].tolist()
-            n_parents = len(parent_keys)
-            targets = np.random.normal(loc=mean_children, scale=std_children, size=n_parents)
-            targets = np.maximum(targets, 0)  # Ensure non-negative
-
-            # Scale to match target total
-            target_total = children_table.row_count
-            current_total = targets.sum()
-            if current_total > 0:
-                scale_factor = target_total / current_total
-                targets = targets * scale_factor
-                _LOG.info(
-                    f"Scaling Gaussian predictions | "
-                    f"original_total: {current_total:.0f} | "
-                    f"target_total: {target_total} | "
-                    f"scale_factor: {scale_factor:.4f}"
+                _LOG.warning(
+                    f"No cardinality model available for {relation.child.table}.{relation.child.column} - "
+                    "FK matching will use ML model without capacity constraints"
                 )
-            else:
-                targets = np.full(n_parents, target_total / n_parents)
-
-            targets = np.round(targets).astype(int)
-
-            remaining_capacity[relation] = {pk: int(target) for pk, target in zip(parent_keys, targets)}
+        else:
+            _LOG.info(
+                f"No cardinality model available for {relation.child.table}.{relation.child.column} - "
+                "FK matching will use ML model without capacity constraints"
+            )
 
     for chunk_idx, chunk_data in enumerate(children_table.read_chunks(do_coerce_dtypes=True)):
         _LOG.info(f"Processing chunk {chunk_idx} ({len(chunk_data)} rows)")
@@ -456,7 +426,7 @@ def process_table_with_fk_models(
                     tgt_parent_key=relation.child.column,
                     parent_primary_key=relation.parent.column,
                     parent_table_name=parent_table_name,
-                    remaining_capacity=remaining_capacity[relation],
+                    remaining_capacity=remaining_capacity.get(relation),
                 )
 
                 processed_batches.append(processed_batch)

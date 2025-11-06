@@ -912,40 +912,6 @@ def store_fk_model(*, model: ParentChildMatcher, fk_model_workspace_dir: Path) -
     torch.save(model.state_dict(), model_state_path)
 
 
-def compute_fk_cardinality_stats(
-    tgt_data: pd.DataFrame,
-    tgt_parent_key: str,
-) -> dict:
-    """
-    Compute cardinality statistics for a foreign key relationship.
-
-    Returns statistics only for parents that have children (excludes parents with 0 children).
-
-    Args:
-        tgt_data: Target/child table data
-        tgt_parent_key: Foreign key column in target table
-
-    Returns:
-        Dictionary with mean and std of children per parent
-    """
-    children_counts = tgt_data[tgt_parent_key].value_counts()
-
-    return {
-        "mean_children_per_parent": float(children_counts.mean()),
-        "std_children_per_parent": float(children_counts.std()),
-    }
-
-
-def store_cardinality_stats(*, fk_model_workspace_dir: Path, cardinality_stats: dict) -> None:
-    stats_path = fk_model_workspace_dir / "cardinality_stats.json"
-    stats_path.write_text(json.dumps(cardinality_stats, indent=4))
-
-
-def load_cardinality_stats(*, fk_model_workspace_dir: Path) -> dict:
-    stats_path = fk_model_workspace_dir / "cardinality_stats.json"
-    return json.loads(stats_path.read_text())
-
-
 def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
     """Load FK model from disk."""
     model_config_path = fk_model_workspace_dir / "model_config.json"
