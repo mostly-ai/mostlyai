@@ -678,9 +678,7 @@ def prepare_training_data_for_cardinality_model(
     parent_data_enriched = parent_data.assign(**{CHILDREN_COUNT_COLUMN_NAME: children_counts})
 
     _LOG.info(
-        f"prepare_training_data_for_cardinality_model | "
-        f"n_parents: {len(parent_data_enriched)} | "
-        f"time: {time.time() - t0:.2f}s"
+        f"prepare_training_data_for_cardinality_model | n_rows: {len(parent_data_enriched)} | time: {time.time() - t0:.2f}s"
     )
 
     return parent_data_enriched
