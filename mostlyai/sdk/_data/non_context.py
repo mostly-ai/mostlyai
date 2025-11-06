@@ -1254,7 +1254,6 @@ def match_non_context(
         parent_encoded=parent_encoded,
     )
 
-    # Sample parents (with optional quota enforcement)
     parent_ids_list = parent_data[parent_primary_key].tolist()
     best_parent_ids = sample_best_parents(
         prob_matrix=prob_matrix,
