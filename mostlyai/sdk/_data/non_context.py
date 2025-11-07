@@ -884,7 +884,8 @@ def train_fk_model(
 
 def store_fk_model(*, model: ParentChildMatcher, fk_model_workspace_dir: Path) -> None:
     """Save FK model to disk."""
-    fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
+    matching_model_dir = fk_model_workspace_dir / "fk_matching_model"
+    matching_model_dir.mkdir(parents=True, exist_ok=True)
     model_config = {
         "parent_encoder": {
             "cardinalities": model.parent_encoder.cardinalities,
@@ -900,15 +901,16 @@ def store_fk_model(*, model: ParentChildMatcher, fk_model_workspace_dir: Path) -
         },
         "similarity_hidden_dim": model.similarity_hidden_dim,
     }
-    model_config_path = fk_model_workspace_dir / "model_config.json"
+    model_config_path = matching_model_dir / "model_config.json"
     model_config_path.write_text(json.dumps(model_config, indent=4))
-    model_state_path = fk_model_workspace_dir / "model_weights.pt"
+    model_state_path = matching_model_dir / "model_weights.pt"
     torch.save(model.state_dict(), model_state_path)
 
 
 def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
     """Load FK model from disk."""
-    model_config_path = fk_model_workspace_dir / "model_config.json"
+    matching_model_dir = fk_model_workspace_dir / "fk_matching_model"
+    model_config_path = matching_model_dir / "model_config.json"
     model_config = json.loads(model_config_path.read_text())
     model = ParentChildMatcher(
         parent_cardinalities=model_config["parent_encoder"]["cardinalities"],
@@ -918,7 +920,7 @@ def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
         entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
         similarity_hidden_dim=model_config["similarity_hidden_dim"],
     )
-    model_state_path = fk_model_workspace_dir / "model_weights.pt"
+    model_state_path = matching_model_dir / "model_weights.pt"
     model.load_state_dict(torch.load(model_state_path))
     return model
 
@@ -1127,7 +1129,7 @@ def initialize_remaining_capacity(
     import mostlyai.engine as engine
 
     t0 = time.time()
-    cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_engine"
+    cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_model"
     assert cardinality_workspace_dir.exists()
 
     # Generate children counts using engine with parent data as seed
@@ -1229,8 +1231,9 @@ def match_non_context(
         non_null_mask = pd.Series(True, index=tgt_data.index)
 
     fk_model_workspace_dir = fk_models_workspace_dir / safe_name(tgt_parent_key)
-    tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
-    parent_stats_dir = fk_model_workspace_dir / "parent-stats"
+    matching_model_dir = fk_model_workspace_dir / "fk_matching_model"
+    tgt_stats_dir = matching_model_dir / "tgt-stats"
+    parent_stats_dir = matching_model_dir / "parent-stats"
 
     tgt_encoded = encode_df(
         df=tgt_data_non_null,
