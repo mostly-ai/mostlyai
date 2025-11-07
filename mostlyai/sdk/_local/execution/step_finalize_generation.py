@@ -270,7 +270,8 @@ def are_fk_models_available(job_workspace_dir: Path, target_table_name: str, sch
         fk_model_dir = fk_models_dir / safe_name(relation.child.column)
 
         # Check FK model exists
-        fk_model_weights = fk_model_dir / "model_weights.pt"
+        matching_model_dir = fk_model_dir / "fk_matching_model"
+        fk_model_weights = matching_model_dir / "model_weights.pt"
         if not fk_model_weights.exists():
             _LOG.info(
                 f"FK model not found for {target_table_name}.{relation.child.column} "
@@ -279,12 +280,12 @@ def are_fk_models_available(job_workspace_dir: Path, target_table_name: str, sch
             return False
 
         # Check cardinality model exists
-        cardinality_engine_dir = fk_model_dir / "cardinality_engine"
-        cardinality_model_store = cardinality_engine_dir / "ModelStore"
-        if not (cardinality_engine_dir.exists() and cardinality_model_store.exists()):
+        cardinality_model_dir = fk_model_dir / "cardinality_model"
+        cardinality_model_store = cardinality_model_dir / "ModelStore"
+        if not (cardinality_model_dir.exists() and cardinality_model_store.exists()):
             _LOG.info(
                 f"Cardinality model not found for {target_table_name}.{relation.child.column} "
-                f"at {cardinality_engine_dir} - falling back to random assignment"
+                f"at {cardinality_model_dir} - falling back to random assignment"
             )
             return False
 
