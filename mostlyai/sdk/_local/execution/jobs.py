@@ -88,31 +88,18 @@ def _set_random_state(random_state: int | None = None):
 def _move_training_artefacts(generator_dir: Path, job_workspace_dir: Path):
     for dir in ["Logs", "ModelStore", "FKModelsStore", "ModelQAReports", "ModelQAStatistics"]:
         shutil.rmtree(generator_dir / dir, ignore_errors=True)
+        (generator_dir / dir).mkdir()
     for path in job_workspace_dir.absolute().rglob("*"):
-        if "FKModelsStore" in path.parts:
-            fk_store_idx = path.parts.index("FKModelsStore")
-            if path.is_dir() and (
-                path.name == "fk_matching_model" or ("cardinality_model" in path.parts and path.name == "ModelStore")
-            ):
-                relative_path = Path(*path.parts[fk_store_idx + 1 :])
-                dest = generator_dir / "FKModelsStore" / relative_path
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                path.rename(dest)
-        else:
-            if path.is_dir() and path.name == "ModelStore":
-                model_label = path.parent.name
-                dest = generator_dir / "ModelStore" / model_label
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                path.rename(dest)
-            if path.is_file() and path.parent.name == "ModelQAReports":
-                dest = generator_dir / "ModelQAReports" / path.name
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                path.rename(dest)
-            if path.is_dir() and path.name == "ModelQAStatistics":
-                model_label = path.parent.name
-                dest = generator_dir / "ModelQAStatistics" / model_label
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                path.rename(dest)
+        if path.is_dir() and path.name == "ModelStore":
+            model_label = path.parent.name
+            path.rename(generator_dir / "ModelStore" / model_label)
+        if path.is_dir() and path.name == "FKModelsStore":
+            path.rename(generator_dir / "FKModelsStore")
+        if path.is_file() and path.parent.name == "ModelQAReports":
+            path.rename(generator_dir / "ModelQAReports" / path.name)
+        if path.is_dir() and path.name == "ModelQAStatistics":
+            model_label = path.parent.name
+            path.rename(generator_dir / "ModelQAStatistics" / model_label)
 
 
 def _move_generation_artefacts(synthetic_dataset_dir: Path, job_workspace_dir: Path):

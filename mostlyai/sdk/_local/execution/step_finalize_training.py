@@ -14,6 +14,7 @@
 
 
 import logging
+import shutil
 import time
 import traceback
 from pathlib import Path
@@ -275,6 +276,13 @@ def train_non_context_models_for_single_relation(
     )
 
 
+def clean_up_non_context_models_dirs(fk_models_workspace_dir: Path):
+    # ensure OriginalData is not persisted
+    for path in fk_models_workspace_dir.absolute().rglob("*"):
+        if path.name == "OriginalData":
+            shutil.rmtree(path)
+
+
 def execute_step_finalize_training(
     *,
     generator: Generator,
@@ -306,3 +314,5 @@ def execute_step_finalize_training(
             except Exception as e:
                 _LOG.error(f"FK model training failed for table {tgt_table_name}: {e}\n{traceback.format_exc()}")
                 continue
+            finally:
+                clean_up_non_context_models_dirs(fk_models_workspace_dir=fk_models_workspace_dir)
