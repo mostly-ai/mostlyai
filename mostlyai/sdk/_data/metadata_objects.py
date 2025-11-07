@@ -14,7 +14,8 @@
 
 from typing import Annotated, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from pydantic.alias_generators import to_camel
 from pydantic.json_schema import SkipJsonSchema
 
 T = TypeVar("T")
@@ -22,49 +23,53 @@ T = TypeVar("T")
 Nullable = T | SkipJsonSchema[None]
 
 
-class SslCertificates(BaseModel):
+class CustomBaseModel(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class SslCertificates(CustomBaseModel):
     # SSL for Postgres
-    root_certificate: Nullable[str] = Field(None, alias="rootCertificate", description="Encrypted root certificate.")
-    ssl_certificate: Nullable[str] = Field(None, alias="sslCertificate", description="Encrypted client certificate.")
-    ssl_certificate_key: Nullable[str] = Field(None, alias="sslCertificateKey", description="Encrypted client key.")
+    root_certificate: Nullable[str] = Field(None, description="Encrypted root certificate.")
+    ssl_certificate: Nullable[str] = Field(None, description="Encrypted client certificate.")
+    ssl_certificate_key: Nullable[str] = Field(None, description="Encrypted client key.")
     # SSL for Hive
     keystore: Nullable[str] = Field(None, description="Encrypted keystore.")
-    keystore_password: Nullable[str] = Field(None, alias="keystorePassword", description="Encrypted keystore password.")
-    ca_certificate: Nullable[str] = Field(None, alias="caCertificate", description="Encrypted CA certificate.")
+    keystore_password: Nullable[str] = Field(None, description="Encrypted keystore password.")
+    ca_certificate: Nullable[str] = Field(None, description="Encrypted CA certificate.")
 
 
-class AwsS3FileContainerParameters(BaseModel):
-    access_key: Nullable[str] = Field(None, alias="accessKey")
-    secret_key: Nullable[str] = Field(None, alias="secretKey")
-    endpoint_url: Nullable[str] = Field(None, alias="endpointUrl")
+class AwsS3FileContainerParameters(CustomBaseModel):
+    access_key: Nullable[str] = Field(None)
+    secret_key: Nullable[str] = Field(None)
+    endpoint_url: Nullable[str] = Field(None)
     # SSL
-    ssl_enabled: Nullable[bool] = Field(False, alias="sslEnabled")
-    ca_certificate: Nullable[str] = Field(None, alias="caCertificate", description="Encrypted CA certificate.")
+    ssl_enabled: Nullable[bool] = Field(False)
+    ca_certificate: Nullable[str] = Field(None, description="Encrypted CA certificate.")
 
 
-class AzureBlobFileContainerParameters(BaseModel):
-    account_name: Nullable[str] = Field(None, alias="accountName")
-    account_key: Nullable[str] = Field(None, alias="accountKey")
-    client_id: Nullable[str] = Field(None, alias="clientId")
-    client_secret: Nullable[str] = Field(None, alias="clientSecret")
-    tenant_id: Nullable[str] = Field(None, alias="tenantId")
+class AzureBlobFileContainerParameters(CustomBaseModel):
+    account_name: Nullable[str] = Field(None)
+    account_key: Nullable[str] = Field(None)
+    client_id: Nullable[str] = Field(None)
+    client_secret: Nullable[str] = Field(None)
+    tenant_id: Nullable[str] = Field(None)
 
 
-class GcsContainerParameters(BaseModel):
-    key_file: Nullable[str] = Field(None, alias="keyFile")
+class GcsContainerParameters(CustomBaseModel):
+    key_file: Nullable[str] = Field(None)
 
 
-class MinIOContainerParameters(BaseModel):
-    endpoint_url: Nullable[str] = Field(None, alias="endpointUrl")
-    access_key: Nullable[str] = Field(None, alias="accessKey")
-    secret_key: Nullable[str] = Field(None, alias="secretKey")
+class MinIOContainerParameters(CustomBaseModel):
+    endpoint_url: Nullable[str] = Field(None)
+    access_key: Nullable[str] = Field(None)
+    secret_key: Nullable[str] = Field(None)
 
 
-class LocalFileContainerParameters(BaseModel):
+class LocalFileContainerParameters(CustomBaseModel):
     pass
 
 
-class SqlAlchemyContainerParameters(BaseModel):
+class SqlAlchemyContainerParameters(CustomBaseModel):
     model_config = ConfigDict(extra="allow")
 
     username: Nullable[str] = None
@@ -73,22 +78,21 @@ class SqlAlchemyContainerParameters(BaseModel):
     port: Nullable[str | int] = None
     dbname: Nullable[str] = Field(None, alias="database")
     # SSL
-    ssl_enabled: Nullable[bool] = Field(False, alias="sslEnabled")
-    root_certificate: Nullable[str] = Field(None, alias="rootCertificate", description="Encrypted root certificate.")
-    ssl_certificate: Nullable[str] = Field(None, alias="sslCertificate", description="Encrypted client certificate.")
-    ssl_certificate_key: Nullable[str] = Field(None, alias="sslCertificateKey", description="Encrypted client key.")
+    ssl_enabled: Nullable[bool] = Field(False)
+    root_certificate: Nullable[str] = Field(None, description="Encrypted root certificate.")
+    ssl_certificate: Nullable[str] = Field(None, description="Encrypted client certificate.")
+    ssl_certificate_key: Nullable[str] = Field(None, description="Encrypted client key.")
     keystore: Nullable[str] = Field(None, description="Encrypted keystore.")
-    keystore_password: Nullable[str] = Field(None, alias="keystorePassword", description="Encrypted keystore password.")
-    ca_certificate: Nullable[str] = Field(None, alias="caCertificate", description="Encrypted CA certificate.")
+    keystore_password: Nullable[str] = Field(None, description="Encrypted keystore password.")
+    ca_certificate: Nullable[str] = Field(None, description="Encrypted CA certificate.")
     # Kerberos
-    kerberos_enabled: Nullable[bool] = Field(False, alias="kerberosEnabled")
-    kerberos_kdc_host: Nullable[str] = Field(None, alias="kerberosKdcHost")
-    kerberos_krb5_conf: Nullable[str] = Field(None, alias="kerberosKrb5Conf")
-    kerberos_service_principal: Nullable[str] = Field(None, alias="kerberosServicePrincipal")
-    kerberos_client_principal: Nullable[str] = Field(None, alias="kerberosClientPrincipal")
+    kerberos_enabled: Nullable[bool] = Field(False)
+    kerberos_kdc_host: Nullable[str] = Field(None)
+    kerberos_krb5_conf: Nullable[str] = Field(None)
+    kerberos_service_principal: Nullable[str] = Field(None)
+    kerberos_client_principal: Nullable[str] = Field(None)
     kerberos_keytab: Nullable[str] = Field(
         None,
-        alias="kerberosKeytab",
         description="Encrypted content of keytab file of client principal if it is defined. Otherwise, it is the one for service principal.",
     )
 
@@ -106,7 +110,7 @@ class SqlAlchemyContainerParameters(BaseModel):
 
 
 class OracleContainerParameters(SqlAlchemyContainerParameters):
-    connection_type: Nullable[str] = Field("SID", alias="connectionType")
+    connection_type: Nullable[str] = Field("SID")
 
 
 class SnowflakeContainerParameters(SqlAlchemyContainerParameters):
@@ -115,64 +119,60 @@ class SnowflakeContainerParameters(SqlAlchemyContainerParameters):
 
 
 class BigQueryContainerParameters(SqlAlchemyContainerParameters):
-    password: Nullable[str] = Field(None, alias="keyFile")
+    password: Nullable[str] = Field(None, validation_alias=AliasChoices("keyFile", "key_file"))
 
 
 class DatabricksContainerParameters(SqlAlchemyContainerParameters):
-    password: Nullable[str] = Field(None, alias="accessToken")
+    password: Nullable[str] = Field(None, validation_alias=AliasChoices("accessToken", "access_token"))
     dbname: Nullable[str] = Field(None, alias="catalog")
-    http_path: Nullable[str] = Field(None, alias="httpPath")
-    client_id: Nullable[str] = Field(None, alias="clientId")
-    client_secret: Nullable[str] = Field(None, alias="clientSecret")
-    tenant_id: Nullable[str] = Field(None, alias="tenantId")
+    http_path: Nullable[str] = Field(None)
+    client_id: Nullable[str] = Field(None)
+    client_secret: Nullable[str] = Field(None)
+    tenant_id: Nullable[str] = Field(None)
 
 
-class ConnectionResponse(BaseModel):
+class ConnectionResponse(CustomBaseModel):
     connection_succeeded: bool = Field(
         False,
-        alias="connectionSucceeded",
         description="Boolean that shows the connection status",
     )
     message: str = Field("", description="A message describing the result of the test.")
 
 
-class LocationsResponse(BaseModel):
+class LocationsResponse(CustomBaseModel):
     locations: list[str] = Field(None, description="The list of locations")
 
 
-class ColumnSchema(BaseModel):
+class ColumnSchema(CustomBaseModel):
     name: Nullable[str] = None
-    original_data_type: Annotated[Nullable[str], Field(alias="originalDataType")] = None
-    default_model_encoding_type: Annotated[Nullable[str], Field(alias="defaultModelEncodingType")] = None
+    original_data_type: Annotated[Nullable[str], Field()] = None
+    default_model_encoding_type: Annotated[Nullable[str], Field()] = None
 
 
-class ConstraintSchema(BaseModel):
+class ConstraintSchema(CustomBaseModel):
     foreign_key: Annotated[
         Nullable[str],
         Field(
-            alias="foreignKey",
             description="The name of the foreign key column within this table.",
         ),
     ] = None
     referenced_table: Annotated[
         Nullable[str],
-        Field(alias="referencedTable", description="The name of the reference table."),
+        Field(description="The name of the reference table."),
     ] = None
 
 
-class TableSchema(BaseModel):
+class TableSchema(CustomBaseModel):
     name: Annotated[Nullable[str], Field(description="The name of the table.")] = None
     totalRows: Annotated[
         Nullable[int],
         Field(
-            alias="totalRows",
             description="The total number of rows in the table.",
         ),
     ] = None
     primary_key: Annotated[
         Nullable[str],
         Field(
-            alias="primaryKey",
             description="The name of a primary key column. Only applicable for DB connectors.",
         ),
     ] = None
