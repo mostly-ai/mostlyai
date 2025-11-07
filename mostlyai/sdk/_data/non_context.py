@@ -85,6 +85,9 @@ TEMPERATURE = 1.0
 TOP_K = None
 TOP_P = 0.95
 QUOTA_PENALTY_FACTOR = 0.05
+FK_MATCHING_PARENT_BATCH_SIZE = 5_000
+FK_MATCHING_CHILD_BATCH_SIZE = 5_000
+
 
 # Supported Encoding Types
 FK_MODEL_ENCODING_TYPES = [
@@ -1129,7 +1132,7 @@ def initialize_remaining_capacity(
 
     # Generate children counts using engine with parent data as seed
     # The engine will predict the __CHILDREN_COUNT__ column based on parent features
-    _LOG.info(f"Generating cardinality predictions using engine for {len(parent_data)} parents")
+    _LOG.info(f"Generating cardinality predictions for {len(parent_data)} parents")
 
     engine.generate(
         seed_data=parent_data,

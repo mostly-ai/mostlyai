@@ -25,6 +25,8 @@ from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
 from mostlyai.sdk._data.file.table.parquet import ParquetDataTable
 from mostlyai.sdk._data.non_context import (
+    FK_MATCHING_CHILD_BATCH_SIZE,
+    FK_MATCHING_PARENT_BATCH_SIZE,
     add_context_parent_data,
     assign_non_context_fks_randomly,
     initialize_remaining_capacity,
@@ -40,10 +42,6 @@ from mostlyai.sdk._local.storage import get_model_label
 from mostlyai.sdk.domain import Generator, ModelType, SyntheticDataset
 
 _LOG = logging.getLogger(__name__)
-
-# FK processing constants
-FK_MATCHING_PARENT_BATCH_SIZE = 5_000
-FK_MATCHING_CHILD_BATCH_SIZE = 5_000
 
 
 def execute_step_finalize_generation(
@@ -351,7 +349,6 @@ def process_table_with_fk_models(
         parent_table = parent_tables[parent_table_name]
 
         _LOG.info(f"Using Cardinality Model for {relation.child.table}.{relation.child.column}")
-        # Use Cardinality Model to predict capacities
         parent_data = parent_table.read_data(
             where={pk_col: parent_keys_df[pk_col].tolist()},
             do_coerce_dtypes=True,
@@ -382,8 +379,8 @@ def process_table_with_fk_models(
             )
 
             processed_batches = []
-            for batch_start in range(0, len(chunk_data), child_batch_size):
-                batch_end = min(batch_start + child_batch_size, len(chunk_data))
+            for batch_start in range(0, child_size, child_batch_size):
+                batch_end = min(batch_start + child_batch_size, child_size)
                 batch_data = chunk_data.iloc[batch_start:batch_end].copy()
                 batch_data = add_context_parent_data(
                     tgt_data=batch_data,
