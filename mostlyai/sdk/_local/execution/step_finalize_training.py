@@ -18,6 +18,8 @@ import time
 import traceback
 from pathlib import Path
 
+import pandas as pd
+
 import mostlyai.engine as engine
 from mostlyai.sdk._data.base import NonContextRelation, Schema
 from mostlyai.sdk._data.non_context import (
@@ -70,8 +72,8 @@ def execute_train_non_context_models_for_single_table(
 
 def train_fk_matching_model(
     *,
-    parent_data,
-    tgt_data,
+    parent_data: pd.DataFrame,
+    tgt_data: pd.DataFrame,
     parent_primary_key: str,
     tgt_parent_key: str,
     fk_model_workspace_dir: Path,
@@ -92,7 +94,8 @@ def train_fk_matching_model(
     tgt_data_columns = [c for c in tgt_data.columns if c != tgt_parent_key]
     parent_data_columns = [c for c in parent_data.columns if c != parent_primary_key]
 
-    tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
+    matching_model_dir = fk_model_workspace_dir / "fk_matching_model"
+    tgt_stats_dir = matching_model_dir / "tgt-stats"
     analyze_df(
         df=tgt_data,
         parent_key=tgt_parent_key,
@@ -100,7 +103,7 @@ def train_fk_matching_model(
         stats_dir=tgt_stats_dir,
     )
 
-    parent_stats_dir = fk_model_workspace_dir / "parent-stats"
+    parent_stats_dir = matching_model_dir / "parent-stats"
     analyze_df(
         df=parent_data,
         primary_key=parent_primary_key,
@@ -175,7 +178,7 @@ def train_cardinality_model(
         tgt_parent_key=tgt_parent_key,
     )
 
-    cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_engine"
+    cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_model"
     cardinality_workspace_dir.mkdir(parents=True, exist_ok=True)
 
     engine.split(
@@ -237,7 +240,13 @@ def train_non_context_models_for_single_relation(
         schema=schema,
     )
 
-    if parent_data.empty or tgt_data.empty:
+    parent_empty_or_key_only = parent_data.empty or len(parent_data.columns) <= 1
+    tgt_empty_or_key_only = tgt_data.empty or len(tgt_data.columns) <= 1
+    if parent_empty_or_key_only or tgt_empty_or_key_only:
+        _LOG.info(
+            f"Skipping FK model training for {tgt_table_name}.{tgt_parent_key} -> {parent_table_name}.{parent_primary_key}: "
+            f"parent or target data is empty or contains only key columns."
+        )
         return
 
     fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
