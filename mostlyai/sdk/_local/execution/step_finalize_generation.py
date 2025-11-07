@@ -44,6 +44,7 @@ _LOG = logging.getLogger(__name__)
 
 # FK processing constants
 FK_MIN_CHILDREN_BATCH_SIZE = 10
+FK_MAX_CHILDREN_BATCH_SIZE = 10_000
 FK_PARENT_BATCH_SIZE = 1_000
 
 
@@ -324,8 +325,8 @@ def calculate_optimal_child_batch_size_for_relation(
     # ideal batch size for full parent utilization
     ideal_batch_size = children_row_count // num_parent_batches
 
-    # apply minimum batch size constraint
-    optimal_batch_size = max(ideal_batch_size, FK_MIN_CHILDREN_BATCH_SIZE)
+    # ensure optimal batch size stays within defined min and max bounds
+    optimal_batch_size = min(max(ideal_batch_size, FK_MIN_CHILDREN_BATCH_SIZE), FK_MAX_CHILDREN_BATCH_SIZE)
 
     # log utilization metrics
     num_child_batches = children_row_count // optimal_batch_size
@@ -395,21 +396,14 @@ def process_table_with_fk_models(
     remaining_capacity = {}
     for relation in non_ctx_relations:
         parent_table_name = relation.parent.table
+        parent_table = parent_tables[parent_table_name]
         pk_col = relation.parent.column
         fk_model_dir = fk_models_workspace_dir / safe_name(relation.child.column)
 
-        parent_keys_df = parent_keys_cache[parent_table_name]
-        parent_table = parent_tables[parent_table_name]
-
-        _LOG.info(f"Using Engine-based Cardinality Model for {relation.child.table}.{relation.child.column}")
-        # Use Engine-based Cardinality Model to predict capacities
-        parent_data = parent_table.read_data(
-            where={pk_col: parent_keys_df[pk_col].tolist()},
-            do_coerce_dtypes=True,
-        )
+        _LOG.info(f"Using Cardinality Model for {relation.child.table}.{relation.child.column}")
         capacity_dict = initialize_remaining_capacity(
             fk_model_workspace_dir=fk_model_dir,
-            parent_data=parent_data,
+            parent_table=parent_table,
             parent_pk=pk_col,
         )
         remaining_capacity[relation] = capacity_dict
