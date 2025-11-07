@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import math
 import uuid
 import zipfile
 from pathlib import Path
@@ -372,14 +373,27 @@ def process_table_with_fk_models(
             child_size = len(chunk_data)
             parent_batch_size = min(FK_MATCHING_PARENT_BATCH_SIZE, parent_size)
             child_batch_size = min(FK_MATCHING_CHILD_BATCH_SIZE, child_size)
+            num_child_batches = math.ceil(child_size / child_batch_size)
+            total_parent_samples_needed = num_child_batches * parent_batch_size
 
             _LOG.info(
                 f"Processing relationship {relation.child.table}.{relation.child.column}->{parent_table_name} with "
-                f"parent_batch_size={parent_batch_size}, child_batch_size={child_batch_size}"
+                f"parent_batch_size={parent_batch_size}, child_batch_size={child_batch_size}, "
+                f"num_child_batches={num_child_batches}"
+            )
+
+            # sample enough parent data to cover all child batches in this chunk
+            sampled_parent_keys = parent_keys_df.sample(
+                n=total_parent_samples_needed, replace=total_parent_samples_needed > parent_size
+            )[parent_pk].tolist()
+            parent_data_for_chunk = parent_table.read_data(
+                where={parent_pk: sampled_parent_keys},
+                columns=parent_table.columns,
+                do_coerce_dtypes=True,
             )
 
             processed_batches = []
-            for batch_start in range(0, child_size, child_batch_size):
+            for batch_idx, batch_start in enumerate(range(0, child_size, child_batch_size)):
                 batch_end = min(batch_start + child_batch_size, child_size)
                 batch_data = chunk_data.iloc[batch_start:batch_end].copy()
                 batch_data = add_context_parent_data(
@@ -388,12 +402,10 @@ def process_table_with_fk_models(
                     schema=schema,
                 )
 
-                sampled_parent_keys = parent_keys_df.sample(n=parent_batch_size)[parent_pk].tolist()
-                parent_data = parent_table.read_data(
-                    where={parent_pk: sampled_parent_keys},
-                    columns=parent_table.columns,
-                    do_coerce_dtypes=True,
-                )
+                # slice the appropriate parent batch from the pre-fetched data
+                parent_slice_start = batch_idx * parent_batch_size
+                parent_slice_end = min(parent_slice_start + parent_batch_size, len(parent_data_for_chunk))
+                parent_data = parent_data_for_chunk.iloc[parent_slice_start:parent_slice_end]
 
                 assert relation in remaining_capacity
                 processed_batch = match_non_context(
