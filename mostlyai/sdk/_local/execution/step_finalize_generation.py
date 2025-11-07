@@ -44,6 +44,7 @@ _LOG = logging.getLogger(__name__)
 
 # FK processing constants
 FK_MIN_CHILDREN_BATCH_SIZE = 10
+FK_MAX_CHILDREN_BATCH_SIZE = 10_000
 FK_PARENT_BATCH_SIZE = 1_000
 
 
@@ -324,8 +325,8 @@ def calculate_optimal_child_batch_size_for_relation(
     # ideal batch size for full parent utilization
     ideal_batch_size = children_row_count // num_parent_batches
 
-    # apply minimum batch size constraint
-    optimal_batch_size = max(ideal_batch_size, FK_MIN_CHILDREN_BATCH_SIZE)
+    # ensure optimal batch size stays within defined min and max bounds
+    optimal_batch_size = min(max(ideal_batch_size, FK_MIN_CHILDREN_BATCH_SIZE), FK_MAX_CHILDREN_BATCH_SIZE)
 
     # log utilization metrics
     num_child_batches = children_row_count // optimal_batch_size
