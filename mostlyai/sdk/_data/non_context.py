@@ -1119,7 +1119,7 @@ def initialize_remaining_capacity(
 
     Args:
         fk_model_workspace_dir: Directory containing trained models
-        parent_table: Synthetic parent table (DataTable)
+        parent_table: Synthetic parent table
         parent_pk: Primary key column name
 
     Returns:
@@ -1145,12 +1145,11 @@ def initialize_remaining_capacity(
 
         predicted_data_path = cardinality_workspace_dir / "SyntheticData"
         predicted_data = pd.read_parquet(predicted_data_path)
-        predicted_counts = predicted_data[CHILDREN_COUNT_COLUMN_NAME].values
-        predicted_counts = np.round(np.maximum(0, predicted_counts)).astype(int)
+        predicted_counts = predicted_data[CHILDREN_COUNT_COLUMN_NAME].astype(int)
 
-        parent_ids = parent_chunk[parent_pk].tolist()
-        for pid, count in zip(parent_ids, predicted_counts):
-            remaining_capacity[pid] = int(count)
+        parent_ids = parent_chunk[parent_pk]
+        for parent_id, count in zip(parent_ids, predicted_counts):
+            remaining_capacity[parent_id] = count
 
         total_parents += chunk_size
         shutil.rmtree(predicted_data_path)
