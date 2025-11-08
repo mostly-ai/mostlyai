@@ -45,6 +45,7 @@ _LOG = logging.getLogger(__name__)
 
 # FK processing constants
 FK_MIN_CHILDREN_BATCH_SIZE = 10
+FK_MAX_CHILDREN_BATCH_SIZE = 10_000
 FK_PARENT_BATCH_SIZE = 1_000
 
 
@@ -271,7 +272,8 @@ def are_fk_models_available(job_workspace_dir: Path, target_table_name: str, sch
         fk_model_dir = fk_models_dir / safe_name(relation.child.column)
 
         # Check FK model exists
-        fk_model_weights = fk_model_dir / "model_weights.pt"
+        matching_model_dir = fk_model_dir / "fk_matching_model"
+        fk_model_weights = matching_model_dir / "model_weights.pt"
         if not fk_model_weights.exists():
             _LOG.info(
                 f"FK model not found for {target_table_name}.{relation.child.column} "
@@ -280,12 +282,12 @@ def are_fk_models_available(job_workspace_dir: Path, target_table_name: str, sch
             return False
 
         # Check cardinality model exists
-        cardinality_engine_dir = fk_model_dir / "cardinality_engine"
-        cardinality_model_store = cardinality_engine_dir / "ModelStore"
-        if not (cardinality_engine_dir.exists() and cardinality_model_store.exists()):
+        cardinality_model_dir = fk_model_dir / "cardinality_model"
+        cardinality_model_store = cardinality_model_dir / "ModelStore"
+        if not (cardinality_model_dir.exists() and cardinality_model_store.exists()):
             _LOG.info(
                 f"Cardinality model not found for {target_table_name}.{relation.child.column} "
-                f"at {cardinality_engine_dir} - falling back to random assignment"
+                f"at {cardinality_model_dir} - falling back to random assignment"
             )
             return False
 
@@ -324,8 +326,8 @@ def calculate_optimal_child_batch_size_for_relation(
     # ideal batch size for full parent utilization
     ideal_batch_size = children_row_count // num_parent_batches
 
-    # apply minimum batch size constraint
-    optimal_batch_size = max(ideal_batch_size, FK_MIN_CHILDREN_BATCH_SIZE)
+    # ensure optimal batch size stays within defined min and max bounds
+    optimal_batch_size = min(max(ideal_batch_size, FK_MIN_CHILDREN_BATCH_SIZE), FK_MAX_CHILDREN_BATCH_SIZE)
 
     # log utilization metrics
     num_child_batches = children_row_count // optimal_batch_size
@@ -393,24 +395,18 @@ def process_table_with_fk_models(
     children_counts = {}
     for relation in non_ctx_relations:
         parent_table_name = relation.parent.table
+        parent_table = parent_tables[parent_table_name]
         pk_col = relation.parent.column
         fk_model_dir = fk_models_workspace_dir / safe_name(relation.child.column)
 
-        parent_keys_df = parent_keys_cache[parent_table_name]
-        parent_table = parent_tables[parent_table_name]
-
-        _LOG.info(f"Using Engine-based Cardinality Model for {relation.child.table}.{relation.child.column}")
-        parent_data = parent_table.read_data(
-            where={pk_col: parent_keys_df[pk_col].tolist()},
-            do_coerce_dtypes=True,
-        )
-        capacity_dict, counts_dict = initialize_remaining_capacity(
+        _LOG.info(f"Using Cardinality Model for {relation.child.table}.{relation.child.column}")
+        capacity_dict = initialize_remaining_capacity(
             fk_model_workspace_dir=fk_model_dir,
-            parent_data=parent_data,
+            parent_table=parent_table,
             parent_pk=pk_col,
         )
         remaining_capacity[relation] = capacity_dict
-        children_counts[relation] = counts_dict
+        children_counts[relation] = capacity_dict.copy()
 
     for chunk_idx, chunk_data in enumerate(children_table.read_chunks(do_coerce_dtypes=True)):
         _LOG.info(f"Processing chunk {chunk_idx} ({len(chunk_data)} rows)")

@@ -14,18 +14,21 @@
 
 
 import logging
+import shutil
 import time
 import traceback
 from pathlib import Path
 
+import pandas as pd
+
 import mostlyai.engine as engine
 from mostlyai.sdk._data.base import NonContextRelation, Schema
 from mostlyai.sdk._data.non_context import (
-    CHILDREN_COUNT_COLUMN_NAME,
     ParentChildMatcher,
     analyze_df,
     encode_df,
     get_cardinalities,
+    prepare_training_data_for_cardinality_model,
     prepare_training_pairs_for_fk_model,
     pull_fk_model_training_data,
     safe_name,
@@ -70,8 +73,8 @@ def execute_train_non_context_models_for_single_table(
 
 def train_fk_matching_model(
     *,
-    parent_data,
-    tgt_data,
+    parent_data: pd.DataFrame,
+    tgt_data: pd.DataFrame,
     parent_primary_key: str,
     tgt_parent_key: str,
     fk_model_workspace_dir: Path,
@@ -92,7 +95,8 @@ def train_fk_matching_model(
     tgt_data_columns = [c for c in tgt_data.columns if c != tgt_parent_key]
     parent_data_columns = [c for c in parent_data.columns if c != parent_primary_key]
 
-    tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
+    matching_model_dir = fk_model_workspace_dir / "fk_matching_model"
+    tgt_stats_dir = matching_model_dir / "tgt-stats"
     analyze_df(
         df=tgt_data,
         parent_key=tgt_parent_key,
@@ -100,7 +104,7 @@ def train_fk_matching_model(
         stats_dir=tgt_stats_dir,
     )
 
-    parent_stats_dir = fk_model_workspace_dir / "parent-stats"
+    parent_stats_dir = matching_model_dir / "parent-stats"
     analyze_df(
         df=parent_data,
         primary_key=parent_primary_key,
@@ -149,6 +153,9 @@ def train_fk_matching_model(
 def train_cardinality_model(
     *,
     parent_data,
+    tgt_data,
+    parent_primary_key: str,
+    tgt_parent_key: str,
     fk_model_workspace_dir: Path,
 ):
     """
@@ -159,14 +166,24 @@ def train_cardinality_model(
     each parent should have.
 
     Args:
-        parent_data: Parent table data with CHILDREN_COUNT_COLUMN_NAME already added
+        parent_data: Parent table data
+        tgt_data: Target/child table data
+        parent_primary_key: Primary key column in parent data
+        tgt_parent_key: Foreign key column in target data
         fk_model_workspace_dir: Directory to save model artifacts
     """
-    cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_engine"
+    parent_data_with_counts = prepare_training_data_for_cardinality_model(
+        parent_data=parent_data,
+        tgt_data=tgt_data,
+        parent_primary_key=parent_primary_key,
+        tgt_parent_key=tgt_parent_key,
+    )
+
+    cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_model"
     cardinality_workspace_dir.mkdir(parents=True, exist_ok=True)
 
     engine.split(
-        tgt_data=parent_data,
+        tgt_data=parent_data_with_counts,
         workspace_dir=cardinality_workspace_dir,
         update_progress=lambda **kwargs: None,
     )
@@ -224,18 +241,20 @@ def train_non_context_models_for_single_relation(
         schema=schema,
     )
 
-    if parent_data.empty or tgt_data.empty:
+    parent_empty_or_key_only = parent_data.empty or len(parent_data.columns) <= 1
+    tgt_empty_or_key_only = tgt_data.empty or len(tgt_data.columns) <= 1
+    if parent_empty_or_key_only or tgt_empty_or_key_only:
+        _LOG.info(
+            f"Skipping FK model training for {tgt_table_name}.{tgt_parent_key} -> {parent_table_name}.{parent_primary_key}: "
+            f"parent or target data is empty or contains only key columns."
+        )
         return
 
     fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
 
-    children_counts = tgt_data[tgt_parent_key].value_counts()
-    children_counts_mapped = parent_data[parent_primary_key].map(children_counts).fillna(0).astype(int)
-    parent_data_with_counts = parent_data.assign(**{CHILDREN_COUNT_COLUMN_NAME: children_counts_mapped})
-
     _LOG.info(f"Training FK matching model for {tgt_table_name}.{tgt_parent_key}")
     train_fk_matching_model(
-        parent_data=parent_data_with_counts,
+        parent_data=parent_data,
         tgt_data=tgt_data,
         parent_primary_key=parent_primary_key,
         tgt_parent_key=tgt_parent_key,
@@ -244,7 +263,10 @@ def train_non_context_models_for_single_relation(
 
     _LOG.info(f"Training cardinality model for {tgt_table_name}.{tgt_parent_key}")
     train_cardinality_model(
-        parent_data=parent_data_with_counts,
+        parent_data=parent_data,
+        tgt_data=tgt_data,
+        parent_primary_key=parent_primary_key,
+        tgt_parent_key=tgt_parent_key,
         fk_model_workspace_dir=fk_model_workspace_dir,
     )
 
@@ -252,6 +274,13 @@ def train_non_context_models_for_single_relation(
         f"Trained FK matching and cardinality models for {tgt_table_name}.{tgt_parent_key} -> {parent_table_name}.{parent_primary_key} | "
         f"time: {time.time() - t0:.2f}s | models saved: {fk_model_workspace_dir}"
     )
+
+
+def clean_up_non_context_models_dirs(fk_models_workspace_dir: Path):
+    # ensure OriginalData is not persisted
+    for path in fk_models_workspace_dir.absolute().rglob("*"):
+        if path.name == "OriginalData":
+            shutil.rmtree(path)
 
 
 def execute_step_finalize_training(
@@ -285,3 +314,5 @@ def execute_step_finalize_training(
             except Exception as e:
                 _LOG.error(f"FK model training failed for table {tgt_table_name}: {e}\n{traceback.format_exc()}")
                 continue
+            finally:
+                clean_up_non_context_models_dirs(fk_models_workspace_dir=fk_models_workspace_dir)

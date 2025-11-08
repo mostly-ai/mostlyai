@@ -25,6 +25,7 @@ This module provides functionality for handling non-context foreign keys in two 
 import hashlib
 import json
 import logging
+import shutil
 import time
 from collections import defaultdict
 from copy import copy as shallow_copy
@@ -39,6 +40,7 @@ from pathvalidate import sanitize_filename
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
+import mostlyai.engine as engine
 from mostlyai.engine._common import read_json, write_json
 from mostlyai.engine._encoding_types.tabular.categorical import (
     analyze_categorical,
@@ -881,7 +883,8 @@ def train_fk_model(
 
 def store_fk_model(*, model: ParentChildMatcher, fk_model_workspace_dir: Path) -> None:
     """Save FK model to disk."""
-    fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
+    matching_model_dir = fk_model_workspace_dir / "fk_matching_model"
+    matching_model_dir.mkdir(parents=True, exist_ok=True)
     model_config = {
         "parent_encoder": {
             "cardinalities": model.parent_encoder.cardinalities,
@@ -897,15 +900,16 @@ def store_fk_model(*, model: ParentChildMatcher, fk_model_workspace_dir: Path) -
         },
         "similarity_hidden_dim": model.similarity_hidden_dim,
     }
-    model_config_path = fk_model_workspace_dir / "model_config.json"
+    model_config_path = matching_model_dir / "model_config.json"
     model_config_path.write_text(json.dumps(model_config, indent=4))
-    model_state_path = fk_model_workspace_dir / "model_weights.pt"
+    model_state_path = matching_model_dir / "model_weights.pt"
     torch.save(model.state_dict(), model_state_path)
 
 
 def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
     """Load FK model from disk."""
-    model_config_path = fk_model_workspace_dir / "model_config.json"
+    matching_model_dir = fk_model_workspace_dir / "fk_matching_model"
+    model_config_path = matching_model_dir / "model_config.json"
     model_config = json.loads(model_config_path.read_text())
     model = ParentChildMatcher(
         parent_cardinalities=model_config["parent_encoder"]["cardinalities"],
@@ -915,7 +919,7 @@ def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
         entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
         similarity_hidden_dim=model_config["similarity_hidden_dim"],
     )
-    model_state_path = fk_model_workspace_dir / "model_weights.pt"
+    model_state_path = matching_model_dir / "model_weights.pt"
     model.load_state_dict(torch.load(model_state_path))
     return model
 
@@ -1103,55 +1107,59 @@ def sample_single_parent(
 def initialize_remaining_capacity(
     *,
     fk_model_workspace_dir: Path,
-    parent_data: pd.DataFrame,
+    parent_table: DataTable,
     parent_pk: str,
-) -> tuple[dict, dict]:
+) -> dict:
     """
     Initialize remaining_capacity dict using engine-based cardinality predictions.
 
     This function uses the trained mostlyai-engine model to predict the number of children
-    each parent should have. The synthetic parent data is used as a seed to generate
-    predictions for the '__CHILDREN_COUNT__' column.
+    each parent should have. The synthetic parent data is processed in chunks to avoid
+    memory issues with large parent tables.
 
     Args:
         fk_model_workspace_dir: Directory containing trained models
-        parent_data: Synthetic parent table data (with PK and all features)
+        parent_table: Synthetic parent table
         parent_pk: Primary key column name
 
     Returns:
-        Tuple of (remaining_capacity dict, children_counts dict mapping parent_id -> count)
+        Dictionary {parent_id: predicted_capacity}
     """
-    import mostlyai.engine as engine
-
     t0 = time.time()
-    cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_engine"
+    cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_model"
     assert cardinality_workspace_dir.exists()
 
-    # Generate children counts using engine with parent data as seed
-    # The engine will predict the __CHILDREN_COUNT__ column based on parent features
-    _LOG.info(f"Generating cardinality predictions using engine for {len(parent_data)} parents")
+    remaining_capacity = {}
+    total_parents = 0
 
-    engine.generate(
-        seed_data=parent_data,
-        workspace_dir=cardinality_workspace_dir,
-        update_progress=lambda **kwargs: None,
-    )
+    _LOG.info(f"Generating cardinality predictions in chunks for parent table {parent_table.name}")
+    for chunk_idx, parent_chunk in enumerate(parent_table.read_chunks(do_coerce_dtypes=True)):
+        chunk_size = len(parent_chunk)
+        _LOG.info(f"Processing cardinality chunk {chunk_idx} with {chunk_size} parents")
 
-    predicted_data = pd.read_parquet(cardinality_workspace_dir / "SyntheticData")
-    predicted_counts = predicted_data[CHILDREN_COUNT_COLUMN_NAME].values
+        engine.generate(
+            seed_data=parent_chunk,
+            workspace_dir=cardinality_workspace_dir,
+            update_progress=lambda **kwargs: None,
+        )
 
-    # Ensure non-negative and round to integers
-    predicted_counts = np.round(np.maximum(0, predicted_counts)).astype(int)
+        predicted_data_path = cardinality_workspace_dir / "SyntheticData"
+        predicted_data = pd.read_parquet(predicted_data_path)
+        predicted_counts = predicted_data[CHILDREN_COUNT_COLUMN_NAME].astype(int)
 
-    # Create dicts
-    parent_ids = parent_data[parent_pk].tolist()
-    remaining_capacity = {pid: int(count) for pid, count in zip(parent_ids, predicted_counts)}
-    children_counts = remaining_capacity.copy()
+        parent_ids = parent_chunk[parent_pk]
+        for parent_id, count in zip(parent_ids, predicted_counts):
+            remaining_capacity[parent_id] = count
+
+        total_parents += chunk_size
+        shutil.rmtree(predicted_data_path)
 
     total_capacity = sum(remaining_capacity.values())
-    _LOG.info(f"initialize_remaining_capacity | total_capacity: {total_capacity} | time: {time.time() - t0:.2f}s")
+    _LOG.info(
+        f"initialize_remaining_capacity | total_parents: {total_parents} | total_capacity: {total_capacity} | time: {time.time() - t0:.2f}s"
+    )
 
-    return remaining_capacity, children_counts
+    return remaining_capacity
 
 
 def match_non_context(
@@ -1226,8 +1234,9 @@ def match_non_context(
         non_null_mask = pd.Series(True, index=tgt_data.index)
 
     fk_model_workspace_dir = fk_models_workspace_dir / safe_name(tgt_parent_key)
-    tgt_stats_dir = fk_model_workspace_dir / "tgt-stats"
-    parent_stats_dir = fk_model_workspace_dir / "parent-stats"
+    matching_model_dir = fk_model_workspace_dir / "fk_matching_model"
+    tgt_stats_dir = matching_model_dir / "tgt-stats"
+    parent_stats_dir = matching_model_dir / "parent-stats"
 
     tgt_encoded = encode_df(
         df=tgt_data_non_null,

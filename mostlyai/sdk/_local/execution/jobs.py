@@ -86,20 +86,23 @@ def _set_random_state(random_state: int | None = None):
 
 
 def _move_training_artefacts(generator_dir: Path, job_workspace_dir: Path):
-    for dir in ["Logs", "ModelStore", "FKModelsStore", "ModelQAReports", "ModelQAStatistics"]:
+    for dir in ["Logs", "ModelStore", "ModelQAReports", "ModelQAStatistics", "FKModelsStore"]:
         shutil.rmtree(generator_dir / dir, ignore_errors=True)
         (generator_dir / dir).mkdir()
     for path in job_workspace_dir.absolute().rglob("*"):
-        if path.is_dir() and path.name == "ModelStore":
-            model_label = path.parent.name
-            path.rename(generator_dir / "ModelStore" / model_label)
+        if "FKModelsStore" not in path.parts:
+            if path.is_dir() and path.name == "ModelStore":
+                model_label = path.parent.name
+                path.rename(generator_dir / "ModelStore" / model_label)
+            if path.is_dir() and path.name == "FKModelsStore":
+                path.rename(generator_dir / "FKModelsStore")
+            if path.is_file() and path.parent.name == "ModelQAReports":
+                path.rename(generator_dir / "ModelQAReports" / path.name)
+            if path.is_dir() and path.name == "ModelQAStatistics":
+                model_label = path.parent.name
+                path.rename(generator_dir / "ModelQAStatistics" / model_label)
         if path.is_dir() and path.name == "FKModelsStore":
             path.rename(generator_dir / "FKModelsStore")
-        if path.is_file() and path.parent.name == "ModelQAReports":
-            path.rename(generator_dir / "ModelQAReports" / path.name)
-        if path.is_dir() and path.name == "ModelQAStatistics":
-            model_label = path.parent.name
-            path.rename(generator_dir / "ModelQAStatistics" / model_label)
 
 
 def _move_generation_artefacts(synthetic_dataset_dir: Path, job_workspace_dir: Path):
