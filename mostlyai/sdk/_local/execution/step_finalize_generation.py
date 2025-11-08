@@ -487,6 +487,13 @@ def finalize_table_generation(
 
     if fk_models_available:
         _LOG.info(f"Assigning non context FKs (if exists) through FK models for table {target_table_name}")
+        process_table_with_fk_models(
+            table_name=target_table_name,
+            schema=generated_data_schema,
+            pqt_path=pqt_path,
+            csv_path=csv_path,
+            job_workspace_dir=job_workspace_dir,
+        )
         try:
             process_table_with_fk_models(
                 table_name=target_table_name,

@@ -68,11 +68,11 @@ SIMILARITY_HIDDEN_DIM = 256
 PEAKEDNESS_SCALER = 7.0
 
 # Training Parameters
-BATCH_SIZE = 128
-LEARNING_RATE = 0.0003
+BATCH_SIZE = 32
+LEARNING_RATE = 0.0001
 MAX_EPOCHS = 1000
-PATIENCE = 5
-N_NEGATIVE_SAMPLES = 5
+PATIENCE = 20
+N_NEGATIVE_SAMPLES = 10
 VAL_SPLIT = 0.2
 DROPOUT_RATE = 0.2
 EARLY_STOPPING_DELTA = 1e-5
@@ -86,7 +86,7 @@ MAX_TGT_PER_PARENT = 10
 TEMPERATURE = 1.0
 TOP_K = None
 TOP_P = 0.95
-QUOTA_PENALTY_FACTOR = 0.01
+QUOTA_PENALTY_FACTOR = 1
 
 # Supported Encoding Types
 FK_MODEL_ENCODING_TYPES = [
@@ -135,7 +135,7 @@ def add_is_null_for_non_context_relation(
     is_target: bool = False,
 ) -> pd.DataFrame:
     """Handle a single non-context relation for a table and add an is_null column."""
-    _LOG.info(f"handle non-context relation {table.name}")
+    print(f"handle non-context relation {table.name}")
 
     assert isinstance(relation, NonContextRelation)
     fk = relation.child.ref_name(prefixed=not is_target)
@@ -209,7 +209,7 @@ def assign_non_context_fks_randomly(
             continue
         tgt_fk_name = rel.child.column
         tgt_is_null_column_name = rel.get_is_null_column()
-        _LOG.info(f"sample non-context keys for {tgt_fk_name}")
+        print(f"sample non-context keys for {tgt_fk_name}")
         tgt_is_null = tgt_data[tgt_is_null_column_name]
         # read referenced table's keys
         non_ctx_pk_name = rel.parent.column
@@ -256,6 +256,12 @@ class EntityEncoder(nn.Module):
             nn.ReLU(),
             nn.Dropout(DROPOUT_RATE),
             nn.Linear(self.entity_hidden_dim, self.entity_embedding_dim),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT_RATE),
+            nn.Linear(self.entity_embedding_dim, self.entity_embedding_dim),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT_RATE),
+            nn.Linear(self.entity_embedding_dim, self.entity_embedding_dim),
         )
 
     def forward(self, inputs: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -469,7 +475,7 @@ def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT
             break
 
     parent_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-    _LOG.info(f"fetch_parent_data | fetched: {len(parent_data)} | time: {time.time() - t0:.2f}s")
+    print(f"fetch_parent_data | fetched: {len(parent_data)} | time: {time.time() - t0:.2f}s")
     return parent_data
 
 
@@ -528,7 +534,7 @@ def fetch_tgt_data(
                 parent_counts[parent_id] += 1
 
     tgt_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-    _LOG.info(f"fetch_tgt_data | fetched: {len(tgt_data)} | time: {time.time() - t0:.2f}s")
+    print(f"fetch_tgt_data | fetched: {len(tgt_data)} | time: {time.time() - t0:.2f}s")
     return tgt_data
 
 
@@ -554,7 +560,7 @@ def add_context_parent_data(
     # get unique context parent keys from tgt_data
     ctx_parent_keys = tgt_data[tgt_ctx_fk].dropna().unique().tolist()
     if not ctx_parent_keys:
-        _LOG.info(f"No context parent keys found in tgt_data for {tgt_table.name}")
+        print(f"No context parent keys found in tgt_data for {tgt_table.name}")
         return tgt_data
 
     # identify key columns to exclude (primary key + foreign keys)
@@ -583,7 +589,7 @@ def add_context_parent_data(
     )
 
     if ctx_parent_data.empty:
-        _LOG.info(f"No context parent data found for {tgt_table.name}")
+        print(f"No context parent data found for {tgt_table.name}")
         return tgt_data
 
     # join context parent data with tgt_data
@@ -605,7 +611,7 @@ def add_context_parent_data(
         tgt_data = tgt_data.drop(columns=[tgt_ctx_fk])
 
     added_columns = [c for c in tgt_data.columns if c in ctx_parent_data.columns]
-    _LOG.info(f"add_context_parent_data | time: {time.time() - t0:.2f}s | added_columns: {added_columns}")
+    print(f"add_context_parent_data | time: {time.time() - t0:.2f}s | added_columns: {added_columns}")
     return tgt_data
 
 
@@ -643,7 +649,7 @@ def pull_fk_model_training_data(
         schema=schema,
         drop_context_key=True,  # after this step, tgt_context_key is dropped
     )
-    _LOG.info(
+    print(
         f"pull_fk_model_training_data | parent_data columns: {list(parent_data.columns)} | tgt_data columns: {list(tgt_data.columns)}"
     )
     return parent_data, tgt_data
@@ -679,7 +685,7 @@ def prepare_training_data_for_cardinality_model(
     children_counts = parent_data[parent_primary_key].map(children_counts).fillna(0).astype(int)
     parent_data_enriched = parent_data.assign(**{CHILDREN_COUNT_COLUMN_NAME: children_counts})
 
-    _LOG.info(
+    print(
         f"prepare_training_data_for_cardinality_model | n_rows: {len(parent_data_enriched)} | time: {time.time() - t0:.2f}s"
     )
 
@@ -779,7 +785,7 @@ def prepare_training_pairs_for_fk_model(
     labels_pd = pd.Series(labels_vec, name="labels")
 
     n_pairs = len(parent_pd)
-    _LOG.info(f"prepare_training_pairs_for_fk_model | n_pairs: {n_pairs} | time: {time.time() - t0:.2f}s")
+    print(f"prepare_training_pairs_for_fk_model | n_pairs: {n_pairs} | time: {time.time() - t0:.2f}s")
     return parent_pd, tgt_pd, labels_pd
 
 
@@ -816,7 +822,8 @@ def train_fk_model(
     num_positives = int(labels.sum())
     num_negatives = len(labels) - num_positives
     pos_weight = torch.tensor([num_negatives / num_positives]) if num_positives > 0 else torch.tensor([1.0])
-    loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    # loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight/2)
+    loss_fn = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([float(1)]))
 
     train_losses, val_losses = [], []
     best_model_state = None
@@ -856,7 +863,7 @@ def train_fk_model(
             "train_loss": round(train_loss, 4),
             "val_loss": round(val_loss, 4),
         }
-        _LOG.info(progress_msg)
+        print(progress_msg)
 
         if val_loss < best_val_loss - EARLY_STOPPING_DELTA:
             epochs_no_improve = 0
@@ -866,12 +873,12 @@ def train_fk_model(
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= PATIENCE:
-                _LOG.info("early stopping: val_loss stopped improving")
+                print("early stopping: val_loss stopped improving")
                 break
 
     assert best_model_state is not None
     model.load_state_dict(best_model_state)
-    _LOG.info(
+    print(
         f"train_fk_model() | time: {time.time() - t0:.2f}s | best_epoch: {best_epoch} | best_val_loss: {best_val_loss:.4f}"
     )
 
@@ -1010,7 +1017,7 @@ def sample_best_parents(
     assigned_parent_ids = []
     total_initial_capacity = sum(remaining_capacity.get(pid, 0) for pid in parent_ids)
 
-    _LOG.info(
+    print(
         f"FK matching with capacity enforcement | "
         f"n_children: {n_tgt} | "
         f"n_parents: {len(parent_ids)} | "
@@ -1132,10 +1139,10 @@ def initialize_remaining_capacity(
     remaining_capacity = {}
     total_parents = 0
 
-    _LOG.info(f"Generating cardinality predictions in chunks for parent table {parent_table.name}")
+    print(f"Generating cardinality predictions in chunks for parent table {parent_table.name}")
     for chunk_idx, parent_chunk in enumerate(parent_table.read_chunks(do_coerce_dtypes=True)):
         chunk_size = len(parent_chunk)
-        _LOG.info(f"Processing cardinality chunk {chunk_idx} with {chunk_size} parents")
+        print(f"Processing cardinality chunk {chunk_idx} with {chunk_size} parents")
 
         engine.generate(
             seed_data=parent_chunk,
@@ -1155,7 +1162,7 @@ def initialize_remaining_capacity(
         shutil.rmtree(predicted_data_path)
 
     total_capacity = sum(remaining_capacity.values())
-    _LOG.info(
+    print(
         f"initialize_remaining_capacity | total_parents: {total_parents} | total_capacity: {total_capacity} | time: {time.time() - t0:.2f}s"
     )
 
@@ -1210,7 +1217,7 @@ def match_non_context(
         null_mask = is_null_values == "True"
         non_null_mask = ~null_mask
 
-        _LOG.info(
+        print(
             f"FK matching data | total_rows: {len(tgt_data)} | null_rows: {null_mask.sum()} | non_null_rows: {non_null_mask.sum()}"
         )
 
@@ -1228,7 +1235,7 @@ def match_non_context(
         if is_null_col in tgt_data_non_null.columns:
             tgt_data_non_null = tgt_data_non_null.drop(columns=[is_null_col])
     else:
-        _LOG.info(f"FK matching data | total_rows: {len(tgt_data)} | null_rows: 0 | non_null_rows: {len(tgt_data)}")
+        print(f"FK matching data | total_rows: {len(tgt_data)} | null_rows: 0 | non_null_rows: {len(tgt_data)}")
         tgt_data_non_null = tgt_data.copy()
         non_null_indices = tgt_data.index.tolist()
         non_null_mask = pd.Series(True, index=tgt_data.index)
@@ -1253,7 +1260,7 @@ def match_non_context(
     model = load_fk_model(fk_model_workspace_dir=fk_model_workspace_dir)
 
     fk_parent_sample_size = len(parent_encoded)
-    _LOG.info(
+    print(
         f"FK model matching | temperature: {temperature} | top_k: {top_k} | top_p: {top_p} | parent_sample_size: {fk_parent_sample_size}"
     )
 
@@ -1282,6 +1289,6 @@ def match_non_context(
 
     n_matched = non_null_mask.sum()
     n_null = (~non_null_mask).sum()
-    _LOG.info(f"FK matching completed | matched: {n_matched} | null: {n_null}")
+    print(f"FK matching completed | matched: {n_matched} | null: {n_null}")
 
     return tgt_data
