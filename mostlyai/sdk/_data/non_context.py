@@ -68,11 +68,11 @@ SIMILARITY_HIDDEN_DIM = 256
 PEAKEDNESS_SCALER = 7.0
 
 # Training Parameters
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 LEARNING_RATE = 0.0001
 MAX_EPOCHS = 1000
-PATIENCE = 20
-N_NEGATIVE_SAMPLES = 10
+PATIENCE = 5
+N_NEGATIVE_SAMPLES = 20
 VAL_SPLIT = 0.2
 DROPOUT_RATE = 0.2
 EARLY_STOPPING_DELTA = 1e-5
@@ -256,12 +256,12 @@ class EntityEncoder(nn.Module):
             nn.ReLU(),
             nn.Dropout(DROPOUT_RATE),
             nn.Linear(self.entity_hidden_dim, self.entity_embedding_dim),
-            nn.ReLU(),
-            nn.Dropout(DROPOUT_RATE),
-            nn.Linear(self.entity_embedding_dim, self.entity_embedding_dim),
-            nn.ReLU(),
-            nn.Dropout(DROPOUT_RATE),
-            nn.Linear(self.entity_embedding_dim, self.entity_embedding_dim),
+            # nn.ReLU(),
+            # nn.Dropout(DROPOUT_RATE),
+            # nn.Linear(self.entity_embedding_dim, self.entity_embedding_dim),
+            # nn.ReLU(),
+            # nn.Dropout(DROPOUT_RATE),
+            # nn.Linear(self.entity_embedding_dim, self.entity_embedding_dim),
         )
 
     def forward(self, inputs: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -822,8 +822,7 @@ def train_fk_model(
     num_positives = int(labels.sum())
     num_negatives = len(labels) - num_positives
     pos_weight = torch.tensor([num_negatives / num_positives]) if num_positives > 0 else torch.tensor([1.0])
-    # loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight/2)
-    loss_fn = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([float(1)]))
+    loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     train_losses, val_losses = [], []
     best_model_state = None
@@ -1139,13 +1138,43 @@ def initialize_remaining_capacity(
     remaining_capacity = {}
     total_parents = 0
 
+    # Load training column order from OriginalData metadata to ensure consistent ordering
+    encoding_types_path = cardinality_workspace_dir / "OriginalData" / "tgt-meta" / "encoding-types.json"
+    if encoding_types_path.exists():
+        encoding_types = read_json(encoding_types_path)
+        # Get column order from encoding-types.json (excludes CHILDREN_COUNT_COLUMN_NAME)
+        training_column_order = [col for col in encoding_types.keys() if col != CHILDREN_COUNT_COLUMN_NAME]
+    else:
+        _LOG.warning(
+            f"encoding-types.json not found at {encoding_types_path}, column order may not match training"
+        )
+        training_column_order = None
+
     print(f"Generating cardinality predictions in chunks for parent table {parent_table.name}")
     for chunk_idx, parent_chunk in enumerate(parent_table.read_chunks(do_coerce_dtypes=True)):
         chunk_size = len(parent_chunk)
         print(f"Processing cardinality chunk {chunk_idx} with {chunk_size} parents")
 
+        # Save parent IDs before reordering/filtering (needed for mapping predictions back)
+        parent_ids = parent_chunk[parent_pk].copy()
+
+        # Reorder columns to match training order (excluding primary key which wasn't used in training)
+        if training_column_order is not None:
+            # Only reorder if all expected columns are present
+            if all(col in parent_chunk.columns for col in training_column_order):
+                parent_chunk_for_generation = parent_chunk[training_column_order]
+            else:
+                missing_cols = set(training_column_order) - set(parent_chunk.columns)
+                extra_cols = set(parent_chunk.columns) - set(training_column_order)
+                _LOG.warning(
+                    f"Column mismatch in cardinality prediction: missing={missing_cols}, extra={extra_cols}"
+                )
+                parent_chunk_for_generation = parent_chunk
+        else:
+            parent_chunk_for_generation = parent_chunk
+
         engine.generate(
-            seed_data=parent_chunk,
+            seed_data=parent_chunk_for_generation,
             workspace_dir=cardinality_workspace_dir,
             update_progress=lambda **kwargs: None,
         )
@@ -1153,8 +1182,9 @@ def initialize_remaining_capacity(
         predicted_data_path = cardinality_workspace_dir / "SyntheticData"
         predicted_data = pd.read_parquet(predicted_data_path)
         predicted_counts = predicted_data[CHILDREN_COUNT_COLUMN_NAME].astype(int)
-
-        parent_ids = parent_chunk[parent_pk]
+        db = predicted_data.groupby("gender")[CHILDREN_COUNT_COLUMN_NAME].mean()
+        breakpoint()
+        print(db)
         for parent_id, count in zip(parent_ids, predicted_counts):
             remaining_capacity[parent_id] = count
 
