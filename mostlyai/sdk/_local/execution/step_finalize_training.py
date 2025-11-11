@@ -293,21 +293,15 @@ def execute_step_finalize_training(
 
         for tgt_table_name in schema.tables:
             fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / tgt_table_name
-            execute_train_non_context_models_for_single_table(
-                tgt_table_name=tgt_table_name,
-                schema=schema,
-                fk_models_workspace_dir=fk_models_workspace_dir,
-                update_progress=progress.update,
-            )
-            # try:
-            #     execute_train_non_context_models_for_single_table(
-            #         tgt_table_name=tgt_table_name,
-            #         schema=schema,
-            #         fk_models_workspace_dir=fk_models_workspace_dir,
-            #         update_progress=progress.update,
-            #     )
-            # except Exception as e:
-            #     _LOG.error(f"FK model training failed for table {tgt_table_name}: {e}\n{traceback.format_exc()}")
-            #     continue
-            # finally:
-            #     clean_up_non_context_models_dirs(fk_models_workspace_dir=fk_models_workspace_dir)
+            try:
+                execute_train_non_context_models_for_single_table(
+                    tgt_table_name=tgt_table_name,
+                    schema=schema,
+                    fk_models_workspace_dir=fk_models_workspace_dir,
+                    update_progress=progress.update,
+                )
+            except Exception as e:
+                _LOG.error(f"FK model training failed for table {tgt_table_name}: {e}\n{traceback.format_exc()}")
+                continue
+            finally:
+                clean_up_non_context_models_dirs(fk_models_workspace_dir=fk_models_workspace_dir)
