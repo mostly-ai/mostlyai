@@ -16,7 +16,6 @@
 import logging
 import shutil
 import time
-import traceback
 from pathlib import Path
 
 import pandas as pd
@@ -188,7 +187,6 @@ def train_cardinality_model(
     engine.train(
         model="MOSTLY_AI/Small",
         workspace_dir=cardinality_workspace_dir,
-        batch_size=8,
         enable_flexible_generation=False,
         update_progress=lambda **kwargs: None,
     )

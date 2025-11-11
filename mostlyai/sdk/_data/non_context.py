@@ -86,7 +86,7 @@ MAX_TGT_PER_PARENT = 10
 TEMPERATURE = 1.0
 TOP_K = None
 TOP_P = 0.95
-QUOTA_PENALTY_FACTOR = 1
+QUOTA_PENALTY_FACTOR = 0.05
 
 # Supported Encoding Types
 FK_MODEL_ENCODING_TYPES = [
@@ -1035,11 +1035,6 @@ def sample_best_parents(
         row_sum = row_probs.sum()
         if row_sum > 0:
             row_probs = row_probs / row_sum
-        else:
-            # Fallback: all parents at quota, reset availability
-            available_mask[:] = True
-            row_probs = prob_matrix[child_idx].clone()
-            row_probs = row_probs / row_probs.sum()
 
         # Sample parent for this child
         parent_idx = sample_single_parent(
@@ -1138,18 +1133,6 @@ def initialize_remaining_capacity(
     remaining_capacity = {}
     total_parents = 0
 
-    # Load training column order from OriginalData metadata to ensure consistent ordering
-    encoding_types_path = cardinality_workspace_dir / "OriginalData" / "tgt-meta" / "encoding-types.json"
-    if encoding_types_path.exists():
-        encoding_types = read_json(encoding_types_path)
-        # Get column order from encoding-types.json (excludes CHILDREN_COUNT_COLUMN_NAME)
-        training_column_order = [col for col in encoding_types.keys() if col != CHILDREN_COUNT_COLUMN_NAME]
-    else:
-        _LOG.warning(
-            f"encoding-types.json not found at {encoding_types_path}, column order may not match training"
-        )
-        training_column_order = None
-
     print(f"Generating cardinality predictions in chunks for parent table {parent_table.name}")
     for chunk_idx, parent_chunk in enumerate(parent_table.read_chunks(do_coerce_dtypes=True)):
         chunk_size = len(parent_chunk)
@@ -1158,23 +1141,10 @@ def initialize_remaining_capacity(
         # Save parent IDs before reordering/filtering (needed for mapping predictions back)
         parent_ids = parent_chunk[parent_pk].copy()
 
-        # Reorder columns to match training order (excluding primary key which wasn't used in training)
-        if training_column_order is not None:
-            # Only reorder if all expected columns are present
-            if all(col in parent_chunk.columns for col in training_column_order):
-                parent_chunk_for_generation = parent_chunk[training_column_order]
-            else:
-                missing_cols = set(training_column_order) - set(parent_chunk.columns)
-                extra_cols = set(parent_chunk.columns) - set(training_column_order)
-                _LOG.warning(
-                    f"Column mismatch in cardinality prediction: missing={missing_cols}, extra={extra_cols}"
-                )
-                parent_chunk_for_generation = parent_chunk
-        else:
-            parent_chunk_for_generation = parent_chunk
-
         engine.generate(
-            seed_data=parent_chunk_for_generation,
+            seed_data=parent_chunk[
+                [col for col in parent_chunk.columns if col not in [parent_pk, CHILDREN_COUNT_COLUMN_NAME]]
+            ],
             workspace_dir=cardinality_workspace_dir,
             update_progress=lambda **kwargs: None,
         )
@@ -1183,7 +1153,6 @@ def initialize_remaining_capacity(
         predicted_data = pd.read_parquet(predicted_data_path)
         predicted_counts = predicted_data[CHILDREN_COUNT_COLUMN_NAME].astype(int)
         db = predicted_data.groupby("gender")[CHILDREN_COUNT_COLUMN_NAME].mean()
-        breakpoint()
         print(db)
         for parent_id, count in zip(parent_ids, predicted_counts):
             remaining_capacity[parent_id] = count
