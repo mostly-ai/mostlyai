@@ -63,16 +63,15 @@ _LOG = logging.getLogger(__name__)
 # Model Architecture Parameters
 SUB_COLUMN_EMBEDDING_DIM = 32
 ENTITY_HIDDEN_DIM = 256
-ENTITY_EMBEDDING_DIM = 16
-SIMILARITY_HIDDEN_DIM = 256
+ENTITY_EMBEDDING_DIM = 128
 PEAKEDNESS_SCALER = 7.0
 
 # Training Parameters
-BATCH_SIZE = 128
-LEARNING_RATE = 0.0003
+BATCH_SIZE = 256
+LEARNING_RATE = 0.0001
 MAX_EPOCHS = 1000
 PATIENCE = 5
-N_NEGATIVE_SAMPLES = 5
+N_NEGATIVE_SAMPLES = 20
 VAL_SPLIT = 0.2
 DROPOUT_RATE = 0.2
 EARLY_STOPPING_DELTA = 1e-5
@@ -86,7 +85,7 @@ MAX_TGT_PER_PARENT = 10
 TEMPERATURE = 1.0
 TOP_K = None
 TOP_P = 0.95
-QUOTA_PENALTY_FACTOR = 0.05
+QUOTA_PENALTY_FACTOR = 0.02
 
 # Supported Encoding Types
 FK_MODEL_ENCODING_TYPES = [
@@ -274,11 +273,9 @@ class ParentChildMatcher(nn.Module):
         sub_column_embedding_dim: int = SUB_COLUMN_EMBEDDING_DIM,
         entity_hidden_dim: int = ENTITY_HIDDEN_DIM,
         entity_embedding_dim: int = ENTITY_EMBEDDING_DIM,
-        similarity_hidden_dim: int = SIMILARITY_HIDDEN_DIM,
     ):
         super().__init__()
         self.entity_embedding_dim = entity_embedding_dim
-        self.similarity_hidden_dim = similarity_hidden_dim
 
         self.parent_encoder = EntityEncoder(
             cardinalities=parent_cardinalities,
@@ -898,7 +895,6 @@ def store_fk_model(*, model: ParentChildMatcher, fk_model_workspace_dir: Path) -
             "entity_hidden_dim": model.child_encoder.entity_hidden_dim,
             "entity_embedding_dim": model.child_encoder.entity_embedding_dim,
         },
-        "similarity_hidden_dim": model.similarity_hidden_dim,
     }
     model_config_path = matching_model_dir / "model_config.json"
     model_config_path.write_text(json.dumps(model_config, indent=4))
@@ -917,7 +913,6 @@ def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
         sub_column_embedding_dim=model_config["parent_encoder"]["sub_column_embedding_dim"],
         entity_hidden_dim=model_config["parent_encoder"]["entity_hidden_dim"],
         entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
-        similarity_hidden_dim=model_config["similarity_hidden_dim"],
     )
     model_state_path = matching_model_dir / "model_weights.pt"
     model.load_state_dict(torch.load(model_state_path))
@@ -1029,11 +1024,6 @@ def sample_best_parents(
         row_sum = row_probs.sum()
         if row_sum > 0:
             row_probs = row_probs / row_sum
-        else:
-            # Fallback: all parents at quota, reset availability
-            available_mask[:] = True
-            row_probs = prob_matrix[child_idx].clone()
-            row_probs = row_probs / row_probs.sum()
 
         # Sample parent for this child
         parent_idx = sample_single_parent(
@@ -1138,7 +1128,9 @@ def initialize_remaining_capacity(
         _LOG.info(f"Processing cardinality chunk {chunk_idx} with {chunk_size} parents")
 
         engine.generate(
-            seed_data=parent_chunk,
+            seed_data=parent_chunk[
+                [col for col in parent_chunk.columns if col not in [parent_pk, CHILDREN_COUNT_COLUMN_NAME]]
+            ],
             workspace_dir=cardinality_workspace_dir,
             update_progress=lambda **kwargs: None,
         )
