@@ -256,12 +256,6 @@ class EntityEncoder(nn.Module):
             nn.ReLU(),
             nn.Dropout(DROPOUT_RATE),
             nn.Linear(self.entity_hidden_dim, self.entity_embedding_dim),
-            # nn.ReLU(),
-            # nn.Dropout(DROPOUT_RATE),
-            # nn.Linear(self.entity_embedding_dim, self.entity_embedding_dim),
-            # nn.ReLU(),
-            # nn.Dropout(DROPOUT_RATE),
-            # nn.Linear(self.entity_embedding_dim, self.entity_embedding_dim),
         )
 
     def forward(self, inputs: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -1150,7 +1144,7 @@ def initialize_remaining_capacity(
         predicted_data = pd.read_parquet(predicted_data_path)
         predicted_counts = predicted_data[CHILDREN_COUNT_COLUMN_NAME].astype(int)
 
-        parent_ids = parent_chunk[parent_pk].copy()
+        parent_ids = parent_chunk[parent_pk]
         for parent_id, count in zip(parent_ids, predicted_counts):
             remaining_capacity[parent_id] = count
 
