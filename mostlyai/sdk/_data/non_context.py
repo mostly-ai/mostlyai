@@ -63,8 +63,7 @@ _LOG = logging.getLogger(__name__)
 # Model Architecture Parameters
 SUB_COLUMN_EMBEDDING_DIM = 32
 ENTITY_HIDDEN_DIM = 256
-ENTITY_EMBEDDING_DIM = 16
-SIMILARITY_HIDDEN_DIM = 256
+ENTITY_EMBEDDING_DIM = 64
 PEAKEDNESS_SCALER = 7.0
 
 # Training Parameters
@@ -74,7 +73,7 @@ MAX_EPOCHS = 1000
 PATIENCE = 5
 N_NEGATIVE_SAMPLES = 20
 VAL_SPLIT = 0.2
-DROPOUT_RATE = 0.1
+DROPOUT_RATE = 0.2
 EARLY_STOPPING_DELTA = 1e-5
 NUMERICAL_STABILITY_EPSILON = 1e-10
 
@@ -274,11 +273,9 @@ class ParentChildMatcher(nn.Module):
         sub_column_embedding_dim: int = SUB_COLUMN_EMBEDDING_DIM,
         entity_hidden_dim: int = ENTITY_HIDDEN_DIM,
         entity_embedding_dim: int = ENTITY_EMBEDDING_DIM,
-        similarity_hidden_dim: int = SIMILARITY_HIDDEN_DIM,
     ):
         super().__init__()
         self.entity_embedding_dim = entity_embedding_dim
-        self.similarity_hidden_dim = similarity_hidden_dim
 
         self.parent_encoder = EntityEncoder(
             cardinalities=parent_cardinalities,
@@ -898,7 +895,6 @@ def store_fk_model(*, model: ParentChildMatcher, fk_model_workspace_dir: Path) -
             "entity_hidden_dim": model.child_encoder.entity_hidden_dim,
             "entity_embedding_dim": model.child_encoder.entity_embedding_dim,
         },
-        "similarity_hidden_dim": model.similarity_hidden_dim,
     }
     model_config_path = matching_model_dir / "model_config.json"
     model_config_path.write_text(json.dumps(model_config, indent=4))
@@ -917,7 +913,6 @@ def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
         sub_column_embedding_dim=model_config["parent_encoder"]["sub_column_embedding_dim"],
         entity_hidden_dim=model_config["parent_encoder"]["entity_hidden_dim"],
         entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
-        similarity_hidden_dim=model_config["similarity_hidden_dim"],
     )
     model_state_path = matching_model_dir / "model_weights.pt"
     model.load_state_dict(torch.load(model_state_path))
