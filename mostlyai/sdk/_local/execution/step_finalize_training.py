@@ -153,6 +153,7 @@ def train_fk_matching_model(
 def train_cardinality_model(
     *,
     parent_data,
+    parent_primary_key: str,
     fk_model_workspace_dir: Path,
 ):
     """
@@ -164,6 +165,7 @@ def train_cardinality_model(
 
     Args:
         parent_data: Parent table data with CHILDREN_COUNT_COLUMN_NAME already added
+        parent_primary_key: Primary key column name in parent data
         fk_model_workspace_dir: Directory to save model artifacts
     """
     cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_model"
@@ -171,6 +173,7 @@ def train_cardinality_model(
 
     engine.split(
         tgt_data=parent_data,
+        tgt_primary_key=parent_primary_key,
         workspace_dir=cardinality_workspace_dir,
         update_progress=lambda **kwargs: None,
     )
@@ -256,7 +259,8 @@ def train_non_context_models_for_single_relation(
 
     _LOG.info(f"Training cardinality model for {tgt_table_name}.{tgt_parent_key}")
     train_cardinality_model(
-        parent_data=parent_data_with_counts.drop(columns=[parent_primary_key]),
+        parent_data=parent_data_with_counts,
+        parent_primary_key=parent_primary_key,
         fk_model_workspace_dir=fk_model_workspace_dir,
     )
 
