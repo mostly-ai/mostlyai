@@ -1138,9 +1138,6 @@ def initialize_remaining_capacity(
         chunk_size = len(parent_chunk)
         _LOG.info(f"Processing cardinality chunk {chunk_idx} with {chunk_size} parents")
 
-        # Save parent IDs before reordering/filtering (needed for mapping predictions back)
-        parent_ids = parent_chunk[parent_pk].copy()
-
         engine.generate(
             seed_data=parent_chunk[
                 [col for col in parent_chunk.columns if col not in [parent_pk, CHILDREN_COUNT_COLUMN_NAME]]
@@ -1152,8 +1149,8 @@ def initialize_remaining_capacity(
         predicted_data_path = cardinality_workspace_dir / "SyntheticData"
         predicted_data = pd.read_parquet(predicted_data_path)
         predicted_counts = predicted_data[CHILDREN_COUNT_COLUMN_NAME].astype(int)
-        db = predicted_data.groupby("gender")[CHILDREN_COUNT_COLUMN_NAME].mean()
-        _LOG.info(db)
+
+        parent_ids = parent_chunk[parent_pk].copy()
         for parent_id, count in zip(parent_ids, predicted_counts):
             remaining_capacity[parent_id] = count
 

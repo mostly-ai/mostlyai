@@ -254,10 +254,8 @@ def train_non_context_models_for_single_relation(
     )
 
     _LOG.info(f"Training cardinality model for {tgt_table_name}.{tgt_parent_key}")
-    # Exclude primary key from cardinality training - it has no predictive power
-    parent_data_for_cardinality = parent_data_with_counts.drop(columns=[parent_primary_key])
     train_cardinality_model(
-        parent_data=parent_data_for_cardinality,
+        parent_data=parent_data_with_counts.drop(columns=[parent_primary_key]),
         fk_model_workspace_dir=fk_model_workspace_dir,
     )
 
