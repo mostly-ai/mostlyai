@@ -185,7 +185,7 @@ def train_cardinality_model(
     )
 
     engine.train(
-        model="MOSTLY_AI/Small",
+        model="MOSTLY_AI/Medium",
         workspace_dir=cardinality_workspace_dir,
         enable_flexible_generation=False,
         update_progress=lambda **kwargs: None,
