@@ -27,7 +27,6 @@ import json
 import logging
 import shutil
 import time
-from collections import defaultdict
 from copy import copy as shallow_copy
 from copy import deepcopy
 from pathlib import Path
@@ -54,7 +53,6 @@ from mostlyai.sdk._data.base import DataIdentifier, DataTable, NonContextRelatio
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
 _LOG = logging.getLogger(__name__)
-_LOG.info = print
 
 
 # =============================================================================
@@ -529,16 +527,17 @@ def pull_fk_model_training_data(
     all_children_keys = tgt_table.read_data(columns=[tgt_parent_key], do_coerce_dtypes=True)
 
     # Step 2: Pull ALL parent keys
-    all_parent_keys = parent_table.read_data(columns=[parent_primary_key], do_coerce_dtypes=True)[
-        parent_primary_key
-    ].dropna().unique()
+    all_parent_keys = (
+        parent_table.read_data(columns=[parent_primary_key], do_coerce_dtypes=True)[parent_primary_key]
+        .dropna()
+        .unique()
+    )
     all_parent_keys_set = set(all_parent_keys)
 
     # Step 3: Filter children to max_children_per_parent
     # Remove rows where parent key is null or not in parent table
     all_children_keys = all_children_keys[
-        all_children_keys[tgt_parent_key].notna()
-        & all_children_keys[tgt_parent_key].isin(all_parent_keys_set)
+        all_children_keys[tgt_parent_key].notna() & all_children_keys[tgt_parent_key].isin(all_parent_keys_set)
     ]
     filtered_children_keys = all_children_keys.groupby(tgt_parent_key, as_index=False).head(max_children_per_parent)
 
@@ -621,7 +620,9 @@ def pull_fk_model_training_data(
         drop_context_key=True,  # after this step, tgt_context_key is dropped
     )
 
-    avg_children_per_parent = len(tgt_data) / len(parent_keys_with_children) if len(parent_keys_with_children) > 0 else 0
+    avg_children_per_parent = (
+        len(tgt_data) / len(parent_keys_with_children) if len(parent_keys_with_children) > 0 else 0
+    )
     _LOG.info(
         f"pull_fk_model_training_data | time: {time.time() - t0:.2f}s\n"
         f"  Training data:\n"
