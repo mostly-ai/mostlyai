@@ -621,7 +621,6 @@ def pull_fk_model_training_data(
         drop_context_key=True,  # after this step, tgt_context_key is dropped
     )
 
-    # Log comprehensive training data statistics
     avg_children_per_parent = len(tgt_data) / len(parent_keys_with_children) if len(parent_keys_with_children) > 0 else 0
     _LOG.info(
         f"pull_fk_model_training_data | time: {time.time() - t0:.2f}s\n"
