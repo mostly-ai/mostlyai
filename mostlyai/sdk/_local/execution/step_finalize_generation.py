@@ -214,7 +214,8 @@ def filter_and_order_columns(data: pd.DataFrame, table_name: str, schema: Schema
     if drop_cols:
         _LOG.info(f"remove columns from final output: {', '.join(drop_cols)}")
     keep_cols = [c for c in tgt_cols if c in data]
-    return data[keep_cols]
+    extra_cols = [c for c in data if c not in tgt_cols]
+    return data[keep_cols + extra_cols]
 
 
 def write_batch_outputs(
