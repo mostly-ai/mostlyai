@@ -80,7 +80,7 @@ NUMERICAL_STABILITY_EPSILON = 1e-10
 
 # Data Sampling Parameters
 MAX_TGT_PER_PARENT = 10
-MAX_CHILDREN = 3000
+MAX_CHILDREN = 5000
 
 # Inference Parameters
 TEMPERATURE = 1.0
@@ -509,12 +509,6 @@ def pull_fk_model_training_data(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Pull training data for a specific non-context FK relation.
-
-    New strategy optimized for sparse datasets:
-    1. Pull all children keys and all parent keys (fast)
-    2. Filter children keys based on limits
-    3. Sample parent keys (with and without children)
-    4. Fetch full data only for selected keys
 
     Args:
         tgt_table: Target/child table
