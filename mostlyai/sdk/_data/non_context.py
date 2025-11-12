@@ -54,6 +54,7 @@ from mostlyai.sdk._data.base import DataIdentifier, DataTable, NonContextRelatio
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
 _LOG = logging.getLogger(__name__)
+_LOG.info = print
 
 
 # =============================================================================
@@ -78,8 +79,8 @@ EARLY_STOPPING_DELTA = 1e-5
 NUMERICAL_STABILITY_EPSILON = 1e-10
 
 # Data Sampling Parameters
-MAX_PARENT_SAMPLE_SIZE = 10000
 MAX_TGT_PER_PARENT = 10
+MAX_CHILDREN = 3000
 
 # Inference Parameters
 TEMPERATURE = 1.0
@@ -420,115 +421,6 @@ def encode_df(
 # =============================================================================
 
 
-def fetch_parent_data(parent_table: DataTable, max_sample_size: int = MAX_PARENT_SAMPLE_SIZE) -> pd.DataFrame:
-    """
-    Fetch unique parent data with optional sampling limit.
-
-    Reads the parent table in chunks to efficiently collect unique parent records
-    until the maximum sample size is reached. Stops early once the limit is met
-    to avoid unnecessary data processing.
-
-    Args:
-        parent_table: Parent table to extract data from. Must have a primary key defined.
-        max_sample_size: Maximum number of unique records to collect. Defaults to 10,000.
-
-    Returns:
-        DataFrame containing complete parent records with all columns.
-        Records are unique by primary key.
-    """
-    t0 = time.time()
-    primary_key = parent_table.primary_key
-    assert primary_key is not None
-    foreign_keys = [fk.column for fk in parent_table.foreign_keys]
-    data_columns = [
-        c
-        for c in parent_table.columns
-        if c != primary_key  # data column is not the primary key
-        and c not in foreign_keys  # data column is not a foreign key
-        and parent_table.encoding_types.get(c) in FK_MODEL_ENCODING_TYPES  # encoding type is supported by FK models
-    ]
-    columns = [primary_key] + data_columns
-    seen_keys = set()
-    collected_rows = []
-
-    for chunk_df in parent_table.read_chunks(columns=columns, do_coerce_dtypes=True):
-        chunk_df = chunk_df.drop_duplicates(subset=[primary_key])
-
-        for _, row in chunk_df.iterrows():
-            key = row[primary_key]
-            if key not in seen_keys:
-                seen_keys.add(key)
-                collected_rows.append(row)
-                if len(collected_rows) >= max_sample_size:
-                    break
-
-        if len(collected_rows) >= max_sample_size:
-            break
-
-    parent_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-    _LOG.info(f"fetch_parent_data | fetched: {len(parent_data)} | time: {time.time() - t0:.2f}s")
-    return parent_data
-
-
-def fetch_tgt_data(
-    *,
-    tgt_table: DataTable,
-    tgt_parent_key: str,
-    parent_keys: list,
-    schema: Schema,
-    max_tgt_per_parent: int = MAX_TGT_PER_PARENT,
-) -> pd.DataFrame:
-    """
-    Fetch target data with per-parent limits.
-
-    Reads target table in chunks and tracks how many target records each parent has.
-    Stops adding target records for a parent once the limit is reached.
-
-    Args:
-        tgt_table: Target table to fetch from.
-        tgt_parent_key: Foreign key column in target table.
-        parent_keys: List of parent key values to filter by.
-        schema: Schema to fetch context parent data for tgt_table
-        max_tgt_per_parent: Maximum target records per parent.
-
-    Returns:
-        DataFrame containing target records, limited by max_tgt_per_parent constraint.
-    """
-    t0 = time.time()
-    parent_counts = defaultdict(int)
-    collected_rows = []
-    where = {tgt_parent_key: parent_keys}
-    tgt_primary_key = tgt_table.primary_key
-    tgt_context_key = schema.get_context_key(tgt_table.name)
-    tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
-    data_columns = [
-        c
-        for c in tgt_table.columns
-        if c != tgt_primary_key  # data column is not the primary key
-        and c not in tgt_foreign_keys  # data column is not a foreign key
-        and tgt_table.encoding_types.get(c) in FK_MODEL_ENCODING_TYPES  # encoding type is supported by FK models
-    ]
-    columns = [tgt_parent_key]
-    if tgt_context_key is not None:
-        columns += [tgt_context_key.column]
-    columns += data_columns
-
-    for chunk_df in tgt_table.read_chunks(columns=columns, where=where, do_coerce_dtypes=True):
-        if len(chunk_df) == 0:
-            continue
-
-        for _, row in chunk_df.iterrows():
-            parent_id = row[tgt_parent_key]
-
-            if parent_counts[parent_id] < max_tgt_per_parent:
-                collected_rows.append(row)
-                parent_counts[parent_id] += 1
-
-    tgt_data = pd.DataFrame(collected_rows).reset_index(drop=True)
-    _LOG.info(f"fetch_tgt_data | fetched: {len(tgt_data)} | time: {time.time() - t0:.2f}s")
-    return tgt_data
-
-
 def add_context_parent_data(
     *,
     tgt_data: pd.DataFrame,
@@ -612,36 +504,137 @@ def pull_fk_model_training_data(
     parent_table: DataTable,
     tgt_parent_key: str,
     schema: Schema,
+    max_children_per_parent: int = MAX_TGT_PER_PARENT,
+    max_children: int = MAX_CHILDREN,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Pull training data for a specific non-context FK relation.
+
+    New strategy optimized for sparse datasets:
+    1. Pull all children keys and all parent keys (fast)
+    2. Filter children keys based on limits
+    3. Sample parent keys (with and without children)
+    4. Fetch full data only for selected keys
 
     Args:
         tgt_table: Target/child table
         parent_table: Parent table
         tgt_parent_key: Foreign key column in target table
         schema: Schema to fetch context parent data for tgt_table
+        max_children_per_parent: Maximum children to keep per parent
+        max_children: Maximum total children to keep for training
 
     Returns:
         Tuple of (parent_data, tgt_data). tgt_data includes columns from context parent table.
     """
-    parent_data = fetch_parent_data(parent_table=parent_table)
+    t0 = time.time()
+    parent_primary_key = parent_table.primary_key
+    assert parent_primary_key is not None
 
-    parent_keys = parent_data[parent_table.primary_key].tolist() if not parent_data.empty else []
-    tgt_data = fetch_tgt_data(
-        tgt_table=tgt_table,
-        tgt_parent_key=tgt_parent_key,
-        parent_keys=parent_keys,
-        schema=schema,
+    # Step 1: Pull ALL parent keys from children (we only need the FK column for filtering)
+    all_children_keys = tgt_table.read_data(columns=[tgt_parent_key], do_coerce_dtypes=True)
+
+    # Step 2: Pull ALL parent keys
+    all_parent_keys = parent_table.read_data(columns=[parent_primary_key], do_coerce_dtypes=True)[
+        parent_primary_key
+    ].dropna().unique()
+    all_parent_keys_set = set(all_parent_keys)
+
+    # Step 3: Filter children to max_children_per_parent
+    # Remove rows where parent key is null or not in parent table
+    all_children_keys = all_children_keys[
+        all_children_keys[tgt_parent_key].notna()
+        & all_children_keys[tgt_parent_key].isin(all_parent_keys_set)
+    ]
+    filtered_children_keys = all_children_keys.groupby(tgt_parent_key, as_index=False).head(max_children_per_parent)
+
+    # Step 4: Count remaining children
+    num_children = len(filtered_children_keys)
+
+    # Step 5: Keep max_children for training
+    if num_children > max_children:
+        filtered_children_keys = filtered_children_keys.sample(n=max_children, random_state=42).reset_index(drop=True)
+        num_children = max_children
+
+    # Step 6: Identify parent_keys that have children in this subset
+    parent_keys_with_children = set(filtered_children_keys[tgt_parent_key].unique())
+
+    # Step 7: Sample parent_keys without children
+    parent_keys_without_children = all_parent_keys_set - parent_keys_with_children
+
+    if len(parent_keys_without_children) > 0:
+        # Sample same number as parents with children for balanced training
+        n_to_sample = min(len(parent_keys_with_children), len(parent_keys_without_children))
+        sampled_parent_keys_without_children = set(
+            np.random.choice(list(parent_keys_without_children), size=n_to_sample, replace=False)
+        )
+    else:
+        sampled_parent_keys_without_children = set()
+
+    # Step 8: Combine all parent keys to fetch
+    final_parent_keys = list(parent_keys_with_children | sampled_parent_keys_without_children)
+
+    # Step 9: Fetch actual parent data
+    parent_foreign_keys = [fk.column for fk in parent_table.foreign_keys]
+    parent_data_columns = [
+        c
+        for c in parent_table.columns
+        if c != parent_primary_key  # data column is not the primary key
+        and c not in parent_foreign_keys  # data column is not a foreign key
+        and parent_table.encoding_types.get(c) in FK_MODEL_ENCODING_TYPES  # encoding type is supported by FK models
+    ]
+    parent_columns = [parent_primary_key] + parent_data_columns
+    parent_data = parent_table.read_data(
+        columns=parent_columns,
+        where={parent_primary_key: final_parent_keys},
+        do_coerce_dtypes=True,
     )
+
+    # Step 10: Fetch actual children data using parent keys
+    tgt_primary_key = tgt_table.primary_key
+    tgt_context_key = schema.get_context_key(tgt_table.name)
+    tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
+    tgt_data_columns = [
+        c
+        for c in tgt_table.columns
+        if c != tgt_primary_key  # data column is not the primary key
+        and c not in tgt_foreign_keys  # data column is not a foreign key
+        and tgt_table.encoding_types.get(c) in FK_MODEL_ENCODING_TYPES  # encoding type is supported by FK models
+    ]
+    tgt_columns = [tgt_parent_key]
+    if tgt_context_key is not None:
+        tgt_columns.append(tgt_context_key.column)
+    tgt_columns += tgt_data_columns
+
+    # Fetch children WHERE parent_key IN (parents_with_children)
+    parent_keys_to_fetch = list(parent_keys_with_children)
+    tgt_data = tgt_table.read_data(
+        columns=tgt_columns,
+        where={tgt_parent_key: parent_keys_to_fetch},
+        do_coerce_dtypes=True,
+    )
+
+    # Re-apply filtering: max children per parent, then max total children
+    tgt_data = tgt_data.groupby(tgt_parent_key, as_index=False).head(max_children_per_parent)
+    if len(tgt_data) > max_children:
+        tgt_data = tgt_data.sample(n=max_children, random_state=42).reset_index(drop=True)
+
+    # Step 11: Add context parent data
     tgt_data = add_context_parent_data(
         tgt_data=tgt_data,
         tgt_table=tgt_table,
         schema=schema,
         drop_context_key=True,  # after this step, tgt_context_key is dropped
     )
+
+    # Log comprehensive training data statistics
+    avg_children_per_parent = len(tgt_data) / len(parent_keys_with_children) if len(parent_keys_with_children) > 0 else 0
     _LOG.info(
-        f"pull_fk_model_training_data | parent_data columns: {list(parent_data.columns)} | tgt_data columns: {list(tgt_data.columns)}"
+        f"pull_fk_model_training_data | time: {time.time() - t0:.2f}s\n"
+        f"  Training data:\n"
+        f"    - Parents: {len(parent_data)} total "
+        f"({len(parent_keys_with_children)} with children, {len(sampled_parent_keys_without_children)} without)\n"
+        f"    - Children: {len(tgt_data)} (max {max_children_per_parent} per parent, avg {avg_children_per_parent:.2f} per parent with children)"
     )
     return parent_data, tgt_data
 
