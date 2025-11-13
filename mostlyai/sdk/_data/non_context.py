@@ -62,7 +62,7 @@ _LOG.info = print
 
 # Model Architecture Parameters
 SUB_COLUMN_EMBEDDING_DIM = 32
-MIN_ENTITY_EMBEDDING_DIM = 16
+MIN_ENTITY_EMBEDDING_DIM = 128
 PEAKEDNESS_SCALER = 7.0
 
 # Training Parameters
