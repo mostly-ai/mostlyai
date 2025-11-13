@@ -49,4 +49,4 @@ For more information, visit: https://mostly-ai.github.io/mostlyai/
 from mostlyai.sdk.client.api import MostlyAI
 
 __all__ = ["MostlyAI"]
-__version__ = "5.5.1"  # Do not set this manually. Use poetry version [params].
+__version__ = "5.6.0"  # Do not set this manually. Use poetry version [params].
