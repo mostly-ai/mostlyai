@@ -53,7 +53,6 @@ from mostlyai.sdk._data.base import DataIdentifier, DataTable, NonContextRelatio
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
 _LOG = logging.getLogger(__name__)
-_LOG.info = print
 
 
 # =============================================================================
