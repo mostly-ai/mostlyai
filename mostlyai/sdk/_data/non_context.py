@@ -53,6 +53,7 @@ from mostlyai.sdk._data.base import DataIdentifier, DataTable, NonContextRelatio
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
 _LOG = logging.getLogger(__name__)
+_LOG.info = print
 
 
 # =============================================================================
@@ -66,14 +67,18 @@ PEAKEDNESS_SCALER = 7.0
 
 # Training Parameters
 BATCH_SIZE = 256
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 1e-3
+LR_SCHEDULER_FACTOR = 0.8
+LR_SCHEDULER_PATIENCE = 2
+LR_SCHEDULER_MIN_LR = 1e-6
 MAX_EPOCHS = 1000
-PATIENCE = 5
+PATIENCE = 10
 N_NEGATIVE_SAMPLES = 20
 VAL_SPLIT = 0.2
 DROPOUT_RATE = 0.2
 EARLY_STOPPING_DELTA = 1e-5
 NUMERICAL_STABILITY_EPSILON = 1e-10
+
 
 # Data Sampling Parameters
 MAX_TGT_PER_PARENT = 10
@@ -807,6 +812,13 @@ def train_fk_model(
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="min",
+        factor=LR_SCHEDULER_FACTOR,
+        patience=LR_SCHEDULER_PATIENCE,
+        min_lr=LR_SCHEDULER_MIN_LR,
+    )
 
     # calculate class imbalance for loss weighting
     num_positives = int(labels.sum())
@@ -847,10 +859,15 @@ def train_fk_model(
         val_loss /= val_size
         val_losses.append(val_loss)
 
+        # Step the learning rate scheduler
+        scheduler.step(val_loss)
+        current_lr = optimizer.param_groups[0]["lr"]
+
         progress_msg = {
             "epoch": epoch,
             "train_loss": round(train_loss, 4),
             "val_loss": round(val_loss, 4),
+            "lr": f"{current_lr:.2e}",
         }
         _LOG.info(progress_msg)
 
