@@ -254,10 +254,10 @@ class EntityEncoder(nn.Module):
         )
         entity_dim = len(self.cardinalities) * self.sub_column_embedding_dim
         self.entity_encoder = nn.Sequential(
-            nn.Linear(entity_dim, self.entity_hidden_dim),
+            nn.Linear(entity_dim, self.entity_embedding_dim),
             nn.ReLU(),
             nn.Dropout(DROPOUT_RATE),
-            nn.Linear(self.entity_hidden_dim, self.entity_hidden_dim),
+            nn.Linear(self.entity_embedding_dim, self.entity_hidden_dim),
         )
 
     def forward(self, inputs: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -540,10 +540,10 @@ def pull_fk_model_training_data(
     parent_primary_key = parent_table.primary_key
     assert parent_primary_key is not None
 
-    # Step 1: Pull ALL parent keys from children (we only need the FK column for filtering)
+    # Pull ALL parent keys from children (we only need the FK column for filtering)
     all_children_keys = tgt_table.read_data(columns=[tgt_parent_key], do_coerce_dtypes=True)
 
-    # Step 2: Pull ALL parent keys
+    # Pull ALL parent keys
     all_parent_keys = (
         parent_table.read_data(columns=[parent_primary_key], do_coerce_dtypes=True)[parent_primary_key]
         .dropna()
@@ -551,25 +551,21 @@ def pull_fk_model_training_data(
     )
     all_parent_keys_set = set(all_parent_keys)
 
-    # Step 3: Filter children to max_children_per_parent
+    # Filter children to max_children_per_parent
     # Remove rows where parent key is null or not in parent table
     all_children_keys = all_children_keys[
         all_children_keys[tgt_parent_key].notna() & all_children_keys[tgt_parent_key].isin(all_parent_keys_set)
     ]
     filtered_children_keys = all_children_keys.groupby(tgt_parent_key, as_index=False).head(max_children_per_parent)
 
-    # Step 4: Count remaining children
-    num_children = len(filtered_children_keys)
+    # Keep max_children for training
+    if len(filtered_children_keys) > max_children:
+        filtered_children_keys = filtered_children_keys.sample(n=max_children).reset_index(drop=True)
 
-    # Step 5: Keep max_children for training
-    if num_children > max_children:
-        filtered_children_keys = filtered_children_keys.sample(n=max_children, random_state=42).reset_index(drop=True)
-        num_children = max_children
-
-    # Step 6: Identify parent_keys that have children in this subset
+    # Identify parent_keys that have children in this subset
     parent_keys_with_children = set(filtered_children_keys[tgt_parent_key].unique())
 
-    # Step 7: Sample parent_keys without children
+    # Sample parent_keys without children
     parent_keys_without_children = all_parent_keys_set - parent_keys_with_children
 
     if len(parent_keys_without_children) > 0:
@@ -581,10 +577,10 @@ def pull_fk_model_training_data(
     else:
         sampled_parent_keys_without_children = set()
 
-    # Step 8: Combine all parent keys to fetch
+    # Combine all parent keys to fetch
     final_parent_keys = list(parent_keys_with_children | sampled_parent_keys_without_children)
 
-    # Step 9: Fetch actual parent data
+    # Fetch actual parent data
     parent_foreign_keys = [fk.column for fk in parent_table.foreign_keys]
     parent_data_columns = [
         c
@@ -600,7 +596,7 @@ def pull_fk_model_training_data(
         do_coerce_dtypes=True,
     )
 
-    # Step 10: Fetch actual children data using parent keys
+    # Fetch actual children data using parent keys
     tgt_primary_key = tgt_table.primary_key
     tgt_context_key = schema.get_context_key(tgt_table.name)
     tgt_foreign_keys = [fk.column for fk in tgt_table.foreign_keys]
@@ -617,19 +613,18 @@ def pull_fk_model_training_data(
     tgt_columns += tgt_data_columns
 
     # Fetch children WHERE parent_key IN (parents_with_children)
-    parent_keys_to_fetch = list(parent_keys_with_children)
     tgt_data = tgt_table.read_data(
         columns=tgt_columns,
-        where={tgt_parent_key: parent_keys_to_fetch},
+        where={tgt_parent_key: parent_keys_with_children},
         do_coerce_dtypes=True,
     )
 
     # Re-apply filtering: max children per parent, then max total children
     tgt_data = tgt_data.groupby(tgt_parent_key, as_index=False).head(max_children_per_parent)
     if len(tgt_data) > max_children:
-        tgt_data = tgt_data.sample(n=max_children, random_state=42).reset_index(drop=True)
+        tgt_data = tgt_data.sample(n=max_children).reset_index(drop=True)
 
-    # Step 11: Add context parent data
+    # Add context parent data
     tgt_data = add_context_parent_data(
         tgt_data=tgt_data,
         tgt_table=tgt_table,
