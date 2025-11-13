@@ -250,10 +250,10 @@ class EntityEncoder(nn.Module):
         )
         entity_dim = len(self.cardinalities) * self.sub_column_embedding_dim
         self.entity_encoder = nn.Sequential(
-            nn.Linear(entity_dim, self.entity_hidden_dim),
+            nn.Linear(entity_dim, self.entity_embedding_dim),
             nn.ReLU(),
             nn.Dropout(DROPOUT_RATE),
-            nn.Linear(self.entity_hidden_dim, self.entity_embedding_dim),
+            nn.Linear(self.entity_embedding_dim, self.entity_hidden_dim),
         )
 
     def forward(self, inputs: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -596,10 +596,9 @@ def pull_fk_model_training_data(
     tgt_columns += tgt_data_columns
 
     # Fetch children WHERE parent_key IN (parents_with_children)
-    parent_keys_to_fetch = list(parent_keys_with_children)
     tgt_data = tgt_table.read_data(
         columns=tgt_columns,
-        where={tgt_parent_key: parent_keys_to_fetch},
+        where={tgt_parent_key: parent_keys_with_children},
         do_coerce_dtypes=True,
     )
 
