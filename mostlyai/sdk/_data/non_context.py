@@ -270,17 +270,18 @@ class ParentChildMatcher(nn.Module):
         child_cardinalities: dict[str, int],
         sub_column_embedding_dim: int | None = None,
         entity_hidden_dim: int | None = None,
-        entity_embedding_dim: int | None = None,
+        parent_entity_embedding_dim: int | None = None,
+        child_entity_embedding_dim: int | None = None,
     ):
         super().__init__()
 
         sub_column_embedding_dim = sub_column_embedding_dim or SUB_COLUMN_EMBEDDING_DIM
 
-        # Compute separate entity_embedding_dim for parent and child
-        parent_entity_embedding_dim = entity_embedding_dim or max(
+        # Compute separate entity_embedding_dim for parent and child if not provided
+        parent_entity_embedding_dim = parent_entity_embedding_dim or max(
             MIN_ENTITY_EMBEDDING_DIM, int((len(parent_cardinalities) * sub_column_embedding_dim) ** 0.5)
         )
-        child_entity_embedding_dim = entity_embedding_dim or max(
+        child_entity_embedding_dim = child_entity_embedding_dim or max(
             MIN_ENTITY_EMBEDDING_DIM, int((len(child_cardinalities) * sub_column_embedding_dim) ** 0.5)
         )
 
@@ -908,9 +909,10 @@ def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
     model = ParentChildMatcher(
         parent_cardinalities=model_config["parent_encoder"]["cardinalities"],
         child_cardinalities=model_config["child_encoder"]["cardinalities"],
-        # sub_column_embedding_dim=model_config["parent_encoder"]["sub_column_embedding_dim"],
-        # entity_hidden_dim=model_config["parent_encoder"]["entity_hidden_dim"],
-        # entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
+        sub_column_embedding_dim=model_config["parent_encoder"]["sub_column_embedding_dim"],
+        entity_hidden_dim=model_config["parent_encoder"]["entity_hidden_dim"],
+        parent_entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
+        child_entity_embedding_dim=model_config["child_encoder"]["entity_embedding_dim"],
     )
     model_state_path = matching_model_dir / "model_weights.pt"
     model.load_state_dict(torch.load(model_state_path))
