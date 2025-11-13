@@ -281,7 +281,6 @@ class ParentChildMatcher(nn.Module):
 
         sub_column_embedding_dim = sub_column_embedding_dim or SUB_COLUMN_EMBEDDING_DIM
 
-        # Compute separate entity_embedding_dim for parent and child if not provided
         parent_entity_embedding_dim = parent_entity_embedding_dim or max(
             MIN_ENTITY_EMBEDDING_DIM, int((len(parent_cardinalities) * sub_column_embedding_dim) ** 0.5)
         )
@@ -289,7 +288,6 @@ class ParentChildMatcher(nn.Module):
             MIN_ENTITY_EMBEDDING_DIM, int((len(child_cardinalities) * sub_column_embedding_dim) ** 0.5)
         )
 
-        # Use max of the two for hidden dim (both encoders must output same dimension)
         entity_hidden_dim = entity_hidden_dim or (max(parent_entity_embedding_dim, child_entity_embedding_dim) * 2)
 
         self.parent_encoder = EntityEncoder(
@@ -853,7 +851,6 @@ def train_fk_model(
         val_loss /= val_size
         val_losses.append(val_loss)
 
-        # Step the learning rate scheduler
         scheduler.step(val_loss)
         current_lr = optimizer.param_groups[0]["lr"]
 
