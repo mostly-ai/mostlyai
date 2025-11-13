@@ -24,11 +24,11 @@ import pandas as pd
 import mostlyai.engine as engine
 from mostlyai.sdk._data.base import NonContextRelation, Schema
 from mostlyai.sdk._data.non_context import (
+    CHILDREN_COUNT_COLUMN_NAME,
     ParentChildMatcher,
     analyze_df,
     encode_df,
     get_cardinalities,
-    prepare_training_data_for_cardinality_model,
     prepare_training_pairs_for_fk_model,
     pull_fk_model_training_data,
     safe_name,
@@ -153,9 +153,7 @@ def train_fk_matching_model(
 def train_cardinality_model(
     *,
     parent_data,
-    tgt_data,
     parent_primary_key: str,
-    tgt_parent_key: str,
     fk_model_workspace_dir: Path,
 ):
     """
@@ -166,24 +164,16 @@ def train_cardinality_model(
     each parent should have.
 
     Args:
-        parent_data: Parent table data
-        tgt_data: Target/child table data
-        parent_primary_key: Primary key column in parent data
-        tgt_parent_key: Foreign key column in target data
+        parent_data: Parent table data with CHILDREN_COUNT_COLUMN_NAME already added
+        parent_primary_key: Primary key column name in parent data
         fk_model_workspace_dir: Directory to save model artifacts
     """
-    parent_data_with_counts = prepare_training_data_for_cardinality_model(
-        parent_data=parent_data,
-        tgt_data=tgt_data,
-        parent_primary_key=parent_primary_key,
-        tgt_parent_key=tgt_parent_key,
-    )
-
     cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_model"
     cardinality_workspace_dir.mkdir(parents=True, exist_ok=True)
 
     engine.split(
-        tgt_data=parent_data_with_counts,
+        tgt_data=parent_data,
+        tgt_primary_key=parent_primary_key,
         workspace_dir=cardinality_workspace_dir,
         update_progress=lambda **kwargs: None,
     )
@@ -199,8 +189,9 @@ def train_cardinality_model(
     )
 
     engine.train(
-        model="MOSTLY_AI/Small",
+        model="MOSTLY_AI/Medium",
         workspace_dir=cardinality_workspace_dir,
+        enable_flexible_generation=False,
         update_progress=lambda **kwargs: None,
     )
 
@@ -252,9 +243,14 @@ def train_non_context_models_for_single_relation(
 
     fk_model_workspace_dir.mkdir(parents=True, exist_ok=True)
 
+    # Add children count column to parent data
+    children_counts = tgt_data[tgt_parent_key].value_counts()
+    children_counts_mapped = parent_data[parent_primary_key].map(children_counts).fillna(0).astype(int)
+    parent_data_with_counts = parent_data.assign(**{CHILDREN_COUNT_COLUMN_NAME: children_counts_mapped})
+
     _LOG.info(f"Training FK matching model for {tgt_table_name}.{tgt_parent_key}")
     train_fk_matching_model(
-        parent_data=parent_data,
+        parent_data=parent_data_with_counts,
         tgt_data=tgt_data,
         parent_primary_key=parent_primary_key,
         tgt_parent_key=tgt_parent_key,
@@ -263,10 +259,8 @@ def train_non_context_models_for_single_relation(
 
     _LOG.info(f"Training cardinality model for {tgt_table_name}.{tgt_parent_key}")
     train_cardinality_model(
-        parent_data=parent_data,
-        tgt_data=tgt_data,
+        parent_data=parent_data_with_counts,
         parent_primary_key=parent_primary_key,
-        tgt_parent_key=tgt_parent_key,
         fk_model_workspace_dir=fk_model_workspace_dir,
     )
 
