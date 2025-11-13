@@ -229,7 +229,7 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
             df = c.query("SELECT count(*) FROM schema.table")  # for DB connectors
             df = c.query("SELECT count(*) FROM read_csv_auto('s3://bucket/path/to/file.csv')")  # query a single CSV file from S3 storage
             df = c.query("SELECT count(*) FROM read_parquet('gs://bucket/path/to/folder/*.parquet')")  # query a folder with PQT files from GCP storage
-            df = c.query("SELECT count(*) FROM read_json('az://bucket/path/to/file.json')")  # query a single JSON file from AZURE storage
+            df = c.query("SELECT count(*) FROM read_json_auto('az://bucket/path/to/file.json')")  # query a single JSON file from AZURE storage
             ```
         """
         return self.client._query(connector_id=self.id, sql=sql)
