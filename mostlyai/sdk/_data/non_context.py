@@ -61,8 +61,7 @@ _LOG = logging.getLogger(__name__)
 
 # Model Architecture Parameters
 SUB_COLUMN_EMBEDDING_DIM = 32
-ENTITY_HIDDEN_DIM = 256
-ENTITY_EMBEDDING_DIM = 128
+MIN_ENTITY_EMBEDDING_DIM = 16
 PEAKEDNESS_SCALER = 7.0
 
 # Training Parameters
@@ -233,9 +232,9 @@ class EntityEncoder(nn.Module):
     def __init__(
         self,
         cardinalities: dict[str, int],
-        sub_column_embedding_dim: int = SUB_COLUMN_EMBEDDING_DIM,
-        entity_hidden_dim: int = ENTITY_HIDDEN_DIM,
-        entity_embedding_dim: int = ENTITY_EMBEDDING_DIM,
+        sub_column_embedding_dim: int,
+        entity_hidden_dim: int,
+        entity_embedding_dim: int,
     ):
         super().__init__()
         self.cardinalities = cardinalities
@@ -253,7 +252,7 @@ class EntityEncoder(nn.Module):
             nn.Linear(entity_dim, self.entity_hidden_dim),
             nn.ReLU(),
             nn.Dropout(DROPOUT_RATE),
-            nn.Linear(self.entity_hidden_dim, self.entity_embedding_dim),
+            nn.Linear(self.entity_hidden_dim, self.entity_hidden_dim),
         )
 
     def forward(self, inputs: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -269,24 +268,36 @@ class ParentChildMatcher(nn.Module):
         self,
         parent_cardinalities: dict[str, int],
         child_cardinalities: dict[str, int],
-        sub_column_embedding_dim: int = SUB_COLUMN_EMBEDDING_DIM,
-        entity_hidden_dim: int = ENTITY_HIDDEN_DIM,
-        entity_embedding_dim: int = ENTITY_EMBEDDING_DIM,
+        sub_column_embedding_dim: int | None = None,
+        entity_hidden_dim: int | None = None,
+        entity_embedding_dim: int | None = None,
     ):
         super().__init__()
-        self.entity_embedding_dim = entity_embedding_dim
+
+        sub_column_embedding_dim = sub_column_embedding_dim or SUB_COLUMN_EMBEDDING_DIM
+
+        # Compute separate entity_embedding_dim for parent and child
+        parent_entity_embedding_dim = entity_embedding_dim or max(
+            MIN_ENTITY_EMBEDDING_DIM, int((len(parent_cardinalities) * sub_column_embedding_dim) ** 0.5)
+        )
+        child_entity_embedding_dim = entity_embedding_dim or max(
+            MIN_ENTITY_EMBEDDING_DIM, int((len(child_cardinalities) * sub_column_embedding_dim) ** 0.5)
+        )
+
+        # Use max of the two for hidden dim (both encoders must output same dimension)
+        entity_hidden_dim = entity_hidden_dim or (max(parent_entity_embedding_dim, child_entity_embedding_dim) * 2)
 
         self.parent_encoder = EntityEncoder(
             cardinalities=parent_cardinalities,
             sub_column_embedding_dim=sub_column_embedding_dim,
             entity_hidden_dim=entity_hidden_dim,
-            entity_embedding_dim=self.entity_embedding_dim,
+            entity_embedding_dim=parent_entity_embedding_dim,
         )
         self.child_encoder = EntityEncoder(
             cardinalities=child_cardinalities,
             sub_column_embedding_dim=sub_column_embedding_dim,
             entity_hidden_dim=entity_hidden_dim,
-            entity_embedding_dim=self.entity_embedding_dim,
+            entity_embedding_dim=child_entity_embedding_dim,
         )
 
     def forward(self, parent_inputs: dict[str, torch.Tensor], child_inputs: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -897,9 +908,9 @@ def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
     model = ParentChildMatcher(
         parent_cardinalities=model_config["parent_encoder"]["cardinalities"],
         child_cardinalities=model_config["child_encoder"]["cardinalities"],
-        sub_column_embedding_dim=model_config["parent_encoder"]["sub_column_embedding_dim"],
-        entity_hidden_dim=model_config["parent_encoder"]["entity_hidden_dim"],
-        entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
+        # sub_column_embedding_dim=model_config["parent_encoder"]["sub_column_embedding_dim"],
+        # entity_hidden_dim=model_config["parent_encoder"]["entity_hidden_dim"],
+        # entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
     )
     model_state_path = matching_model_dir / "model_weights.pt"
     model.load_state_dict(torch.load(model_state_path))
