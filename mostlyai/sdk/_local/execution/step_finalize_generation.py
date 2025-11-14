@@ -215,8 +215,126 @@ def filter_and_order_columns(data: pd.DataFrame, table_name: str, schema: Schema
     if drop_cols:
         _LOG.info(f"remove columns from final output: {', '.join(drop_cols)}")
     keep_cols = [c for c in tgt_cols if c in data]
-    extra_cols = [c for c in data if c not in tgt_cols]
-    return data[keep_cols + extra_cols]
+    return data[keep_cols]
+
+
+def merge_extra_seed_into_output(
+    *,
+    table_name: str,
+    pqt_path: Path,
+    csv_path: Path | None,
+    job_workspace_dir: Path,
+    schema: Schema,
+) -> None:
+    """
+    merge extra seed columns into already-written output files.
+
+    reads the output parquet files, adds extra seed columns (if they exist),
+    and rewrites the files. also regenerates CSV if needed.
+
+    handles both subject tables (1:1 row alignment) and sequential tables
+    (merge by context key to handle row expansion from sequence completion).
+    """
+    extra_seed = load_extra_seed_columns(table_name, job_workspace_dir)
+    if extra_seed is None:
+        # no extra seed columns, nothing to do
+        return
+
+    _LOG.info(f"merging extra seed columns into output for table {table_name}")
+
+    # determine if this is a sequential table by checking for context key in extra_seed
+    table = schema.tables[table_name]
+    context_key_col = None
+
+    # check if any column in extra_seed matches a foreign key marked as context
+    for col in extra_seed.columns:
+        for fk in table.foreign_keys or []:
+            if fk.is_context and fk.column == col:
+                context_key_col = col
+                _LOG.info(f"detected sequential table with context key: {context_key_col}")
+                break
+        if context_key_col:
+            break
+
+    # read all parquet files from output, merge with extra seed, and rewrite
+    parquet_files = sorted(list(pqt_path.glob("*.parquet")))
+    if not parquet_files:
+        _LOG.warning(f"no parquet files found for table {table_name} at {pqt_path}")
+        return
+
+    if context_key_col:
+        # sequential table: merge by context key (handles row expansion)
+        # add row index within each context group to match seed data order
+        for file_path in parquet_files:
+            chunk_data = pd.read_parquet(file_path)
+
+            # add row index within each context key group
+            chunk_data["__row_idx__"] = chunk_data.groupby(context_key_col).cumcount()
+
+            # only add extra columns that don't already exist in generated data
+            extra_cols = [
+                c
+                for c in extra_seed.columns
+                if c not in [context_key_col, "__row_idx__"] and c not in chunk_data.columns
+            ]
+            if extra_cols:
+                # select context key, row index, and new extra columns for merge
+                merge_cols = [context_key_col, "__row_idx__"] + extra_cols
+                merge_df = extra_seed[merge_cols]
+                # merge on both context key and row index to maintain order
+                chunk_data = pd.merge(chunk_data, merge_df, on=[context_key_col, "__row_idx__"], how="left")
+                # drop the temporary row index column
+                chunk_data = chunk_data.drop(columns=["__row_idx__"])
+                # rewrite the parquet file with extra columns
+                chunk_data.to_parquet(file_path, index=False)
+    else:
+        # subject table: use 1:1 row alignment (original behavior)
+        row_offset = 0
+        for file_path in parquet_files:
+            # read chunk
+            chunk_data = pd.read_parquet(file_path)
+            chunk_size = len(chunk_data)
+
+            # merge extra seed columns for this chunk
+            chunk_extra = extra_seed.iloc[row_offset : row_offset + chunk_size].reset_index(drop=True)
+            # only add columns that don't already exist
+            new_cols = [c for c in chunk_extra.columns if c not in chunk_data.columns]
+            if len(chunk_extra) == chunk_size and new_cols:
+                chunk_data = pd.concat([chunk_data, chunk_extra[new_cols]], axis=1)
+                # rewrite the parquet file with extra columns
+                chunk_data.to_parquet(file_path, index=False)
+            elif len(chunk_extra) != chunk_size:
+                _LOG.warning(
+                    f"extra seed columns chunk mismatch for {table_name}: expected {chunk_size}, got {len(chunk_extra)}"
+                )
+
+            row_offset += chunk_size
+
+    # if csv export is enabled, regenerate the csv file with extra columns
+    if csv_path:
+        _LOG.info(f"regenerating csv file for {table_name} with extra seed columns")
+        # remove existing csv
+        csv_file = csv_path / f"{table_name}.csv"
+        if csv_file.exists():
+            csv_file.unlink()
+
+        # read all parquet files and write to csv
+        for file_path in parquet_files:
+            chunk_data = pd.read_parquet(file_path)
+            csv_post = CsvDataTable(path=csv_file, name=table_name)
+            csv_post.write_data(chunk_data, if_exists="append")
+
+
+def load_extra_seed_columns(table_name: str, job_workspace_dir: Path) -> pd.DataFrame | None:
+    """load extra seed columns for a table if they exist."""
+    model_label = get_model_label(table_name, ModelType.tabular, path_safe=True)
+    workspace_dir = job_workspace_dir / model_label
+    extra_seed_path = workspace_dir / "ExtraSeedColumns" / "seed_extra.parquet"
+
+    if extra_seed_path.exists():
+        _LOG.info(f"loading extra seed columns for table {table_name}")
+        return pd.read_parquet(extra_seed_path)
+    return None
 
 
 def write_batch_outputs(
@@ -513,6 +631,15 @@ def finalize_table_generation(
             pqt_path=pqt_path,
             csv_path=csv_path,
         )
+
+    # merge extra seed columns as a separate post-processing step
+    merge_extra_seed_into_output(
+        table_name=target_table_name,
+        pqt_path=pqt_path,
+        csv_path=csv_path,
+        job_workspace_dir=job_workspace_dir,
+        schema=generated_data_schema,
+    )
 
 
 def export_data_to_excel(delivery_dir: Path, output_dir: Path):
