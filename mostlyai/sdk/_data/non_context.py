@@ -61,20 +61,23 @@ _LOG = logging.getLogger(__name__)
 
 # Model Architecture Parameters
 SUB_COLUMN_EMBEDDING_DIM = 32
-ENTITY_HIDDEN_DIM = 256
-ENTITY_EMBEDDING_DIM = 128
+MIN_ENTITY_EMBEDDING_DIM = 128
 PEAKEDNESS_SCALER = 7.0
 
 # Training Parameters
 BATCH_SIZE = 256
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 1e-3
+LR_SCHEDULER_FACTOR = 0.8
+LR_SCHEDULER_PATIENCE = 2
+LR_SCHEDULER_MIN_LR = 1e-6
 MAX_EPOCHS = 1000
-PATIENCE = 5
+PATIENCE = 10
 N_NEGATIVE_SAMPLES = 20
 VAL_SPLIT = 0.2
 DROPOUT_RATE = 0.2
 EARLY_STOPPING_DELTA = 1e-5
 NUMERICAL_STABILITY_EPSILON = 1e-10
+
 
 # Data Sampling Parameters
 MAX_TGT_PER_PARENT = 10
@@ -233,9 +236,9 @@ class EntityEncoder(nn.Module):
     def __init__(
         self,
         cardinalities: dict[str, int],
-        sub_column_embedding_dim: int = SUB_COLUMN_EMBEDDING_DIM,
-        entity_hidden_dim: int = ENTITY_HIDDEN_DIM,
-        entity_embedding_dim: int = ENTITY_EMBEDDING_DIM,
+        sub_column_embedding_dim: int,
+        entity_hidden_dim: int,
+        entity_embedding_dim: int,
     ):
         super().__init__()
         self.cardinalities = cardinalities
@@ -269,24 +272,35 @@ class ParentChildMatcher(nn.Module):
         self,
         parent_cardinalities: dict[str, int],
         child_cardinalities: dict[str, int],
-        sub_column_embedding_dim: int = SUB_COLUMN_EMBEDDING_DIM,
-        entity_hidden_dim: int = ENTITY_HIDDEN_DIM,
-        entity_embedding_dim: int = ENTITY_EMBEDDING_DIM,
+        sub_column_embedding_dim: int | None = None,
+        entity_hidden_dim: int | None = None,
+        parent_entity_embedding_dim: int | None = None,
+        child_entity_embedding_dim: int | None = None,
     ):
         super().__init__()
-        self.entity_embedding_dim = entity_embedding_dim
+
+        sub_column_embedding_dim = sub_column_embedding_dim or SUB_COLUMN_EMBEDDING_DIM
+
+        parent_entity_embedding_dim = parent_entity_embedding_dim or max(
+            MIN_ENTITY_EMBEDDING_DIM, int((len(parent_cardinalities) * sub_column_embedding_dim) ** 0.5)
+        )
+        child_entity_embedding_dim = child_entity_embedding_dim or max(
+            MIN_ENTITY_EMBEDDING_DIM, int((len(child_cardinalities) * sub_column_embedding_dim) ** 0.5)
+        )
+
+        entity_hidden_dim = entity_hidden_dim or (max(parent_entity_embedding_dim, child_entity_embedding_dim) * 2)
 
         self.parent_encoder = EntityEncoder(
             cardinalities=parent_cardinalities,
             sub_column_embedding_dim=sub_column_embedding_dim,
             entity_hidden_dim=entity_hidden_dim,
-            entity_embedding_dim=self.entity_embedding_dim,
+            entity_embedding_dim=parent_entity_embedding_dim,
         )
         self.child_encoder = EntityEncoder(
             cardinalities=child_cardinalities,
             sub_column_embedding_dim=sub_column_embedding_dim,
             entity_hidden_dim=entity_hidden_dim,
-            entity_embedding_dim=self.entity_embedding_dim,
+            entity_embedding_dim=child_entity_embedding_dim,
         )
 
     def forward(self, parent_inputs: dict[str, torch.Tensor], child_inputs: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -790,6 +804,13 @@ def train_fk_model(
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="min",
+        factor=LR_SCHEDULER_FACTOR,
+        patience=LR_SCHEDULER_PATIENCE,
+        min_lr=LR_SCHEDULER_MIN_LR,
+    )
 
     # calculate class imbalance for loss weighting
     num_positives = int(labels.sum())
@@ -830,10 +851,14 @@ def train_fk_model(
         val_loss /= val_size
         val_losses.append(val_loss)
 
+        scheduler.step(val_loss)
+        current_lr = optimizer.param_groups[0]["lr"]
+
         progress_msg = {
             "epoch": epoch,
             "train_loss": round(train_loss, 4),
             "val_loss": round(val_loss, 4),
+            "lr": f"{current_lr:.2e}",
         }
         _LOG.info(progress_msg)
 
@@ -894,7 +919,8 @@ def load_fk_model(*, fk_model_workspace_dir: Path) -> ParentChildMatcher:
         child_cardinalities=model_config["child_encoder"]["cardinalities"],
         sub_column_embedding_dim=model_config["parent_encoder"]["sub_column_embedding_dim"],
         entity_hidden_dim=model_config["parent_encoder"]["entity_hidden_dim"],
-        entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
+        parent_entity_embedding_dim=model_config["parent_encoder"]["entity_embedding_dim"],
+        child_entity_embedding_dim=model_config["child_encoder"]["entity_embedding_dim"],
     )
     model_state_path = matching_model_dir / "model_weights.pt"
     model.load_state_dict(torch.load(model_state_path))
