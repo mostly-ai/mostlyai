@@ -92,6 +92,33 @@ def execute_step_generate_data(
         imputation = config.imputation
         fairness = config.fairness
 
+    # extract and save extra seed columns before generation
+    if sample_seed is not None:
+        # get columns that the model knows about
+        model_columns = [c.name for c in tgt_g_table.columns if c.included]
+        extra_columns = [c for c in sample_seed.columns if c not in model_columns]
+
+        if extra_columns:
+            # save extra columns separately to preserve them
+            extra_seed_dir = workspace_dir / "ExtraSeedColumns"
+            extra_seed_dir.mkdir(parents=True, exist_ok=True)
+
+            # for sequential tables, also save the context key to enable proper row alignment
+            # after sequence completion (which may generate more rows than seed)
+            extra_seed_data = sample_seed[extra_columns].copy()
+            if not is_subject:
+                # find the context foreign key
+                context_fk = next((fk for fk in tgt_g_table.foreign_keys if fk.is_context), None)
+                if context_fk and context_fk.column in sample_seed.columns:
+                    # include context key for row alignment during merge
+                    extra_seed_data[context_fk.column] = sample_seed[context_fk.column]
+                    # add row index within each context group to maintain order
+                    extra_seed_data["__row_idx__"] = extra_seed_data.groupby(context_fk.column).cumcount()
+
+            extra_seed_data.to_parquet(extra_seed_dir / "seed_extra.parquet")
+            # pass only known columns to engine
+            sample_seed = sample_seed[[c for c in sample_seed.columns if c in model_columns]]
+
     # call GENERATE
     engine.generate(
         ctx_data=ctx_data,
