@@ -3834,7 +3834,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "2.0.0"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=fix-numeric-dtype#0a495c739e2a440cf6b31054bcd93743644b8a29" }
+source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=fix-numeric-dtype#0577fbd0a63ae132345db5fc002ba5ee5d5c2a24" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
