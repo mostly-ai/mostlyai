@@ -171,6 +171,7 @@ def train_cardinality_model(
     cardinality_workspace_dir = fk_model_workspace_dir / "cardinality_model"
     cardinality_workspace_dir.mkdir(parents=True, exist_ok=True)
 
+    _LOG.info(f"[NonContext Cardinality] Split data | n_rows={len(parent_data)}")
     engine.split(
         tgt_data=parent_data,
         tgt_primary_key=parent_primary_key,
@@ -178,16 +179,19 @@ def train_cardinality_model(
         update_progress=lambda **kwargs: None,
     )
 
+    _LOG.info("[NonContext Cardinality] Analyze data")
     engine.analyze(
         workspace_dir=cardinality_workspace_dir,
         update_progress=lambda **kwargs: None,
     )
 
+    _LOG.info("[NonContext Cardinality] Encode data")
     engine.encode(
         workspace_dir=cardinality_workspace_dir,
         update_progress=lambda **kwargs: None,
     )
 
+    _LOG.info("[NonContext Cardinality] Train model | model=MOSTLY_AI/Medium")
     engine.train(
         model="MOSTLY_AI/Medium",
         workspace_dir=cardinality_workspace_dir,
@@ -236,8 +240,7 @@ def train_non_context_models_for_single_relation(
     tgt_empty_or_key_only = tgt_data.empty or len(tgt_data.columns) <= 1
     if parent_empty_or_key_only or tgt_empty_or_key_only:
         _LOG.info(
-            f"Skipping FK model training for {tgt_table_name}.{tgt_parent_key} -> {parent_table_name}.{parent_primary_key}: "
-            f"parent or target data is empty or contains only key columns."
+            f"[NonContext] Skip FK model training | relation={tgt_table_name}.{tgt_parent_key}->{parent_table_name}.{parent_primary_key} | reason=empty_or_key_only"
         )
         return
 
@@ -247,8 +250,11 @@ def train_non_context_models_for_single_relation(
     children_counts = tgt_data[tgt_parent_key].value_counts()
     children_counts_mapped = parent_data[parent_primary_key].map(children_counts).fillna(0).astype(int)
     parent_data_with_counts = parent_data.assign(**{CHILDREN_COUNT_COLUMN_NAME: children_counts_mapped})
+    max_count = children_counts_mapped.max() if len(children_counts_mapped) > 0 else 0
+    avg_count = children_counts_mapped.mean() if len(children_counts_mapped) > 0 else 0
+    _LOG.info(f"[NonContext] Prepare parent data with children counts | max_children={max_count} | avg_children={avg_count:.2f}")
 
-    _LOG.info(f"Training FK matching model for {tgt_table_name}.{tgt_parent_key}")
+    _LOG.info(f"[NonContext Matching] Train FK matching model | relation={tgt_table_name}.{tgt_parent_key}->{parent_table_name}.{parent_primary_key}")
     train_fk_matching_model(
         parent_data=parent_data_with_counts,
         tgt_data=tgt_data,
@@ -257,7 +263,7 @@ def train_non_context_models_for_single_relation(
         fk_model_workspace_dir=fk_model_workspace_dir,
     )
 
-    _LOG.info(f"Training cardinality model for {tgt_table_name}.{tgt_parent_key}")
+    _LOG.info(f"[NonContext Cardinality] Train cardinality model | relation={tgt_table_name}.{tgt_parent_key}->{parent_table_name}.{parent_primary_key}")
     train_cardinality_model(
         parent_data=parent_data_with_counts,
         parent_primary_key=parent_primary_key,
@@ -265,8 +271,8 @@ def train_non_context_models_for_single_relation(
     )
 
     _LOG.info(
-        f"Trained FK matching and cardinality models for {tgt_table_name}.{tgt_parent_key} -> {parent_table_name}.{parent_primary_key} | "
-        f"time: {time.time() - t0:.2f}s | models saved: {fk_model_workspace_dir}"
+        f"[NonContext] All models trained | relation={tgt_table_name}.{tgt_parent_key}->{parent_table_name}.{parent_primary_key} | "
+        f"time={time.time() - t0:.2f}s | workspace={fk_model_workspace_dir}"
     )
 
 
@@ -306,7 +312,7 @@ def execute_step_finalize_training(
                     update_progress=progress.update,
                 )
             except Exception as e:
-                _LOG.error(f"FK model training failed for table {tgt_table_name}: {e}\n{traceback.format_exc()}")
+                _LOG.error(f"[NonContext] FK model training failed | table={tgt_table_name} | error={e}\n{traceback.format_exc()}")
                 continue
             finally:
                 clean_up_non_context_models_dirs(fk_models_workspace_dir=fk_models_workspace_dir)

@@ -136,7 +136,7 @@ def add_is_null_for_non_context_relation(
     is_target: bool = False,
 ) -> pd.DataFrame:
     """Handle a single non-context relation for a table and add an is_null column."""
-    _LOG.info(f"handle non-context relation {table.name}")
+    _LOG.info(f"[NonContext] Handle relation | table={table.name}")
 
     assert isinstance(relation, NonContextRelation)
     fk = relation.child.ref_name(prefixed=not is_target)
@@ -210,7 +210,7 @@ def assign_non_context_fks_randomly(
             continue
         tgt_fk_name = rel.child.column
         tgt_is_null_column_name = rel.get_is_null_column()
-        _LOG.info(f"sample non-context keys for {tgt_fk_name}")
+        _LOG.info(f"[NonContext] Sample keys | fk={tgt_fk_name}")
         tgt_is_null = tgt_data[tgt_is_null_column_name]
         # read referenced table's keys
         non_ctx_pk_name = rel.parent.column
@@ -455,7 +455,7 @@ def add_context_parent_data(
     # get unique context parent keys from tgt_data
     ctx_parent_keys = tgt_data[tgt_ctx_fk].dropna().unique().tolist()
     if not ctx_parent_keys:
-        _LOG.info(f"No context parent keys found in tgt_data for {tgt_table.name}")
+        _LOG.info(f"[NonContext] No parent keys found | table={tgt_table.name}")
         return tgt_data
 
     # identify key columns to exclude (primary key + foreign keys)
@@ -484,7 +484,7 @@ def add_context_parent_data(
     )
 
     if ctx_parent_data.empty:
-        _LOG.info(f"No context parent data found for {tgt_table.name}")
+        _LOG.info(f"[NonContext] No parent data found | table={tgt_table.name}")
         return tgt_data
 
     # join context parent data with tgt_data
@@ -506,7 +506,7 @@ def add_context_parent_data(
         tgt_data = tgt_data.drop(columns=[tgt_ctx_fk])
 
     added_columns = [c for c in tgt_data.columns if c in ctx_parent_data.columns]
-    _LOG.info(f"add_context_parent_data | time: {time.time() - t0:.2f}s | added_columns: {added_columns}")
+    _LOG.info(f"[NonContext] Add context parent data | time={time.time() - t0:.2f}s | added_columns={added_columns}")
     return tgt_data
 
 
@@ -633,11 +633,7 @@ def pull_fk_model_training_data(
         len(tgt_data) / len(parent_keys_with_children) if len(parent_keys_with_children) > 0 else 0
     )
     _LOG.info(
-        f"pull_fk_model_training_data | time: {time.time() - t0:.2f}s\n"
-        f"  Training data:\n"
-        f"    - Parents: {len(parent_data)} total "
-        f"({len(parent_keys_with_children)} with children, {len(sampled_parent_keys_without_children)} without)\n"
-        f"    - Children: {len(tgt_data)} (max {max_children_per_parent} per parent, avg {avg_children_per_parent:.2f} per parent with children)"
+        f"[NonContext] Pull training data | parents_total={len(parent_data)} | parents_with_children={len(parent_keys_with_children)} | parents_without={len(sampled_parent_keys_without_children)} | children={len(tgt_data)} | max_per_parent={max_children_per_parent} | avg_per_parent={avg_children_per_parent:.2f} | time={time.time() - t0:.2f}s"
     )
     return parent_data, tgt_data
 
@@ -673,7 +669,7 @@ def prepare_training_data_for_cardinality_model(
     parent_data_enriched = parent_data.assign(**{CHILDREN_COUNT_COLUMN_NAME: children_counts})
 
     _LOG.info(
-        f"prepare_training_data_for_cardinality_model | n_rows: {len(parent_data_enriched)} | time: {time.time() - t0:.2f}s"
+        f"[NonContext Cardinality] Prepare training data | n_rows={len(parent_data_enriched)} | time={time.time() - t0:.2f}s"
     )
 
     return parent_data_enriched
@@ -772,7 +768,7 @@ def prepare_training_pairs_for_fk_model(
     labels_pd = pd.Series(labels_vec, name="labels")
 
     n_pairs = len(parent_pd)
-    _LOG.info(f"prepare_training_pairs_for_fk_model | n_pairs: {n_pairs} | time: {time.time() - t0:.2f}s")
+    _LOG.info(f"[NonContext Matching] Prepare training pairs | n_pairs={n_pairs} | time={time.time() - t0:.2f}s")
     return parent_pd, tgt_pd, labels_pd
 
 
@@ -860,7 +856,7 @@ def train_fk_model(
             "val_loss": round(val_loss, 4),
             "lr": f"{current_lr:.2e}",
         }
-        _LOG.info(progress_msg)
+        _LOG.info(f"[NonContext Matching] {progress_msg}")
 
         if val_loss < best_val_loss - EARLY_STOPPING_DELTA:
             epochs_no_improve = 0
@@ -870,13 +866,13 @@ def train_fk_model(
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= PATIENCE:
-                _LOG.info("early stopping: val_loss stopped improving")
+                _LOG.info("[NonContext Matching] Early stopping | reason=val_loss_plateau")
                 break
 
     assert best_model_state is not None
     model.load_state_dict(best_model_state)
     _LOG.info(
-        f"train_fk_model() | time: {time.time() - t0:.2f}s | best_epoch: {best_epoch} | best_val_loss: {best_val_loss:.4f}"
+        f"[NonContext Matching] Train FK model | time={time.time() - t0:.2f}s | best_epoch={best_epoch} | best_val_loss={best_val_loss:.4f}"
     )
 
 
@@ -1014,11 +1010,11 @@ def sample_best_parents(
     total_initial_capacity = sum(remaining_capacity.get(pid, 0) for pid in parent_ids)
 
     _LOG.info(
-        f"FK matching with capacity enforcement | "
-        f"n_children: {n_tgt} | "
-        f"n_parents: {len(parent_ids)} | "
-        f"total_capacity: {total_initial_capacity} | "
-        f"capacity_deficit: {n_tgt - total_initial_capacity}"
+        f"[NonContext Matching] FK matching with capacity enforcement | "
+        f"n_children={n_tgt} | "
+        f"n_parents={len(parent_ids)} | "
+        f"total_capacity={total_initial_capacity} | "
+        f"capacity_deficit={n_tgt - total_initial_capacity}"
     )
 
     for child_idx in range(n_tgt):
@@ -1130,10 +1126,10 @@ def initialize_remaining_capacity(
     remaining_capacity = {}
     total_parents = 0
 
-    _LOG.info(f"Generating cardinality predictions in chunks for parent table {parent_table.name}")
+    _LOG.info(f"[NonContext Cardinality] Generate predictions | table={parent_table.name}")
     for chunk_idx, parent_chunk in enumerate(parent_table.read_chunks(do_coerce_dtypes=True)):
         chunk_size = len(parent_chunk)
-        _LOG.info(f"Processing cardinality chunk {chunk_idx} with {chunk_size} parents")
+        _LOG.info(f"[NonContext Cardinality] Process chunk | chunk_idx={chunk_idx} | chunk_size={chunk_size}")
 
         engine.generate(
             seed_data=parent_chunk[
@@ -1156,7 +1152,7 @@ def initialize_remaining_capacity(
 
     total_capacity = sum(remaining_capacity.values())
     _LOG.info(
-        f"initialize_remaining_capacity | total_parents: {total_parents} | total_capacity: {total_capacity} | time: {time.time() - t0:.2f}s"
+        f"[NonContext Cardinality] Initialize remaining capacity | total_parents={total_parents} | total_capacity={total_capacity} | time={time.time() - t0:.2f}s"
     )
 
     return remaining_capacity
@@ -1211,7 +1207,7 @@ def match_non_context(
         non_null_mask = ~null_mask
 
         _LOG.info(
-            f"FK matching data | total_rows: {len(tgt_data)} | null_rows: {null_mask.sum()} | non_null_rows: {non_null_mask.sum()}"
+            f"[NonContext Matching] FK matching data | total_rows={len(tgt_data)} | null_rows={null_mask.sum()} | non_null_rows={non_null_mask.sum()}"
         )
 
         if non_null_mask.sum() == 0:
@@ -1228,7 +1224,7 @@ def match_non_context(
         if is_null_col in tgt_data_non_null.columns:
             tgt_data_non_null = tgt_data_non_null.drop(columns=[is_null_col])
     else:
-        _LOG.info(f"FK matching data | total_rows: {len(tgt_data)} | null_rows: 0 | non_null_rows: {len(tgt_data)}")
+        _LOG.info(f"[NonContext Matching] FK matching data | total_rows={len(tgt_data)} | null_rows=0 | non_null_rows={len(tgt_data)}")
         tgt_data_non_null = tgt_data.copy()
         non_null_indices = tgt_data.index.tolist()
         non_null_mask = pd.Series(True, index=tgt_data.index)
@@ -1254,7 +1250,7 @@ def match_non_context(
 
     fk_parent_sample_size = len(parent_encoded)
     _LOG.info(
-        f"FK model matching | temperature: {temperature} | top_k: {top_k} | top_p: {top_p} | parent_sample_size: {fk_parent_sample_size}"
+        f"[NonContext Matching] FK model matching | temperature={temperature} | top_k={top_k} | top_p={top_p} | parent_sample_size={fk_parent_sample_size}"
     )
 
     prob_matrix = build_parent_child_probabilities(
@@ -1282,6 +1278,6 @@ def match_non_context(
 
     n_matched = non_null_mask.sum()
     n_null = (~non_null_mask).sum()
-    _LOG.info(f"FK matching completed | matched: {n_matched} | null: {n_null}")
+    _LOG.info(f"[NonContext Matching] FK matching completed | matched={n_matched} | null={n_null}")
 
     return tgt_data
