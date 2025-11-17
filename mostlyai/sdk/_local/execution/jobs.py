@@ -237,27 +237,12 @@ def _merge_tabular_language_data(workspace_dir: Path, merged_part_size: int = 20
         if not buffer.empty:
             yield buffer
 
-    def rows_from_dataframe_generator(df: pd.DataFrame, yield_n_rows: int):
-        """generate chunks from a dataframe."""
-        for start_idx in range(0, len(df), yield_n_rows):
-            yield df.iloc[start_idx : start_idx + yield_n_rows].reset_index(drop=True)
-
     ctx_dir = workspace_dir / "OriginalData" / "ctx-data"
     tgt_dir = workspace_dir / "SyntheticData"
     merge_dir = workspace_dir / "_TEMP_MERGE_DIR_"
     ctx_gen = rows_from_dir_generator(ctx_dir, yield_n_rows=merged_part_size)
     tgt_gen = rows_from_dir_generator(tgt_dir, yield_n_rows=merged_part_size)
     merge_dir.mkdir(parents=True, exist_ok=True)
-
-    # load extra seed columns if they exist
-    extra_seed_path = workspace_dir / "ExtraSeedColumns" / "seed_extra.parquet"
-    extra_seed_df = None
-    context_key_col = None
-    if extra_seed_path.exists():
-        extra_seed_df = pd.read_parquet(extra_seed_path)
-        # check if extra seed has a context key (for sequential tables)
-        # context key will be the only column that's not an "extra" column
-        # we'll detect it by checking if it appears in the generated data
 
     for idx, ctx_df in enumerate(ctx_gen):
         # assumption: rows from ctx_dir form 1:1 mapping with rows from tgt_dir
@@ -270,34 +255,6 @@ def _merge_tabular_language_data(workspace_dir: Path, merged_part_size: int = 20
         df = pd.concat([ctx_df, tgt_df], axis=1)
         # remove temporary primary key
         df = df.loc[:, ~df.columns.str.contains(TEMPORARY_PRIMARY_KEY)]
-
-        # merge extra seed columns if they exist
-        if extra_seed_df is not None:
-            # detect context key on first iteration
-            if context_key_col is None and idx == 0:
-                # find columns in extra_seed that also exist in generated data (these are context keys)
-                potential_ctx_keys = [c for c in extra_seed_df.columns if c in df.columns]
-                context_key_col = potential_ctx_keys[0] if potential_ctx_keys else None
-
-            if context_key_col:
-                # sequential table: merge by context key (allows row expansion)
-                # only add extra columns that don't already exist in df
-                extra_cols = [c for c in extra_seed_df.columns if c != context_key_col and c not in df.columns]
-                if extra_cols:
-                    # select only context key and new extra columns for merge
-                    merge_df = extra_seed_df[[context_key_col] + extra_cols]
-                    df = pd.merge(df, merge_df, on=context_key_col, how="left")
-            else:
-                # subject table: use row-by-row alignment (no context key)
-                # note: for chunked processing, we need to track offset
-                start_row = idx * merged_part_size
-                end_row = start_row + len(df)
-                extra_chunk = extra_seed_df.iloc[start_row:end_row].reset_index(drop=True)
-                # only add columns that don't already exist
-                new_cols = [c for c in extra_chunk.columns if c not in df.columns]
-                if len(extra_chunk) == len(df) and new_cols:
-                    df = pd.concat([df, extra_chunk[new_cols]], axis=1)
-
         out_fn = merge_dir / f"part.{idx:06}.{0:06}.parquet"
         df.to_parquet(out_fn)
     assert next(tgt_gen, None) is None
