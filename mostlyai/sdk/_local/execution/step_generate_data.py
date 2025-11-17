@@ -102,12 +102,11 @@ def execute_step_generate_data(
             extra_seed_dir.mkdir(parents=True, exist_ok=True)
 
             extra_seed_data = sample_seed[extra_columns].copy()
-            if not is_subject:
+            context_fk = next((fk for fk in tgt_g_table.foreign_keys if fk.is_context), None)
+            if context_fk and context_fk.column in sample_seed.columns:
                 # for sequential tables, save context key + row index to align seed data after sequence completion
-                context_fk = next((fk for fk in tgt_g_table.foreign_keys if fk.is_context), None)
-                if context_fk and context_fk.column in sample_seed.columns:
-                    extra_seed_data[context_fk.column] = sample_seed[context_fk.column]
-                    extra_seed_data["__row_idx__"] = extra_seed_data.groupby(context_fk.column).cumcount()
+                extra_seed_data[context_fk.column] = sample_seed[context_fk.column]
+                extra_seed_data["__row_idx__"] = extra_seed_data.groupby(context_fk.column).cumcount()
 
             extra_seed_data.to_parquet(extra_seed_dir / "seed_extra.parquet")
             sample_seed = sample_seed[[c for c in sample_seed.columns if c in model_columns]]

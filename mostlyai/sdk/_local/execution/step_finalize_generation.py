@@ -239,16 +239,9 @@ def merge_extra_seed_into_output(
     _LOG.info(f"merging extra seed columns into output for table {table_name}")
 
     table = schema.tables[table_name]
-    context_key_col = None
 
-    for col in extra_seed.columns:
-        for fk in table.foreign_keys or []:
-            if fk.is_context and fk.column == col:
-                context_key_col = col
-                _LOG.info(f"detected sequential table with context key: {context_key_col}")
-                break
-        if context_key_col:
-            break
+    context_key = next((fk for fk in table.foreign_keys if fk.is_context), None)
+    context_key_col = context_key.column if context_key else None
 
     parquet_files = sorted(list(pqt_path.glob("*.parquet")))
     if not parquet_files:
@@ -261,17 +254,9 @@ def merge_extra_seed_into_output(
             chunk_data = pd.read_parquet(file_path)
             chunk_data["__row_idx__"] = chunk_data.groupby(context_key_col).cumcount()
 
-            extra_cols = [
-                c
-                for c in extra_seed.columns
-                if c not in [context_key_col, "__row_idx__"] and c not in chunk_data.columns
-            ]
-            if extra_cols:
-                merge_cols = [context_key_col, "__row_idx__"] + extra_cols
-                merge_df = extra_seed[merge_cols]
-                chunk_data = pd.merge(chunk_data, merge_df, on=[context_key_col, "__row_idx__"], how="left")
-                chunk_data = chunk_data.drop(columns=["__row_idx__"])
-                chunk_data.to_parquet(file_path, index=False)
+            chunk_data = pd.merge(chunk_data, extra_seed, on=[context_key_col, "__row_idx__"], how="left")
+            chunk_data = chunk_data.drop(columns=["__row_idx__"])
+            chunk_data.to_parquet(file_path, index=False)
     else:
         # subject table: use 1:1 row alignment
         row_offset = 0
@@ -280,9 +265,8 @@ def merge_extra_seed_into_output(
             chunk_size = len(chunk_data)
 
             chunk_extra = extra_seed.iloc[row_offset : row_offset + chunk_size].reset_index(drop=True)
-            new_cols = [c for c in chunk_extra.columns if c not in chunk_data.columns]
-            if len(chunk_extra) == chunk_size and new_cols:
-                chunk_data = pd.concat([chunk_data, chunk_extra[new_cols]], axis=1)
+            if len(chunk_extra) == chunk_size:
+                chunk_data = pd.concat([chunk_data, chunk_extra], axis=1)
                 chunk_data.to_parquet(file_path, index=False)
             elif len(chunk_extra) != chunk_size:
                 _LOG.warning(
