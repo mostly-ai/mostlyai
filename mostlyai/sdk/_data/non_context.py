@@ -1224,7 +1224,9 @@ def match_non_context(
         if is_null_col in tgt_data_non_null.columns:
             tgt_data_non_null = tgt_data_non_null.drop(columns=[is_null_col])
     else:
-        _LOG.info(f"[NonContext Matching] FK matching data | total_rows={len(tgt_data)} | null_rows=0 | non_null_rows={len(tgt_data)}")
+        _LOG.info(
+            f"[NonContext Matching] FK matching data | total_rows={len(tgt_data)} | null_rows=0 | non_null_rows={len(tgt_data)}"
+        )
         tgt_data_non_null = tgt_data.copy()
         non_null_indices = tgt_data.index.tolist()
         non_null_mask = pd.Series(True, index=tgt_data.index)
