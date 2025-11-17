@@ -243,7 +243,6 @@ def _merge_tabular_language_data(workspace_dir: Path, merged_part_size: int = 20
     ctx_gen = rows_from_dir_generator(ctx_dir, yield_n_rows=merged_part_size)
     tgt_gen = rows_from_dir_generator(tgt_dir, yield_n_rows=merged_part_size)
     merge_dir.mkdir(parents=True, exist_ok=True)
-
     for idx, ctx_df in enumerate(ctx_gen):
         # assumption: rows from ctx_dir form 1:1 mapping with rows from tgt_dir
         tgt_df = next(tgt_gen)

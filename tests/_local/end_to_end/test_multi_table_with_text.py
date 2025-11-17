@@ -151,51 +151,45 @@ def test_multi_table_with_text(tmp_path):
     assert len(syn["batting"]) == 4
     assert len(syn["fielding"]) == 2
 
-    # test extra_seed for multi-table: subject table (players) and sequential tables (batting, fielding)
     seed_data = {
         "players": pd.DataFrame(
             {
-                "id": ["0", "1"],  # primary key - must match players_id in batting
+                "id": ["0", "1"],
                 "cat": ["a", "b"],
-                "extra_player_name": ["Alice", "Bob"],  # extra column not in training
+                "extra_player_name": ["Alice", "Bob"],
             }
         ),
         "batting": pd.DataFrame(
             {
-                "players_id": ["0", "1", "0", "1"],  # context foreign key - must match id in players
-                "extra_batting_note": ["note1", "note2", "note3", "note4"],  # extra column
+                "players_id": ["0", "1", "0", "1"],
+                "extra_batting_note": ["note1", "note2", "note3", "note4"],
             }
         ),
     }
     syn = mostly.probe(g, seed=seed_data)
 
-    # verify players (subject table): extra column preserved with 1:1 alignment
+    # subject table: extra column preserved with 1:1 alignment
     assert "extra_player_name" in syn["players"].columns
     assert len(syn["players"]) == 2
     assert list(syn["players"]["extra_player_name"]) == ["Alice", "Bob"]
     assert list(syn["players"]["cat"]) == ["a", "b"]
 
-    # verify batting (sequential table): extra column preserved, but row count may grow
+    # sequential table: extra column preserved, row count may grow from sequence completion
     assert "extra_batting_note" in syn["batting"].columns
-    # batting is sequential, so row count might be >= 4 (seed rows) due to sequence completion
     assert len(syn["batting"]) >= 4
-    # check that extra column values exhaust in order per context key, then fill with None
+    # extra column values exhaust in order per context key, then fill with None
     for pid in ["0", "1"]:
         rows_for_pid = syn["batting"][syn["batting"]["players_id"] == pid]
         if len(rows_for_pid) > 0:
-            # get expected seed notes for this player_id in order
             seed_notes_for_pid = seed_data["batting"][seed_data["batting"]["players_id"] == pid][
                 "extra_batting_note"
             ].tolist()
             actual_notes = rows_for_pid["extra_batting_note"].tolist()
-            # first N rows should match seed data in order
             for i, expected_note in enumerate(seed_notes_for_pid):
                 assert actual_notes[i] == expected_note, (
                     f"Row {i} for player {pid}: expected {expected_note}, got {actual_notes[i]}"
                 )
-            # remaining rows should be None (if any)
             for i in range(len(seed_notes_for_pid), len(actual_notes)):
                 assert pd.isna(actual_notes[i]), f"Row {i} for player {pid} should be None, got {actual_notes[i]}"
 
-    # verify fielding was also generated (no seed provided)
     assert len(syn["fielding"]) >= 2
