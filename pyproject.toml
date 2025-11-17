@@ -48,9 +48,9 @@ dependencies = [
 
 [project.optional-dependencies]
 local = [
-    "mostlyai-engine @ git+https://github.com/mostly-ai/mostlyai-engine.git@fix-numeric-dtype",  # for development
+    # "mostlyai-engine @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
-    #"mostlyai-engine==2.0.0",  # for release
+    "mostlyai-engine==2.0.1",  # for release
     "mostlyai-qa==1.9.8",  # for release
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
@@ -74,9 +74,9 @@ local = [
     "adlfs>=2023.4.0",
 ]
 local-gpu = [
-    "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@fix-numeric-dtype",  # for development
+    # "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
-    # "mostlyai-engine[gpu]==2.0.0",  # for release
+    "mostlyai-engine[gpu]==2.0.1",  # for release
     "mostlyai-qa==1.9.8",  # for release
     "fastapi>=0.115.6,<0.116",
     "uvicorn>=0.34.0,<0.35",
