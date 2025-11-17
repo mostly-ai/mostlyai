@@ -89,8 +89,11 @@ TOP_K = None
 TOP_P = 0.95
 QUOTA_PENALTY_FACTOR = 0.02
 
-# Supported Encoding Types
+# Supported Encoding Types for FK Models
+# FK models can handle categorical, numeric, and datetime columns
+# AUTO is supported - FK models will infer the appropriate encoding from pandas dtypes
 FK_MODEL_ENCODING_TYPES = [
+    ModelEncodingType.auto,
     ModelEncodingType.tabular_categorical,
     ModelEncodingType.tabular_numeric_auto,
     ModelEncodingType.tabular_numeric_discrete,
@@ -343,9 +346,21 @@ def analyze_df(
     primary_key: str | None = None,
     parent_key: str | None = None,
     data_columns: list[str] | None = None,
+    encoding_types: dict[str, ModelEncodingType] | None = None,
     stats_dir: Path,
 ) -> None:
-    """Analyze dataframe and compute statistics for encoding."""
+    """
+    Analyze dataframe and compute statistics for encoding.
+
+    Args:
+        df: DataFrame to analyze
+        primary_key: Primary key column name (excluded from analysis)
+        parent_key: Parent key column name (excluded from analysis)
+        data_columns: List of data columns to analyze
+        encoding_types: User-defined encoding types (column_name -> ModelEncodingType).
+                       When provided, these are used to determine column categories instead of inferring from pandas dtypes.
+        stats_dir: Directory to save statistics
+    """
     stats_dir.mkdir(parents=True, exist_ok=True)
 
     key_columns = []
@@ -358,9 +373,50 @@ def analyze_df(
 
     # preserve column order to ensure deterministic encoding
     data_columns = [col for col in data_columns if col not in key_columns and col in df.columns]
-    num_columns = [col for col in data_columns if col in df.select_dtypes(include="number").columns]
-    dt_columns = [col for col in data_columns if col in df.select_dtypes(include="datetime").columns]
-    cat_columns = [col for col in data_columns if col not in num_columns + dt_columns]
+
+    # Determine column types: use user-defined encoding types if available, otherwise infer from dtypes
+    if encoding_types:
+        _LOG.info(f"[NonContext] Using user-defined encoding types | columns={list(encoding_types.keys())}")
+        # Map ModelEncodingType to FK model encoding categories (numeric, datetime, categorical)
+        # Note: Unsupported types are already filtered out upstream by FK_MODEL_ENCODING_TYPES
+        num_columns = []
+        dt_columns = []
+        cat_columns = []
+
+        for col in data_columns:
+            encoding_type = encoding_types.get(col, ModelEncodingType.auto)
+
+            # Handle AUTO by inferring from pandas dtype
+            if encoding_type == ModelEncodingType.auto:
+                if col in df.select_dtypes(include="number").columns:
+                    num_columns.append(col)
+                elif col in df.select_dtypes(include="datetime").columns:
+                    dt_columns.append(col)
+                else:
+                    cat_columns.append(col)
+            # Map numeric encoding types
+            elif encoding_type in [
+                ModelEncodingType.tabular_numeric_auto,
+                ModelEncodingType.tabular_numeric_discrete,
+                ModelEncodingType.tabular_numeric_binned,
+                ModelEncodingType.tabular_numeric_digit,
+            ]:
+                num_columns.append(col)
+            # Map datetime encoding types
+            elif encoding_type == ModelEncodingType.tabular_datetime:
+                dt_columns.append(col)
+            # Map categorical encoding type
+            elif encoding_type == ModelEncodingType.tabular_categorical:
+                cat_columns.append(col)
+
+        _LOG.info(
+            f"[NonContext] Column mapping | numeric={num_columns} | datetime={dt_columns} | categorical={cat_columns}"
+        )
+    else:
+        # Fallback to dtype inference when no encoding types provided
+        num_columns = [col for col in data_columns if col in df.select_dtypes(include="number").columns]
+        dt_columns = [col for col in data_columns if col in df.select_dtypes(include="datetime").columns]
+        cat_columns = [col for col in data_columns if col not in num_columns + dt_columns]
 
     stats = {
         "primary_key": primary_key,
@@ -1224,7 +1280,9 @@ def match_non_context(
         if is_null_col in tgt_data_non_null.columns:
             tgt_data_non_null = tgt_data_non_null.drop(columns=[is_null_col])
     else:
-        _LOG.info(f"[NonContext Matching] FK matching data | total_rows={len(tgt_data)} | null_rows=0 | non_null_rows={len(tgt_data)}")
+        _LOG.info(
+            f"[NonContext Matching] FK matching data | total_rows={len(tgt_data)} | null_rows=0 | non_null_rows={len(tgt_data)}"
+        )
         tgt_data_non_null = tgt_data.copy()
         non_null_indices = tgt_data.index.tolist()
         non_null_mask = pd.Series(True, index=tgt_data.index)
