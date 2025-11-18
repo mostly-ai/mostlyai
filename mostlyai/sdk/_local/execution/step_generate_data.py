@@ -111,6 +111,13 @@ def execute_step_generate_data(
             extra_seed_data.to_parquet(extra_seed_dir / "seed_extra.parquet")
             sample_seed = sample_seed[[c for c in sample_seed.columns if c in model_columns]]
 
+        # coerce context key dtype in sample_seed to match training data schema
+        context_fk = next((fk for fk in tgt_g_table.foreign_keys if fk.is_context), None)
+        if context_fk and context_fk.column in sample_seed.columns:
+            target_dtype = schema.tables[target_table_name].dtypes[context_fk.column]
+            if sample_seed[context_fk.column].dtype != target_dtype:
+                sample_seed[context_fk.column] = sample_seed[context_fk.column].astype(target_dtype)
+
     # call GENERATE
     engine.generate(
         ctx_data=ctx_data,
