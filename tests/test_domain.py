@@ -76,9 +76,10 @@ def test_source_table_config_add_model_configuration():
         assert (s.tabular_model_configuration is not None) is has_tabular_model
         assert (s.language_model_configuration is not None) is has_language_model
 
-    # PK column only
+    # both model configurations will be present if SourceTableConfig.columns is None
     s = SourceTableConfig(**{"name": "tbl1", "primary_key": "id"})
-    assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
+    assert_model_configuration(s, has_tabular_model=True, has_language_model=True)
+    # PK column only
     s = SourceTableConfig(**{"name": "tbl1", "primary_key": "id", "columns": [{"name": "id"}]})
     assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
 
