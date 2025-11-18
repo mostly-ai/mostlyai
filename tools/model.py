@@ -541,18 +541,29 @@ class SourceTableConfig:
     @model_validator(mode="after")
     def add_model_configuration(self):
         # Check if the table has a tabular and/or a language model
-        columns = self.columns or []
         keys = [fk.column for fk in self.foreign_keys or []]
         if self.primary_key:
             keys.append(self.primary_key)
-        model_columns = [c for c in columns if c.name not in keys]
-        if model_columns:
-            enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
-            has_tabular_model = any(not enc_type.startswith(ModelType.language) for enc_type in enc_types)
-            has_language_model = any(enc_type.startswith(ModelType.language) for enc_type in enc_types)
-        else:
+        model_columns = [c for c in self.columns if c.name not in keys] if self.columns is not None else None
+        if model_columns is None:
+            # auto detection haven't been run yet, so we assume both models are present
             has_tabular_model = True
-            has_language_model = False
+            has_language_model = True
+        else:
+            if len(model_columns) == 0:
+                # this table doesn't have any columns other than PK/FKs
+                has_tabular_model = True
+                has_language_model = False
+            else:
+                enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
+                has_tabular_model = any(
+                    enc_type.startswith(ModelType.tabular) or enc_type == ModelEncodingType.auto
+                    for enc_type in enc_types
+                )
+                has_language_model = any(
+                    enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto
+                    for enc_type in enc_types
+                )
         # Always train tabular model for tables with a primary key or linked tables to model sequences
         if self.primary_key or (self.foreign_keys and any(fk.is_context for fk in self.foreign_keys)):
             has_tabular_model = True

@@ -14,6 +14,9 @@
 
 from pathlib import Path
 
+from fastapi import HTTPException
+
+from mostlyai.sdk._local import connectors
 from mostlyai.sdk._local.execution.plan import (
     FINALIZE_TRAINING_TASK_STEPS,
     TRAINING_TASK_REPORT_STEPS,
@@ -24,6 +27,7 @@ from mostlyai.sdk._local.execution.plan import (
 )
 from mostlyai.sdk._local.storage import (
     get_model_label,
+    read_connector_from_json,
     read_generator_from_json,
     write_connector_to_json,
     write_generator_to_json,
@@ -37,6 +41,7 @@ from mostlyai.sdk.domain import (
     Generator,
     GeneratorConfig,
     JobProgress,
+    ModelEncodingType,
     ModelType,
     ProgressStatus,
     ProgressStep,
@@ -49,9 +54,9 @@ from mostlyai.sdk.domain import (
 
 
 def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
-    # handle file uploads -> create_connectors
     for t in config.tables or []:
         if t.data is not None:
+            # handle file uploads -> create_connectors
             connector = Connector(
                 **{
                     "name": "FILE_UPLOAD",
@@ -66,14 +71,43 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
             t.data = None
             t.source_connector_id = connector.id
             t.location = str(fn.absolute())
+            write_connector_to_json(home_dir / "connectors" / connector.id, connector)
+        else:
+            connector = read_connector_from_json(home_dir / "connectors" / t.source_connector_id)
+
+        should_detect_schema = (
+            t.columns is None
+            or t.primary_key is None
+            or any(c.model_encoding_type == ModelEncodingType.auto for c in t.columns)
+        )
+        if should_detect_schema:
+            try:
+                table_schema = connectors.fetch_location_schema(connector, t.location)
+            except Exception:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Cannot create generator due to failure to fetch schema of `{t.name}`."
+                    f" Please check whether source_connector_id and location are correct.",
+                )
+
+            auto_detected_columns = {c.name: c.default_model_encoding_type for c in table_schema.columns}
+            auto_detected_primary_key = table_schema.primary_key
+            if t.primary_key is None:
+                t.primary_key = auto_detected_primary_key
             if t.columns is None:
                 t.columns = [
                     SourceColumnConfig(
-                        name=c,
+                        name=name,
+                        model_encoding_type=model_encoding_type,
                     )
-                    for c in list(df.columns)
+                    for name, model_encoding_type in auto_detected_columns.items()
                 ]
-            write_connector_to_json(home_dir / "connectors" / connector.id, connector)
+            else:
+                for c in t.columns:
+                    if c.model_encoding_type == ModelEncodingType.auto:
+                        c.model_encoding_type = auto_detected_columns[c.name]
+    # reinitialize the config to validate updated config after auto detection
+    config = GeneratorConfig(**config.model_dump())
 
     # create generator
     generator = Generator(
