@@ -75,37 +75,36 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
         else:
             connector = read_connector_from_json(home_dir / "connectors" / t.source_connector_id)
 
-        should_detect_schema = (
-            t.columns is None
-            or t.primary_key is None
-            or any(c.model_encoding_type == ModelEncodingType.auto for c in t.columns)
-        )
-        if should_detect_schema:
-            try:
-                table_schema = connectors.fetch_location_schema(connector, t.location)
-            except Exception:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Cannot create generator due to failure to fetch schema of `{t.name}`."
-                    f" Please check whether source_connector_id and location are correct.",
-                )
+        try:
+            table_schema = connectors.fetch_location_schema(connector, t.location)
+        except Exception:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot create generator due to failure to fetch schema of `{t.name}`."
+                f" Please check whether source_connector_id and location are correct.",
+            )
 
-            auto_detected_columns = {c.name: c.default_model_encoding_type for c in table_schema.columns}
-            auto_detected_primary_key = table_schema.primary_key
-            if t.primary_key is None:
-                t.primary_key = auto_detected_primary_key
-            if t.columns is None:
-                t.columns = [
-                    SourceColumnConfig(
-                        name=name,
-                        model_encoding_type=model_encoding_type,
+        auto_detected_columns = {c.name: c.default_model_encoding_type for c in table_schema.columns}
+        auto_detected_primary_key = table_schema.primary_key
+        if t.primary_key is None:
+            t.primary_key = auto_detected_primary_key
+        if t.columns is None:
+            t.columns = [
+                SourceColumnConfig(
+                    name=name,
+                    model_encoding_type=model_encoding_type,
+                )
+                for name, model_encoding_type in auto_detected_columns.items()
+            ]
+        else:
+            for c in t.columns:
+                if c.name not in auto_detected_columns:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Columns in request must match columns in the table schema.",
                     )
-                    for name, model_encoding_type in auto_detected_columns.items()
-                ]
-            else:
-                for c in t.columns:
-                    if c.model_encoding_type == ModelEncodingType.auto:
-                        c.model_encoding_type = auto_detected_columns[c.name]
+                if c.model_encoding_type == ModelEncodingType.auto:
+                    c.model_encoding_type = auto_detected_columns[c.name]
     # reinitialize the config to validate updated config after auto detection
     config = GeneratorConfig(**config.model_dump())
 
