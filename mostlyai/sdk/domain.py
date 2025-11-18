@@ -3178,7 +3178,7 @@ class SourceTableConfig(CustomBaseModel):
             keys.append(self.primary_key)
         model_columns = [c for c in self.columns if c.name not in keys] if self.columns is not None else None
         if model_columns is None:
-            # auto detection haven't been run yet, so we assume both models are present
+            # auto detection haven't been run yet, so we assume both models are present to retain model configurations given by the user
             has_tabular_model = True
             has_language_model = True
         else:
