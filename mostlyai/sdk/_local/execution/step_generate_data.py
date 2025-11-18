@@ -105,8 +105,7 @@ def execute_step_generate_data(
             context_fk = next((fk for fk in tgt_g_table.foreign_keys if fk.is_context), None)
             if context_fk and context_fk.column in sample_seed.columns:
                 # for sequential tables, save context key + row index to align seed data after sequence completion
-                target_dtype = schema.tables[target_table_name].dtypes[context_fk.column]
-                extra_seed_data[context_fk.column] = sample_seed[context_fk.column].astype(target_dtype)
+                extra_seed_data[context_fk.column] = sample_seed[context_fk.column].astype("string[pyarrow]")
                 extra_seed_data["__row_idx__"] = extra_seed_data.groupby(context_fk.column).cumcount()
 
             extra_seed_data.to_parquet(extra_seed_dir / "seed_extra.parquet")
