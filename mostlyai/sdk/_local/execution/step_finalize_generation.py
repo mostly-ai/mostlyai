@@ -254,6 +254,12 @@ def merge_extra_seed_into_output(
             chunk_data = pd.read_parquet(file_path)
             chunk_data["__row_idx__"] = chunk_data.groupby(context_key_col).cumcount()
 
+            # coerce extra_seed context key dtype to match generated data dtype
+            target_dtype = chunk_data[context_key_col].dtype
+            source_dtype = extra_seed[context_key_col].dtype
+            if target_dtype != source_dtype:
+                extra_seed[context_key_col] = extra_seed[context_key_col].astype(target_dtype)
+
             chunk_data = pd.merge(chunk_data, extra_seed, on=[context_key_col, "__row_idx__"], how="left")
             chunk_data = chunk_data.drop(columns=["__row_idx__"])
             chunk_data.to_parquet(file_path, index=False)
