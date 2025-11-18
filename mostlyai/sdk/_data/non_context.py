@@ -355,7 +355,6 @@ def analyze_df(
         parent_key: Parent key column name (excluded from analysis)
         data_columns: List of data columns to analyze
         encoding_types: Resolved encoding types (column_name -> ModelEncodingType).
-                       AUTO types should be resolved upstream by schema.preprocess_schema_before_pull().
                        When provided, these are used to determine column categories.
                        When None, infers categories from pandas dtypes.
         stats_dir: Directory to save statistics
