@@ -510,7 +510,7 @@ def process_table_with_fk_models(
                 batch_data = chunk_data.iloc[batch_start:batch_end].copy()
 
                 sampled_parent_keys = parent_keys_df.sample(
-                    n=parent_batch_size, replace=len(parent_keys_df) < parent_batch_size
+                    n=min(parent_batch_size, len(parent_keys_df)), replace=False
                 )[parent_pk].tolist()
 
                 parent_data = parent_table.read_data(
