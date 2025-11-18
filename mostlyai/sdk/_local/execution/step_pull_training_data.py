@@ -82,4 +82,7 @@ def create_training_schema(generator: Generator, connectors: list[Connector]) ->
             for fk in table.foreign_keys or []
         ]
         tables[table.name] = data_table
-    return Schema(tables=tables)
+    schema = Schema(tables=tables)
+    # Preprocess schema to resolve AUTO encoding types and update key types
+    schema.preprocess_schema_before_pull()
+    return schema

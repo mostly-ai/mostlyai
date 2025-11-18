@@ -90,10 +90,7 @@ TOP_P = 0.95
 QUOTA_PENALTY_FACTOR = 0.02
 
 # Supported Encoding Types for FK Models
-# FK models can handle categorical, numeric, and datetime columns
-# AUTO is supported - FK models will infer the appropriate encoding from pandas dtypes
 FK_MODEL_ENCODING_TYPES = [
-    ModelEncodingType.auto,
     ModelEncodingType.tabular_categorical,
     ModelEncodingType.tabular_numeric_auto,
     ModelEncodingType.tabular_numeric_discrete,
@@ -357,8 +354,10 @@ def analyze_df(
         primary_key: Primary key column name (excluded from analysis)
         parent_key: Parent key column name (excluded from analysis)
         data_columns: List of data columns to analyze
-        encoding_types: User-defined encoding types (column_name -> ModelEncodingType).
-                       When provided, these are used to determine column categories instead of inferring from pandas dtypes.
+        encoding_types: Resolved encoding types (column_name -> ModelEncodingType).
+                       AUTO types should be resolved upstream by schema.preprocess_schema_before_pull().
+                       When provided, these are used to determine column categories.
+                       When None, infers categories from pandas dtypes.
         stats_dir: Directory to save statistics
     """
     stats_dir.mkdir(parents=True, exist_ok=True)
@@ -377,25 +376,24 @@ def analyze_df(
     # Determine column types: use user-defined encoding types if available, otherwise infer from dtypes
     if encoding_types:
         _LOG.info(f"[NonContext] Using user-defined encoding types | columns={list(encoding_types.keys())}")
-        # Map ModelEncodingType to FK model encoding categories (numeric, datetime, categorical)
-        # Note: Unsupported types are already filtered out upstream by FK_MODEL_ENCODING_TYPES
         num_columns = []
         dt_columns = []
         cat_columns = []
 
         for col in data_columns:
-            encoding_type = encoding_types.get(col, ModelEncodingType.auto)
-
-            # Handle AUTO by inferring from pandas dtype
-            if encoding_type == ModelEncodingType.auto:
+            encoding_type = encoding_types.get(col)
+            if encoding_type is None:
+                # Column not in encoding_types, infer from pandas dtype
                 if col in df.select_dtypes(include="number").columns:
                     num_columns.append(col)
                 elif col in df.select_dtypes(include="datetime").columns:
                     dt_columns.append(col)
                 else:
                     cat_columns.append(col)
+                continue
+
             # Map numeric encoding types
-            elif encoding_type in [
+            if encoding_type in [
                 ModelEncodingType.tabular_numeric_auto,
                 ModelEncodingType.tabular_numeric_discrete,
                 ModelEncodingType.tabular_numeric_binned,
