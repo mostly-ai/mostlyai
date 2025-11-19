@@ -640,7 +640,7 @@ class SourceTableConfig:
             raise ValueError(
                 "At least one input source must be provided: either `data`, or both `source_connector_id` and `location`."
             )
-        elif self.data is not None and (self.source_connector_id is not None and self.location is not None):
+        elif self.data is not None and (self.source_connector_id is not None or self.location is not None):
             raise ValueError(
                 "Only one input source is allowed: either `data`, or both `source_connector_id` and `location`."
             )
