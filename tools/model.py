@@ -616,7 +616,7 @@ class SourceTableConfig:
 
     @model_validator(mode="after")
     def validate_keys_exists_in_columns(self):
-        if self.columns:
+        if self.columns is not None:
             column_names = {col.name for col in self.columns}
             pk = self.primary_key
             if pk and pk not in column_names:
