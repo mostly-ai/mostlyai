@@ -72,11 +72,15 @@ def test_make_synthetic_dataset_execution_plan():
             "tables": [
                 {
                     "name": "users",
+                    "source_connector_id": "test_connector",
+                    "location": "path/to/users.parquet",
                     "primary_key": "id",
                     "columns": [{"name": "id", "model_encoding_type": "TABULAR_NUMERIC_DIGIT"}],
                 },
                 {
                     "name": "orders",
+                    "source_connector_id": "test_connector",
+                    "location": "path/to/orders.parquet",
                     "primary_key": "id",
                     "foreign_keys": [{"column": "user_id", "referenced_table": "users", "is_context": True}],
                     "tabular_model_configuration": {"enable_model_report": False},
@@ -87,15 +91,21 @@ def test_make_synthetic_dataset_execution_plan():
                 },
                 {
                     "name": "admins",
+                    "source_connector_id": "test_connector",
+                    "location": "path/to/admins.parquet",
                     "columns": [{"name": "id", "model_encoding_type": "TABULAR_NUMERIC_DIGIT"}],
                 },
                 {
                     "name": "prices",
+                    "source_connector_id": "test_connector",
+                    "location": "path/to/prices.parquet",
                     "foreign_keys": [{"column": "order_id", "referenced_table": "orders", "is_context": True}],
                     "columns": [{"name": "order_id", "model_encoding_type": "TABULAR_NUMERIC_DIGIT"}],
                 },
                 {
                     "name": "order_items",
+                    "source_connector_id": "test_connector",
+                    "location": "path/to/order_items.parquet",
                     "columns": [
                         {"name": "description", "model_encoding_type": "LANGUAGE_TEXT"},
                         {"name": "order_id", "model_encoding_type": "TABULAR_NUMERIC_DIGIT"},
