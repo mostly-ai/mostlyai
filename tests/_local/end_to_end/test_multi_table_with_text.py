@@ -150,3 +150,46 @@ def test_multi_table_with_text(tmp_path):
     assert syn["players"]["cat"][0] == "a"
     assert len(syn["batting"]) == 4
     assert len(syn["fielding"]) == 2
+
+    seed_data = {
+        "players": pd.DataFrame(
+            {
+                "id": ["0", "1"],
+                "cat": ["a", "b"],
+                "extra_player_name": ["Alice", "Bob"],
+            }
+        ),
+        "batting": pd.DataFrame(
+            {
+                "players_id": ["0", "1", "0", "1"],
+                "extra_batting_note": ["note1", "note2", "note3", "note4"],
+            }
+        ),
+    }
+    syn = mostly.probe(g, seed=seed_data)
+
+    # subject table: extra column preserved with 1:1 alignment
+    assert "extra_player_name" in syn["players"].columns
+    assert len(syn["players"]) == 2
+    assert list(syn["players"]["extra_player_name"]) == ["Alice", "Bob"]
+    assert list(syn["players"]["cat"]) == ["a", "b"]
+
+    # sequential table: extra column preserved, row count may grow from sequence completion
+    assert "extra_batting_note" in syn["batting"].columns
+    assert len(syn["batting"]) >= 4
+    # extra column values exhaust in order per context key, then fill with None
+    for pid in ["0", "1"]:
+        rows_for_pid = syn["batting"][syn["batting"]["players_id"] == pid]
+        if len(rows_for_pid) > 0:
+            seed_notes_for_pid = seed_data["batting"][seed_data["batting"]["players_id"] == pid][
+                "extra_batting_note"
+            ].tolist()
+            actual_notes = rows_for_pid["extra_batting_note"].tolist()
+            for i, expected_note in enumerate(seed_notes_for_pid):
+                assert actual_notes[i] == expected_note, (
+                    f"Row {i} for player {pid}: expected {expected_note}, got {actual_notes[i]}"
+                )
+            for i in range(len(seed_notes_for_pid), len(actual_notes)):
+                assert pd.isna(actual_notes[i]), f"Row {i} for player {pid} should be None, got {actual_notes[i]}"
+
+    assert len(syn["fielding"]) >= 2
