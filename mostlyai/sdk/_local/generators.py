@@ -84,7 +84,15 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                 f" Please check whether source_connector_id and location are correct.",
             )
 
-        auto_detected_columns = {c.name: c.default_model_encoding_type for c in table_schema.columns}
+        # replace auto-detected LANGUAGE_TEXT columns with TABULAR_CHARACTER only for LOCAL mode
+        auto_detected_columns = {
+            c.name: (
+                ModelEncodingType.tabular_character
+                if c.default_model_encoding_type == ModelEncodingType.language_text
+                else c.default_model_encoding_type
+            )
+            for c in table_schema.columns
+        }
         auto_detected_primary_key = table_schema.primary_key
 
         foreign_keys = [fk.column for fk in t.foreign_keys or []]
