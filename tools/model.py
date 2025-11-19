@@ -549,21 +549,18 @@ class SourceTableConfig:
             # auto detection haven't been run yet, so we assume both models are present to retain model configurations given by the user
             has_tabular_model = True
             has_language_model = True
+        elif len(model_columns) == 0:
+            # this table doesn't have any columns other than PK/FKs
+            has_tabular_model = True
+            has_language_model = False
         else:
-            if len(model_columns) == 0:
-                # this table doesn't have any columns other than PK/FKs
-                has_tabular_model = True
-                has_language_model = False
-            else:
-                enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
-                has_tabular_model = any(
-                    enc_type.startswith(ModelType.tabular) or enc_type == ModelEncodingType.auto
-                    for enc_type in enc_types
-                )
-                has_language_model = any(
-                    enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto
-                    for enc_type in enc_types
-                )
+            enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
+            has_tabular_model = any(
+                enc_type.startswith(ModelType.tabular) or enc_type == ModelEncodingType.auto for enc_type in enc_types
+            )
+            has_language_model = any(
+                enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto for enc_type in enc_types
+            )
         # Always train tabular model for tables with a primary key or linked tables to model sequences
         if self.primary_key or (self.foreign_keys and any(fk.is_context for fk in self.foreign_keys)):
             has_tabular_model = True
