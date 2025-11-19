@@ -96,8 +96,11 @@ def auto_detect_encoding_type(x: pd.Series):
     if x.str.match(LAT_LONG_REGEX).all():
         return ModelEncodingType.tabular_lat_long
 
-    # if more than 5% of rows contain unique values -> text encoding
-    if len(x.dropna()) >= 100 and x.value_counts().eq(1).reindex(x).mean() > 0.05:
-        return ModelEncodingType.language_text
+    # if more than 5% of rows contain unique values
+    if len(x) >= 100 and x.value_counts().eq(1).reindex(x).mean() > 0.05:
+        if x.str.len().nunique() == 1:  # if all values are of the same length -> character encoding
+            return ModelEncodingType.tabular_character
+        else:  # if values are of different lengths -> text encoding
+            return ModelEncodingType.language_text
 
     return ModelEncodingType.tabular_categorical
