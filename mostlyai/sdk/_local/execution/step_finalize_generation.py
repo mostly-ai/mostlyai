@@ -232,7 +232,10 @@ def merge_extra_seed_into_output(
     handles both subject tables (1:1 row alignment) and sequential tables
     (merge by context key to handle row expansion from sequence completion).
     """
-    extra_seed = load_extra_seed_columns(table_name, job_workspace_dir)
+    # get workspace_dir from schema table container path
+    table = schema.tables[table_name]
+    workspace_dir = table.container.path.parent  # SyntheticData -> workspace_dir
+    extra_seed = load_extra_seed_columns(workspace_dir)
     if extra_seed is None:
         return
 
@@ -287,14 +290,12 @@ def merge_extra_seed_into_output(
             csv_post.write_data(chunk_data, if_exists="append")
 
 
-def load_extra_seed_columns(table_name: str, job_workspace_dir: Path) -> pd.DataFrame | None:
+def load_extra_seed_columns(workspace_dir: Path) -> pd.DataFrame | None:
     """load extra seed columns for a table if they exist."""
-    model_label = get_model_label(table_name, ModelType.tabular, path_safe=True)
-    workspace_dir = job_workspace_dir / model_label
     extra_seed_path = workspace_dir / "ExtraSeedColumns" / "seed_extra.parquet"
 
     if extra_seed_path.exists():
-        _LOG.info(f"loading extra seed columns for table {table_name}")
+        _LOG.info(f"loading extra seed columns from {workspace_dir}")
         return pd.read_parquet(extra_seed_path)
     return None
 
