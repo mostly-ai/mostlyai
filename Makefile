@@ -13,7 +13,7 @@ gen-public-model: ## build pydantic models for public api
 	python tools/extend_model.py
 	@echo "Generating Pydantic models from $(PUBLIC_API_FULL_URL)"
 	datamodel-codegen --url $(PUBLIC_API_FULL_URL) $(COMMON_OPTIONS)
-	# datamodel-codegen --input ../mostly-app-v2/public-api/public-api.yaml $(COMMON_OPTIONS)
+	#datamodel-codegen --input ../mostly-app-v2/public-api/public-api.yaml $(COMMON_OPTIONS)
 	python tools/postproc_domain.py
 	# run pre-commit hooks to add license and lint the generated code; ignore the exit code to avoid confusion
 	uv run --no-sync pre-commit run --all-files > /dev/null 2>&1 || true
