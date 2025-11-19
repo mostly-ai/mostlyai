@@ -31,7 +31,16 @@ class TestAutoDetectEncodingType:
     @pytest.mark.parametrize(
         "values",
         [
-            [str(uuid.uuid4()) for _ in range(20000)],
+            [str(uuid.uuid4()) for _ in range(100)],  # 100 unique values of same length
+        ],
+    )
+    def test_tabular_character(self, values):
+        series = pd.Series(values)
+        assert auto_detect_encoding_type(series) == ModelEncodingType.tabular_character
+
+    @pytest.mark.parametrize(
+        "values",
+        [
             [str(uuid.uuid4()) for _ in range(20)] + ["cat1", "cat2"] * 90,  # 20 out of 200 are unique > 0.05
         ],
     )
@@ -70,6 +79,7 @@ class TestAutoDetectEncodingType:
     @pytest.mark.parametrize(
         "values",
         [
+            [None] * 100,  # all null values
             ["21.314, -23.22315", "0", None] * 2,
             [
                 "34.052235, -118.243683",

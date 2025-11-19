@@ -164,7 +164,7 @@ class ConstraintSchema(CustomBaseModel):
 
 class TableSchema(CustomBaseModel):
     name: Annotated[Nullable[str], Field(description="The name of the table.")] = None
-    totalRows: Annotated[
+    total_rows: Annotated[
         Nullable[int],
         Field(
             description="The total number of rows in the table.",
