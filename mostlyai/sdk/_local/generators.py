@@ -86,8 +86,11 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
 
         auto_detected_columns = {c.name: c.default_model_encoding_type for c in table_schema.columns}
         auto_detected_primary_key = table_schema.primary_key
-        if t.primary_key is None:
+
+        foreign_keys = [fk.column for fk in t.foreign_keys or []]
+        if t.primary_key is None and auto_detected_primary_key not in foreign_keys:
             t.primary_key = auto_detected_primary_key
+
         if t.columns is None:
             t.columns = [
                 SourceColumnConfig(
@@ -101,7 +104,7 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                 if c.name not in auto_detected_columns:
                     raise HTTPException(
                         status_code=400,
-                        detail="Columns in request must match columns in the table schema.",
+                        detail=f"Column `{c.name}` does not exist in the table.",
                     )
                 if c.model_encoding_type == ModelEncodingType.auto:
                     c.model_encoding_type = auto_detected_columns[c.name]
