@@ -223,7 +223,6 @@ def merge_extra_seed_into_output(
     table_name: str,
     pqt_path: Path,
     csv_path: Path | None,
-    job_workspace_dir: Path,
     schema: Schema,
 ) -> None:
     """
@@ -600,7 +599,6 @@ def finalize_table_generation(
         table_name=target_table_name,
         pqt_path=pqt_path,
         csv_path=csv_path,
-        job_workspace_dir=job_workspace_dir,
         schema=generated_data_schema,
     )
 
