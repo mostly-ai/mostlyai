@@ -85,11 +85,11 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
             )
 
         # replace auto-detected LANGUAGE_TEXT columns with TABULAR_CHARACTER only for LOCAL mode
-        auto_detected_columns = {
+        auto_detected_columns: dict[str, ModelEncodingType] = {
             c.name: (
                 ModelEncodingType.tabular_character
                 if c.default_model_encoding_type == ModelEncodingType.language_text
-                else c.default_model_encoding_type
+                else ModelEncodingType(c.default_model_encoding_type)
             )
             for c in table_schema.columns
         }
