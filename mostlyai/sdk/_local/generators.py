@@ -93,12 +93,7 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
             )
             for c in table_schema.columns
         }
-        auto_detected_primary_key = table_schema.primary_key
-
-        foreign_keys = [fk.column for fk in t.foreign_keys or []]
-        if t.primary_key is None and auto_detected_primary_key not in foreign_keys:
-            t.primary_key = auto_detected_primary_key
-
+        # auto-detect columns if not provided
         if t.columns is None:
             t.columns = [
                 SourceColumnConfig(
@@ -116,6 +111,17 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                     )
                 if c.model_encoding_type == ModelEncodingType.auto:
                     c.model_encoding_type = auto_detected_columns[c.name]
+
+        # auto-detect primary key if not provided
+        auto_detected_primary_key = table_schema.primary_key
+        foreign_keys = [fk.column for fk in t.foreign_keys or []]
+        included_columns = [c.name for c in t.columns]
+        if (
+            t.primary_key is None
+            and auto_detected_primary_key not in foreign_keys
+            and auto_detected_primary_key in included_columns
+        ):
+            t.primary_key = auto_detected_primary_key
     # reinitialize the config to validate updated config after auto detection
     config = GeneratorConfig(**config.model_dump())
 
