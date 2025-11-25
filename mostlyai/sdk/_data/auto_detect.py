@@ -32,7 +32,7 @@ PK_POSSIBLE_VIRTUAL_DTYPES = (VirtualVarchar, VirtualInteger)
 _LOG = logging.getLogger(__name__)
 
 
-def auto_detect_encoding_types_and_pk(table: DataTable) -> tuple[dict, str | None]:
+def auto_detect_encoding_types_and_pk(table: DataTable) -> tuple[dict[str, ModelEncodingType], str | None]:
     # sub-select only the columns which got the default tabular categorical encoding type
     columns_to_auto_detect = [
         c for c, enc in table.encoding_types.items() if enc == ModelEncodingType.tabular_categorical
@@ -79,7 +79,7 @@ def auto_detect_primary_key(sample: pd.DataFrame) -> str | None:
     return None
 
 
-def auto_detect_encoding_type(x: pd.Series):
+def auto_detect_encoding_type(x: pd.Series) -> ModelEncodingType:
     x = x.dropna()
     x = x.astype(str)
     x = x[x.str.strip() != ""]  # filter out empty and whitespace-only strings
@@ -96,8 +96,11 @@ def auto_detect_encoding_type(x: pd.Series):
     if x.str.match(LAT_LONG_REGEX).all():
         return ModelEncodingType.tabular_lat_long
 
-    # if more than 5% of rows contain unique values -> text encoding
-    if len(x.dropna()) >= 100 and x.value_counts().eq(1).reindex(x).mean() > 0.05:
-        return ModelEncodingType.language_text
+    # if more than 5% of rows contain unique values
+    if len(x) >= 100 and x.value_counts().eq(1).reindex(x).mean() > 0.05:
+        if x.str.len().nunique() == 1:  # if all values are of the same length -> character encoding
+            return ModelEncodingType.tabular_character
+        else:  # if values are of different lengths -> text encoding
+            return ModelEncodingType.language_text
 
     return ModelEncodingType.tabular_categorical
