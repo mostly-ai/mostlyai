@@ -541,18 +541,26 @@ class SourceTableConfig:
     @model_validator(mode="after")
     def add_model_configuration(self):
         # Check if the table has a tabular and/or a language model
-        columns = self.columns or []
         keys = [fk.column for fk in self.foreign_keys or []]
         if self.primary_key:
             keys.append(self.primary_key)
-        model_columns = [c for c in columns if c.name not in keys]
-        if model_columns:
-            enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
-            has_tabular_model = any(not enc_type.startswith(ModelType.language) for enc_type in enc_types)
-            has_language_model = any(enc_type.startswith(ModelType.language) for enc_type in enc_types)
-        else:
+        model_columns = [c for c in self.columns if c.name not in keys] if self.columns is not None else None
+        if model_columns is None:
+            # auto detection haven't been run yet, so we assume both models are present to retain model configurations given by the user
+            has_tabular_model = True
+            has_language_model = True
+        elif len(model_columns) == 0:
+            # this table doesn't have any columns other than PK/FKs
             has_tabular_model = True
             has_language_model = False
+        else:
+            enc_types = [c.model_encoding_type or ModelEncodingType.auto for c in model_columns]
+            has_tabular_model = any(
+                enc_type.startswith(ModelType.tabular) or enc_type == ModelEncodingType.auto for enc_type in enc_types
+            )
+            has_language_model = any(
+                enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto for enc_type in enc_types
+            )
         # Always train tabular model for tables with a primary key or linked tables to model sequences
         if self.primary_key or (self.foreign_keys and any(fk.is_context for fk in self.foreign_keys)):
             has_tabular_model = True
@@ -562,13 +570,18 @@ class SourceTableConfig:
         if self.language_model_configuration and not has_language_model:
             self.language_model_configuration = None
         # Add default model configurations if none were provided
-        if has_tabular_model and not self.tabular_model_configuration:
+        if has_tabular_model:
             default_model = "MOSTLY_AI/Medium"
-            self.tabular_model_configuration = ModelConfiguration(model=default_model)
-        if has_language_model and not self.language_model_configuration:
+            if not self.tabular_model_configuration:
+                self.tabular_model_configuration = ModelConfiguration(model=default_model)
+            elif not self.tabular_model_configuration.model:
+                self.tabular_model_configuration.model = default_model
+        if has_language_model:
             default_model = "MOSTLY_AI/LSTMFromScratch-3m"
-            self.language_model_configuration = ModelConfiguration(model=default_model, max_sequence_window=None)
-        if has_language_model and self.language_model_configuration:
+            if not self.language_model_configuration:
+                self.language_model_configuration = ModelConfiguration(model=default_model, max_sequence_window=None)
+            elif not self.language_model_configuration.model:
+                self.language_model_configuration.model = default_model
             # language models atm do not support max_sequence_window; thus set configuration to None
             self.language_model_configuration.max_sequence_window = None
         return self
@@ -603,7 +616,7 @@ class SourceTableConfig:
 
     @model_validator(mode="after")
     def validate_keys_exists_in_columns(self):
-        if self.columns:
+        if self.columns is not None:
             column_names = {col.name for col in self.columns}
             pk = self.primary_key
             if pk and pk not in column_names:
@@ -619,6 +632,18 @@ class SourceTableConfig:
         foreign_keys = [fk.column for fk in self.foreign_keys or []]
         if primary_key and primary_key in foreign_keys:
             raise ValueError(f"Column '{primary_key}' is both a primary key and a foreign key.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_data_or_connector_is_provided(self):
+        if self.data is None and (self.source_connector_id is None or self.location is None):
+            raise ValueError(
+                "At least one input source must be provided: either `data`, or both `source_connector_id` and `location`."
+            )
+        elif self.data is not None and (self.source_connector_id is not None or self.location is not None):
+            raise ValueError(
+                "Only one input source is allowed: either `data`, or both `source_connector_id` and `location`."
+            )
         return self
 
 
