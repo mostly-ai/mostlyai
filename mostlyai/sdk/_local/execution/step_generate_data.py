@@ -102,7 +102,7 @@ def execute_step_generate_data(
             extra_seed_dir.mkdir(parents=True, exist_ok=True)
 
             extra_seed_data = sample_seed[extra_columns].copy()
-            context_fk = next((fk for fk in tgt_g_table.foreign_keys if fk.is_context), None)
+            context_fk = next((fk for fk in (tgt_g_table.foreign_keys or []) if fk.is_context), None)
             if context_fk and context_fk.column in sample_seed.columns:
                 # for sequential tables, save context key + row index to align seed data after sequence completion
                 extra_seed_data[context_fk.column] = sample_seed[context_fk.column].astype("string[pyarrow]")

@@ -193,6 +193,9 @@ def test_simple_flat(tmp_path, mostly, encoding_types):
     df = mostly.probe(g, size=10)
     assert len(df) == 10
 
+    df = mostly.probe(g, seed=pd.DataFrame({"a": ["a1"], "x": ["x"]}))
+    assert df[["a", "x"]].values.tolist() == [["a1", "x"]]
+
     df = mostly.probe(g, seed=pd.DataFrame({"a": ["a1"] * 10}))
     assert len(df) == 10
 
