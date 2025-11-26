@@ -332,3 +332,41 @@ def execute_step_finalize_training(
                 continue
             finally:
                 clean_up_non_context_models_dirs(fk_models_workspace_dir=fk_models_workspace_dir)
+
+    # restore original columns if constraints were used
+    _restore_original_columns(generator, job_workspace_dir)
+
+
+def _restore_original_columns(generator: Generator, job_workspace_dir: Path) -> None:
+    """restore original column names after training with constraints.
+
+    Args:
+        generator: Generator object.
+        job_workspace_dir: Job workspace directory.
+    """
+    from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator
+    from mostlyai.sdk._local.storage import get_model_label
+    from mostlyai.sdk.domain import ModelType, SourceColumn
+
+    for table in generator.tables:
+        # check if any model has constraints
+        has_constraints = False
+        if table.tabular_model_configuration and table.tabular_model_configuration.constraints:
+            has_constraints = True
+        if table.language_model_configuration and table.language_model_configuration.constraints:
+            has_constraints = True
+
+        if not has_constraints:
+            continue
+
+        # try to load original columns from constraint metadata
+        for model_type in [ModelType.tabular, ModelType.language]:
+            model_label = get_model_label(table.name, model_type, path_safe=True)
+            workspace_dir = job_workspace_dir / model_label
+
+            original_columns = ConstraintTranslator.load_original_columns(workspace_dir, table.name)
+
+            if original_columns:
+                _LOG.info(f"restoring original columns for table {table.name}: {original_columns}")
+                table.columns = [SourceColumn(name=col) for col in original_columns]
+                break

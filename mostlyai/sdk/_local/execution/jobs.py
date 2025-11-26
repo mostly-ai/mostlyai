@@ -86,7 +86,7 @@ def _set_random_state(random_state: int | None = None):
 
 
 def _move_training_artefacts(generator_dir: Path, job_workspace_dir: Path):
-    for dir in ["Logs", "ModelStore", "ModelQAReports", "ModelQAStatistics", "FKModelsStore"]:
+    for dir in ["Logs", "ModelStore", "ModelQAReports", "ModelQAStatistics", "FKModelsStore", "ConstraintMetadata"]:
         shutil.rmtree(generator_dir / dir, ignore_errors=True)
         (generator_dir / dir).mkdir()
     for path in job_workspace_dir.absolute().rglob("*"):
@@ -101,6 +101,12 @@ def _move_training_artefacts(generator_dir: Path, job_workspace_dir: Path):
             if path.is_dir() and path.name == "ModelQAStatistics":
                 model_label = path.parent.name
                 path.rename(generator_dir / "ModelQAStatistics" / model_label)
+            # move constraint metadata (single file per model)
+            if path.is_file() and path.name == "constraints.json" and "tgt-meta" in path.parts:
+                model_label = path.parent.parent.parent.name  # tgt-meta -> OriginalData -> model_label
+                dest_dir = generator_dir / "ConstraintMetadata" / model_label / "tgt-meta"
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, dest_dir / "constraints.json")
         if path.is_dir() and path.name == "FKModelsStore":
             path.rename(generator_dir / "FKModelsStore")
 
@@ -387,6 +393,17 @@ class Execution:
         # update generator with table total rows, so that value can be used for default sample size during generation
         tgt_table.total_rows = total_rows
 
+        # step: PREPROCESS_CONSTRAINTS
+        from mostlyai.sdk._local.execution.step_preprocess_constraints import execute_step_preprocess_constraints
+
+        execute_step_preprocess_constraints(
+            generator=generator,
+            workspace_dir=workspace_dir,
+            model_type=model_type,
+            target_table_name=task.target_table_name,
+            update_progress=update_progress_fn(step_code=StepCode.preprocess_constraints),
+        )
+
         # step: ANALYZE_TRAINING_DATA
         encoding_types, value_ranges = execute_step_analyze_training_data(
             generator=generator,
@@ -574,6 +591,7 @@ class Execution:
             schema=schema,
             is_probe=False,
             job_workspace_dir=job_workspace_dir,
+            generator_dir=generator_dir,
             update_progress=LocalProgressCallback(
                 resource_path=self._home_dir / "synthetic-datasets" / self._synthetic_dataset.id,
                 model_label=None,
@@ -622,6 +640,7 @@ class Execution:
             schema=schema,
             is_probe=True,
             job_workspace_dir=job_workspace_dir,
+            generator_dir=generator_dir,
         )
 
 

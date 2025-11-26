@@ -21,6 +21,7 @@ from typing import Literal
 import pandas as pd
 
 from mostlyai.sdk._data.base import ForeignKey, NonContextRelation, Schema
+from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator
 from mostlyai.sdk._data.dtype import is_timestamp_dtype
 from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
@@ -49,11 +50,34 @@ FK_MAX_CHILDREN_BATCH_SIZE = 10_000
 FK_PARENT_BATCH_SIZE = 1_000
 
 
+def load_constraint_translator(generator_dir: Path, table_name: str) -> ConstraintTranslator | None:
+    """load constraint translator for a table if it exists.
+
+    Args:
+        generator_dir: Generator directory path (not job workspace).
+        table_name: Name of the table.
+
+    Returns:
+        ConstraintTranslator instance or None if not found.
+    """
+    # check all model types for constraint metadata in generator's ConstraintMetadata directory
+    for model_type in [ModelType.tabular, ModelType.language]:
+        model_label = get_model_label(table_name, model_type, path_safe=True)
+        metadata_dir = generator_dir / "ConstraintMetadata" / model_label
+
+        translator = ConstraintTranslator.load_metadata(metadata_dir, table_name)
+        if translator:
+            return translator
+
+    return None
+
+
 def execute_step_finalize_generation(
     *,
     schema: Schema,
     is_probe: bool,
     job_workspace_dir: Path,
+    generator_dir: Path | None = None,
     update_progress: ProgressCallback | None = None,
 ) -> dict[str, int]:
     # get synthetic table usage
@@ -70,6 +94,7 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=False,
                 job_workspace_dir=job_workspace_dir,
+                generator_dir=generator_dir,
             )
         return usages
 
@@ -91,6 +116,7 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=export_csv,
                 job_workspace_dir=job_workspace_dir,
+                generator_dir=generator_dir,
             )
             progress.update(advance=1)
 
@@ -299,6 +325,7 @@ def process_table_with_random_fk_assignment(
     schema: Schema,
     pqt_path: Path,
     csv_path: Path | None,
+    constraint_translator: ConstraintTranslator | None = None,
 ) -> None:
     """Process table with random FK assignment, chunk by chunk."""
     table = schema.tables[table_name]
@@ -310,6 +337,11 @@ def process_table_with_random_fk_assignment(
             generated_data_schema=schema,
             tgt=table_name,
         )
+
+        # apply constraint reverse transformation AFTER FK assignment
+        if constraint_translator:
+            processed_data = constraint_translator.to_original(processed_data)
+
         processed_data = filter_and_order_columns(processed_data, table_name, schema)
         write_batch_outputs(processed_data, table_name, chunk_idx, pqt_path, csv_path)
 
@@ -355,6 +387,7 @@ def process_table_with_fk_models(
     csv_path: Path | None,
     parent_batch_size: int = FK_PARENT_BATCH_SIZE,
     job_workspace_dir: Path,
+    constraint_translator: ConstraintTranslator | None = None,
 ) -> None:
     """Process table with ML model-based FK assignment using logical child batches."""
 
@@ -463,6 +496,10 @@ def process_table_with_fk_models(
 
             chunk_data = pd.concat(processed_batches, ignore_index=True)
 
+        # apply constraint reverse transformation AFTER FK assignment
+        if constraint_translator:
+            chunk_data = constraint_translator.to_original(chunk_data)
+
         chunk_data = filter_and_order_columns(chunk_data, table_name, schema)
         write_batch_outputs(chunk_data, table_name, chunk_idx, pqt_path, csv_path)
 
@@ -473,6 +510,7 @@ def finalize_table_generation(
     delivery_dir: Path,
     export_csv: bool,
     job_workspace_dir: Path,
+    generator_dir: Path | None = None,
 ) -> None:
     """
     Post-process the generated data for a given table.
@@ -485,6 +523,25 @@ def finalize_table_generation(
     pqt_path, csv_path = setup_output_paths(delivery_dir, target_table_name, export_csv)
     fk_models_available = are_fk_models_available(job_workspace_dir, target_table_name, generated_data_schema)
 
+    # load constraint translator if available (from generator directory)
+    constraint_translator = None
+    if generator_dir:
+        constraint_translator = load_constraint_translator(generator_dir, target_table_name)
+        if constraint_translator:
+            _LOG.info(f"loaded constraint translator for table {target_table_name}")
+
+            # restore original column names in schema (before transformation)
+            original_columns = None
+            for model_type in [ModelType.tabular, ModelType.language]:
+                model_label = get_model_label(target_table_name, model_type, path_safe=True)
+                metadata_dir = generator_dir / "ConstraintMetadata" / model_label
+                original_columns = ConstraintTranslator.load_original_columns(metadata_dir, target_table_name)
+                if original_columns:
+                    break
+
+            if original_columns:
+                generated_data_schema.tables[target_table_name].columns = original_columns
+
     if fk_models_available:
         _LOG.info(f"Assigning non context FKs (if exists) through FK models for table {target_table_name}")
         try:
@@ -494,6 +551,7 @@ def finalize_table_generation(
                 pqt_path=pqt_path,
                 csv_path=csv_path,
                 job_workspace_dir=job_workspace_dir,
+                constraint_translator=constraint_translator,
             )
         except Exception as e:
             _LOG.error(f"FK model processing failed for table {target_table_name}: {e}")
@@ -503,6 +561,7 @@ def finalize_table_generation(
                 schema=generated_data_schema,
                 pqt_path=pqt_path,
                 csv_path=csv_path,
+                constraint_translator=constraint_translator,
             )
     else:
         _LOG.info(f"Assigning non context FKs (if exists) through random assignment for table {target_table_name}")
@@ -511,6 +570,7 @@ def finalize_table_generation(
             schema=generated_data_schema,
             pqt_path=pqt_path,
             csv_path=csv_path,
+            constraint_translator=constraint_translator,
         )
 
 

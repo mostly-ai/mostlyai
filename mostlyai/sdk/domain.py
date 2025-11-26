@@ -33,6 +33,21 @@ from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_p
 from mostlyai.sdk.client.base import CustomBaseModel
 
 
+class FixedCombination(CustomBaseModel):
+    """
+    constraint that ensures synthetic data preserves valid combinations of column values from training data.
+    """
+
+    columns: list[str] = Field(..., description="List of column names that form a fixed combination.")
+
+    @field_validator("columns")
+    @classmethod
+    def validate_columns(cls, columns):
+        if len(columns) < 2:
+            raise ValueError("FixedCombination requires at least 2 columns.")
+        return columns
+
+
 class AboutService(CustomBaseModel):
     """
     General information about the service.
@@ -790,6 +805,7 @@ class StepCode(str, Enum):
     """
 
     pull_training_data = "PULL_TRAINING_DATA"
+    preprocess_constraints = "PREPROCESS_CONSTRAINTS"
     analyze_training_data = "ANALYZE_TRAINING_DATA"
     encode_training_data = "ENCODE_TRAINING_DATA"
     train_model = "TRAIN_MODEL"
@@ -2645,6 +2661,9 @@ class ModelConfiguration(CustomBaseModel):
         True,
         alias="enableModelReport",
         description="If false, then the Model report is not generated.\n",
+    )
+    constraints: list[FixedCombination] | None = Field(
+        None, description="List of constraint objects that define valid combinations of column values."
     )
 
     @model_validator(mode="after")
