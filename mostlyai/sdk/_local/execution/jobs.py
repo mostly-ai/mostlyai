@@ -48,6 +48,7 @@ from mostlyai.sdk._local.execution.step_generate_data import execute_step_genera
 from mostlyai.sdk._local.execution.step_generate_model_report_data import (
     execute_step_generate_model_report_data,
 )
+from mostlyai.sdk._local.execution.step_preprocess_constraints import execute_step_preprocess_constraints
 from mostlyai.sdk._local.execution.step_pull_training_data import (
     execute_step_pull_training_data,
 )
@@ -388,8 +389,6 @@ class Execution:
         tgt_table.total_rows = total_rows
 
         # step: PREPROCESS_CONSTRAINTS
-        from mostlyai.sdk._local.execution.step_preprocess_constraints import execute_step_preprocess_constraints
-
         execute_step_preprocess_constraints(
             generator=generator,
             workspace_dir=workspace_dir,
