@@ -193,9 +193,6 @@ def test_simple_flat(tmp_path, mostly, encoding_types):
     df = mostly.probe(g, size=10)
     assert len(df) == 10
 
-    df = mostly.probe(g, seed=pd.DataFrame({"a": ["a1"], "x": ["x"]}))
-    assert df[["a", "x"]].values.tolist() == [["a1", "x"]]
-
     df = mostly.probe(g, seed=pd.DataFrame({"a": ["a1"] * 10}))
     assert len(df) == 10
 
@@ -213,6 +210,12 @@ def test_simple_flat(tmp_path, mostly, encoding_types):
     sd_config = sd.config()
     assert isinstance(sd_config, SyntheticDatasetConfig)
     assert sd_config.tables[0].configuration.sample_size == 100
+    sd.delete()
+
+    # with (extra) seed
+    sd = mostly.generate(g, seed=pd.DataFrame({"a": ["a1"], "x": ["x"]}))
+    sd_data = sd.data()
+    assert sd_data[["a", "x"]].values.tolist() == [["a1", "x"]]
     sd.delete()
 
     # config via class
