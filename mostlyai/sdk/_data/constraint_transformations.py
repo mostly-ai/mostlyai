@@ -32,6 +32,13 @@ def get_constraint_meta_path(workspace_dir: Path) -> Path:
     return path
 
 
+def get_tgt_meta_path(workspace_dir: Path) -> Path:
+    """get tgt-meta directory path in OriginalData."""
+    path = workspace_dir / "OriginalData" / "tgt-meta"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 class ConstraintTranslator:
     """translates data between user schema and internal schema for constraints."""
 

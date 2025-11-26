@@ -76,21 +76,9 @@ def test_fixed_combination_constraint(mostly):
     # verify only valid (state, city) pairs exist in synthetic data
     syn_pairs = set(zip(df_syn["state"], df_syn["city"]))
 
-    # NOTE: This is a POC test - the constraint logic is implemented but needs
-    # further debugging to work correctly. The infrastructure is in place:
-    # 1. FixedCombination constraint class
-    # 2. Data transformation (merge/split columns)
-    # 3. Preprocessing step to transform training data
-    # 4. Reverse transformation during generation
-    # 5. Column metadata handling
-    # TODO: Debug why the model isn't learning the merged column correctly
-
-    # verify data is generated
-    assert len(df_syn) == 50
-    assert "state" in df_syn.columns
-    assert "city" in df_syn.columns
-
-    # NOTE: Uncomment this when constraint logic is fully working:
+    # current status: POC implementation complete, but model may not preserve
+    # all constraint combinations perfectly. This assertion validates the core
+    # constraint preservation functionality.
     assert syn_pairs.issubset(valid_pairs), f"invalid pairs found: {syn_pairs - valid_pairs}"
 
     # verify all valid pairs are represented (with high probability)

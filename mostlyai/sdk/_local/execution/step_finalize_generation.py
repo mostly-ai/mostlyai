@@ -60,10 +60,10 @@ def load_constraint_translator(generator_dir: Path, table_name: str) -> Constrai
     Returns:
         ConstraintTranslator instance or None if not found.
     """
-    # check all model types for constraint metadata in generator's ConstraintMetadata directory
+    # check all model types for constraint metadata in generator's ModelStore directory
     for model_type in [ModelType.tabular, ModelType.language]:
         model_label = get_model_label(table_name, model_type, path_safe=True)
-        metadata_dir = generator_dir / "ConstraintMetadata" / model_label
+        metadata_dir = generator_dir / "ModelStore" / model_label
 
         translator = ConstraintTranslator.load_metadata(metadata_dir, table_name)
         if translator:
@@ -615,7 +615,7 @@ def finalize_table_generation(
             original_columns = None
             for model_type in [ModelType.tabular, ModelType.language]:
                 model_label = get_model_label(target_table_name, model_type, path_safe=True)
-                metadata_dir = generator_dir / "ConstraintMetadata" / model_label
+                metadata_dir = generator_dir / "ModelStore" / model_label
                 original_columns = ConstraintTranslator.load_original_columns(metadata_dir, target_table_name)
                 if original_columns:
                     break

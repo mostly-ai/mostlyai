@@ -86,7 +86,7 @@ def _set_random_state(random_state: int | None = None):
 
 
 def _move_training_artefacts(generator_dir: Path, job_workspace_dir: Path):
-    for dir in ["Logs", "ModelStore", "ModelQAReports", "ModelQAStatistics", "FKModelsStore", "ConstraintMetadata"]:
+    for dir in ["Logs", "ModelStore", "ModelQAReports", "ModelQAStatistics", "FKModelsStore"]:
         shutil.rmtree(generator_dir / dir, ignore_errors=True)
         (generator_dir / dir).mkdir()
     for path in job_workspace_dir.absolute().rglob("*"):
@@ -101,12 +101,6 @@ def _move_training_artefacts(generator_dir: Path, job_workspace_dir: Path):
             if path.is_dir() and path.name == "ModelQAStatistics":
                 model_label = path.parent.name
                 path.rename(generator_dir / "ModelQAStatistics" / model_label)
-            # move constraint metadata (single file per model)
-            if path.is_file() and path.name == "constraints.json" and "tgt-meta" in path.parts:
-                model_label = path.parent.parent.parent.name  # tgt-meta -> OriginalData -> model_label
-                dest_dir = generator_dir / "ConstraintMetadata" / model_label / "tgt-meta"
-                dest_dir.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(path, dest_dir / "constraints.json")
         if path.is_dir() and path.name == "FKModelsStore":
             path.rename(generator_dir / "FKModelsStore")
 
