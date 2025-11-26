@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import os
+from contextlib import nullcontext
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -20,8 +22,9 @@ import pytest
 from dotenv import load_dotenv
 
 from mostlyai.sdk import MostlyAI
+from mostlyai.sdk._data.metadata_objects import ColumnSchema, TableSchema
 from mostlyai.sdk.client.exceptions import APIStatusError
-from mostlyai.sdk.domain import GeneratorConfig, ProgressStatus, SyntheticDatasetConfig
+from mostlyai.sdk.domain import GeneratorConfig, ModelEncodingType, ProgressStatus, SyntheticDatasetConfig
 
 load_dotenv()
 
@@ -135,19 +138,35 @@ def test_simple_flat(tmp_path, mostly, encoding_types):
         "ssl": None,
     }
     connector = mostly.connect(config=connector_cfg, test_connection=False)
-    new_g = mostly.generators.create(
-        config={
-            "name": "SDK E2E Test 3",
-            "tables": [
-                {
-                    "name": "test_table",
-                    "source_connector_id": connector.id,
-                    "location": f"{s3_config['bucket']}/automation/players_csv/bb_players.csv",
-                }
-            ],
-        }
+    # the creation of a generator requires actual connection to auto detect model encoding types
+    # so we mock the response of location_schema as the S3 credentials are dummy in the local mode tests
+    location_schema_patch = (
+        patch(
+            "mostlyai.sdk._local.connectors.fetch_location_schema",
+            return_value=TableSchema(
+                columns=[
+                    ColumnSchema(name="col1", default_model_encoding_type=ModelEncodingType.tabular_numeric_auto.value),
+                    ColumnSchema(name="col2", default_model_encoding_type=ModelEncodingType.tabular_categorical.value),
+                ],
+            ),
+        )
+        if mostly.local
+        else nullcontext()
     )
-    new_g_clone = new_g.clone(training_status="NEW")
+    with location_schema_patch:
+        new_g = mostly.generators.create(
+            config={
+                "name": "SDK E2E Test 3",
+                "tables": [
+                    {
+                        "name": "test_table",
+                        "source_connector_id": connector.id,
+                        "location": f"{s3_config['bucket']}/automation/players_csv/bb_players.csv",
+                    }
+                ],
+            }
+        )
+        new_g_clone = new_g.clone(training_status="NEW")
     assert new_g_clone.name == "Clone - SDK E2E Test 3"
     assert new_g_clone.tables[0].source_connector_id == connector.id
     assert new_g_clone.training_status == ProgressStatus.new
@@ -173,6 +192,10 @@ def test_simple_flat(tmp_path, mostly, encoding_types):
 
     df = mostly.probe(g, size=10)
     assert len(df) == 10
+
+    df = mostly.probe(g, seed=pd.DataFrame({"a": ["a1"], "x": ["x"]}))
+    assert len(df) == 1
+    # assert df[["a", "x"]].values.tolist() == [["a1", "x"]] # TODO: activate this once staging is updated
 
     df = mostly.probe(g, seed=pd.DataFrame({"a": ["a1"] * 10}))
     assert len(df) == 10

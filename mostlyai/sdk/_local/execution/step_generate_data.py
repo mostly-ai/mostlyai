@@ -92,6 +92,25 @@ def execute_step_generate_data(
         imputation = config.imputation
         fairness = config.fairness
 
+    # extract and save extra seed columns before generation
+    if sample_seed is not None:
+        model_columns = [c.name for c in tgt_g_table.columns if c.included]
+        extra_columns = [c for c in sample_seed.columns if c not in model_columns]
+
+        if extra_columns:
+            extra_seed_dir = workspace_dir / "ExtraSeedColumns"
+            extra_seed_dir.mkdir(parents=True, exist_ok=True)
+
+            extra_seed_data = sample_seed[extra_columns].copy()
+            context_fk = next((fk for fk in (tgt_g_table.foreign_keys or []) if fk.is_context), None)
+            if context_fk and context_fk.column in sample_seed.columns:
+                # for sequential tables, save context key + row index to align seed data after sequence completion
+                extra_seed_data[context_fk.column] = sample_seed[context_fk.column].astype("string[pyarrow]")
+                extra_seed_data["__row_idx__"] = extra_seed_data.groupby(context_fk.column).cumcount()
+
+            extra_seed_data.to_parquet(extra_seed_dir / "seed_extra.parquet")
+            sample_seed = sample_seed[[c for c in sample_seed.columns if c in model_columns]]
+
     # call GENERATE
     engine.generate(
         ctx_data=ctx_data,

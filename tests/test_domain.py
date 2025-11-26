@@ -36,34 +36,35 @@ def test_source_column():
 
 
 def test_source_table_config():
+    common_fields = {"name": "tbl1", "source_connector_id": "test_connector", "location": "path/to/data.parquet"}
     cols = [{"name": "id"}, {"name": "col1"}, {"name": "col2"}]
     fk_ctx = {"column": "col1", "referenced_table": "tbl2", "is_context": True}
     fk_non = {"column": "col2", "referenced_table": "tbl2", "is_context": False}
     # test valid calls
-    SourceTableConfig(**{"name": "tbl1"})
-    SourceTableConfig(**{"name": "tbl1", "primary_key": "id"})
-    SourceTableConfig(**{"name": "tbl1", "foreign_keys": [fk_ctx]})
-    SourceTableConfig(**{"name": "tbl1", "columns": cols})
-    SourceTableConfig(**{"name": "tbl1", "columns": cols, "primary_key": "id"})
-    SourceTableConfig(**{"name": "tbl1", "columns": cols, "primary_key": "id", "foreign_keys": [fk_ctx]})
-    SourceTableConfig(**{"name": "tbl1", "columns": cols, "tabular_model_configuration": {"max_epochs": 1}})
+    SourceTableConfig(**common_fields)
+    SourceTableConfig(**common_fields | {"primary_key": "id"})
+    SourceTableConfig(**common_fields | {"foreign_keys": [fk_ctx]})
+    SourceTableConfig(**common_fields | {"columns": cols})
+    SourceTableConfig(**common_fields | {"columns": cols, "primary_key": "id"})
+    SourceTableConfig(**common_fields | {"columns": cols, "primary_key": "id", "foreign_keys": [fk_ctx]})
+    SourceTableConfig(**common_fields | {"columns": cols, "tabular_model_configuration": {"max_epochs": 1}})
     # test invalid calls
     with pytest.raises(ValueError):  # missing table name
         SourceTableConfig()
     with pytest.raises(ValueError):  # non-unique column names
-        SourceTableConfig(**{"name": "tbl1", "columns": cols + [{"name": "id"}]})
+        SourceTableConfig(**common_fields | {"columns": cols + [{"name": "id"}]})
     with pytest.raises(ValueError):  # non-unique foreign keys
-        SourceTableConfig(**{"name": "tbl1", "foreign_keys": [fk_non, fk_non]})
+        SourceTableConfig(**common_fields | {"foreign_keys": [fk_non, fk_non]})
     with pytest.raises(ValueError):  # PK missing in columns
-        SourceTableConfig(**{"name": "tbl1", "columns": cols, "primary_key": "XXX"})
+        SourceTableConfig(**common_fields | {"columns": cols, "primary_key": "XXX"})
     with pytest.raises(ValueError):  # FK missing in columns
-        SourceTableConfig(**{"name": "tbl1", "columns": cols, "foreign_keys": [fk_ctx | {"column": "XXX"}]})
+        SourceTableConfig(**common_fields | {"columns": cols, "foreign_keys": [fk_ctx | {"column": "XXX"}]})
     with pytest.raises(ValueError):  # more than one context FK
-        SourceTableConfig(**{"name": "tbl1", "columns": cols, "foreign_keys": [fk_ctx, fk_ctx | {"column": "col2"}]})
+        SourceTableConfig(**common_fields | {"columns": cols, "foreign_keys": [fk_ctx, fk_ctx | {"column": "col2"}]})
     with pytest.raises(ValueError):  # PK == FK
         SourceTableConfig(
-            **{
-                "name": "tbl1",
+            **common_fields
+            | {
                 "columns": [{"name": "id"}],
                 "primary_key": "id",
                 "foreign_keys": [fk_non | {"column": "id"}],
@@ -72,20 +73,23 @@ def test_source_table_config():
 
 
 def test_source_table_config_add_model_configuration():
+    common_fields = {"name": "tbl1", "source_connector_id": "test_connector", "location": "path/to/data.parquet"}
+
     def assert_model_configuration(s: SourceTableConfig, has_tabular_model: bool, has_language_model: bool):
         assert (s.tabular_model_configuration is not None) is has_tabular_model
         assert (s.language_model_configuration is not None) is has_language_model
 
+    # both model configurations will be present if SourceTableConfig.columns is None
+    s = SourceTableConfig(**common_fields | {"primary_key": "id"})
+    assert_model_configuration(s, has_tabular_model=True, has_language_model=True)
     # PK column only
-    s = SourceTableConfig(**{"name": "tbl1", "primary_key": "id"})
-    assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
-    s = SourceTableConfig(**{"name": "tbl1", "primary_key": "id", "columns": [{"name": "id"}]})
+    s = SourceTableConfig(**common_fields | {"primary_key": "id", "columns": [{"name": "id"}]})
     assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
 
     # PK + language column (id: pk, name: lang_text)
     s = SourceTableConfig(
-        **{
-            "name": "tbl1",
+        **common_fields
+        | {
             "primary_key": "id",
             "columns": [
                 {"name": "id", "model_encoding_type": ModelEncodingType.tabular_categorical},
@@ -97,8 +101,8 @@ def test_source_table_config_add_model_configuration():
 
     # PK + FK columns
     s = SourceTableConfig(
-        **{
-            "name": "tbl1",
+        **common_fields
+        | {
             "primary_key": "id",
             "foreign_keys": [{"column": "fk", "referenced_table": "tbl2", "is_context": True}],
             "columns": [{"name": "id"}, {"name": "fk"}],
@@ -108,20 +112,20 @@ def test_source_table_config_add_model_configuration():
 
     # tabular column only
     s = SourceTableConfig(
-        **{"name": "tbl1", "columns": [{"name": "col", "model_encoding_type": ModelEncodingType.tabular_categorical}]}
+        **common_fields | {"columns": [{"name": "col", "model_encoding_type": ModelEncodingType.tabular_categorical}]}
     )
     assert_model_configuration(s, has_tabular_model=True, has_language_model=False)
 
     # language column only
     s = SourceTableConfig(
-        **{"name": "tbl1", "columns": [{"name": "col", "model_encoding_type": ModelEncodingType.language_text}]}
+        **common_fields | {"columns": [{"name": "col", "model_encoding_type": ModelEncodingType.language_text}]}
     )
     assert_model_configuration(s, has_tabular_model=False, has_language_model=True)
 
     # tabular and language columns
     s = SourceTableConfig(
-        **{
-            "name": "tbl1",
+        **common_fields
+        | {
             "columns": [
                 {"name": "col", "model_encoding_type": ModelEncodingType.tabular_categorical},
                 {"name": "col2", "model_encoding_type": ModelEncodingType.language_text},
@@ -132,8 +136,8 @@ def test_source_table_config_add_model_configuration():
 
     # language column with tabular model configuration
     s = SourceTableConfig(
-        **{
-            "name": "tbl1",
+        **common_fields
+        | {
             "columns": [{"name": "col1", "model_encoding_type": ModelEncodingType.language_text}],
             "tabular_model_configuration": {"max_epochs": 1},
         }
@@ -142,8 +146,8 @@ def test_source_table_config_add_model_configuration():
 
     # tabular column with language model configuration
     s = SourceTableConfig(
-        **{
-            "name": "tbl1",
+        **common_fields
+        | {
             "columns": [{"name": "col1", "model_encoding_type": ModelEncodingType.tabular_categorical}],
             "language_model_configuration": {"max_epochs": 1},
         }
@@ -152,17 +156,18 @@ def test_source_table_config_add_model_configuration():
 
 
 def test_generator_config():
+    common_fields = {"name": "tbl1", "source_connector_id": "test_connector", "location": "path/to/data.parquet"}
     cols = [{"name": "id"}, {"name": "col1"}, {"name": "col2"}]
     # test valid calls
     GeneratorConfig()
-    GeneratorConfig(**{"tables": [{"name": "tbl1"}]})
-    GeneratorConfig(**{"tables": [{"name": "tbl1", "columns": cols}]})
-    GeneratorConfig(**{"tables": [{"name": "tbl1", "primary_key": "id"}]})
+    GeneratorConfig(**{"tables": [common_fields]})
+    GeneratorConfig(**{"tables": [common_fields | {"columns": cols}]})
+    GeneratorConfig(**{"tables": [common_fields | {"primary_key": "id"}]})
     GeneratorConfig(
         **{
             "tables": [
-                {
-                    "name": "tbl1",
+                common_fields
+                | {
                     "columns": cols,
                     "primary_key": "id",
                     "foreign_keys": [{"column": "col1", "referenced_table": "tbl1", "is_context": False}],
@@ -177,8 +182,8 @@ def test_generator_config():
         GeneratorConfig(
             **{
                 "tables": [
-                    {
-                        "name": "tbl1",
+                    common_fields
+                    | {
                         "columns": cols,
                         "foreign_keys": [{"column": "col1", "referenced_table": "XXX", "is_context": True}],
                     }
@@ -189,8 +194,8 @@ def test_generator_config():
         GeneratorConfig(
             **{
                 "tables": [
-                    {
-                        "name": "tbl1",
+                    common_fields
+                    | {
                         "columns": cols,
                         "foreign_keys": [{"column": "col1", "referenced_table": "tbl", "is_context": False}],
                     }
@@ -202,8 +207,8 @@ def test_generator_config():
         GeneratorConfig(
             **{
                 "tables": [
-                    {
-                        "name": "tbl1",
+                    common_fields
+                    | {
                         "columns": cols,
                         "primary_key": "id",
                         "foreign_keys": [{"column": "col1", "referenced_table": "tbl1", "is_context": True}],
@@ -215,13 +220,14 @@ def test_generator_config():
         GeneratorConfig(
             **{
                 "tables": [
-                    {
-                        "name": "tbl1",
+                    common_fields
+                    | {
                         "columns": cols,
                         "primary_key": "id",
                         "foreign_keys": [{"column": "col1", "referenced_table": "t2", "is_context": True}],
                     },
-                    {
+                    common_fields
+                    | {
                         "name": "t2",
                         "columns": cols,
                         "primary_key": "id",

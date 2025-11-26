@@ -244,6 +244,87 @@ def filter_and_order_columns(data: pd.DataFrame, table_name: str, schema: Schema
     return data[keep_cols]
 
 
+def merge_extra_seed_into_output(
+    *,
+    table_name: str,
+    pqt_path: Path,
+    csv_path: Path | None,
+    schema: Schema,
+) -> None:
+    """
+    merge extra seed columns into already-written output files.
+
+    handles both subject tables (1:1 row alignment) and sequential tables
+    (merge by context key to handle row expansion from sequence completion).
+    """
+    # get workspace_dir from schema table container path
+    table = schema.tables[table_name]
+    workspace_dir = table.container.path.parent  # SyntheticData -> workspace_dir
+    extra_seed = load_extra_seed_columns(workspace_dir)
+    if extra_seed is None:
+        return
+
+    _LOG.info(f"merging extra seed columns into output for table {table_name}")
+
+    table = schema.tables[table_name]
+
+    context_key = next((fk for fk in table.foreign_keys if fk.is_context), None)
+    context_key_col = context_key.column if context_key else None
+
+    parquet_files = sorted(list(pqt_path.glob("*.parquet")))
+    if not parquet_files:
+        _LOG.warning(f"no parquet files found for table {table_name} at {pqt_path}")
+        return
+
+    if context_key_col:
+        # sequential table: use row index within each context group to align seed data
+        for file_path in parquet_files:
+            chunk_data = pd.read_parquet(file_path)
+            chunk_data["__row_idx__"] = chunk_data.groupby(context_key_col).cumcount()
+
+            chunk_data = pd.merge(chunk_data, extra_seed, on=[context_key_col, "__row_idx__"], how="left")
+            chunk_data = chunk_data.drop(columns=["__row_idx__"])
+            chunk_data.to_parquet(file_path, index=False)
+    else:
+        # subject table: use 1:1 row alignment
+        row_offset = 0
+        for file_path in parquet_files:
+            chunk_data = pd.read_parquet(file_path)
+            chunk_size = len(chunk_data)
+
+            chunk_extra = extra_seed.iloc[row_offset : row_offset + chunk_size].reset_index(drop=True)
+            if len(chunk_extra) == chunk_size:
+                chunk_data = pd.concat([chunk_data, chunk_extra], axis=1)
+                chunk_data.to_parquet(file_path, index=False)
+            elif len(chunk_extra) != chunk_size:
+                _LOG.warning(
+                    f"extra seed columns chunk mismatch for {table_name}: expected {chunk_size}, got {len(chunk_extra)}"
+                )
+
+            row_offset += chunk_size
+
+    if csv_path:
+        _LOG.info(f"regenerating csv file for {table_name} with extra seed columns")
+        csv_file = csv_path / f"{table_name}.csv"
+        if csv_file.exists():
+            csv_file.unlink()
+
+        for file_path in parquet_files:
+            chunk_data = pd.read_parquet(file_path)
+            csv_post = CsvDataTable(path=csv_file, name=table_name)
+            csv_post.write_data(chunk_data, if_exists="append")
+
+
+def load_extra_seed_columns(workspace_dir: Path) -> pd.DataFrame | None:
+    """load extra seed columns for a table if they exist."""
+    extra_seed_path = workspace_dir / "ExtraSeedColumns" / "seed_extra.parquet"
+
+    if extra_seed_path.exists():
+        _LOG.info(f"loading extra seed columns from {workspace_dir}")
+        return pd.read_parquet(extra_seed_path)
+    return None
+
+
 def write_batch_outputs(
     data: pd.DataFrame, table_name: str, batch_counter: int, pqt_path: Path, csv_path: Path | None
 ) -> None:
@@ -572,6 +653,14 @@ def finalize_table_generation(
             csv_path=csv_path,
             constraint_translator=constraint_translator,
         )
+
+    # merge extra seed columns as a separate post-processing step
+    merge_extra_seed_into_output(
+        table_name=target_table_name,
+        pqt_path=pqt_path,
+        csv_path=csv_path,
+        schema=generated_data_schema,
+    )
 
 
 def export_data_to_excel(delivery_dir: Path, output_dir: Path):
