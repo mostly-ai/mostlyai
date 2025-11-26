@@ -511,7 +511,7 @@ class SourceTableConfig:
     @classmethod
     def convert_data_before(cls, value):
         # an empty (pd.DataFrame()) parquet in base64 is 800 chars. Assuming a shorter str is a URI
-        if isinstance(value, Path) or (isinstance(value, str) and len(value) < 512):
+        if isinstance(value, Path) or (isinstance(value, str) and len(value) > 0 and len(value) < 512):
             _, value = read_table_from_path(value)
         return (
             convert_to_base64(value)
