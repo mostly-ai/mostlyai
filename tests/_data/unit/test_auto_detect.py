@@ -32,6 +32,7 @@ class TestAutoDetectEncodingType:
         "values",
         [
             [str(uuid.uuid4()) for _ in range(100)],  # 100 unique values of same length
+            [f"string{i}" for i in range(100)],  # 100 values of variable lengths shorter than 36 chars
         ],
     )
     def test_tabular_character(self, values):
@@ -41,7 +42,8 @@ class TestAutoDetectEncodingType:
     @pytest.mark.parametrize(
         "values",
         [
-            [str(uuid.uuid4()) for _ in range(20)] + ["cat1", "cat2"] * 90,  # 20 out of 200 are unique > 0.05
+            [str(uuid.uuid4()) * 2 for _ in range(20)]
+            + ["cat1", "cat2"] * 90,  # 20 out of 200 are unique > 0.05 and some longer than 36 chars
         ],
     )
     def test_language_text(self, values):
@@ -121,7 +123,8 @@ def data_table(tmp_path):
     int_column = list(range(num_rows))
     float_column = [i * 0.1 for i in range(num_rows)]
     lat_long_column = ["48.20849, 16.37208"] * num_rows
-    str_column = [f"string_{i}" for i in range(num_rows)]
+    char_column = ["string" + str(i) for i in range(num_rows)]
+    text_column = ["string" + str(i) * 10 for i in range(num_rows)]
 
     pd.DataFrame(
         {
@@ -129,8 +132,8 @@ def data_table(tmp_path):
             "int": int_column,
             "float": float_column,
             "lat_long": lat_long_column,
-            "str": str_column,
-            "id": str_column,
+            "str": text_column,
+            "id": char_column,
         }
     ).to_parquet(pqt_path)
 

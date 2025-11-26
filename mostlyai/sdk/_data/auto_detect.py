@@ -98,7 +98,9 @@ def auto_detect_encoding_type(x: pd.Series) -> ModelEncodingType:
 
     # if more than 5% of rows contain unique values
     if len(x) >= 100 and x.value_counts().eq(1).reindex(x).mean() > 0.05:
-        if x.str.len().nunique() == 1:  # if all values are of the same length -> character encoding
+        if (
+            x.str.len().nunique() == 1 or x.str.len().max() <= 36
+        ):  # if all values are of the same length or shorter than 36 chars -> character encoding
             return ModelEncodingType.tabular_character
         else:  # if values are of different lengths -> text encoding
             return ModelEncodingType.language_text
