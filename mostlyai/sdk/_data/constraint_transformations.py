@@ -25,9 +25,9 @@ import pandas as pd
 from mostlyai.sdk.domain import FixedCombination
 
 
-def get_tgt_meta_path(workspace_dir: Path) -> Path:
-    """get target metadata directory path."""
-    path = workspace_dir / "OriginalData" / "tgt-meta"
+def get_constraint_meta_path(workspace_dir: Path) -> Path:
+    """get constraint metadata directory path in ModelStore."""
+    path = workspace_dir / "ModelStore"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -146,7 +146,7 @@ class ConstraintTranslator:
             table_name: Name of the table.
             original_columns: Original column names before transformation (optional).
         """
-        meta_dir = get_tgt_meta_path(workspace_dir)
+        meta_dir = get_constraint_meta_path(workspace_dir)
         constraints_file = meta_dir / "constraints.json"
 
         # load existing constraints (if any)
@@ -171,18 +171,13 @@ class ConstraintTranslator:
         """load constraint metadata from workspace.
 
         Args:
-            workspace_dir: Workspace directory path.
+            workspace_dir: Workspace directory path (ModelStore directory).
             table_name: Name of the table.
 
         Returns:
             ConstraintTranslator instance or None if not found.
         """
-        # try loading from standard location (training workspace)
-        constraints_file = get_tgt_meta_path(workspace_dir) / "constraints.json"
-
-        # if not found, try loading from generator's metadata location
-        if not constraints_file.exists():
-            constraints_file = workspace_dir / "tgt-meta" / "constraints.json"
+        constraints_file = workspace_dir / "constraints.json"
 
         if not constraints_file.exists():
             return None
@@ -202,16 +197,13 @@ class ConstraintTranslator:
         """load original column names for a table.
 
         Args:
-            workspace_dir: Workspace directory path.
+            workspace_dir: Workspace directory path (ModelStore directory).
             table_name: Name of the table.
 
         Returns:
             List of original column names or None if not found.
         """
-        constraints_file = get_tgt_meta_path(workspace_dir) / "constraints.json"
-
-        if not constraints_file.exists():
-            constraints_file = workspace_dir / "tgt-meta" / "constraints.json"
+        constraints_file = workspace_dir / "constraints.json"
 
         if not constraints_file.exists():
             return None

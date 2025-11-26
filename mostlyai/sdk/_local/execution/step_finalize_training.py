@@ -23,6 +23,7 @@ import pandas as pd
 
 import mostlyai.engine as engine
 from mostlyai.sdk._data.base import NonContextRelation, Schema
+from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator
 from mostlyai.sdk._data.non_context import (
     CHILDREN_COUNT_COLUMN_NAME,
     ParentChildMatcher,
@@ -37,7 +38,8 @@ from mostlyai.sdk._data.non_context import (
 )
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._local.execution.step_pull_training_data import create_training_schema
-from mostlyai.sdk.domain import Connector, Generator
+from mostlyai.sdk._local.storage import get_model_label
+from mostlyai.sdk.domain import Connector, Generator, ModelType, SourceColumn
 
 _LOG = logging.getLogger(__name__)
 
@@ -344,10 +346,6 @@ def _restore_original_columns(generator: Generator, job_workspace_dir: Path) -> 
         generator: Generator object.
         job_workspace_dir: Job workspace directory.
     """
-    from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator
-    from mostlyai.sdk._local.storage import get_model_label
-    from mostlyai.sdk.domain import ModelType, SourceColumn
-
     for table in generator.tables:
         # check if any model has constraints
         has_constraints = False
@@ -359,12 +357,13 @@ def _restore_original_columns(generator: Generator, job_workspace_dir: Path) -> 
         if not has_constraints:
             continue
 
-        # try to load original columns from constraint metadata
+        # try to load original columns from constraint metadata in ModelStore
         for model_type in [ModelType.tabular, ModelType.language]:
             model_label = get_model_label(table.name, model_type, path_safe=True)
             workspace_dir = job_workspace_dir / model_label
+            model_store_dir = workspace_dir / "ModelStore"
 
-            original_columns = ConstraintTranslator.load_original_columns(workspace_dir, table.name)
+            original_columns = ConstraintTranslator.load_original_columns(model_store_dir, table.name)
 
             if original_columns:
                 _LOG.info(f"restoring original columns for table {table.name}: {original_columns}")
