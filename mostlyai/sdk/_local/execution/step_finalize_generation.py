@@ -588,7 +588,7 @@ def finalize_table_generation(
     delivery_dir: Path,
     export_csv: bool,
     job_workspace_dir: Path,
-    generator: Generator,
+    generator: Generator | None = None,
 ) -> None:
     """
     Post-process the generated data for a given table.
@@ -601,17 +601,19 @@ def finalize_table_generation(
     pqt_path, csv_path = setup_output_paths(delivery_dir, target_table_name, export_csv)
     fk_models_available = are_fk_models_available(job_workspace_dir, target_table_name, generated_data_schema)
 
-    # load constraint translator from generator config (no file needed!)
-    constraint_translator, original_columns = load_constraint_translator_from_generator(
-        generator=generator, table_name=target_table_name
-    )
+    # load constraint translator from generator config (only if generator provided)
+    constraint_translator = None
+    if generator:
+        constraint_translator, original_columns = load_constraint_translator_from_generator(
+            generator=generator, table_name=target_table_name
+        )
 
-    if constraint_translator:
-        _LOG.info(f"loaded constraint translator for table {target_table_name}")
+        if constraint_translator:
+            _LOG.info(f"loaded constraint translator for table {target_table_name}")
 
-        # restore original column names in schema (before transformation)
-        if original_columns:
-            generated_data_schema.tables[target_table_name].columns = original_columns
+            # restore original column names in schema (before transformation)
+            if original_columns:
+                generated_data_schema.tables[target_table_name].columns = original_columns
 
     if fk_models_available:
         _LOG.info(f"Assigning non context FKs (if exists) through FK models for table {target_table_name}")
