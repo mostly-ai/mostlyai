@@ -341,9 +341,8 @@ def execute_step_finalize_training(
 def _restore_original_columns(generator: Generator, job_workspace_dir: Path) -> None:
     """restore original column names after training with constraints.
 
-    Note: With the new approach, generator.columns should remain pristine throughout
-    training (using _internal_columns instead). This function is kept for compatibility
-    with the current implementation that modifies columns in-place.
+    This function reverse-engineers the original columns from the constraints +
+    current (internal) columns, without needing any external files.
 
     Args:
         generator: Generator object.
@@ -360,7 +359,8 @@ def _restore_original_columns(generator: Generator, job_workspace_dir: Path) -> 
         if not has_constraints:
             continue
 
-        # load original columns from generator config itself
+        # use ConstraintTranslator to reverse-engineer original columns
+        # from current (internal) columns + constraints
         translator, original_columns = ConstraintTranslator.from_generator_config(
             generator=generator, table_name=table.name
         )
@@ -368,3 +368,5 @@ def _restore_original_columns(generator: Generator, job_workspace_dir: Path) -> 
         if original_columns:
             _LOG.info(f"restoring original columns for table {table.name}: {original_columns}")
             table.columns = [SourceColumn(name=col) for col in original_columns]
+        else:
+            _LOG.warning(f"could not restore original columns for table {table.name}")

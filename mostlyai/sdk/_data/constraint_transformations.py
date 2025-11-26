@@ -114,6 +114,35 @@ class ConstraintTranslator:
 
         return internal_columns
 
+    def get_original_columns(self, internal_columns: list[str]) -> list[str]:
+        """get list of column names in original schema from internal schema.
+
+        This reverses the transformation: replaces merged columns with original columns.
+
+        Args:
+            internal_columns: List of internal column names (with merged columns).
+
+        Returns:
+            List of original column names (with columns split).
+        """
+        original_columns = []
+
+        for col in internal_columns:
+            # check if this is a merged column
+            is_merged = False
+            for columns, merged_name in self.merged_columns:
+                if col == merged_name:
+                    # replace merged column with original columns
+                    original_columns.extend(columns)
+                    is_merged = True
+                    break
+
+            if not is_merged:
+                # keep non-merged column as is
+                original_columns.append(col)
+
+        return original_columns
+
     @staticmethod
     def from_generator_config(
         generator: Generator,
@@ -123,6 +152,10 @@ class ConstraintTranslator:
 
         This loads constraints directly from the generator config without needing
         any external files. The generator object contains all necessary information.
+
+        Importantly, this method works even if generator.columns has been modified
+        to internal schema - it will reverse-engineer the original columns from
+        the constraints + internal columns.
 
         Args:
             generator: Generator object with table configurations.
@@ -163,7 +196,15 @@ class ConstraintTranslator:
         # create translator from constraints
         translator = ConstraintTranslator(constraints)
 
-        # get original columns from generator
-        original_columns = [c.name for c in table.columns] if table.columns else None
+        # get current columns from generator (might be internal or original schema)
+        current_columns = [c.name for c in table.columns] if table.columns else None
+
+        if not current_columns:
+            return translator, None
+
+        # reverse-engineer original columns from current columns
+        # if current columns are in internal schema (have merged columns),
+        # this will convert them back to original schema
+        original_columns = translator.get_original_columns(current_columns)
 
         return translator, original_columns
