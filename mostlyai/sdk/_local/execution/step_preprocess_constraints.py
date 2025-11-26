@@ -91,8 +91,8 @@ def execute_step_preprocess_constraints(
 
     # save metadata with original columns
     original_columns = [c.name for c in target_table.columns]
-    translator.save_metadata(workspace_dir, target_table_name, original_columns)
-    _LOG.info(f"saved constraint metadata for table {target_table_name}")
+
+    # note: we no longer save constraints.json - constraints are read directly from generator config
 
     # update tgt-meta with internal column structure
     _update_meta_with_internal_columns(workspace_dir, target_table_name, translator, parquet_files)

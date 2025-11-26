@@ -38,8 +38,7 @@ from mostlyai.sdk._data.non_context import (
 )
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._local.execution.step_pull_training_data import create_training_schema
-from mostlyai.sdk._local.storage import get_model_label
-from mostlyai.sdk.domain import Connector, Generator, ModelType, SourceColumn
+from mostlyai.sdk.domain import Connector, Generator, SourceColumn
 
 _LOG = logging.getLogger(__name__)
 
@@ -342,6 +341,10 @@ def execute_step_finalize_training(
 def _restore_original_columns(generator: Generator, job_workspace_dir: Path) -> None:
     """restore original column names after training with constraints.
 
+    Note: With the new approach, generator.columns should remain pristine throughout
+    training (using _internal_columns instead). This function is kept for compatibility
+    with the current implementation that modifies columns in-place.
+
     Args:
         generator: Generator object.
         job_workspace_dir: Job workspace directory.
@@ -357,15 +360,11 @@ def _restore_original_columns(generator: Generator, job_workspace_dir: Path) -> 
         if not has_constraints:
             continue
 
-        # try to load original columns from constraint metadata in ModelStore
-        for model_type in [ModelType.tabular, ModelType.language]:
-            model_label = get_model_label(table.name, model_type, path_safe=True)
-            workspace_dir = job_workspace_dir / model_label
-            model_store_dir = workspace_dir / "ModelStore"
+        # load original columns from generator config itself
+        translator, original_columns = ConstraintTranslator.from_generator_config(
+            generator=generator, table_name=table.name
+        )
 
-            original_columns = ConstraintTranslator.load_original_columns(model_store_dir, table.name)
-
-            if original_columns:
-                _LOG.info(f"restoring original columns for table {table.name}: {original_columns}")
-                table.columns = [SourceColumn(name=col) for col in original_columns]
-                break
+        if original_columns:
+            _LOG.info(f"restoring original columns for table {table.name}: {original_columns}")
+            table.columns = [SourceColumn(name=col) for col in original_columns]

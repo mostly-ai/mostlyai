@@ -50,26 +50,23 @@ FK_MAX_CHILDREN_BATCH_SIZE = 10_000
 FK_PARENT_BATCH_SIZE = 1_000
 
 
-def load_constraint_translator(generator_dir: Path, table_name: str) -> ConstraintTranslator | None:
-    """load constraint translator for a table if it exists.
+def load_constraint_translator_from_generator(
+    generator: Generator,
+    table_name: str,
+) -> tuple[ConstraintTranslator | None, list[str] | None]:
+    """load constraint translator for a table from generator configuration.
+
+    This function loads constraints directly from the generator config without
+    needing any external files. All constraint information is in the generator.
 
     Args:
-        generator_dir: Generator directory path (not job workspace).
+        generator: Generator object.
         table_name: Name of the table.
 
     Returns:
-        ConstraintTranslator instance or None if not found.
+        Tuple of (translator, original_columns) or (None, None).
     """
-    # check all model types for constraint metadata in generator's ModelStore directory
-    for model_type in [ModelType.tabular, ModelType.language]:
-        model_label = get_model_label(table_name, model_type, path_safe=True)
-        metadata_dir = generator_dir / "ModelStore" / model_label
-
-        translator = ConstraintTranslator.load_metadata(metadata_dir, table_name)
-        if translator:
-            return translator
-
-    return None
+    return ConstraintTranslator.from_generator_config(generator=generator, table_name=table_name)
 
 
 def execute_step_finalize_generation(
@@ -77,7 +74,7 @@ def execute_step_finalize_generation(
     schema: Schema,
     is_probe: bool,
     job_workspace_dir: Path,
-    generator_dir: Path | None = None,
+    generator: Generator,
     update_progress: ProgressCallback | None = None,
 ) -> dict[str, int]:
     # get synthetic table usage
@@ -94,7 +91,7 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=False,
                 job_workspace_dir=job_workspace_dir,
-                generator_dir=generator_dir,
+                generator=generator,
             )
         return usages
 
@@ -116,7 +113,7 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=export_csv,
                 job_workspace_dir=job_workspace_dir,
-                generator_dir=generator_dir,
+                generator=generator,
             )
             progress.update(advance=1)
 
@@ -591,7 +588,7 @@ def finalize_table_generation(
     delivery_dir: Path,
     export_csv: bool,
     job_workspace_dir: Path,
-    generator_dir: Path | None = None,
+    generator: Generator,
 ) -> None:
     """
     Post-process the generated data for a given table.
@@ -604,24 +601,17 @@ def finalize_table_generation(
     pqt_path, csv_path = setup_output_paths(delivery_dir, target_table_name, export_csv)
     fk_models_available = are_fk_models_available(job_workspace_dir, target_table_name, generated_data_schema)
 
-    # load constraint translator if available (from generator directory)
-    constraint_translator = None
-    if generator_dir:
-        constraint_translator = load_constraint_translator(generator_dir, target_table_name)
-        if constraint_translator:
-            _LOG.info(f"loaded constraint translator for table {target_table_name}")
+    # load constraint translator from generator config (no file needed!)
+    constraint_translator, original_columns = load_constraint_translator_from_generator(
+        generator=generator, table_name=target_table_name
+    )
 
-            # restore original column names in schema (before transformation)
-            original_columns = None
-            for model_type in [ModelType.tabular, ModelType.language]:
-                model_label = get_model_label(target_table_name, model_type, path_safe=True)
-                metadata_dir = generator_dir / "ModelStore" / model_label
-                original_columns = ConstraintTranslator.load_original_columns(metadata_dir, target_table_name)
-                if original_columns:
-                    break
+    if constraint_translator:
+        _LOG.info(f"loaded constraint translator for table {target_table_name}")
 
-            if original_columns:
-                generated_data_schema.tables[target_table_name].columns = original_columns
+        # restore original column names in schema (before transformation)
+        if original_columns:
+            generated_data_schema.tables[target_table_name].columns = original_columns
 
     if fk_models_available:
         _LOG.info(f"Assigning non context FKs (if exists) through FK models for table {target_table_name}")

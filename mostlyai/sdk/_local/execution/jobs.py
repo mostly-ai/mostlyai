@@ -584,7 +584,7 @@ class Execution:
             schema=schema,
             is_probe=False,
             job_workspace_dir=job_workspace_dir,
-            generator_dir=generator_dir,
+            generator=generator,
             update_progress=LocalProgressCallback(
                 resource_path=self._home_dir / "synthetic-datasets" / self._synthetic_dataset.id,
                 model_label=None,
@@ -633,7 +633,7 @@ class Execution:
             schema=schema,
             is_probe=True,
             job_workspace_dir=job_workspace_dir,
-            generator_dir=generator_dir,
+            generator=generator,
         )
 
 

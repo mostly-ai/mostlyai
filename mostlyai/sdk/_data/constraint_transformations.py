@@ -16,20 +16,15 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
 from mostlyai.sdk.domain import FixedCombination
 
-
-def get_constraint_meta_path(workspace_dir: Path) -> Path:
-    """get constraint metadata directory path in ModelStore."""
-    path = workspace_dir / "ModelStore"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+if TYPE_CHECKING:
+    from mostlyai.sdk.domain import Generator
 
 
 def get_tgt_meta_path(workspace_dir: Path) -> Path:
@@ -119,107 +114,56 @@ class ConstraintTranslator:
 
         return internal_columns
 
-    def to_dict(self) -> dict[str, Any]:
-        """serialize translator to dictionary.
+    @staticmethod
+    def from_generator_config(
+        generator: Generator,
+        table_name: str,
+    ) -> tuple[ConstraintTranslator | None, list[str] | None]:
+        """create constraint translator from generator configuration.
 
-        Returns:
-            Dictionary representation of the translator.
-        """
-        return {
-            "constraints": [constraint.model_dump() for constraint in self.constraints],
-            "merged_columns": [(cols, name) for cols, name in self.merged_columns],
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> ConstraintTranslator:
-        """deserialize translator from dictionary.
+        This loads constraints directly from the generator config without needing
+        any external files. The generator object contains all necessary information.
 
         Args:
-            data: Dictionary representation from to_dict().
+            generator: Generator object with table configurations.
+            table_name: Name of the table to get constraints for.
 
         Returns:
-            ConstraintTranslator instance.
+            Tuple of (translator, original_columns) if constraints exist,
+            or (None, None) if no constraints are defined.
+
+        Example:
+            >>> translator, columns = ConstraintTranslator.from_generator_config(
+            ...     generator=g,
+            ...     table_name="customers"
+            ... )
+            >>> if translator:
+            ...     df_transformed = translator.to_original(df_internal)
         """
-        constraints = [FixedCombination(**constraint_data) for constraint_data in data["constraints"]]
-        translator = cls(constraints)
-        translator.merged_columns = [(cols, name) for cols, name in data["merged_columns"]]
-        return translator
+        # find table in generator
+        table = next((t for t in generator.tables if t.name == table_name), None)
+        if not table:
+            return None, None
 
-    def save_metadata(self, workspace_dir: Path, table_name: str, original_columns: list[str] | None = None) -> None:
-        """save constraint metadata to workspace.
+        # check for constraints in model configurations
+        constraints = None
 
-        Args:
-            workspace_dir: Workspace directory path.
-            table_name: Name of the table.
-            original_columns: Original column names before transformation (optional).
-        """
-        meta_dir = get_constraint_meta_path(workspace_dir)
-        constraints_file = meta_dir / "constraints.json"
+        # try tabular model first
+        if table.tabular_model_configuration and table.tabular_model_configuration.constraints:
+            constraints = table.tabular_model_configuration.constraints
 
-        # load existing constraints (if any)
-        if constraints_file.exists():
-            with open(constraints_file) as f:
-                all_constraints = json.load(f)
-        else:
-            all_constraints = {}
+        # try language model if tabular doesn't have constraints
+        if not constraints and table.language_model_configuration:
+            if table.language_model_configuration.constraints:
+                constraints = table.language_model_configuration.constraints
 
-        # add/update this table's constraints
-        all_constraints[table_name] = {
-            "translator": self.to_dict(),
-            "original_columns": original_columns,
-        }
+        if not constraints:
+            return None, None
 
-        # save back
-        with open(constraints_file, "w") as f:
-            json.dump(all_constraints, f, indent=2)
+        # create translator from constraints
+        translator = ConstraintTranslator(constraints)
 
-    @classmethod
-    def load_metadata(cls, workspace_dir: Path, table_name: str) -> ConstraintTranslator | None:
-        """load constraint metadata from workspace.
+        # get original columns from generator
+        original_columns = [c.name for c in table.columns] if table.columns else None
 
-        Args:
-            workspace_dir: Workspace directory path (ModelStore directory).
-            table_name: Name of the table.
-
-        Returns:
-            ConstraintTranslator instance or None if not found.
-        """
-        constraints_file = workspace_dir / "constraints.json"
-
-        if not constraints_file.exists():
-            return None
-
-        with open(constraints_file) as f:
-            all_constraints = json.load(f)
-
-        # get this table's constraints
-        table_data = all_constraints.get(table_name)
-        if not table_data:
-            return None
-
-        return cls.from_dict(table_data["translator"])
-
-    @classmethod
-    def load_original_columns(cls, workspace_dir: Path, table_name: str) -> list[str] | None:
-        """load original column names for a table.
-
-        Args:
-            workspace_dir: Workspace directory path (ModelStore directory).
-            table_name: Name of the table.
-
-        Returns:
-            List of original column names or None if not found.
-        """
-        constraints_file = workspace_dir / "constraints.json"
-
-        if not constraints_file.exists():
-            return None
-
-        with open(constraints_file) as f:
-            all_constraints = json.load(f)
-
-        table_data = all_constraints.get(table_name)
-        if not table_data:
-            return None
-
-        return table_data.get("original_columns")
+        return translator, original_columns

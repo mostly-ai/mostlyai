@@ -17,7 +17,7 @@
 import pandas as pd
 
 from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator
-from mostlyai.sdk.domain import FixedCombination
+from mostlyai.sdk.domain import FixedCombination, Generator, ModelConfiguration, SourceColumn, SourceTable
 
 
 def test_to_internal_merges_columns():
@@ -112,3 +112,130 @@ def test_round_trip_transformation():
     # verify data is the same
     for col in df_original.columns:
         assert list(df_original[col]) == list(df_reconstructed[col])
+
+
+def test_from_generator_config_with_constraints():
+    """test loading constraints from generator config."""
+    # create generator with constraints
+    generator = Generator(
+        id="test-gen",
+        name="Test Generator",
+        tables=[
+            SourceTable(
+                name="customers",
+                columns=[
+                    SourceColumn(name="id"),
+                    SourceColumn(name="state"),
+                    SourceColumn(name="city"),
+                    SourceColumn(name="amount"),
+                ],
+                tabular_model_configuration=ModelConfiguration(
+                    constraints=[FixedCombination(columns=["state", "city"])]
+                ),
+            )
+        ],
+    )
+
+    # load translator from generator config
+    translator, original_columns = ConstraintTranslator.from_generator_config(
+        generator=generator, table_name="customers"
+    )
+
+    # verify translator was created
+    assert translator is not None
+    assert len(translator.constraints) == 1
+    assert translator.constraints[0].columns == ["state", "city"]
+
+    # verify original columns were extracted
+    assert original_columns == ["id", "state", "city", "amount"]
+
+    # verify transformation works
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "state": ["CA", "NY", "TX"],
+            "city": ["LA", "NYC", "Houston"],
+            "amount": [100, 200, 300],
+        }
+    )
+
+    df_internal = translator.to_internal(df)
+    assert "state|city" in df_internal.columns
+    assert "state" not in df_internal.columns
+    assert "city" not in df_internal.columns
+
+    df_restored = translator.to_original(df_internal)
+    assert "state" in df_restored.columns
+    assert "city" in df_restored.columns
+    assert "state|city" not in df_restored.columns
+
+
+def test_from_generator_config_no_constraints():
+    """test loading from generator with no constraints."""
+    generator = Generator(
+        id="test-gen",
+        name="Test Generator",
+        tables=[
+            SourceTable(
+                name="simple_table",
+                columns=[SourceColumn(name="col1"), SourceColumn(name="col2")],
+            )
+        ],
+    )
+
+    translator, columns = ConstraintTranslator.from_generator_config(generator=generator, table_name="simple_table")
+
+    assert translator is None
+    assert columns is None
+
+
+def test_from_generator_config_table_not_found():
+    """test loading from generator with non-existent table."""
+    generator = Generator(
+        id="test-gen",
+        name="Test Generator",
+        tables=[
+            SourceTable(
+                name="existing_table",
+                columns=[SourceColumn(name="col1")],
+            )
+        ],
+    )
+
+    translator, columns = ConstraintTranslator.from_generator_config(
+        generator=generator, table_name="nonexistent_table"
+    )
+
+    assert translator is None
+    assert columns is None
+
+
+def test_from_generator_config_language_model():
+    """test loading constraints from language model configuration."""
+    generator = Generator(
+        id="test-gen",
+        name="Test Generator",
+        tables=[
+            SourceTable(
+                name="documents",
+                columns=[
+                    SourceColumn(name="id"),
+                    SourceColumn(name="country"),
+                    SourceColumn(name="language"),
+                    SourceColumn(name="text"),
+                ],
+                language_model_configuration=ModelConfiguration(
+                    constraints=[FixedCombination(columns=["country", "language"])]
+                ),
+            )
+        ],
+    )
+
+    translator, original_columns = ConstraintTranslator.from_generator_config(
+        generator=generator, table_name="documents"
+    )
+
+    assert translator is not None
+    assert len(translator.constraints) == 1
+    assert translator.constraints[0].columns == ["country", "language"]
+    assert original_columns == ["id", "country", "language", "text"]
