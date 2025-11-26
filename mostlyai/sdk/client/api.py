@@ -645,6 +645,40 @@ class MostlyAI(_MostlyBaseClient):
                 }],
             }, start=True, wait=True)
             ```
+
+        Example with constraints to preserve valid combinations:
+            ```python
+            # constraints ensure that synthetic data only contains combinations of values that existed in training data
+            # useful for: country-city pairs, product-category pairs, medical codes, etc.
+            import pandas as pd
+            df = pd.DataFrame({
+                'country': ['US', 'US', 'CA', 'CA'],
+                'state': ['CA', 'NY', 'ON', 'BC'],
+                'city': ['Los Angeles', 'New York', 'Toronto', 'Vancouver']
+            })
+            from mostlyai.sdk import MostlyAI
+            mostly = MostlyAI()
+            g = mostly.train(
+                config={
+                    'name': 'locations',
+                    'tables': [{
+                        'name': 'locations',
+                        'data': df,
+                        'tabular_model_configuration': {
+                            'constraints': [
+                                {'columns': ['country', 'state']},      # ensures valid country-state pairs
+                                {'columns': ['state', 'city']},         # ensures valid state-city pairs
+                            ]
+                        }
+                    }]
+                },
+                start=True,
+                wait=True
+            )
+            # synthetic data will never generate impossible combinations like: country='US', state='ON'
+            # each constraint requires at least 2 columns
+            # constraints can be added to both tabular_model_configuration and language_model_configuration
+            ```
         """
         if data is None and config is None:
             raise ValueError("Either config or data must be provided")
