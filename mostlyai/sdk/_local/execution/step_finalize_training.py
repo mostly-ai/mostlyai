@@ -23,7 +23,6 @@ import pandas as pd
 
 import mostlyai.engine as engine
 from mostlyai.sdk._data.base import NonContextRelation, Schema
-from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator
 from mostlyai.sdk._data.non_context import (
     CHILDREN_COUNT_COLUMN_NAME,
     ParentChildMatcher,
@@ -38,7 +37,7 @@ from mostlyai.sdk._data.non_context import (
 )
 from mostlyai.sdk._data.progress_callback import ProgressCallback, ProgressCallbackWrapper
 from mostlyai.sdk._local.execution.step_pull_training_data import create_training_schema
-from mostlyai.sdk.domain import Connector, Generator, SourceColumn
+from mostlyai.sdk.domain import Connector, Generator
 
 _LOG = logging.getLogger(__name__)
 
@@ -334,39 +333,7 @@ def execute_step_finalize_training(
             finally:
                 clean_up_non_context_models_dirs(fk_models_workspace_dir=fk_models_workspace_dir)
 
-    # restore original columns if constraints were used
-    _restore_original_columns(generator, job_workspace_dir)
-
-
-def _restore_original_columns(generator: Generator, job_workspace_dir: Path) -> None:
-    """restore original column names after training with constraints.
-
-    This function reverse-engineers the original columns from the constraints +
-    current (internal) columns, without needing any external files.
-
-    Args:
-        generator: Generator object.
-        job_workspace_dir: Job workspace directory.
-    """
-    for table in generator.tables:
-        # check if any model has constraints
-        has_constraints = False
-        if table.tabular_model_configuration and table.tabular_model_configuration.constraints:
-            has_constraints = True
-        if table.language_model_configuration and table.language_model_configuration.constraints:
-            has_constraints = True
-
-        if not has_constraints:
-            continue
-
-        # use ConstraintTranslator to reverse-engineer original columns
-        # from current (internal) columns + constraints
-        translator, original_columns = ConstraintTranslator.from_generator_config(
-            generator=generator, table_name=table.name
-        )
-
-        if original_columns:
-            _LOG.info(f"restoring original columns for table {table.name}: {original_columns}")
-            table.columns = [SourceColumn(name=col) for col in original_columns]
-        else:
-            _LOG.warning(f"could not restore original columns for table {table.name}")
+    # NOTE: no need to restore original columns anymore!
+    # generator config is now immutable and remains in original schema throughout training.
+    # constraint preprocessing only transforms the data files and metadata,
+    # not the generator config itself.

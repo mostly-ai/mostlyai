@@ -235,8 +235,6 @@ def preprocess_constraints_for_training(
     Returns:
         List of internal column names if constraints were applied, None otherwise.
     """
-    from mostlyai.sdk.domain import SourceColumn
-
     # get target table configuration
     target_table = next((t for t in generator.tables if t.name == target_table_name), None)
     if not target_table:
@@ -284,11 +282,13 @@ def preprocess_constraints_for_training(
     # update tgt-meta with internal column structure
     _update_meta_with_internal_columns(workspace_dir, target_table_name, translator, parquet_files)
 
-    # update generator columns to reflect internal schema for training
+    # get internal columns to return (for training purposes)
     internal_columns = translator.get_internal_columns(original_columns)
 
-    # update the column list
-    target_table.columns = [SourceColumn(name=col) for col in internal_columns]
+    # NOTE: we do NOT modify target_table.columns here!
+    # generator config must remain immutable after validation/auto-completion.
+    # the internal columns are returned and used only for training,
+    # without mutating the generator object.
 
     return internal_columns
 
