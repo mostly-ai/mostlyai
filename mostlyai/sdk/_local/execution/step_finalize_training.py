@@ -332,8 +332,3 @@ def execute_step_finalize_training(
                 continue
             finally:
                 clean_up_non_context_models_dirs(fk_models_workspace_dir=fk_models_workspace_dir)
-
-    # NOTE: no need to restore original columns anymore!
-    # generator config is now immutable and remains in original schema throughout training.
-    # constraint preprocessing only transforms the data files and metadata,
-    # not the generator config itself.
