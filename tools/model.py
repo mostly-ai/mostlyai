@@ -634,18 +634,6 @@ class SourceTableConfig:
             raise ValueError(f"Column '{primary_key}' is both a primary key and a foreign key.")
         return self
 
-    @model_validator(mode="after")
-    def validate_data_or_connector_is_provided(self):
-        if self.data is None and (self.source_connector_id is None or self.location is None):
-            raise ValueError(
-                "At least one input source must be provided: either `data`, or both `source_connector_id` and `location`."
-            )
-        elif self.data is not None and (self.source_connector_id is not None or self.location is not None):
-            raise ValueError(
-                "Only one input source is allowed: either `data`, or both `source_connector_id` and `location`."
-            )
-        return self
-
 
 class SourceColumn:
     @model_validator(mode="before")
