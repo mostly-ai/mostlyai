@@ -16,6 +16,8 @@
 
 from __future__ import annotations
 
+import json
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -24,7 +26,9 @@ import pandas as pd
 from mostlyai.sdk.domain import FixedCombination
 
 if TYPE_CHECKING:
-    from mostlyai.sdk.domain import Generator
+    from mostlyai.sdk.domain import Generator, ModelType
+
+_LOG = logging.getLogger(__name__)
 
 
 def get_tgt_meta_path(workspace_dir: Path) -> Path:
@@ -208,3 +212,128 @@ class ConstraintTranslator:
         original_columns = translator.get_original_columns(current_columns)
 
         return translator, original_columns
+
+
+def preprocess_constraints_for_training(
+    *,
+    generator: Generator,
+    workspace_dir: Path,
+    model_type: ModelType,
+    target_table_name: str,
+) -> list[str] | None:
+    """preprocess constraint transformations for training data.
+
+    applies constraint transformations to parquet files and updates metadata.
+    returns the internal column list if constraints were applied, None otherwise.
+
+    Args:
+        generator: Generator configuration.
+        workspace_dir: Workspace directory path.
+        model_type: Model type being trained.
+        target_table_name: Name of the table to process.
+
+    Returns:
+        List of internal column names if constraints were applied, None otherwise.
+    """
+    from mostlyai.sdk.domain import SourceColumn
+
+    # get target table configuration
+    target_table = next((t for t in generator.tables if t.name == target_table_name), None)
+    if not target_table:
+        _LOG.info(f"table {target_table_name} not found in generator")
+        return None
+
+    # get model configuration based on model type
+    if model_type.value == "language":
+        model_config = target_table.language_model_configuration
+    else:
+        model_config = target_table.tabular_model_configuration
+
+    # early return if no model config or no constraints
+    if not model_config or not model_config.constraints:
+        return None
+
+    _LOG.info(f"preprocessing constraints for table {target_table_name} in {model_type} model")
+
+    # create constraint translator
+    translator = ConstraintTranslator(model_config.constraints)
+
+    # get data directory
+    tgt_data_dir = workspace_dir / "OriginalData" / "tgt-data"
+
+    if not tgt_data_dir.exists():
+        _LOG.warning(f"data directory not found: {tgt_data_dir}")
+        return None
+
+    # process all parquet files
+    parquet_files = sorted(list(tgt_data_dir.glob("part.*.parquet")))
+
+    for parquet_file in parquet_files:
+        # read data
+        df = pd.read_parquet(parquet_file)
+
+        # apply transformation
+        df_transformed = translator.to_internal(df)
+
+        # write back to same file
+        df_transformed.to_parquet(parquet_file, index=True)
+
+    # save metadata with original columns
+    original_columns = [c.name for c in target_table.columns] if target_table.columns else []
+
+    # update tgt-meta with internal column structure
+    _update_meta_with_internal_columns(workspace_dir, target_table_name, translator, parquet_files)
+
+    # update generator columns to reflect internal schema for training
+    internal_columns = translator.get_internal_columns(original_columns)
+
+    # update the column list
+    target_table.columns = [SourceColumn(name=col) for col in internal_columns]
+
+    return internal_columns
+
+
+def _update_meta_with_internal_columns(
+    workspace_dir: Path,
+    table_name: str,
+    translator: ConstraintTranslator,
+    parquet_files: list[Path],
+) -> None:
+    """update tgt-meta to reflect internal column structure after transformation.
+
+    Args:
+        workspace_dir: Workspace directory path.
+        table_name: Name of the table.
+        translator: Constraint translator with transformation info.
+        parquet_files: List of parquet files that were transformed.
+    """
+    # read a sample file to get transformed columns
+    if not parquet_files:
+        return
+
+    # update encoding-types.json to include merged columns
+    meta_dir = get_tgt_meta_path(workspace_dir)
+    encoding_types_file = meta_dir / "encoding-types.json"
+
+    if encoding_types_file.exists():
+        with open(encoding_types_file) as f:
+            encoding_types = json.load(f)
+
+        # get the columns that were merged
+        for constraint in translator.constraints:
+            merged_columns = constraint.columns
+            merged_name = "|".join(merged_columns)
+
+            # force merged column to be TABULAR_CATEGORICAL to preserve valid combinations
+            # this is critical for the constraint to work properly
+            encoding_types[merged_name] = "TABULAR_CATEGORICAL"
+
+            # remove original columns from encoding types
+            for col in merged_columns:
+                encoding_types.pop(col, None)
+
+        # write back
+        with open(encoding_types_file, "w") as f:
+            json.dump(encoding_types, f, indent=2)
+
+        _LOG.info(f"updated encoding-types.json with internal columns for {table_name}")

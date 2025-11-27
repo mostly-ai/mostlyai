@@ -805,7 +805,6 @@ class StepCode(str, Enum):
     """
 
     pull_training_data = "PULL_TRAINING_DATA"
-    preprocess_constraints = "PREPROCESS_CONSTRAINTS"
     analyze_training_data = "ANALYZE_TRAINING_DATA"
     encode_training_data = "ENCODE_TRAINING_DATA"
     train_model = "TRAIN_MODEL"

@@ -48,7 +48,6 @@ from mostlyai.sdk._local.execution.step_generate_data import execute_step_genera
 from mostlyai.sdk._local.execution.step_generate_model_report_data import (
     execute_step_generate_model_report_data,
 )
-from mostlyai.sdk._local.execution.step_preprocess_constraints import execute_step_preprocess_constraints
 from mostlyai.sdk._local.execution.step_pull_training_data import (
     execute_step_pull_training_data,
 )
@@ -387,15 +386,6 @@ class Execution:
             tgt_table.columns = [SourceColumn(name=col) for col in columns]
         # update generator with table total rows, so that value can be used for default sample size during generation
         tgt_table.total_rows = total_rows
-
-        # step: PREPROCESS_CONSTRAINTS
-        execute_step_preprocess_constraints(
-            generator=generator,
-            workspace_dir=workspace_dir,
-            model_type=model_type,
-            target_table_name=task.target_table_name,
-            update_progress=update_progress_fn(step_code=StepCode.preprocess_constraints),
-        )
 
         # step: ANALYZE_TRAINING_DATA
         encoding_types, value_ranges = execute_step_analyze_training_data(

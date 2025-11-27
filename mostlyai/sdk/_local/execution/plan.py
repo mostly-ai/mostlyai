@@ -33,7 +33,6 @@ LANGUAGE_MODEL_ENCODING_TYPES = [v for v in ModelEncodingType if v.startswith(Mo
 
 TRAINING_TASK_STEPS: list[StepCode] = [
     StepCode.pull_training_data,
-    StepCode.preprocess_constraints,
     StepCode.analyze_training_data,
     StepCode.encode_training_data,
     StepCode.train_model,
