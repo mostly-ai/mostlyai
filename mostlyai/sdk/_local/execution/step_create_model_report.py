@@ -25,6 +25,7 @@ import pyarrow.parquet as papqt
 
 from mostlyai import qa
 from mostlyai.engine._workspace import Workspace
+from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator
 from mostlyai.sdk._data.util.common import TABLE_COLUMN_INFIX, TEMPORARY_PRIMARY_KEY, strip_column_prefix
 from mostlyai.sdk._local.execution.step_generate_model_report_data import qa_sample_size_heuristic
 from mostlyai.sdk._local.storage import get_model_label
@@ -165,6 +166,20 @@ def create_report(
 
     if ctx_primary_key and ctx_table_name:
         ctx_primary_key = strip_column_prefix(prefixed_data=ctx_primary_key, table_name=ctx_table_name)
+
+    # apply constraint transformation to training/validation data if constraints exist
+    # (synthetic data is already transformed during finalize_generation)
+    if step_code == StepCode.create_model_report:
+        translator, _ = ConstraintTranslator.from_generator_config(
+            generator=generator,
+            table_name=target_table_name,
+        )
+        if translator is not None:
+            _LOG.info("applying constraint transformation to training/validation data for QA report")
+            if trn_tgt_data is not None:
+                trn_tgt_data = translator.to_original(trn_tgt_data)
+            if hol_tgt_data is not None:
+                hol_tgt_data = translator.to_original(hol_tgt_data)
 
     if step_code == StepCode.create_model_report:
         # generate Model QA report
