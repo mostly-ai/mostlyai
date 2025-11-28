@@ -27,7 +27,7 @@ from typing import Annotated, Any, ClassVar, Literal
 
 import pandas as pd
 import rich
-from pydantic import AnyUrl, AwareDatetime, Field, RootModel, field_validator, model_validator
+from pydantic import AnyUrl, AwareDatetime, Discriminator, Field, RootModel, field_validator, model_validator
 
 from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
 from mostlyai.sdk.client.base import CustomBaseModel
@@ -36,6 +36,7 @@ from mostlyai.sdk.client.base import CustomBaseModel
 class FixedCombination(CustomBaseModel):
     """constraint that ensures synthetic data preserves valid combinations of column values from training data."""
 
+    type: Literal["FixedCombination"] = Field(default="FixedCombination", description="Constraint type discriminator.")
     columns: list[str] = Field(..., description="List of column names that form a fixed combination.")
 
     @field_validator("columns")
@@ -49,6 +50,7 @@ class FixedCombination(CustomBaseModel):
 class Inequality(CustomBaseModel):
     """constraint that ensures low_column <= high_column in synthetic data."""
 
+    type: Literal["Inequality"] = Field(default="Inequality", description="Constraint type discriminator.")
     low_column: str = Field(..., description="Column that should have the lower value.")
     high_column: str = Field(..., description="Column that should have the higher value.")
 
@@ -62,6 +64,7 @@ class Inequality(CustomBaseModel):
 class Range(CustomBaseModel):
     """constraint that ensures low_column <= middle_column <= high_column in synthetic data."""
 
+    type: Literal["Range"] = Field(default="Range", description="Constraint type discriminator.")
     low_column: str = Field(..., description="Column that should have the lowest value.")
     middle_column: str = Field(..., description="Column that should be between low and high.")
     high_column: str = Field(..., description="Column that should have the highest value.")
@@ -2687,7 +2690,7 @@ class ModelConfiguration(CustomBaseModel):
         alias="enableModelReport",
         description="If false, then the Model report is not generated.\n",
     )
-    constraints: list[FixedCombination | Inequality | Range] | None = Field(
+    constraints: list[Annotated[FixedCombination | Inequality | Range, Discriminator("type")]] | None = Field(
         None, description="List of constraint objects that define data relationships."
     )
 

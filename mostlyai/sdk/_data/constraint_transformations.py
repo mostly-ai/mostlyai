@@ -178,7 +178,7 @@ class InequalityHandler(ConstraintHandler):
         return df
 
     def get_encoding_types(self) -> dict[str, str]:
-        return {self._delta_column: "TABULAR_NUMERIC"}
+        return {self._delta_column: "TABULAR_NUMERIC_AUTO"}
 
 
 class RangeHandler(ConstraintHandler):
@@ -262,8 +262,8 @@ class RangeHandler(ConstraintHandler):
 
     def get_encoding_types(self) -> dict[str, str]:
         return {
-            self._delta1_column: "TABULAR_NUMERIC",
-            self._delta2_column: "TABULAR_NUMERIC",
+            self._delta1_column: "TABULAR_NUMERIC_AUTO",
+            self._delta2_column: "TABULAR_NUMERIC_AUTO",
         }
 
 

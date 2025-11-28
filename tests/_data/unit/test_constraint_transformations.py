@@ -165,7 +165,7 @@ class TestInequalityHandler:
         handler = InequalityHandler(Inequality(low_column="a", high_column="b"))
         enc = handler.get_encoding_types()
         assert len(enc) == 1
-        assert list(enc.values())[0] == "TABULAR_NUMERIC"
+        assert list(enc.values())[0] == "TABULAR_NUMERIC_AUTO"
 
 
 class TestRangeHandler:
@@ -251,7 +251,7 @@ class TestRangeHandler:
         handler = RangeHandler(Range(low_column="a", middle_column="b", high_column="c"))
         enc = handler.get_encoding_types()
         assert len(enc) == 2
-        assert all(v == "TABULAR_NUMERIC" for v in enc.values())
+        assert all(v == "TABULAR_NUMERIC_AUTO" for v in enc.values())
 
 
 class TestConstraintTranslator:
@@ -315,7 +315,7 @@ class TestConstraintTranslator:
         enc = translator.get_encoding_types()
 
         assert enc["a|b"] == "TABULAR_CATEGORICAL"
-        assert sum(1 for v in enc.values() if v == "TABULAR_NUMERIC") == 2
+        assert sum(1 for v in enc.values() if v == "TABULAR_NUMERIC_AUTO") == 2
 
     def test_from_generator_config_with_constraints(self):
         generator = Generator(

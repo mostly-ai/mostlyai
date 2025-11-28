@@ -135,11 +135,10 @@ def create_report(
         table_name=target_table_name,
     )
 
-    # add merged column names so they survive column filtering in pull_data_for_report
+    # add all internal column names so they survive column filtering in pull_data_for_report
     tgt_columns_for_pull = tgt_columns.copy()
     if translator is not None:
-        for _, merged_name in translator.merged_columns:
-            tgt_columns_for_pull.append(merged_name)
+        tgt_columns_for_pull.extend(translator.get_all_internal_column_names())
 
     pull_kwargs = dict(
         ctx_primary_key=ctx_primary_key if has_context else None,
