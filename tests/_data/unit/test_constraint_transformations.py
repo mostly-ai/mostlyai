@@ -42,9 +42,9 @@ def test_to_internal_merges_columns():
     # verify merged column exists
     assert "state|city" in df_internal.columns
 
-    # verify original columns are removed
-    assert "state" not in df_internal.columns
-    assert "city" not in df_internal.columns
+    # verify original columns are kept (engine sees both)
+    assert "state" in df_internal.columns
+    assert "city" in df_internal.columns
 
     # verify value column is preserved
     assert "value" in df_internal.columns
@@ -161,8 +161,9 @@ def test_from_generator_config_with_constraints():
 
     df_internal = translator.to_internal(df)
     assert "state|city" in df_internal.columns
-    assert "state" not in df_internal.columns
-    assert "city" not in df_internal.columns
+    # original columns are kept (engine sees both)
+    assert "state" in df_internal.columns
+    assert "city" in df_internal.columns
 
     df_restored = translator.to_original(df_internal)
     assert "state" in df_restored.columns

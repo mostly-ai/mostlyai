@@ -59,8 +59,8 @@ class ConstraintTranslator:
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         """transform dataframe from user schema to internal schema.
 
-        Original columns are kept in the DataFrame but excluded from training
-        via encoding-types.json. This avoids generator config mutation.
+        Original columns are kept in the DataFrame so the engine sees both.
+        In to_original, original columns are overridden by values from merged column.
 
         Args:
             df: DataFrame with original column structure.
