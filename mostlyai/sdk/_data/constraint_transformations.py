@@ -59,40 +59,40 @@ class ConstraintTranslator:
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         """transform dataframe from user schema to internal schema.
 
+        Original columns are kept in the DataFrame but excluded from training
+        via encoding-types.json. This avoids generator config mutation.
+
         Args:
             df: DataFrame with original column structure.
 
         Returns:
-            DataFrame with constrained columns merged.
+            DataFrame with merged column added (original columns kept).
         """
         df = df.copy()
 
         for columns, merged_name in self.merged_columns:
-            # merge columns into one with | separator
             df[merged_name] = df[columns].astype(str).agg("|".join, axis=1)
-            # drop original columns
-            df = df.drop(columns=columns)
 
         return df
 
     def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
         """transform dataframe from internal schema back to user schema.
 
+        Overrides existing original columns with de-transformed values from merged column.
+
         Args:
             df: DataFrame with merged constraint columns.
 
         Returns:
-            DataFrame with original column structure.
+            DataFrame with original columns overridden and merged column dropped.
         """
         df = df.copy()
 
         for columns, merged_name in self.merged_columns:
             if merged_name in df.columns:
-                # split merged column back into original columns
                 split_values = df[merged_name].str.split("|", n=len(columns) - 1, expand=True)
                 for i, col in enumerate(columns):
                     df[col] = split_values[i]
-                # drop merged column
                 df = df.drop(columns=[merged_name])
 
         return df

@@ -129,11 +129,23 @@ def create_report(
         # consider TABULAR tgt columns a context
         ctx_columns += [f"{target_table_name}{TABLE_COLUMN_INFIX}{c}" for c in tgt_columns]
 
+    # load constraint translator early to include merged columns in pull
+    translator, _ = ConstraintTranslator.from_generator_config(
+        generator=generator,
+        table_name=target_table_name,
+    )
+
+    # add merged column names so they survive column filtering in pull_data_for_report
+    tgt_columns_for_pull = tgt_columns.copy()
+    if translator is not None:
+        for _, merged_name in translator.merged_columns:
+            tgt_columns_for_pull.append(merged_name)
+
     pull_kwargs = dict(
         ctx_primary_key=ctx_primary_key if has_context else None,
         tgt_context_key=tgt_context_key if has_context else None,
         ctx_columns=ctx_columns if has_context else None,
-        tgt_columns=tgt_columns,
+        tgt_columns=tgt_columns_for_pull,
         ctx_table_name=ctx_table_name if has_context else None,
         max_sample_size=sample_size,
         max_sequence_length=1_000,
@@ -167,19 +179,14 @@ def create_report(
     if ctx_primary_key and ctx_table_name:
         ctx_primary_key = strip_column_prefix(prefixed_data=ctx_primary_key, table_name=ctx_table_name)
 
-    # apply constraint transformation to training/validation data if constraints exist
-    # (synthetic data is already transformed during finalize_generation)
-    if step_code == StepCode.create_model_report:
-        translator, _ = ConstraintTranslator.from_generator_config(
-            generator=generator,
-            table_name=target_table_name,
-        )
-        if translator is not None:
-            _LOG.info("applying constraint transformation to training/validation data for QA report")
-            if trn_tgt_data is not None:
-                trn_tgt_data = translator.to_original(trn_tgt_data)
-            if hol_tgt_data is not None:
-                hol_tgt_data = translator.to_original(hol_tgt_data)
+    # apply constraint de-transformation if constraints exist
+    if translator is not None:
+        _LOG.info("applying constraint de-transformation for QA report")
+        syn_tgt_data = translator.to_original(syn_tgt_data)
+        if trn_tgt_data is not None:
+            trn_tgt_data = translator.to_original(trn_tgt_data)
+        if hol_tgt_data is not None:
+            hol_tgt_data = translator.to_original(hol_tgt_data)
 
     if step_code == StepCode.create_model_report:
         # generate Model QA report
