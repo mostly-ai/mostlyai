@@ -42,7 +42,6 @@ jobs:
           uv run --no-sync pytest -vv tests/test_domain.py
 
   run-test-cpu-client:
-    if: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
