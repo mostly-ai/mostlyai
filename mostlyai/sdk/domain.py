@@ -48,11 +48,16 @@ class FixedCombination(CustomBaseModel):
 
 
 class Inequality(CustomBaseModel):
-    """constraint that ensures low_column <= high_column in synthetic data."""
+    """constraint that ensures low_column <= high_column in synthetic data.
+    If strict_boundaries=True, enforces low_column < high_column (strict inequality)."""
 
     type: Literal["Inequality"] = Field(default="Inequality", description="Constraint type discriminator.")
     low_column: str = Field(..., description="Column that should have the lower value.")
     high_column: str = Field(..., description="Column that should have the higher value.")
+    strict_boundaries: bool = Field(
+        default=False,
+        description="If True, enforces strict inequality (low < high). If False, allows equality (low <= high).",
+    )
 
     @model_validator(mode="after")
     def validate_columns(self):

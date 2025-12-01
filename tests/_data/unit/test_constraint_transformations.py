@@ -14,6 +14,7 @@
 
 """unit tests for constraint transformations."""
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -168,6 +169,106 @@ class TestInequalityHandler:
         enc = handler.get_encoding_types()
         assert len(enc) == 1
         assert list(enc.values())[0] == "TABULAR_NUMERIC_AUTO"
+
+    def test_strict_boundaries_false_allows_equality(self):
+        """test that strict_boundaries=False (default) allows low == high."""
+        handler = InequalityHandler(Inequality(low_column="start", high_column="end", strict_boundaries=False))
+        df = pd.DataFrame({"start": [10, 20], "end": [10, 25]})
+        result = handler.to_internal(df)
+        assert result[handler._delta_column].iloc[0] == 0  # equality allowed
+        assert result[handler._delta_column].iloc[1] == 5
+
+    def test_strict_boundaries_enforces_strict_inequality(self):
+        """test that strict_boundaries=True enforces low < high for numeric and datetime."""
+        # numeric
+        handler = InequalityHandler(Inequality(low_column="start", high_column="end", strict_boundaries=True))
+        df = pd.DataFrame({"start": [10, 20, 30], "end": [10, 25, 35]})
+        result = handler.to_internal(df)
+        assert result[handler._delta_column].iloc[0] > 0
+        assert list(result[handler._delta_column].iloc[1:]) == [5, 5]
+
+        # datetime
+        df = pd.DataFrame(
+            {
+                "start": pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                "end": pd.to_datetime(["2024-01-01", "2024-02-15"]),
+            }
+        )
+        result = handler.to_internal(df)
+        assert result[handler._delta_column].iloc[0] > pd.Timedelta(0)
+        assert result[handler._delta_column].iloc[1] == pd.Timedelta(days=14)
+
+    def test_strict_boundaries_to_original(self):
+        """test that to_original enforces strict inequality when strict_boundaries=True."""
+        handler = InequalityHandler(Inequality(low_column="start", high_column="end", strict_boundaries=True))
+        delta_col = handler._delta_column
+
+        # numeric
+        df = pd.DataFrame({"start": [10, 20], delta_col: [0, 5]})
+        result = handler.to_original(df)
+        assert result["end"].iloc[0] > result["start"].iloc[0]
+        assert result["end"].iloc[1] == 25
+
+        # datetime
+        df = pd.DataFrame(
+            {
+                "start": pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                delta_col: pd.to_timedelta(["0 days", "14 days"]),
+            }
+        )
+        result = handler.to_original(df)
+        assert result["end"].iloc[0] > result["start"].iloc[0]
+        assert result["end"].iloc[1] == pd.Timestamp("2024-02-15")
+
+    def test_strict_boundaries_round_trip(self):
+        """test round-trip with strict_boundaries=True preserves strict inequality and corrects equality."""
+        handler = InequalityHandler(Inequality(low_column="low", high_column="high", strict_boundaries=True))
+
+        # normal case
+        df = pd.DataFrame({"low": [1.0, 2.0, 3.0], "high": [5.0, 7.0, 10.0]})
+        internal = handler.to_internal(df)
+        restored = handler.to_original(internal)
+        assert all(restored["high"] > restored["low"])
+        assert list(restored["low"]) == [1.0, 2.0, 3.0]
+        assert list(restored["high"]) == [5.0, 7.0, 10.0]
+
+        # with equality in input
+        df = pd.DataFrame({"low": [1.0, 2.0], "high": [1.0, 3.0]})
+        internal = handler.to_internal(df)
+        restored = handler.to_original(internal)
+        assert all(restored["high"] > restored["low"])
+
+    def test_strict_boundaries_preserves_dtype(self):
+        """test that strict_boundaries=True preserves integer dtype and uses appropriate epsilon."""
+        handler = InequalityHandler(Inequality(low_column="start", high_column="end", strict_boundaries=True))
+
+        # integer input: uses 1, preserves integer dtype
+        df = pd.DataFrame({"start": [10, 20, 30], "end": [10, 25, 35]}, dtype=int)
+        result = handler.to_internal(df)
+        assert result[handler._delta_column].iloc[0] == 1
+        assert pd.api.types.is_integer_dtype(result[handler._delta_column])
+        assert list(result[handler._delta_column].iloc[1:]) == [5, 5]
+
+        # integer round-trip
+        internal = handler.to_internal(df)
+        restored = handler.to_original(internal)
+        assert pd.api.types.is_integer_dtype(restored["start"])
+        assert pd.api.types.is_integer_dtype(restored["end"])
+        assert list(restored["end"]) == [11, 25, 35]  # 10 + 1 = 11
+
+        # integer delta in to_original
+        delta_col = handler._delta_column
+        df = pd.DataFrame({"start": [10, 20], delta_col: [0, 5]}, dtype=int)
+        result = handler.to_original(df)
+        assert result["end"].iloc[0] == 11
+        assert pd.api.types.is_integer_dtype(result["end"])
+
+        # float input: uses epsilon, preserves float dtype
+        df = pd.DataFrame({"start": [10.5, 20.0], "end": [10.5, 25.0]}, dtype=float)
+        result = handler.to_internal(df)
+        assert result[handler._delta_column].iloc[0] > 0
+        assert isinstance(result[handler._delta_column].iloc[0], (float, np.floating))
+        assert result[handler._delta_column].iloc[1] == 5.0
 
 
 class TestRangeHandler:

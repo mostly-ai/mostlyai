@@ -117,12 +117,17 @@ class FixedCombinationHandler(ConstraintHandler):
 
 
 class InequalityHandler(ConstraintHandler):
-    """handler for Inequality constraints (low <= high)."""
+    """handler for Inequality constraints (low <= high or low < high if strict_boundaries=True)."""
+
+    # fixed epsilon values for strict boundaries
+    _NUMERIC_EPSILON = 1e-10
+    _DATETIME_EPSILON = pd.Timedelta(microseconds=1)
 
     def __init__(self, constraint: Inequality):
         self.constraint = constraint
         self.low_column = constraint.low_column
         self.high_column = constraint.high_column
+        self.strict_boundaries = constraint.strict_boundaries
         self._delta_column = _generate_internal_column_name("ineq_delta", [self.low_column, self.high_column])
 
     def get_internal_column_names(self) -> list[str]:
@@ -139,7 +144,9 @@ class InequalityHandler(ConstraintHandler):
         low = df[self.low_column]
         high = df[self.high_column]
 
-        if pd.api.types.is_datetime64_any_dtype(low) or pd.api.types.is_datetime64_any_dtype(high):
+        is_datetime = pd.api.types.is_datetime64_any_dtype(low) or pd.api.types.is_datetime64_any_dtype(high)
+
+        if is_datetime:
             low = pd.to_datetime(low)
             high = pd.to_datetime(high)
             delta = high - low
@@ -156,6 +163,26 @@ class InequalityHandler(ConstraintHandler):
             )
             delta = delta.abs()
 
+        # enforce strict boundaries if needed
+        if self.strict_boundaries:
+            if is_datetime:
+                zero_mask = delta <= pd.Timedelta(0)
+                epsilon = self._DATETIME_EPSILON
+            else:
+                zero_mask = delta <= 0
+                # use 1 for integer types, epsilon for float types
+                is_integer = pd.api.types.is_integer_dtype(low) or pd.api.types.is_integer_dtype(high)
+                epsilon = 1 if is_integer else self._NUMERIC_EPSILON
+                # only convert to float if using epsilon (not for integer types)
+                if zero_mask.any() and not is_integer and not pd.api.types.is_float_dtype(delta):
+                    delta = delta.astype(float)
+
+            if zero_mask.any():
+                _LOG.warning(
+                    f"correcting {zero_mask.sum()} equality violations for strict inequality {self.low_column} < {self.high_column}"
+                )
+                delta = delta.where(delta > (pd.Timedelta(0) if is_datetime else 0), epsilon)
+
         df[self._delta_column] = delta
         return df
 
@@ -165,15 +192,37 @@ class InequalityHandler(ConstraintHandler):
             low = df[self.low_column]
             delta = df[self._delta_column]
 
-            if pd.api.types.is_datetime64_any_dtype(low):
+            is_datetime = pd.api.types.is_datetime64_any_dtype(low)
+
+            if is_datetime:
                 low = pd.to_datetime(low)
                 if not pd.api.types.is_timedelta64_dtype(delta):
                     delta = pd.to_timedelta(delta)
             else:
                 low = pd.to_numeric(low, errors="coerce")
                 delta = pd.to_numeric(delta, errors="coerce")
+                # preserve original dtype for reconstruction
+                original_dtype = low.dtype
+
+            # enforce strict boundaries if needed
+            if self.strict_boundaries:
+                zero_mask = delta <= (pd.Timedelta(0) if is_datetime else 0)
+                if zero_mask.any():
+                    if is_datetime:
+                        epsilon = self._DATETIME_EPSILON
+                    else:
+                        # use 1 for integer types, epsilon for float types
+                        is_integer = pd.api.types.is_integer_dtype(low)
+                        epsilon = 1 if is_integer else self._NUMERIC_EPSILON
+                        # only convert to float if using epsilon (not for integer types)
+                        if not is_integer and not pd.api.types.is_float_dtype(delta):
+                            delta = delta.astype(float)
+                    delta = delta.where(delta > (pd.Timedelta(0) if is_datetime else 0), epsilon)
 
             df[self.high_column] = low + delta
+            # preserve original dtype if it was integer
+            if not is_datetime and pd.api.types.is_integer_dtype(original_dtype):
+                df[self.high_column] = df[self.high_column].astype(original_dtype)
             df = df.drop(columns=[self._delta_column])
         return df
 
