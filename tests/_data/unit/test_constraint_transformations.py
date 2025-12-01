@@ -21,6 +21,7 @@ from mostlyai.sdk._data.constraint_transformations import (
     ConstraintTranslator,
     FixedCombinationHandler,
     InequalityHandler,
+    OneHotEncodingHandler,
     RangeHandler,
 )
 from mostlyai.sdk.domain import (
@@ -28,6 +29,7 @@ from mostlyai.sdk.domain import (
     Generator,
     Inequality,
     ModelConfiguration,
+    OneHotEncoding,
     Range,
     SourceColumn,
     SourceTable,
@@ -254,6 +256,72 @@ class TestRangeHandler:
         assert all(v == "TABULAR_NUMERIC_AUTO" for v in enc.values())
 
 
+class TestOneHotEncodingHandler:
+    def test_to_internal_converts_to_categorical(self):
+        handler = OneHotEncodingHandler(OneHotEncoding(columns=["is_a", "is_b", "is_c"]))
+        df = pd.DataFrame({"is_a": [1, 0, 0], "is_b": [0, 1, 0], "is_c": [0, 0, 1], "other": [10, 20, 30]})
+
+        result = handler.to_internal(df)
+
+        internal_col = handler._internal_column
+        assert internal_col in result.columns
+        assert list(result[internal_col]) == ["is_a", "is_b", "is_c"]
+        # original columns are kept during to_internal
+        assert "is_a" in result.columns
+
+    def test_to_original_creates_onehot(self):
+        handler = OneHotEncodingHandler(OneHotEncoding(columns=["cat_a", "cat_b", "cat_c"]))
+        internal_col = handler._internal_column
+        df = pd.DataFrame({internal_col: ["cat_a", "cat_b", "cat_c"], "other": [1, 2, 3]})
+
+        result = handler.to_original(df)
+
+        assert "cat_a" in result.columns
+        assert "cat_b" in result.columns
+        assert "cat_c" in result.columns
+        assert internal_col not in result.columns
+        assert list(result["cat_a"]) == [1, 0, 0]
+        assert list(result["cat_b"]) == [0, 1, 0]
+        assert list(result["cat_c"]) == [0, 0, 1]
+
+    def test_round_trip(self):
+        handler = OneHotEncodingHandler(OneHotEncoding(columns=["x", "y", "z"]))
+        df = pd.DataFrame({"x": [1, 0, 0, 0], "y": [0, 1, 0, 0], "z": [0, 0, 1, 0], "value": [100, 200, 300, 400]})
+
+        internal = handler.to_internal(df)
+        restored = handler.to_original(internal)
+
+        assert list(restored["x"]) == [1, 0, 0, 0]
+        assert list(restored["y"]) == [0, 1, 0, 0]
+        assert list(restored["z"]) == [0, 0, 1, 0]
+
+    def test_encoding_types(self):
+        handler = OneHotEncodingHandler(OneHotEncoding(columns=["a", "b"]))
+        enc = handler.get_encoding_types()
+        assert len(enc) == 1
+        assert list(enc.values())[0] == "TABULAR_CATEGORICAL"
+
+    def test_handles_null_rows(self):
+        handler = OneHotEncodingHandler(OneHotEncoding(columns=["col_a", "col_b"]))
+        internal_col = handler._internal_column
+        df = pd.DataFrame({internal_col: ["col_a", None, "col_b"], "other": [1, 2, 3]})
+
+        result = handler.to_original(df)
+
+        assert list(result["col_a"]) == [1, 0, 0]
+        assert list(result["col_b"]) == [0, 0, 1]
+
+    def test_handles_all_zeros_row(self):
+        handler = OneHotEncodingHandler(OneHotEncoding(columns=["a", "b", "c"]))
+        df = pd.DataFrame({"a": [1, 0], "b": [0, 0], "c": [0, 0], "other": [10, 20]})
+
+        internal = handler.to_internal(df)
+
+        internal_col = handler._internal_column
+        assert internal[internal_col].iloc[0] == "a"
+        assert internal[internal_col].iloc[1] is None
+
+
 class TestConstraintTranslator:
     def test_mixed_constraints(self):
         constraints = [
@@ -407,6 +475,10 @@ class TestDomainValidation:
         with pytest.raises(ValueError, match="must all be different"):
             Range(low_column="a", middle_column="b", high_column="a")
 
+    def test_onehot_requires_two_columns(self):
+        with pytest.raises(ValueError, match="at least 2 columns"):
+            OneHotEncoding(columns=["single"])
+
     def test_valid_constraints_create(self):
         fc = FixedCombination(columns=["a", "b", "c"])
         assert fc.columns == ["a", "b", "c"]
@@ -416,3 +488,6 @@ class TestDomainValidation:
 
         rng = Range(low_column="min", middle_column="mid", high_column="max")
         assert rng.middle_column == "mid"
+
+        ohe = OneHotEncoding(columns=["is_x", "is_y"])
+        assert ohe.columns == ["is_x", "is_y"]

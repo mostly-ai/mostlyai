@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from mostlyai.sdk.domain import FixedCombination, Inequality, Range
+from mostlyai.sdk.domain import FixedCombination, Inequality, OneHotEncoding, Range
 
 if TYPE_CHECKING:
     from mostlyai.sdk.domain import Generator, ModelType
@@ -267,7 +267,53 @@ class RangeHandler(ConstraintHandler):
         }
 
 
-def _create_constraint_handler(constraint: FixedCombination | Inequality | Range) -> ConstraintHandler:
+class OneHotEncodingHandler(ConstraintHandler):
+    """handler for OneHotEncoding constraints (exactly one column has value 1)."""
+
+    def __init__(self, constraint: OneHotEncoding):
+        self.constraint = constraint
+        self.columns = constraint.columns
+        self._internal_column = _generate_internal_column_name("onehot", self.columns)
+
+    def get_internal_column_names(self) -> list[str]:
+        return [self._internal_column]
+
+    def get_original_columns(self) -> list[str]:
+        return list(self.columns)
+
+    def get_columns_to_remove(self) -> list[str]:
+        return list(self.columns)
+
+    def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+
+        def find_active_column(row):
+            for col in self.columns:
+                val = row[col]
+                if pd.notna(val) and val == 1:
+                    return col
+            return None
+
+        df[self._internal_column] = df.apply(find_active_column, axis=1)
+        return df
+
+    def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+        if self._internal_column in df.columns:
+            for col in self.columns:
+                df[col] = (df[self._internal_column] == col).astype(int)
+            # handle null/unknown values by setting all to 0
+            null_mask = df[self._internal_column].isna()
+            for col in self.columns:
+                df.loc[null_mask, col] = 0
+            df = df.drop(columns=[self._internal_column])
+        return df
+
+    def get_encoding_types(self) -> dict[str, str]:
+        return {self._internal_column: "TABULAR_CATEGORICAL"}
+
+
+def _create_constraint_handler(constraint: FixedCombination | Inequality | Range | OneHotEncoding) -> ConstraintHandler:
     """factory function to create appropriate handler for a constraint."""
     if isinstance(constraint, FixedCombination):
         return FixedCombinationHandler(constraint)
@@ -275,6 +321,8 @@ def _create_constraint_handler(constraint: FixedCombination | Inequality | Range
         return InequalityHandler(constraint)
     elif isinstance(constraint, Range):
         return RangeHandler(constraint)
+    elif isinstance(constraint, OneHotEncoding):
+        return OneHotEncodingHandler(constraint)
     else:
         raise ValueError(f"unknown constraint type: {type(constraint)}")
 
@@ -282,7 +330,7 @@ def _create_constraint_handler(constraint: FixedCombination | Inequality | Range
 class ConstraintTranslator:
     """translates data between user schema and internal schema for constraints."""
 
-    def __init__(self, constraints: list[FixedCombination | Inequality | Range]):
+    def __init__(self, constraints: list[FixedCombination | Inequality | Range | OneHotEncoding]):
         self.constraints = constraints
         self.handlers = [_create_constraint_handler(c) for c in constraints]
 

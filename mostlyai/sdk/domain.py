@@ -77,6 +77,20 @@ class Range(CustomBaseModel):
         return self
 
 
+class OneHotEncoding(CustomBaseModel):
+    """constraint that ensures exactly one column has value 1 and all others have value 0."""
+
+    type: Literal["OneHotEncoding"] = Field(default="OneHotEncoding", description="Constraint type discriminator.")
+    columns: list[str] = Field(..., description="List of column names that form a one-hot encoding.")
+
+    @field_validator("columns")
+    @classmethod
+    def validate_columns(cls, columns):
+        if len(columns) < 2:
+            raise ValueError("OneHotEncoding requires at least 2 columns.")
+        return columns
+
+
 class AboutService(CustomBaseModel):
     """
     General information about the service.
@@ -2690,9 +2704,9 @@ class ModelConfiguration(CustomBaseModel):
         alias="enableModelReport",
         description="If false, then the Model report is not generated.\n",
     )
-    constraints: list[Annotated[FixedCombination | Inequality | Range, Discriminator("type")]] | None = Field(
-        None, description="List of constraint objects that define data relationships."
-    )
+    constraints: (
+        list[Annotated[FixedCombination | Inequality | Range | OneHotEncoding, Discriminator("type")]] | None
+    ) = Field(None, description="List of constraint objects that define data relationships.")
 
     @model_validator(mode="after")
     def validate_differential_privacy_config(self):
