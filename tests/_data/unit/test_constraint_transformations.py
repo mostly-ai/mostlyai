@@ -49,7 +49,23 @@ class TestFixedCombinationHandler:
         assert "state" in result.columns
         assert "city" in result.columns
 
-    def test_to_original_splits_columns(self):
+    def test_to_original_keeps_original_columns(self):
+        handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
+        # simulate generation output: original columns + merged column
+        df = pd.DataFrame(
+            {"state": ["CA", "NY"], "city": ["LA", "NYC"], "state|city": ["CA|LA", "NY|NYC"], "value": [1, 2]}
+        )
+
+        result = handler.to_original(df)
+
+        assert "state" in result.columns
+        assert "city" in result.columns
+        assert "state|city" not in result.columns
+        assert list(result["state"]) == ["CA", "NY"]
+        assert list(result["city"]) == ["LA", "NYC"]
+
+    def test_to_original_splits_columns_fallback(self):
+        # test fallback: if only merged column exists, split it
         handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
         df = pd.DataFrame({"state|city": ["CA|LA", "NY|NYC"], "value": [1, 2]})
 
@@ -457,12 +473,14 @@ class TestConstraintTranslator:
 
         internal = translator.get_internal_columns(original)
 
-        assert "a" not in internal
-        assert "b" not in internal
+        # FixedCombination keeps original columns alongside merged column
+        assert "a" in internal
+        assert "b" in internal
+        assert "a|b" in internal
+        # Inequality removes high column
         assert "high" not in internal
         assert "low" in internal
         assert "other" in internal
-        assert "a|b" in internal
         assert any(c.startswith("__constraint_ineq_delta") for c in internal)
 
     def test_get_original_columns(self):

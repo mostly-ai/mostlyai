@@ -61,11 +61,6 @@ class ConstraintHandler(ABC):
         pass
 
     @abstractmethod
-    def get_columns_to_remove(self) -> list[str]:
-        """return columns that should be removed from internal schema."""
-        pass
-
-    @abstractmethod
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         """transform dataframe from user schema to internal schema."""
         pass
@@ -95,9 +90,6 @@ class FixedCombinationHandler(ConstraintHandler):
     def get_original_columns(self) -> list[str]:
         return list(self.columns)
 
-    def get_columns_to_remove(self) -> list[str]:
-        return list(self.columns)
-
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         df[self.merged_name] = df[self.columns].astype(str).agg("|".join, axis=1)
@@ -106,9 +98,12 @@ class FixedCombinationHandler(ConstraintHandler):
     def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         if self.merged_name in df.columns:
+            # ensure original columns match the merged column (enforce constraint consistency)
+            # split from merged column to ensure valid combinations
             split_values = df[self.merged_name].str.split("|", n=len(self.columns) - 1, expand=True)
             for i, col in enumerate(self.columns):
                 df[col] = split_values[i]
+            # drop the merged column
             df = df.drop(columns=[self.merged_name])
         return df
 
@@ -135,9 +130,6 @@ class InequalityHandler(ConstraintHandler):
 
     def get_original_columns(self) -> list[str]:
         return [self.low_column, self.high_column]
-
-    def get_columns_to_remove(self) -> list[str]:
-        return [self.high_column]
 
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
@@ -248,9 +240,6 @@ class RangeHandler(ConstraintHandler):
     def get_original_columns(self) -> list[str]:
         return [self.low_column, self.middle_column, self.high_column]
 
-    def get_columns_to_remove(self) -> list[str]:
-        return [self.middle_column, self.high_column]
-
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         low = df[self.low_column]
@@ -330,9 +319,6 @@ class OneHotEncodingHandler(ConstraintHandler):
     def get_original_columns(self) -> list[str]:
         return list(self.columns)
 
-    def get_columns_to_remove(self) -> list[str]:
-        return list(self.columns)
-
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
 
@@ -401,7 +387,15 @@ class ConstraintTranslator:
         columns_to_add = []
 
         for handler in self.handlers:
-            columns_to_remove.update(handler.get_columns_to_remove())
+            # compute columns to remove based on handler type
+            if isinstance(handler, InequalityHandler):
+                columns_to_remove.add(handler.high_column)
+            elif isinstance(handler, RangeHandler):
+                columns_to_remove.add(handler.middle_column)
+                columns_to_remove.add(handler.high_column)
+            elif isinstance(handler, OneHotEncodingHandler):
+                columns_to_remove.update(handler.columns)
+            # FixedCombinationHandler keeps all original columns, so nothing to remove
             columns_to_add.extend(handler.get_internal_column_names())
 
         internal_columns = [c for c in original_columns if c not in columns_to_remove]
@@ -440,7 +434,15 @@ class ConstraintTranslator:
         """get all columns that should be removed from encoding types."""
         columns = set()
         for handler in self.handlers:
-            columns.update(handler.get_columns_to_remove())
+            # compute columns to remove based on handler type
+            if isinstance(handler, InequalityHandler):
+                columns.add(handler.high_column)
+            elif isinstance(handler, RangeHandler):
+                columns.add(handler.middle_column)
+                columns.add(handler.high_column)
+            elif isinstance(handler, OneHotEncodingHandler):
+                columns.update(handler.columns)
+            # FixedCombinationHandler keeps all original columns, so nothing to remove
         return columns
 
     @property
