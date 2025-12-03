@@ -24,9 +24,8 @@ from mostlyai.sdk.client.base import (
 )
 from mostlyai.sdk.domain import (
     Integration,
-    IntegrationAuthorizationConfig,
+    IntegrationAuthorizationRequest,
     IntegrationProvidersConfig,
-    Provider,
 )
 
 
@@ -56,7 +55,7 @@ class _MostlyIntegrationsClient(_MostlyBaseClient):
         response = self.request(verb=GET, path=[])
         return [Integration(**item) for item in response]
 
-    def get(self, provider_id: str | Provider) -> Integration:
+    def get(self, provider_id: str) -> Integration:
         """
         Retrieve an integration by its provider ID.
 
@@ -74,8 +73,7 @@ class _MostlyIntegrationsClient(_MostlyBaseClient):
             i
             ```
         """
-        provider_id_str = provider_id.value if isinstance(provider_id, Provider) else provider_id
-        response = self.request(verb=GET, path=[provider_id_str], response_type=Integration)
+        response = self.request(verb=GET, path=[provider_id], response_type=Integration)
         return response
 
     def providers(self) -> list[IntegrationProvidersConfig]:
@@ -99,7 +97,7 @@ class _MostlyIntegrationsClient(_MostlyBaseClient):
 
     def authorize(
         self,
-        provider: Provider | str,
+        provider: str,
         scope_ids: list[str],
     ) -> str:
         """
@@ -123,18 +121,17 @@ class _MostlyIntegrationsClient(_MostlyBaseClient):
             print(f"Visit this URL to authorize: {url}")
             ```
         """
-        provider_enum = Provider(provider) if isinstance(provider, str) else provider
-        config = IntegrationAuthorizationConfig(provider=provider_enum, scope_ids=scope_ids)
+        config = IntegrationAuthorizationRequest(scope_ids=scope_ids)
         response = self.request(
             verb=POST,
-            path=["authorize"],
+            path=[provider, "authorize"],
             json=config,
             response_type=dict,
             do_response_dict_snake_case=True,
         )
         return response.get("authorization_url", "")
 
-    def disconnect(self, provider_id: str | Provider) -> None:
+    def disconnect(self, provider_id: str) -> None:
         """
         Disconnect an integration.
 
@@ -148,11 +145,10 @@ class _MostlyIntegrationsClient(_MostlyBaseClient):
             mostly.integrations.disconnect('google')
             ```
         """
-        provider_id_str = provider_id.value if isinstance(provider_id, Provider) else provider_id
-        self.request(verb=DELETE, path=[provider_id_str])
+        self.request(verb=DELETE, path=[provider_id])
         if self.local:
-            rich.print(f"Disconnected integration [dodger_blue2]{provider_id_str}[/]")
+            rich.print(f"Disconnected integration [dodger_blue2]{provider_id}[/]")
         else:
             rich.print(
-                f"Disconnected integration [link={self.base_url}/d/integrations/{provider_id_str} dodger_blue2 underline]{provider_id_str}[/]"
+                f"Disconnected integration [link={self.base_url}/d/integrations/{provider_id} dodger_blue2 underline]{provider_id}[/]"
             )
