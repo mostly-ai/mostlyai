@@ -25,7 +25,7 @@ from mostlyai.sdk.client.base import (
 from mostlyai.sdk.domain import (
     Integration,
     IntegrationAuthorizationConfig,
-    IntegrationProvider,
+    IntegrationProvidersConfig,
     Provider,
 )
 
@@ -53,8 +53,8 @@ class _MostlyIntegrationsClient(_MostlyBaseClient):
         Returns:
             list[Integration]: A list of integration objects.
         """
-        response = self.request(verb=GET, path=[], response_type=list, do_response_dict_snake_case=True)
-        return [Integration(**item, client=self) for item in response]
+        response = self.request(verb=GET, path=[])
+        return [Integration(**item) for item in response]
 
     def get(self, provider_id: str | Provider) -> Integration:
         """
@@ -78,12 +78,12 @@ class _MostlyIntegrationsClient(_MostlyBaseClient):
         response = self.request(verb=GET, path=[provider_id_str], response_type=Integration)
         return response
 
-    def providers(self) -> list[IntegrationProvider]:
+    def providers(self) -> list[IntegrationProvidersConfig]:
         """
         List all available integration providers.
 
         Returns:
-            list[IntegrationProvider]: A list of available integration providers.
+            list[IntegrationProvidersConfig]: A list of available integration providers configuration objects.
 
         Example for listing providers:
             ```python
@@ -94,8 +94,8 @@ class _MostlyIntegrationsClient(_MostlyBaseClient):
                 print(f"Provider: {p.name} ({p.id})")
             ```
         """
-        response = self.request(verb=GET, path=["providers"], response_type=list, do_response_dict_snake_case=True)
-        return [IntegrationProvider(**item) for item in response]
+        response = self.request(verb=GET, path=["providers"], do_include_client=False)
+        return [IntegrationProvidersConfig(**item) for item in response["providers"]]
 
     def authorize(
         self,
