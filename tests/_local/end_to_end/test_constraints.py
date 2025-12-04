@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 
 from mostlyai.sdk import MostlyAI
-from mostlyai.sdk.domain import FixedCombination
+from mostlyai.sdk.domain import FixedCombination, Inequality
 
 
 @pytest.fixture(scope="module")
@@ -127,6 +127,82 @@ def test_no_constraints_regression(mostly):
     assert df_syn.shape[1] == 2
     assert "col1" in df_syn.columns
     assert "col2" in df_syn.columns
+
+    # cleanup
+    g.delete()
+    sd.delete()
+
+
+def test_constraints_with_seed_data(mostly):
+    """test that seed data values are preserved during constraint transformations."""
+
+    # create training data with inequality constraint
+    df = pd.DataFrame(
+        {
+            "start_age": [20, 25, 30, 35, 40] * 20,
+            "end_age": [25, 30, 35, 40, 45] * 20,
+            "value": np.random.rand(100),
+        }
+    )
+
+    # train generator with inequality constraint
+    g = mostly.train(
+        config={
+            "name": "Test Constraints with Seed",
+            "tables": [
+                {
+                    "name": "test",
+                    "data": df,
+                    "tabular_model_configuration": {
+                        "max_epochs": 0.5,
+                        "constraints": [Inequality(low_column="start_age", high_column="end_age")],
+                    },
+                }
+            ],
+        }
+    )
+
+    # verify generator was created
+    assert g is not None
+
+    # create seed data with specific values that should be preserved
+    seed_df = pd.DataFrame(
+        {
+            "start_age": [50, 55],
+            "end_age": [60, 65],  # both columns seeded - should be preserved
+            "value": [999, 888],  # extra column
+        }
+    )
+
+    # generate with seed data (size=None means use seed size)
+    sd = mostly.generate(g, seed=seed_df)
+    df_syn = sd.data()
+
+    # verify synthetic data has correct columns
+    assert "start_age" in df_syn.columns
+    assert "end_age" in df_syn.columns
+    assert "value" in df_syn.columns
+
+    # verify seed values are preserved in the output
+    # for subject tables with seed, first N rows should match seed (where N is seed size)
+    # check if seed values appear in the output (they may be in first rows or scattered)
+    seed_start_ages = {50, 55}
+    seed_end_ages = {60, 65}
+    syn_start_ages = set(df_syn["start_age"].unique())
+    syn_end_ages = set(df_syn["end_age"].unique())
+
+    # verify seed start_age values appear in output
+    assert len(seed_start_ages & syn_start_ages) > 0, (
+        f"seed start_age values not found. seed: {seed_start_ages}, syn: {syn_start_ages}"
+    )
+
+    # verify seed end_age values appear in output (this is the key test - end_age should be preserved)
+    assert len(seed_end_ages & syn_end_ages) > 0, (
+        f"seed end_age values not found. seed: {seed_end_ages}, syn: {syn_end_ages}"
+    )
+
+    # verify inequality constraint is satisfied for all rows
+    assert (df_syn["start_age"] <= df_syn["end_age"]).all(), "inequality constraint violated"
 
     # cleanup
     g.delete()

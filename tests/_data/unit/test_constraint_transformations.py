@@ -677,3 +677,206 @@ class TestDomainValidation:
 
         ohe = OneHotEncoding(columns=["is_x", "is_y"])
         assert ohe.columns == ["is_x", "is_y"]
+
+
+class TestSeedDataPreservation:
+    """test that seed data values are preserved during to_original transformation."""
+
+    def test_fixed_combination_preserves_seed_data(self):
+        """test that FixedCombination preserves seed values."""
+        handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
+        df = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"], "state|city": ["merged1", "merged2"]})
+        seed_data = pd.DataFrame({"state": ["TX", "FL"], "city": ["Houston", "Miami"]})
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # seed values should be preserved
+        assert list(result["state"]) == ["TX", "FL"]
+        assert list(result["city"]) == ["Houston", "Miami"]
+        assert "state|city" not in result.columns
+
+    def test_inequality_preserves_seed_data(self):
+        """test that Inequality preserves seed values."""
+        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [10, 20], handler._delta_column: [5, 10]})
+        seed_data = pd.DataFrame({"start": [100, 200], "end": [150, 250]})
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # both seed values should be preserved
+        assert list(result["start"]) == [100, 200]
+        assert list(result["end"]) == [150, 250]
+        assert handler._delta_column not in result.columns
+
+    def test_inequality_preserves_partial_seed_data(self):
+        """test that Inequality preserves high_column seed value and reconstructs low_column from delta."""
+        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [10, 20], handler._delta_column: [5, 10]})
+        seed_data = pd.DataFrame({"end": [150, 250]})  # only high_column seeded
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # high_column seed value should be preserved, start should be reconstructed from delta: start = end - delta
+        assert list(result["start"]) == [145, 240]  # 150 - 5, 250 - 10
+        assert list(result["end"]) == [150, 250]  # from seed
+        assert handler._delta_column not in result.columns
+
+    def test_inequality_partial_seed_high_column(self):
+        """test that Inequality reconstructs low_column from delta when high_column is partially seeded."""
+        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        # df has 4 rows, seed has 2 rows
+        df = pd.DataFrame({"start": [10, 20, 30, 40], handler._delta_column: [5, 10, 15, 20]})
+        seed_data = pd.DataFrame({"end": [150, 250]})  # only first 2 rows seeded
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # first 2 rows: end from seed, start reconstructed from delta
+        assert result["end"].iloc[0] == 150  # from seed
+        assert result["end"].iloc[1] == 250  # from seed
+        assert result["start"].iloc[0] == 145  # 150 - 5
+        assert result["start"].iloc[1] == 240  # 250 - 10
+        # last 2 rows: normal reconstruction (end = start + delta)
+        assert result["end"].iloc[2] == 45  # 30 + 15
+        assert result["end"].iloc[3] == 60  # 40 + 20
+        assert result["start"].iloc[2] == 30  # from df
+        assert result["start"].iloc[3] == 40  # from df
+        assert handler._delta_column not in result.columns
+
+    def test_inequality_imputation_partial_nulls(self):
+        """test that Inequality handles row-by-row imputation with partial nulls per column."""
+        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        # df contains all columns: start, delta, and end (original columns are kept)
+        # pattern: start = 10,20,30,40,50,60,70,80,90; delta = 5 for all; end = start + delta
+        df = pd.DataFrame(
+            {
+                "start": [10, 20, 30, 40, 50, 60, 70, 80, 90],
+                handler._delta_column: [5, 5, 5, 5, 5, 5, 5, 5, 5],
+                "end": [15, 25, 35, 45, 55, 65, 75, 85, 95],  # original values (will be overwritten by reconstruction)
+            }
+        )
+        # seed data with partial nulls: covers all scenarios including constraint violations
+        # rows 0-6: normal cases (both, only start, only end, neither)
+        # rows 7-8: constraint violations to test delta-based reconstruction
+        seed_data = pd.DataFrame(
+            {
+                "start": [10, 20, None, None, 50, 60, None, 100, None],  # row 7: start=100 violates (100 > 85)
+                "end": [15, None, 35, 45, None, None, None, 85, 5],  # row 8: end=5 violates (5 < 90)
+            }
+        )
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # expected results: [start, end] for each row
+        expected = [
+            [10, 15],  # both seeded (valid)
+            [20, 25],  # only start: end = 20 + 5
+            [30, 35],  # only end: start = 35 - 5
+            [40, 45],  # only end: start = 45 - 5
+            [50, 55],  # only start: end = 50 + 5
+            [60, 65],  # only start: end = 60 + 5
+            [70, 75],  # neither: end = 70 + 5
+            [100, 85],  # both seeded but violates constraint (100 > 85) - preserved as-is, delta ignored
+            [0, 5],  # only end seeded but violates (5 < 90) - start reconstructed as 5 - 5 = 0 using delta
+        ]
+        assert list(result["start"]) == [r[0] for r in expected]
+        assert list(result["end"]) == [r[1] for r in expected]
+        assert handler._delta_column not in result.columns
+
+    def test_inequality_imputation_only_low_seeded(self):
+        """test that Inequality handles imputation when only low_column has partial nulls."""
+        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [10, 20, 30], handler._delta_column: [5, 10, 15]})
+        # only start has some seeded values
+        seed_data = pd.DataFrame({"start": [100, None, 300]})  # rows 0 and 2 seeded
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # row 0: start seeded -> use seeded value, reconstruct end = 100 + 5 = 105
+        assert result["start"].iloc[0] == 100
+        assert result["end"].iloc[0] == 105
+
+        # row 1: start not seeded -> use generated value, reconstruct end = 20 + 10 = 30
+        assert result["start"].iloc[1] == 20
+        assert result["end"].iloc[1] == 30
+
+        # row 2: start seeded -> use seeded value, reconstruct end = 300 + 15 = 315
+        assert result["start"].iloc[2] == 300
+        assert result["end"].iloc[2] == 315
+
+    def test_inequality_imputation_only_high_seeded(self):
+        """test that Inequality handles imputation when only high_column has partial nulls."""
+        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [10, 20, 30], handler._delta_column: [5, 10, 15]})
+        # only end has some seeded values
+        seed_data = pd.DataFrame({"end": [150, None, 350]})  # rows 0 and 2 seeded
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # row 0: end seeded -> use seeded value, reconstruct start = 150 - 5 = 145
+        assert result["start"].iloc[0] == 145
+        assert result["end"].iloc[0] == 150
+
+        # row 1: end not seeded -> reconstruct end = 20 + 10 = 30
+        assert result["start"].iloc[1] == 20
+        assert result["end"].iloc[1] == 30
+
+        # row 2: end seeded -> use seeded value, reconstruct start = 350 - 15 = 335
+        assert result["start"].iloc[2] == 335
+        assert result["end"].iloc[2] == 350
+
+    def test_range_preserves_seed_data(self):
+        """test that Range preserves seed values."""
+        handler = RangeHandler(Range(low_column="min", middle_column="mid", high_column="max"))
+        df = pd.DataFrame({"min": [10, 20], handler._delta1_column: [5, 10], handler._delta2_column: [3, 5]})
+        seed_data = pd.DataFrame({"min": [100, 200], "mid": [150, 250], "max": [180, 280]})
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # all seed values should be preserved
+        assert list(result["min"]) == [100, 200]
+        assert list(result["mid"]) == [150, 250]
+        assert list(result["max"]) == [180, 280]
+        assert handler._delta1_column not in result.columns
+        assert handler._delta2_column not in result.columns
+
+    def test_onehot_preserves_seed_data(self):
+        """test that OneHotEncoding preserves seed values."""
+        handler = OneHotEncodingHandler(OneHotEncoding(columns=["is_a", "is_b", "is_c"]))
+        df = pd.DataFrame({handler._internal_column: ["is_a", "is_b"]})
+        seed_data = pd.DataFrame({"is_a": [1, 0], "is_b": [0, 1], "is_c": [0, 0]})
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # seed values should be preserved
+        assert list(result["is_a"]) == [1, 0]
+        assert list(result["is_b"]) == [0, 1]
+        assert list(result["is_c"]) == [0, 0]
+        assert handler._internal_column not in result.columns
+
+    def test_translator_preserves_seed_data(self):
+        """test that ConstraintTranslator passes seed_data to handlers."""
+        constraints = [
+            FixedCombination(columns=["state", "city"]),
+            Inequality(low_column="start", high_column="end"),
+        ]
+        translator = ConstraintTranslator(constraints)
+        df = pd.DataFrame(
+            {
+                "state": ["CA", "NY"],
+                "city": ["LA", "NYC"],
+                "state|city": ["merged1", "merged2"],
+                "start": [10, 20],
+                translator.handlers[1]._delta_column: [5, 10],
+            }
+        )
+        seed_data = pd.DataFrame(
+            {"state": ["TX", "FL"], "city": ["Houston", "Miami"], "start": [100, 200], "end": [150, 250]}
+        )
+
+        result = translator.to_original(df, seed_data=seed_data)
+
+        # seed values should be preserved for both constraints
+        assert list(result["state"]) == ["TX", "FL"]
+        assert list(result["city"]) == ["Houston", "Miami"]
+        assert list(result["start"]) == [100, 200]
+        assert list(result["end"]) == [150, 250]

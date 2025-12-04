@@ -66,7 +66,7 @@ class ConstraintHandler(ABC):
         pass
 
     @abstractmethod
-    def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
+    def to_original(self, df: pd.DataFrame, seed_data: pd.DataFrame | None = None) -> pd.DataFrame:
         """transform dataframe from internal schema back to user schema."""
         pass
 
@@ -128,9 +128,20 @@ class FixedCombinationHandler(ConstraintHandler):
         df[self.merged_name] = temp_df[self.columns].apply(lambda row: self._SEPARATOR.join(row), axis=1)
         return df
 
-    def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
+    def to_original(self, df: pd.DataFrame, seed_data: pd.DataFrame | None = None) -> pd.DataFrame:
         df = df.copy()
         if self.merged_name in df.columns:
+            # check if all columns in this combination were seeded
+            if seed_data is not None:
+                seed_cols = set(seed_data.columns)
+                if all(col in seed_cols for col in self.columns):
+                    # all columns were seeded - preserve them from seed_data
+                    if len(seed_data) == len(df):
+                        for col in self.columns:
+                            df[col] = seed_data[col].values
+                        df = df.drop(columns=[self.merged_name])
+                        return df
+
             # split the merged column using the separator
             split_values = (
                 df[self.merged_name].astype(str).str.split(self._SEPARATOR, n=len(self.columns) - 1, expand=True)
@@ -153,7 +164,11 @@ class FixedCombinationHandler(ConstraintHandler):
 
             # unescape and assign to original columns
             for i, col in enumerate(self.columns):
-                df[col] = split_values[i].apply(self._unescape_value)
+                # if this column was seeded, preserve seed value
+                if seed_data is not None and col in seed_data.columns and len(seed_data) == len(df):
+                    df[col] = seed_data[col].values
+                else:
+                    df[col] = split_values[i].apply(self._unescape_value)
 
             # drop the merged column
             df = df.drop(columns=[self.merged_name])
@@ -231,9 +246,10 @@ class InequalityHandler(ConstraintHandler):
         df[self._delta_column] = delta
         return df
 
-    def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
+    def to_original(self, df: pd.DataFrame, seed_data: pd.DataFrame | None = None) -> pd.DataFrame:
         df = df.copy()
         if self._delta_column in df.columns:
+            # prepare delta and determine data types
             low = df[self.low_column]
             delta = df[self._delta_column]
 
@@ -264,10 +280,104 @@ class InequalityHandler(ConstraintHandler):
                             delta = delta.astype(float)
                     delta = delta.where(delta > (pd.Timedelta(0) if is_datetime else 0), epsilon)
 
-            df[self.high_column] = low + delta
-            # preserve original dtype if it was integer
-            if not is_datetime and pd.api.types.is_integer_dtype(original_dtype):
-                df[self.high_column] = df[self.high_column].astype(original_dtype)
+            # handle seed data with row-by-row imputation support
+            if seed_data is not None and len(seed_data) > 0:
+                seed_cols = set(seed_data.columns)
+                seed_len = len(seed_data)
+                df_len = len(df)
+
+                # align seed data length with df if needed
+                if seed_len < df_len:
+                    # pad seed_data with NaN rows to match df length
+                    padding = pd.DataFrame(index=range(df_len - seed_len), columns=seed_data.columns)
+                    seed_data = pd.concat([seed_data, padding], ignore_index=True)
+                elif seed_len > df_len:
+                    # truncate seed_data to match df length
+                    seed_data = seed_data.iloc[:df_len].copy()
+
+                # determine which rows have seeded values (non-null) for each column
+                low_seeded_mask = None
+                high_seeded_mask = None
+
+                if self.low_column in seed_cols:
+                    low_seeded_mask = seed_data[self.low_column].notna()
+                    # preserve seeded low values
+                    df.loc[low_seeded_mask, self.low_column] = seed_data.loc[low_seeded_mask, self.low_column].values
+                    # update low variable to include seeded values
+                    if is_datetime:
+                        low = pd.to_datetime(df[self.low_column])
+                    else:
+                        low = pd.to_numeric(df[self.low_column], errors="coerce")
+
+                if self.high_column in seed_cols:
+                    high_seeded_mask = seed_data[self.high_column].notna()
+                    # preserve seeded high values
+                    df.loc[high_seeded_mask, self.high_column] = seed_data.loc[
+                        high_seeded_mask, self.high_column
+                    ].values
+
+                # handle reconstruction based on which columns are seeded per row
+                if low_seeded_mask is not None and high_seeded_mask is not None:
+                    # both columns may be seeded: check row-by-row
+                    # rows where both are seeded are already preserved above, no action needed
+                    only_low_seeded = low_seeded_mask & ~high_seeded_mask
+                    only_high_seeded = ~low_seeded_mask & high_seeded_mask
+                    neither_seeded = ~low_seeded_mask & ~high_seeded_mask
+
+                    # rows where only low is seeded: reconstruct high = low + delta
+                    if only_low_seeded.any():
+                        high_vals = (low + delta).loc[only_low_seeded]
+                        df.loc[only_low_seeded, self.high_column] = high_vals.values
+
+                    # rows where only high is seeded: reconstruct low = high - delta
+                    if only_high_seeded.any():
+                        high = df[self.high_column]
+                        if is_datetime:
+                            high = pd.to_datetime(high)
+                        else:
+                            high = pd.to_numeric(high, errors="coerce")
+                        low_vals = (high - delta).loc[only_high_seeded]
+                        df.loc[only_high_seeded, self.low_column] = low_vals.values
+
+                    # rows where neither is seeded: reconstruct high = low + delta (normal case)
+                    if neither_seeded.any():
+                        high_vals = (low + delta).loc[neither_seeded]
+                        df.loc[neither_seeded, self.high_column] = high_vals.values
+
+                elif low_seeded_mask is not None:
+                    # only low_column may be seeded: reconstruct high for all rows using low + delta
+                    # (low may be seeded or generated depending on the row)
+                    df[self.high_column] = (low + delta).values
+
+                elif high_seeded_mask is not None:
+                    # only high_column may be seeded: reconstruct low for rows where high is seeded
+                    high = df[self.high_column]
+                    if is_datetime:
+                        high = pd.to_datetime(high)
+                    else:
+                        high = pd.to_numeric(high, errors="coerce")
+
+                    # reconstruct low for rows where high is seeded: low = high - delta
+                    if high_seeded_mask.any():
+                        low_vals = (high - delta).loc[high_seeded_mask]
+                        df.loc[high_seeded_mask, self.low_column] = low_vals.values
+
+                    # reconstruct high for rows where high is not seeded: high = low + delta
+                    if (~high_seeded_mask).any():
+                        high_vals = (low + delta).loc[~high_seeded_mask]
+                        df.loc[~high_seeded_mask, self.high_column] = high_vals.values
+
+                # preserve original dtype for reconstructed columns
+                if not is_datetime and pd.api.types.is_integer_dtype(original_dtype):
+                    df[self.low_column] = df[self.low_column].astype(original_dtype)
+                    df[self.high_column] = df[self.high_column].astype(original_dtype)
+            else:
+                # no seed data: normal reconstruction high = low + delta
+                df[self.high_column] = low + delta
+                # preserve original dtype if it was integer
+                if not is_datetime and pd.api.types.is_integer_dtype(original_dtype):
+                    df[self.high_column] = df[self.high_column].astype(original_dtype)
+
             df = df.drop(columns=[self._delta_column])
         return df
 
@@ -329,9 +439,24 @@ class RangeHandler(ConstraintHandler):
         df[self._delta2_column] = delta2
         return df
 
-    def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
+    def to_original(self, df: pd.DataFrame, seed_data: pd.DataFrame | None = None) -> pd.DataFrame:
         df = df.copy()
         if self._delta1_column in df.columns and self._delta2_column in df.columns:
+            # check if constraint columns were seeded
+            if seed_data is not None and len(seed_data) == len(df):
+                seed_cols = set(seed_data.columns)
+                # if all three columns were seeded, preserve them and skip reconstruction
+                if all(col in seed_cols for col in [self.low_column, self.middle_column, self.high_column]):
+                    df[self.low_column] = seed_data[self.low_column].values
+                    df[self.middle_column] = seed_data[self.middle_column].values
+                    df[self.high_column] = seed_data[self.high_column].values
+                    df = df.drop(columns=[self._delta1_column, self._delta2_column])
+                    return df
+                # if individual columns were seeded, preserve them
+                for col in [self.low_column, self.middle_column, self.high_column]:
+                    if col in seed_cols:
+                        df[col] = seed_data[col].values
+
             low = df[self.low_column]
             delta1 = df[self._delta1_column]
             delta2 = df[self._delta2_column]
@@ -347,8 +472,11 @@ class RangeHandler(ConstraintHandler):
                 delta1 = pd.to_numeric(delta1, errors="coerce")
                 delta2 = pd.to_numeric(delta2, errors="coerce")
 
-            df[self.middle_column] = low + delta1
-            df[self.high_column] = low + delta1 + delta2
+            # only reconstruct columns that weren't seeded
+            if seed_data is None or self.middle_column not in seed_data.columns:
+                df[self.middle_column] = low + delta1
+            if seed_data is None or self.high_column not in seed_data.columns:
+                df[self.high_column] = low + delta1 + delta2
             df = df.drop(columns=[self._delta1_column, self._delta2_column])
         return df
 
@@ -387,11 +515,25 @@ class OneHotEncodingHandler(ConstraintHandler):
         df[self._internal_column] = df.apply(find_active_column, axis=1)
         return df
 
-    def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
+    def to_original(self, df: pd.DataFrame, seed_data: pd.DataFrame | None = None) -> pd.DataFrame:
         df = df.copy()
         if self._internal_column in df.columns:
+            # check if all columns in this one-hot were seeded
+            if seed_data is not None and len(seed_data) == len(df):
+                seed_cols = set(seed_data.columns)
+                if all(col in seed_cols for col in self.columns):
+                    # all columns were seeded - preserve them from seed_data
+                    for col in self.columns:
+                        df[col] = seed_data[col].values
+                    df = df.drop(columns=[self._internal_column])
+                    return df
+
             for col in self.columns:
-                df[col] = (df[self._internal_column] == col).astype(int)
+                # if this column was seeded, preserve seed value
+                if seed_data is not None and col in seed_data.columns and len(seed_data) == len(df):
+                    df[col] = seed_data[col].values
+                else:
+                    df[col] = (df[self._internal_column] == col).astype(int)
             # handle null/unknown values by setting all to 0
             null_mask = df[self._internal_column].isna()
             for col in self.columns:
@@ -430,10 +572,10 @@ class ConstraintTranslator:
             df = handler.to_internal(df)
         return df
 
-    def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
+    def to_original(self, df: pd.DataFrame, seed_data: pd.DataFrame | None = None) -> pd.DataFrame:
         """transform dataframe from internal schema back to user schema."""
         for handler in self.handlers:
-            df = handler.to_original(df)
+            df = handler.to_original(df, seed_data=seed_data)
         return df
 
     def get_internal_columns(self, original_columns: list[str]) -> list[str]:
@@ -544,6 +686,75 @@ class ConstraintTranslator:
 
         original_columns = translator.get_original_columns(current_columns)
         return translator, original_columns
+
+
+def _align_seed_data(
+    df: pd.DataFrame, seed_data: pd.DataFrame, columns: list[str], context_key_col: str | None = None
+) -> pd.DataFrame | None:
+    """align seed data with dataframe for constraint column preservation.
+
+    handles both subject tables (1:1 row alignment) and sequential tables
+    (alignment by context key + row index).
+
+    Args:
+        df: generated dataframe to align with
+        seed_data: seed dataframe (may contain __row_idx__ and context key)
+        columns: list of columns to extract from seed_data
+        context_key_col: context key column name for sequential tables
+
+    Returns:
+        aligned dataframe with requested columns, or None if alignment fails
+    """
+    if seed_data is None:
+        return None
+
+    # check if this is a sequential table (has __row_idx__)
+    if "__row_idx__" in seed_data.columns and context_key_col is not None:
+        # sequential table: align by context key + row index
+        if context_key_col not in df.columns:
+            _LOG.warning(f"context key column {context_key_col} not found in dataframe, skipping seed alignment")
+            return None
+
+        # add row index to df for alignment
+        df_with_idx = df.copy()
+        df_with_idx["__row_idx__"] = df_with_idx.groupby(context_key_col).cumcount()
+
+        # merge seed data
+        aligned = pd.merge(
+            df_with_idx[[context_key_col, "__row_idx__"]],
+            seed_data,
+            on=[context_key_col, "__row_idx__"],
+            how="left",
+        )
+
+        # extract requested columns if they exist
+        available_cols = [col for col in columns if col in aligned.columns]
+        if not available_cols:
+            return None
+
+        return aligned[available_cols].reset_index(drop=True)
+
+    # subject table: 1:1 row alignment (allow partial seed - fewer rows than df)
+    if len(seed_data) > len(df):
+        _LOG.warning(
+            f"seed data length ({len(seed_data)}) is greater than dataframe length ({len(df)}), skipping seed alignment"
+        )
+        return None
+
+    # extract requested columns if they exist in seed_data
+    available_cols = [col for col in columns if col in seed_data.columns]
+    if not available_cols:
+        return None
+
+    # for subject tables, align first N rows where N is seed size
+    # if seed has fewer rows, we'll align the first N rows
+    aligned = seed_data[available_cols].copy()
+    if len(aligned) < len(df):
+        # pad with NaN rows to match df length (handlers will only use first N rows)
+        padding = pd.DataFrame(index=range(len(df) - len(aligned)), columns=available_cols)
+        aligned = pd.concat([aligned, padding], ignore_index=True)
+
+    return aligned.reset_index(drop=True)
 
 
 def preprocess_constraints_for_training(
