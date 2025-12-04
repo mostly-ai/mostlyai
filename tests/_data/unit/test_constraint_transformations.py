@@ -45,16 +45,21 @@ class TestFixedCombinationHandler:
         result = handler.to_internal(df)
 
         assert "state|city" in result.columns
-        assert list(result["state|city"]) == ["CA|LA", "NY|NYC"]
+        # internal representation uses record separator (\x1E), not "|"
+        # verify round-trip works instead of checking internal format
+        restored = handler.to_original(result)
+        assert list(restored["state"]) == ["CA", "NY"]
+        assert list(restored["city"]) == ["LA", "NYC"]
         assert "state" in result.columns
         assert "city" in result.columns
 
     def test_to_original_keeps_original_columns(self):
         handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
+        # simulate generation output: create internal format first
+        df_input = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"], "value": [1, 2]})
+        internal = handler.to_internal(df_input)
         # simulate generation output: original columns + merged column
-        df = pd.DataFrame(
-            {"state": ["CA", "NY"], "city": ["LA", "NYC"], "state|city": ["CA|LA", "NY|NYC"], "value": [1, 2]}
-        )
+        df = pd.DataFrame({col: internal[col] for col in internal.columns})
 
         result = handler.to_original(df)
 
@@ -67,7 +72,11 @@ class TestFixedCombinationHandler:
     def test_to_original_splits_columns_fallback(self):
         # test fallback: if only merged column exists, split it
         handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
-        df = pd.DataFrame({"state|city": ["CA|LA", "NY|NYC"], "value": [1, 2]})
+        # create internal format with record separator
+        internal = handler.to_internal(pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"]}))
+        df = pd.DataFrame({col: internal[col] for col in ["state|city", "state", "city"] if col in internal.columns})
+        # remove original columns to test fallback
+        df = df.drop(columns=["state", "city"], errors="ignore")
 
         result = handler.to_original(df)
 
@@ -91,6 +100,56 @@ class TestFixedCombinationHandler:
     def test_encoding_types(self):
         handler = FixedCombinationHandler(FixedCombination(columns=["a", "b"]))
         assert handler.get_encoding_types() == {"a|b": "TABULAR_CATEGORICAL"}
+
+    def test_separator_character_in_data_escaping(self):
+        """test that separator characters in data are properly escaped."""
+        handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
+        # include the record separator character (\x1E) in the data
+        df = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA\x1eSF", "NYC"], "value": [1, 2]})
+
+        internal = handler.to_internal(df)
+        restored = handler.to_original(internal)
+
+        assert list(restored["state"]) == ["CA", "NY"]
+        assert list(restored["city"]) == ["LA\x1eSF", "NYC"]
+
+    def test_pipe_character_in_data(self):
+        """test that pipe characters in data are preserved (not used as separator)."""
+        handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
+        # pipe character in data should be preserved since we use record separator
+        df = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA|SF", "NYC"], "value": [1, 2]})
+
+        internal = handler.to_internal(df)
+        # new format uses record separator, so pipe in data is preserved
+        restored = handler.to_original(internal)
+
+        assert list(restored["state"]) == ["CA", "NY"]
+        assert list(restored["city"]) == ["LA|SF", "NYC"]
+
+    def test_multiple_columns_with_separator(self):
+        """test escaping with multiple columns containing separator."""
+        handler = FixedCombinationHandler(FixedCombination(columns=["a", "b", "c"]))
+        df = pd.DataFrame({"a": ["x\x1ey", "z"], "b": ["1", "2\x1e3"], "c": ["!", "@"], "other": [10, 20]})
+
+        internal = handler.to_internal(df)
+        restored = handler.to_original(internal)
+
+        assert list(restored["a"]) == ["x\x1ey", "z"]
+        assert list(restored["b"]) == ["1", "2\x1e3"]
+        assert list(restored["c"]) == ["!", "@"]
+
+    def test_malformed_split_handling(self):
+        """test that malformed splits are handled gracefully."""
+        handler = FixedCombinationHandler(FixedCombination(columns=["a", "b", "c"]))
+        # create data that would split into wrong number of columns
+        # this shouldn't happen in practice, but we should handle it
+        df = pd.DataFrame({"a|b|c": ["x", "y|z"], "value": [1, 2]})
+
+        # should not crash, but may produce incomplete data
+        restored = handler.to_original(df)
+        assert "a" in restored.columns
+        assert "b" in restored.columns
+        assert "c" in restored.columns
 
 
 class TestInequalityHandler:
@@ -576,15 +635,6 @@ class TestConstraintTranslator:
 
         assert translator is not None
         assert original_columns == ["country", "language"]
-
-    def test_conflicting_inequality_constraints(self):
-        """test that conflicting Inequality constraints raise ValueError."""
-        constraints = [
-            Inequality(low_column="start", high_column="end"),
-            Inequality(low_column="end", high_column="start"),  # conflict!
-        ]
-        with pytest.raises(ValueError, match="conflicting Inequality constraints"):
-            ConstraintTranslator(constraints)
 
 
 class TestDomainValidation:

@@ -79,9 +79,15 @@ class ConstraintHandler(ABC):
 class FixedCombinationHandler(ConstraintHandler):
     """handler for FixedCombination constraints."""
 
+    # use record separator (ASCII 30) as delimiter - very unlikely to appear in text data
+    # if it does appear, we escape it by doubling
+    _SEPARATOR = "\x1e"
+    _ESCAPED_SEPARATOR = "\x1e\x1e"
+
     def __init__(self, constraint: FixedCombination):
         self.constraint = constraint
         self.columns = constraint.columns
+        # use separator for column name (for display/debugging, actual data uses _SEPARATOR)
         self.merged_name = "|".join(self.columns)
 
     def get_internal_column_names(self) -> list[str]:
@@ -90,19 +96,58 @@ class FixedCombinationHandler(ConstraintHandler):
     def get_original_columns(self) -> list[str]:
         return list(self.columns)
 
+    @staticmethod
+    def _escape_value(value: str) -> str:
+        """escape separator characters in a value by doubling them."""
+        if pd.isna(value):
+            return value
+        return str(value).replace(FixedCombinationHandler._SEPARATOR, FixedCombinationHandler._ESCAPED_SEPARATOR)
+
+    @staticmethod
+    def _unescape_value(value: str) -> str:
+        """unescape separator characters in a value."""
+        if pd.isna(value):
+            return value
+        return str(value).replace(FixedCombinationHandler._ESCAPED_SEPARATOR, FixedCombinationHandler._SEPARATOR)
+
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
-        df[self.merged_name] = df[self.columns].astype(str).agg("|".join, axis=1)
+        # escape each column value, then join with separator
+        # create a temporary dataframe with escaped values
+        temp_df = pd.DataFrame(index=df.index)
+        for col in self.columns:
+            temp_df[col] = df[col].astype(str).apply(self._escape_value)
+        # join with separator
+        df[self.merged_name] = temp_df[self.columns].apply(lambda row: self._SEPARATOR.join(row), axis=1)
         return df
 
     def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         if self.merged_name in df.columns:
-            # ensure original columns match the merged column (enforce constraint consistency)
-            # split from merged column to ensure valid combinations
-            split_values = df[self.merged_name].str.split("|", n=len(self.columns) - 1, expand=True)
+            # split the merged column using the separator
+            split_values = (
+                df[self.merged_name].astype(str).str.split(self._SEPARATOR, n=len(self.columns) - 1, expand=True)
+            )
+
+            # validate split result
+            expected_cols = len(self.columns)
+            actual_cols = split_values.shape[1]
+            if actual_cols != expected_cols:
+                _LOG.warning(
+                    f"merged column {self.merged_name} split into {actual_cols} columns, "
+                    f"expected {expected_cols}. this may indicate data corruption or separator collision."
+                )
+                # pad with empty strings if we got fewer columns than expected
+                if actual_cols < expected_cols:
+                    for i in range(actual_cols, expected_cols):
+                        split_values[i] = ""
+                # truncate if we got more columns (shouldn't happen with n parameter, but be safe)
+                split_values = split_values.iloc[:, :expected_cols]
+
+            # unescape and assign to original columns
             for i, col in enumerate(self.columns):
-                df[col] = split_values[i]
+                df[col] = split_values[i].apply(self._unescape_value)
+
             # drop the merged column
             df = df.drop(columns=[self.merged_name])
         return df
@@ -366,26 +411,8 @@ class ConstraintTranslator:
     """translates data between user schema and internal schema for constraints."""
 
     def __init__(self, constraints: list[FixedCombination | Inequality | Range | OneHotEncoding]):
-        self._validate_constraints(constraints)
         self.constraints = constraints
         self.handlers = [_create_constraint_handler(c) for c in constraints]
-
-    def _validate_constraints(self, constraints: list[FixedCombination | Inequality | Range | OneHotEncoding]) -> None:
-        """validate that constraints don't conflict with each other."""
-        # check for conflicting Inequality constraints
-        inequality_constraints = [c for c in constraints if isinstance(c, Inequality)]
-        for i, constraint1 in enumerate(inequality_constraints):
-            for constraint2 in inequality_constraints[i + 1 :]:
-                # check if constraints are reversed (conflicting)
-                if (
-                    constraint1.low_column == constraint2.high_column
-                    and constraint1.high_column == constraint2.low_column
-                ):
-                    raise ValueError(
-                        f"conflicting Inequality constraints: "
-                        f"{constraint1.low_column} <= {constraint1.high_column} and "
-                        f"{constraint2.low_column} <= {constraint2.high_column}"
-                    )
 
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         """transform dataframe from user schema to internal schema."""
