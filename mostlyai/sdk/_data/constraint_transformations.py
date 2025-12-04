@@ -75,6 +75,12 @@ class ConstraintHandler(ABC):
         """return encoding types for internal columns."""
         pass
 
+    def _validate_columns(self, df: pd.DataFrame, columns: list[str]) -> None:
+        """validate that all required columns exist in the dataframe."""
+        missing_cols = set(columns) - set(df.columns)
+        if missing_cols:
+            raise ValueError(f"columns {sorted(missing_cols)} not found in dataframe")
+
 
 class FixedCombinationHandler(ConstraintHandler):
     """handler for FixedCombination constraints."""
@@ -111,6 +117,7 @@ class FixedCombinationHandler(ConstraintHandler):
         return str(value).replace(FixedCombinationHandler._ESCAPED_SEPARATOR, FixedCombinationHandler._SEPARATOR)
 
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
+        self._validate_columns(df, self.columns)
         df = df.copy()
         # escape each column value, then join with separator
         # create a temporary dataframe with escaped values
@@ -177,6 +184,7 @@ class InequalityHandler(ConstraintHandler):
         return [self.low_column, self.high_column]
 
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
+        self._validate_columns(df, [self.low_column, self.high_column])
         df = df.copy()
         low = df[self.low_column]
         high = df[self.high_column]
@@ -286,6 +294,7 @@ class RangeHandler(ConstraintHandler):
         return [self.low_column, self.middle_column, self.high_column]
 
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
+        self._validate_columns(df, [self.low_column, self.middle_column, self.high_column])
         df = df.copy()
         low = df[self.low_column]
         middle = df[self.middle_column]
@@ -365,6 +374,7 @@ class OneHotEncodingHandler(ConstraintHandler):
         return list(self.columns)
 
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
+        self._validate_columns(df, self.columns)
         df = df.copy()
 
         def find_active_column(row):

@@ -345,6 +345,14 @@ class TestInequalityHandler:
         assert isinstance(result[handler._delta_column].iloc[0], (float, np.floating))
         assert result[handler._delta_column].iloc[1] == 5.0
 
+    def test_missing_columns_raises_error(self):
+        """test that missing columns raise a clear error message."""
+        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [10, 20]})  # missing "end" column
+
+        with pytest.raises(ValueError, match="columns.*not found in dataframe"):
+            handler.to_internal(df)
+
 
 class TestRangeHandler:
     def test_to_internal_numeric(self):
