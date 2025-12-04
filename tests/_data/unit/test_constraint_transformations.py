@@ -577,6 +577,15 @@ class TestConstraintTranslator:
         assert translator is not None
         assert original_columns == ["country", "language"]
 
+    def test_conflicting_inequality_constraints(self):
+        """test that conflicting Inequality constraints raise ValueError."""
+        constraints = [
+            Inequality(low_column="start", high_column="end"),
+            Inequality(low_column="end", high_column="start"),  # conflict!
+        ]
+        with pytest.raises(ValueError, match="conflicting Inequality constraints"):
+            ConstraintTranslator(constraints)
+
 
 class TestDomainValidation:
     def test_fixed_combination_requires_two_columns(self):

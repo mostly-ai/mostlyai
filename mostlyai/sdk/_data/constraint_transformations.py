@@ -366,8 +366,26 @@ class ConstraintTranslator:
     """translates data between user schema and internal schema for constraints."""
 
     def __init__(self, constraints: list[FixedCombination | Inequality | Range | OneHotEncoding]):
+        self._validate_constraints(constraints)
         self.constraints = constraints
         self.handlers = [_create_constraint_handler(c) for c in constraints]
+
+    def _validate_constraints(self, constraints: list[FixedCombination | Inequality | Range | OneHotEncoding]) -> None:
+        """validate that constraints don't conflict with each other."""
+        # check for conflicting Inequality constraints
+        inequality_constraints = [c for c in constraints if isinstance(c, Inequality)]
+        for i, constraint1 in enumerate(inequality_constraints):
+            for constraint2 in inequality_constraints[i + 1 :]:
+                # check if constraints are reversed (conflicting)
+                if (
+                    constraint1.low_column == constraint2.high_column
+                    and constraint1.high_column == constraint2.low_column
+                ):
+                    raise ValueError(
+                        f"conflicting Inequality constraints: "
+                        f"{constraint1.low_column} <= {constraint1.high_column} and "
+                        f"{constraint2.low_column} <= {constraint2.high_column}"
+                    )
 
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         """transform dataframe from user schema to internal schema."""
