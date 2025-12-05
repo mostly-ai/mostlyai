@@ -15,6 +15,7 @@
 
 import logging
 import random
+import warnings
 from collections.abc import Callable
 from itertools import accumulate, takewhile
 from pathlib import Path
@@ -32,6 +33,8 @@ from mostlyai.sdk._local.storage import get_model_label
 from mostlyai.sdk.domain import Generator, ModelMetrics, ModelType, StepCode
 
 _LOG = logging.getLogger(__name__)
+# suppress sklearn PCA RuntimeWarnings (non-critical: PCA handles numerical edge cases gracefully)
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="sklearn.decomposition")
 
 
 def execute_step_create_model_report(
