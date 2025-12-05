@@ -698,6 +698,7 @@ def finalize_table_generation(
             pqt_path=pqt_path,
             csv_path=csv_path,
             constraint_translator=constraint_translator,
+            seed_data=seed_data,
         )
 
     # merge extra seed columns as a separate post-processing step

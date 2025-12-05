@@ -98,6 +98,19 @@ def execute_step_generate_data(
         extra_columns = [c for c in sample_seed.columns if c not in model_columns]
         context_fk = next((fk for fk in (tgt_g_table.foreign_keys or []) if fk.is_context), None)
 
+        # save original seed data BEFORE filtering for constraint transformations
+        # this preserves original column names (e.g., ORIGIN_AIRPORT) that may have been
+        # transformed to internal names (e.g., ORIGIN_AIRPORT|DESTINATION_AIRPORT|AIRLINE)
+        # TODO revist this part of the code, as it may not be necessary
+        seed_dir = workspace_dir / "SeedData"
+        seed_dir.mkdir(parents=True, exist_ok=True)
+        seed_data_to_save = sample_seed.copy()
+        if context_fk and context_fk.column in seed_data_to_save.columns:
+            # for sequential tables, save context key + row index for alignment
+            seed_data_to_save[context_fk.column] = seed_data_to_save[context_fk.column].astype("string[pyarrow]")
+            seed_data_to_save["__row_idx__"] = seed_data_to_save.groupby(context_fk.column).cumcount()
+        seed_data_to_save.to_parquet(seed_dir / "seed.parquet")
+
         if extra_columns:
             extra_seed_dir = workspace_dir / "ExtraSeedColumns"
             extra_seed_dir.mkdir(parents=True, exist_ok=True)
@@ -110,16 +123,6 @@ def execute_step_generate_data(
 
             extra_seed_data.to_parquet(extra_seed_dir / "seed_extra.parquet")
             sample_seed = sample_seed[[c for c in sample_seed.columns if c in model_columns]]
-
-        # save seed data for constraint transformations (after filtering to model columns)
-        seed_dir = workspace_dir / "SeedData"
-        seed_dir.mkdir(parents=True, exist_ok=True)
-        seed_data_to_save = sample_seed.copy()
-        if context_fk and context_fk.column in seed_data_to_save.columns:
-            # for sequential tables, save context key + row index for alignment
-            seed_data_to_save[context_fk.column] = seed_data_to_save[context_fk.column].astype("string[pyarrow]")
-            seed_data_to_save["__row_idx__"] = seed_data_to_save.groupby(context_fk.column).cumcount()
-        seed_data_to_save.to_parquet(seed_dir / "seed.parquet")
 
     # call GENERATE
     engine.generate(

@@ -121,16 +121,32 @@ class FixedCombinationHandler(ConstraintHandler):
     def to_original(self, df: pd.DataFrame, seed_data: pd.DataFrame | None = None) -> pd.DataFrame:
         df = df.copy()
         if self.merged_name in df.columns:
+            # align seed data length with df if needed (robust handling like InequalityHandler)
+            aligned_seed = None
+            if seed_data is not None and len(seed_data) > 0:
+                seed_len = len(seed_data)
+                df_len = len(df)
+                if seed_len < df_len:
+                    # pad seed_data with NaN rows to match df length
+                    padding = pd.DataFrame(index=range(df_len - seed_len), columns=seed_data.columns)
+                    aligned_seed = pd.concat([seed_data, padding], ignore_index=True)
+                elif seed_len > df_len:
+                    # truncate seed_data to match df length
+                    aligned_seed = seed_data.iloc[:df_len].reset_index(drop=True)
+                else:
+                    aligned_seed = seed_data.reset_index(drop=True)
+
             # check if all columns in this combination were seeded
-            if seed_data is not None:
-                seed_cols = set(seed_data.columns)
+            if aligned_seed is not None:
+                seed_cols = set(aligned_seed.columns)
                 if all(col in seed_cols for col in self.columns):
                     # all columns were seeded - preserve them from seed_data
-                    if len(seed_data) == len(df):
-                        for col in self.columns:
-                            df[col] = seed_data[col].values
-                        df = df.drop(columns=[self.merged_name])
-                        return df
+                    for col in self.columns:
+                        # use mask to only assign non-null seed values
+                        seed_mask = aligned_seed[col].notna()
+                        df.loc[seed_mask, col] = aligned_seed.loc[seed_mask, col].values
+                    df = df.drop(columns=[self.merged_name])
+                    return df
 
             # split the merged column using csv module (handles escaping automatically)
             def split_row(merged_value: str) -> list[str]:
@@ -148,13 +164,19 @@ class FixedCombinationHandler(ConstraintHandler):
             split_values = df[self.merged_name].astype(str).apply(split_row)
             split_df = pd.DataFrame(split_values.tolist(), index=df.index)
 
+            # reset df index to align with split_df and seed data
+            df = df.reset_index(drop=True)
+            split_df = split_df.reset_index(drop=True)
+
             # assign to original columns
             for i, col in enumerate(self.columns):
-                # if this column was seeded, preserve seed value
-                if seed_data is not None and col in seed_data.columns and len(seed_data) == len(df):
-                    df[col] = seed_data[col].values
-                else:
-                    df[col] = split_df[i]
+                # first assign split values
+                df[col] = split_df[i].values
+                # then override with seed values where available
+                if aligned_seed is not None and col in aligned_seed.columns:
+                    seed_mask = aligned_seed[col].notna()
+                    if seed_mask.any():
+                        df.loc[seed_mask, col] = aligned_seed.loc[seed_mask, col].values
 
             # drop the merged column
             df = df.drop(columns=[self.merged_name])
@@ -352,6 +374,10 @@ class InequalityHandler(ConstraintHandler):
                     if (~high_seeded_mask).any():
                         high_vals = (low + delta).loc[~high_seeded_mask]
                         df.loc[~high_seeded_mask, self.high_column] = high_vals.values
+
+                else:
+                    # neither column is in seed_data: normal reconstruction high = low + delta
+                    df[self.high_column] = (low + delta).values
 
                 # preserve original dtype for reconstructed columns
                 if not is_datetime and pd.api.types.is_integer_dtype(original_dtype):
