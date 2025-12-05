@@ -16,7 +16,9 @@
 
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import json
 import logging
 from abc import ABC, abstractmethod
@@ -86,9 +88,8 @@ class FixedCombinationHandler(ConstraintHandler):
     """handler for FixedCombination constraints."""
 
     # use record separator (ASCII 30) as delimiter - very unlikely to appear in text data
-    # if it does appear, we escape it by doubling
+    # csv module handles escaping automatically using quotes
     _SEPARATOR = "\x1e"
-    _ESCAPED_SEPARATOR = "\x1e\x1e"
 
     def __init__(self, constraint: FixedCombination):
         self.constraint = constraint
@@ -102,30 +103,19 @@ class FixedCombinationHandler(ConstraintHandler):
     def get_original_columns(self) -> list[str]:
         return list(self.columns)
 
-    @staticmethod
-    def _escape_value(value: str) -> str:
-        """escape separator characters in a value by doubling them."""
-        if pd.isna(value):
-            return value
-        return str(value).replace(FixedCombinationHandler._SEPARATOR, FixedCombinationHandler._ESCAPED_SEPARATOR)
-
-    @staticmethod
-    def _unescape_value(value: str) -> str:
-        """unescape separator characters in a value."""
-        if pd.isna(value):
-            return value
-        return str(value).replace(FixedCombinationHandler._ESCAPED_SEPARATOR, FixedCombinationHandler._SEPARATOR)
-
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         self._validate_columns(df, self.columns)
         df = df.copy()
-        # escape each column value, then join with separator
-        # create a temporary dataframe with escaped values
-        temp_df = pd.DataFrame(index=df.index)
-        for col in self.columns:
-            temp_df[col] = df[col].astype(str).apply(self._escape_value)
-        # join with separator
-        df[self.merged_name] = temp_df[self.columns].apply(lambda row: self._SEPARATOR.join(row), axis=1)
+
+        # use csv module to handle escaping automatically
+        def merge_row(row):
+            values = ["" if pd.isna(row[col]) else str(row[col]) for col in self.columns]
+            s = io.StringIO()
+            writer = csv.writer(s, delimiter=self._SEPARATOR, lineterminator="", quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(values)
+            return s.getvalue()
+
+        df[self.merged_name] = df.apply(merge_row, axis=1)
         return df
 
     def to_original(self, df: pd.DataFrame, seed_data: pd.DataFrame | None = None) -> pd.DataFrame:
@@ -142,33 +132,29 @@ class FixedCombinationHandler(ConstraintHandler):
                         df = df.drop(columns=[self.merged_name])
                         return df
 
-            # split the merged column using the separator
-            split_values = (
-                df[self.merged_name].astype(str).str.split(self._SEPARATOR, n=len(self.columns) - 1, expand=True)
-            )
+            # split the merged column using csv module (handles escaping automatically)
+            def split_row(merged_value: str) -> list[str]:
+                if pd.isna(merged_value):
+                    return [""] * len(self.columns)
+                reader = csv.reader(io.StringIO(merged_value), delimiter=self._SEPARATOR)
+                try:
+                    parts = next(reader)
+                except StopIteration:
+                    parts = []
+                # pad or truncate to expected number of columns
+                parts = (parts + [""] * len(self.columns))[: len(self.columns)]
+                return parts
 
-            # validate split result
-            expected_cols = len(self.columns)
-            actual_cols = split_values.shape[1]
-            if actual_cols != expected_cols:
-                _LOG.warning(
-                    f"merged column {self.merged_name} split into {actual_cols} columns, "
-                    f"expected {expected_cols}. this may indicate data corruption or separator collision."
-                )
-                # pad with empty strings if we got fewer columns than expected
-                if actual_cols < expected_cols:
-                    for i in range(actual_cols, expected_cols):
-                        split_values[i] = ""
-                # truncate if we got more columns (shouldn't happen with n parameter, but be safe)
-                split_values = split_values.iloc[:, :expected_cols]
+            split_values = df[self.merged_name].astype(str).apply(split_row)
+            split_df = pd.DataFrame(split_values.tolist(), index=df.index)
 
-            # unescape and assign to original columns
+            # assign to original columns
             for i, col in enumerate(self.columns):
                 # if this column was seeded, preserve seed value
                 if seed_data is not None and col in seed_data.columns and len(seed_data) == len(df):
                     df[col] = seed_data[col].values
                 else:
-                    df[col] = split_values[i].apply(self._unescape_value)
+                    df[col] = split_df[i]
 
             # drop the merged column
             df = df.drop(columns=[self.merged_name])
