@@ -14,13 +14,13 @@ jobs:
       packages: write
     steps:
       - name: Setup | Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 1
           submodules: 'true'
 
       - name: Setup | uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@ed21f2f24f8dd64503750218de024bcf64c7250a # v7.1.5
         with:
           enable-cache: false
           python-version: '3.10'
@@ -49,13 +49,13 @@ jobs:
       packages: write
     steps:
       - name: Setup | Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 1
           submodules: 'true'
 
       - name: Setup | uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@ed21f2f24f8dd64503750218de024bcf64c7250a # v7.1.5
         with:
           enable-cache: false
           python-version: '3.10'
