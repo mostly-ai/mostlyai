@@ -39,7 +39,7 @@ from mostlyai.sdk.domain import (
 
 class TestFixedCombinationHandler:
     def test_to_internal_merges_columns(self):
-        handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
         df = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"], "value": [1, 2]})
 
         result = handler.to_internal(df)
@@ -54,7 +54,7 @@ class TestFixedCombinationHandler:
         assert "city" in result.columns
 
     def test_to_original_keeps_original_columns(self):
-        handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
         # simulate generation output: create internal format first
         df_input = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"], "value": [1, 2]})
         internal = handler.to_internal(df_input)
@@ -71,7 +71,7 @@ class TestFixedCombinationHandler:
 
     def test_to_original_splits_columns_fallback(self):
         # test fallback: if only merged column exists, split it
-        handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
         # create internal format with record separator
         internal = handler.to_internal(pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"]}))
         df = pd.DataFrame({col: internal[col] for col in ["state|city", "state", "city"] if col in internal.columns})
@@ -87,7 +87,7 @@ class TestFixedCombinationHandler:
         assert list(result["city"]) == ["LA", "NYC"]
 
     def test_round_trip(self):
-        handler = FixedCombinationHandler(FixedCombination(columns=["a", "b", "c"]))
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b", "c"]))
         df = pd.DataFrame({"a": ["x", "y"], "b": ["1", "2"], "c": ["!", "@"], "other": [10, 20]})
 
         internal = handler.to_internal(df)
@@ -98,12 +98,12 @@ class TestFixedCombinationHandler:
             assert list(df[col]) == list(restored[col])
 
     def test_encoding_types(self):
-        handler = FixedCombinationHandler(FixedCombination(columns=["a", "b"]))
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b"]))
         assert handler.get_encoding_types() == {"a|b": "TABULAR_CATEGORICAL"}
 
     def test_separator_character_in_data_escaping(self):
         """test that separator characters in data are properly escaped."""
-        handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
         # include the record separator character (\x1E) in the data
         df = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA\x1eSF", "NYC"], "value": [1, 2]})
 
@@ -115,7 +115,7 @@ class TestFixedCombinationHandler:
 
     def test_pipe_character_in_data(self):
         """test that pipe characters in data are preserved (not used as separator)."""
-        handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
         # pipe character in data should be preserved since we use record separator
         df = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA|SF", "NYC"], "value": [1, 2]})
 
@@ -128,7 +128,7 @@ class TestFixedCombinationHandler:
 
     def test_multiple_columns_with_separator(self):
         """test escaping with multiple columns containing separator."""
-        handler = FixedCombinationHandler(FixedCombination(columns=["a", "b", "c"]))
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b", "c"]))
         df = pd.DataFrame({"a": ["x\x1ey", "z"], "b": ["1", "2\x1e3"], "c": ["!", "@"], "other": [10, 20]})
 
         internal = handler.to_internal(df)
@@ -140,7 +140,7 @@ class TestFixedCombinationHandler:
 
     def test_malformed_split_handling(self):
         """test that malformed splits are handled gracefully."""
-        handler = FixedCombinationHandler(FixedCombination(columns=["a", "b", "c"]))
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b", "c"]))
         # create data that would split into wrong number of columns
         # this shouldn't happen in practice, but we should handle it
         df = pd.DataFrame({"a|b|c": ["x", "y|z"], "value": [1, 2]})
@@ -154,7 +154,7 @@ class TestFixedCombinationHandler:
 
 class TestInequalityHandler:
     def test_to_internal_numeric(self):
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         df = pd.DataFrame({"start": [10, 20, 30], "end": [15, 25, 35]})
 
         result = handler.to_internal(df)
@@ -164,7 +164,7 @@ class TestInequalityHandler:
         assert list(result[delta_col]) == [5, 5, 5]
 
     def test_to_internal_datetime(self):
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         df = pd.DataFrame(
             {
                 "start": pd.to_datetime(["2024-01-01", "2024-02-01"]),
@@ -179,7 +179,7 @@ class TestInequalityHandler:
         assert result[delta_col].iloc[1] == pd.Timedelta(days=14)
 
     def test_to_original_numeric(self):
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         delta_col = handler._delta_column
         df = pd.DataFrame({"start": [10, 20], delta_col: [5, 10]})
 
@@ -190,7 +190,7 @@ class TestInequalityHandler:
         assert delta_col not in result.columns
 
     def test_to_original_datetime(self):
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         delta_col = handler._delta_column
         df = pd.DataFrame(
             {
@@ -205,7 +205,7 @@ class TestInequalityHandler:
         assert result["end"].iloc[1] == pd.Timestamp("2024-02-15")
 
     def test_round_trip_numeric(self):
-        handler = InequalityHandler(Inequality(low_column="low", high_column="high"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="low", high_column="high"))
         df = pd.DataFrame({"low": [1.0, 2.0, 3.0], "high": [5.0, 7.0, 10.0], "other": ["a", "b", "c"]})
 
         internal = handler.to_internal(df)
@@ -215,7 +215,7 @@ class TestInequalityHandler:
         assert list(restored["high"]) == [5.0, 7.0, 10.0]
 
     def test_round_trip_datetime(self):
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         df = pd.DataFrame(
             {
                 "start": pd.to_datetime(["2024-01-01", "2024-06-15"]),
@@ -230,7 +230,7 @@ class TestInequalityHandler:
         pd.testing.assert_series_equal(restored["end"], df["end"])
 
     def test_violation_correction(self):
-        handler = InequalityHandler(Inequality(low_column="low", high_column="high"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="low", high_column="high"))
         df = pd.DataFrame({"low": [10, 20], "high": [5, 25]})  # first row violates
 
         internal = handler.to_internal(df)
@@ -240,14 +240,16 @@ class TestInequalityHandler:
         assert internal[delta_col].iloc[1] == 5
 
     def test_encoding_types(self):
-        handler = InequalityHandler(Inequality(low_column="a", high_column="b"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="a", high_column="b"))
         enc = handler.get_encoding_types()
         assert len(enc) == 1
         assert list(enc.values())[0] == "TABULAR_NUMERIC_AUTO"
 
     def test_strict_boundaries_false_allows_equality(self):
         """test that strict_boundaries=False (default) allows low == high."""
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end", strict_boundaries=False))
+        handler = InequalityHandler(
+            Inequality(table_name="test_table", low_column="start", high_column="end", strict_boundaries=False)
+        )
         df = pd.DataFrame({"start": [10, 20], "end": [10, 25]})
         result = handler.to_internal(df)
         assert result[handler._delta_column].iloc[0] == 0  # equality allowed
@@ -256,7 +258,9 @@ class TestInequalityHandler:
     def test_strict_boundaries_enforces_strict_inequality(self):
         """test that strict_boundaries=True enforces low < high for numeric and datetime."""
         # numeric
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end", strict_boundaries=True))
+        handler = InequalityHandler(
+            Inequality(table_name="test_table", low_column="start", high_column="end", strict_boundaries=True)
+        )
         df = pd.DataFrame({"start": [10, 20, 30], "end": [10, 25, 35]})
         result = handler.to_internal(df)
         assert result[handler._delta_column].iloc[0] > 0
@@ -275,7 +279,9 @@ class TestInequalityHandler:
 
     def test_strict_boundaries_to_original(self):
         """test that to_original enforces strict inequality when strict_boundaries=True."""
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end", strict_boundaries=True))
+        handler = InequalityHandler(
+            Inequality(table_name="test_table", low_column="start", high_column="end", strict_boundaries=True)
+        )
         delta_col = handler._delta_column
 
         # numeric
@@ -297,7 +303,9 @@ class TestInequalityHandler:
 
     def test_strict_boundaries_round_trip(self):
         """test round-trip with strict_boundaries=True preserves strict inequality and corrects equality."""
-        handler = InequalityHandler(Inequality(low_column="low", high_column="high", strict_boundaries=True))
+        handler = InequalityHandler(
+            Inequality(table_name="test_table", low_column="low", high_column="high", strict_boundaries=True)
+        )
 
         # normal case
         df = pd.DataFrame({"low": [1.0, 2.0, 3.0], "high": [5.0, 7.0, 10.0]})
@@ -315,7 +323,9 @@ class TestInequalityHandler:
 
     def test_strict_boundaries_preserves_dtype(self):
         """test that strict_boundaries=True preserves integer dtype and uses appropriate epsilon."""
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end", strict_boundaries=True))
+        handler = InequalityHandler(
+            Inequality(table_name="test_table", low_column="start", high_column="end", strict_boundaries=True)
+        )
 
         # integer input: uses 1, preserves integer dtype
         df = pd.DataFrame({"start": [10, 20, 30], "end": [10, 25, 35]}, dtype=int)
@@ -347,7 +357,7 @@ class TestInequalityHandler:
 
     def test_missing_columns_raises_error(self):
         """test that missing columns raise a clear error message."""
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         df = pd.DataFrame({"start": [10, 20]})  # missing "end" column
 
         with pytest.raises(ValueError, match="columns.*not found in dataframe"):
@@ -356,7 +366,7 @@ class TestInequalityHandler:
 
 class TestRangeHandler:
     def test_to_internal_numeric(self):
-        handler = RangeHandler(Range(low_column="min", middle_column="mid", high_column="max"))
+        handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
         df = pd.DataFrame({"min": [0, 10], "mid": [5, 15], "max": [10, 20]})
 
         result = handler.to_internal(df)
@@ -367,7 +377,9 @@ class TestRangeHandler:
         assert list(result[delta2_col]) == [5, 5]
 
     def test_to_internal_datetime(self):
-        handler = RangeHandler(Range(low_column="start", middle_column="middle", high_column="end"))
+        handler = RangeHandler(
+            Range(table_name="test_table", low_column="start", middle_column="middle", high_column="end")
+        )
         df = pd.DataFrame(
             {
                 "start": pd.to_datetime(["2024-01-01"]),
@@ -384,7 +396,7 @@ class TestRangeHandler:
         assert result[delta2_col].iloc[0] == pd.Timedelta(days=10)
 
     def test_to_original_numeric(self):
-        handler = RangeHandler(Range(low_column="min", middle_column="mid", high_column="max"))
+        handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
         delta1_col = handler._delta1_column
         delta2_col = handler._delta2_column
         df = pd.DataFrame({"min": [0, 100], delta1_col: [5, 10], delta2_col: [5, 20]})
@@ -395,7 +407,7 @@ class TestRangeHandler:
         assert list(result["max"]) == [10, 130]
 
     def test_round_trip_numeric(self):
-        handler = RangeHandler(Range(low_column="a", middle_column="b", high_column="c"))
+        handler = RangeHandler(Range(table_name="test_table", low_column="a", middle_column="b", high_column="c"))
         df = pd.DataFrame({"a": [0.0, 100.0], "b": [50.0, 150.0], "c": [100.0, 200.0]})
 
         internal = handler.to_internal(df)
@@ -406,7 +418,9 @@ class TestRangeHandler:
         assert list(restored["c"]) == [100.0, 200.0]
 
     def test_round_trip_datetime(self):
-        handler = RangeHandler(Range(low_column="start", middle_column="middle", high_column="end"))
+        handler = RangeHandler(
+            Range(table_name="test_table", low_column="start", middle_column="middle", high_column="end")
+        )
         df = pd.DataFrame(
             {
                 "start": pd.to_datetime(["2024-01-01", "2024-06-01"]),
@@ -423,7 +437,7 @@ class TestRangeHandler:
         pd.testing.assert_series_equal(restored["end"], df["end"])
 
     def test_violation_correction(self):
-        handler = RangeHandler(Range(low_column="a", middle_column="b", high_column="c"))
+        handler = RangeHandler(Range(table_name="test_table", low_column="a", middle_column="b", high_column="c"))
         df = pd.DataFrame({"a": [10], "b": [5], "c": [20]})  # b < a violates
 
         internal = handler.to_internal(df)
@@ -434,7 +448,7 @@ class TestRangeHandler:
         assert internal[delta2_col].iloc[0] == 15  # corrected to abs
 
     def test_encoding_types(self):
-        handler = RangeHandler(Range(low_column="a", middle_column="b", high_column="c"))
+        handler = RangeHandler(Range(table_name="test_table", low_column="a", middle_column="b", high_column="c"))
         enc = handler.get_encoding_types()
         assert len(enc) == 2
         assert all(v == "TABULAR_NUMERIC_AUTO" for v in enc.values())
@@ -442,7 +456,7 @@ class TestRangeHandler:
 
 class TestOneHotEncodingHandler:
     def test_to_internal_converts_to_categorical(self):
-        handler = OneHotEncodingHandler(OneHotEncoding(columns=["is_a", "is_b", "is_c"]))
+        handler = OneHotEncodingHandler(OneHotEncoding(table_name="test_table", columns=["is_a", "is_b", "is_c"]))
         df = pd.DataFrame({"is_a": [1, 0, 0], "is_b": [0, 1, 0], "is_c": [0, 0, 1], "other": [10, 20, 30]})
 
         result = handler.to_internal(df)
@@ -454,7 +468,7 @@ class TestOneHotEncodingHandler:
         assert "is_a" in result.columns
 
     def test_to_original_creates_onehot(self):
-        handler = OneHotEncodingHandler(OneHotEncoding(columns=["cat_a", "cat_b", "cat_c"]))
+        handler = OneHotEncodingHandler(OneHotEncoding(table_name="test_table", columns=["cat_a", "cat_b", "cat_c"]))
         internal_col = handler._internal_column
         df = pd.DataFrame({internal_col: ["cat_a", "cat_b", "cat_c"], "other": [1, 2, 3]})
 
@@ -469,7 +483,7 @@ class TestOneHotEncodingHandler:
         assert list(result["cat_c"]) == [0, 0, 1]
 
     def test_round_trip(self):
-        handler = OneHotEncodingHandler(OneHotEncoding(columns=["x", "y", "z"]))
+        handler = OneHotEncodingHandler(OneHotEncoding(table_name="test_table", columns=["x", "y", "z"]))
         df = pd.DataFrame({"x": [1, 0, 0, 0], "y": [0, 1, 0, 0], "z": [0, 0, 1, 0], "value": [100, 200, 300, 400]})
 
         internal = handler.to_internal(df)
@@ -480,13 +494,13 @@ class TestOneHotEncodingHandler:
         assert list(restored["z"]) == [0, 0, 1, 0]
 
     def test_encoding_types(self):
-        handler = OneHotEncodingHandler(OneHotEncoding(columns=["a", "b"]))
+        handler = OneHotEncodingHandler(OneHotEncoding(table_name="test_table", columns=["a", "b"]))
         enc = handler.get_encoding_types()
         assert len(enc) == 1
         assert list(enc.values())[0] == "TABULAR_CATEGORICAL"
 
     def test_handles_null_rows(self):
-        handler = OneHotEncodingHandler(OneHotEncoding(columns=["col_a", "col_b"]))
+        handler = OneHotEncodingHandler(OneHotEncoding(table_name="test_table", columns=["col_a", "col_b"]))
         internal_col = handler._internal_column
         df = pd.DataFrame({internal_col: ["col_a", None, "col_b"], "other": [1, 2, 3]})
 
@@ -496,7 +510,7 @@ class TestOneHotEncodingHandler:
         assert list(result["col_b"]) == [0, 0, 1]
 
     def test_handles_all_zeros_row(self):
-        handler = OneHotEncodingHandler(OneHotEncoding(columns=["a", "b", "c"]))
+        handler = OneHotEncodingHandler(OneHotEncoding(table_name="test_table", columns=["a", "b", "c"]))
         df = pd.DataFrame({"a": [1, 0], "b": [0, 0], "c": [0, 0], "other": [10, 20]})
 
         internal = handler.to_internal(df)
@@ -509,8 +523,8 @@ class TestOneHotEncodingHandler:
 class TestConstraintTranslator:
     def test_mixed_constraints(self):
         constraints = [
-            FixedCombination(columns=["state", "city"]),
-            Inequality(low_column="start_age", high_column="end_age"),
+            FixedCombination(table_name="test_table", columns=["state", "city"]),
+            Inequality(table_name="test_table", low_column="start_age", high_column="end_age"),
         ]
         translator = ConstraintTranslator(constraints)
         df = pd.DataFrame(
@@ -532,8 +546,8 @@ class TestConstraintTranslator:
 
     def test_get_internal_columns(self):
         constraints = [
-            FixedCombination(columns=["a", "b"]),
-            Inequality(low_column="low", high_column="high"),
+            FixedCombination(table_name="test_table", columns=["a", "b"]),
+            Inequality(table_name="test_table", low_column="low", high_column="high"),
         ]
         translator = ConstraintTranslator(constraints)
         original = ["a", "b", "low", "high", "other"]
@@ -551,7 +565,7 @@ class TestConstraintTranslator:
         assert any(c.startswith("__constraint_ineq_delta") for c in internal)
 
     def test_get_original_columns(self):
-        constraints = [FixedCombination(columns=["a", "b"])]
+        constraints = [FixedCombination(table_name="test_table", columns=["a", "b"])]
         translator = ConstraintTranslator(constraints)
         internal = ["a|b", "other"]
 
@@ -561,8 +575,8 @@ class TestConstraintTranslator:
 
     def test_get_encoding_types(self):
         constraints = [
-            FixedCombination(columns=["a", "b"]),
-            Range(low_column="x", middle_column="y", high_column="z"),
+            FixedCombination(table_name="test_table", columns=["a", "b"]),
+            Range(table_name="test_table", low_column="x", middle_column="y", high_column="z"),
         ]
         translator = ConstraintTranslator(constraints)
 
@@ -583,11 +597,10 @@ class TestConstraintTranslator:
                         SourceColumn(name="state"),
                         SourceColumn(name="city"),
                     ],
-                    tabular_model_configuration=ModelConfiguration(
-                        constraints=[FixedCombination(columns=["state", "city"])]
-                    ),
+                    tabular_model_configuration=ModelConfiguration(),
                 )
             ],
+            constraints=[FixedCombination(table_name="customers", columns=["state", "city"])],
         )
 
         translator, original_columns = ConstraintTranslator.from_generator_config(
@@ -630,11 +643,10 @@ class TestConstraintTranslator:
                 SourceTable(
                     name="docs",
                     columns=[SourceColumn(name="country"), SourceColumn(name="language")],
-                    language_model_configuration=ModelConfiguration(
-                        constraints=[FixedCombination(columns=["country", "language"])]
-                    ),
+                    language_model_configuration=ModelConfiguration(),
                 )
             ],
+            constraints=[FixedCombination(table_name="docs", columns=["country", "language"])],
         )
 
         translator, original_columns = ConstraintTranslator.from_generator_config(
@@ -648,34 +660,34 @@ class TestConstraintTranslator:
 class TestDomainValidation:
     def test_fixed_combination_requires_two_columns(self):
         with pytest.raises(ValueError, match="at least 2 columns"):
-            FixedCombination(columns=["single"])
+            FixedCombination(table_name="test_table", columns=["single"])
 
     def test_inequality_same_column_fails(self):
         with pytest.raises(ValueError, match="must be different"):
-            Inequality(low_column="col", high_column="col")
+            Inequality(table_name="test_table", low_column="col", high_column="col")
 
     def test_range_duplicate_columns_fails(self):
         with pytest.raises(ValueError, match="must all be different"):
-            Range(low_column="a", middle_column="a", high_column="b")
+            Range(table_name="test_table", low_column="a", middle_column="a", high_column="b")
 
         with pytest.raises(ValueError, match="must all be different"):
-            Range(low_column="a", middle_column="b", high_column="a")
+            Range(table_name="test_table", low_column="a", middle_column="b", high_column="a")
 
     def test_onehot_requires_two_columns(self):
         with pytest.raises(ValueError, match="at least 2 columns"):
-            OneHotEncoding(columns=["single"])
+            OneHotEncoding(table_name="test_table", columns=["single"])
 
     def test_valid_constraints_create(self):
-        fc = FixedCombination(columns=["a", "b", "c"])
+        fc = FixedCombination(table_name="test_table", columns=["a", "b", "c"])
         assert fc.columns == ["a", "b", "c"]
 
-        ineq = Inequality(low_column="start", high_column="end")
+        ineq = Inequality(table_name="test_table", low_column="start", high_column="end")
         assert ineq.low_column == "start"
 
-        rng = Range(low_column="min", middle_column="mid", high_column="max")
+        rng = Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max")
         assert rng.middle_column == "mid"
 
-        ohe = OneHotEncoding(columns=["is_x", "is_y"])
+        ohe = OneHotEncoding(table_name="test_table", columns=["is_x", "is_y"])
         assert ohe.columns == ["is_x", "is_y"]
 
 
@@ -684,7 +696,7 @@ class TestSeedDataPreservation:
 
     def test_fixed_combination_preserves_seed_data(self):
         """test that FixedCombination preserves seed values."""
-        handler = FixedCombinationHandler(FixedCombination(columns=["state", "city"]))
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
         df = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"], "state|city": ["merged1", "merged2"]})
         seed_data = pd.DataFrame({"state": ["TX", "FL"], "city": ["Houston", "Miami"]})
 
@@ -697,7 +709,7 @@ class TestSeedDataPreservation:
 
     def test_inequality_preserves_seed_data(self):
         """test that Inequality preserves seed values."""
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         df = pd.DataFrame({"start": [10, 20], handler._delta_column: [5, 10]})
         seed_data = pd.DataFrame({"start": [100, 200], "end": [150, 250]})
 
@@ -710,7 +722,7 @@ class TestSeedDataPreservation:
 
     def test_inequality_preserves_partial_seed_data(self):
         """test that Inequality preserves high_column seed value and reconstructs low_column from delta."""
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         df = pd.DataFrame({"start": [10, 20], handler._delta_column: [5, 10]})
         seed_data = pd.DataFrame({"end": [150, 250]})  # only high_column seeded
 
@@ -723,7 +735,7 @@ class TestSeedDataPreservation:
 
     def test_inequality_partial_seed_high_column(self):
         """test that Inequality reconstructs low_column from delta when high_column is partially seeded."""
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         # df has 4 rows, seed has 2 rows
         df = pd.DataFrame({"start": [10, 20, 30, 40], handler._delta_column: [5, 10, 15, 20]})
         seed_data = pd.DataFrame({"end": [150, 250]})  # only first 2 rows seeded
@@ -744,7 +756,7 @@ class TestSeedDataPreservation:
 
     def test_inequality_imputation_partial_nulls(self):
         """test that Inequality handles row-by-row imputation with partial nulls per column."""
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         # df contains all columns: start, delta, and end (original columns are kept)
         # pattern: start = 10,20,30,40,50,60,70,80,90; delta = 5 for all; end = start + delta
         df = pd.DataFrame(
@@ -784,7 +796,7 @@ class TestSeedDataPreservation:
 
     def test_inequality_imputation_only_low_seeded(self):
         """test that Inequality handles imputation when only low_column has partial nulls."""
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         df = pd.DataFrame({"start": [10, 20, 30], handler._delta_column: [5, 10, 15]})
         # only start has some seeded values
         seed_data = pd.DataFrame({"start": [100, None, 300]})  # rows 0 and 2 seeded
@@ -805,7 +817,7 @@ class TestSeedDataPreservation:
 
     def test_inequality_imputation_only_high_seeded(self):
         """test that Inequality handles imputation when only high_column has partial nulls."""
-        handler = InequalityHandler(Inequality(low_column="start", high_column="end"))
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         df = pd.DataFrame({"start": [10, 20, 30], handler._delta_column: [5, 10, 15]})
         # only end has some seeded values
         seed_data = pd.DataFrame({"end": [150, None, 350]})  # rows 0 and 2 seeded
@@ -826,7 +838,7 @@ class TestSeedDataPreservation:
 
     def test_range_preserves_seed_data(self):
         """test that Range preserves seed values."""
-        handler = RangeHandler(Range(low_column="min", middle_column="mid", high_column="max"))
+        handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
         df = pd.DataFrame({"min": [10, 20], handler._delta1_column: [5, 10], handler._delta2_column: [3, 5]})
         seed_data = pd.DataFrame({"min": [100, 200], "mid": [150, 250], "max": [180, 280]})
 
@@ -841,7 +853,7 @@ class TestSeedDataPreservation:
 
     def test_onehot_preserves_seed_data(self):
         """test that OneHotEncoding preserves seed values."""
-        handler = OneHotEncodingHandler(OneHotEncoding(columns=["is_a", "is_b", "is_c"]))
+        handler = OneHotEncodingHandler(OneHotEncoding(table_name="test_table", columns=["is_a", "is_b", "is_c"]))
         df = pd.DataFrame({handler._internal_column: ["is_a", "is_b"]})
         seed_data = pd.DataFrame({"is_a": [1, 0], "is_b": [0, 1], "is_c": [0, 0]})
 
@@ -856,8 +868,8 @@ class TestSeedDataPreservation:
     def test_translator_preserves_seed_data(self):
         """test that ConstraintTranslator passes seed_data to handlers."""
         constraints = [
-            FixedCombination(columns=["state", "city"]),
-            Inequality(low_column="start", high_column="end"),
+            FixedCombination(table_name="test_table", columns=["state", "city"]),
+            Inequality(table_name="test_table", low_column="start", high_column="end"),
         ]
         translator = ConstraintTranslator(constraints)
         df = pd.DataFrame(
