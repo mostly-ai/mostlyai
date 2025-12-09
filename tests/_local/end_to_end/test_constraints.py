@@ -53,10 +53,10 @@ def test_fixed_combination_constraint(mostly):
                     "data": df,
                     "tabular_model_configuration": {
                         "max_epochs": 0.5,
-                        "constraints": [FixedCombination(columns=["state", "city"])],
                     },
                 }
             ],
+            "constraints": [FixedCombination(table_name="test", columns=["state", "city"])],
         }
     )
 
@@ -155,10 +155,10 @@ def test_constraints_with_seed_data(mostly):
                     "data": df,
                     "tabular_model_configuration": {
                         "max_epochs": 0.5,
-                        "constraints": [Inequality(low_column="start_age", high_column="end_age")],
                     },
                 }
             ],
+            "constraints": [Inequality(table_name="test", low_column="start_age", high_column="end_age")],
         }
     )
 
