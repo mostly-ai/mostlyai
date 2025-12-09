@@ -165,7 +165,10 @@ def make_generator_execution_plan(generator: Generator) -> ExecutionPlan:
                 include_report=table.language_model_configuration.enable_model_report,
             )
     post_training_sync = execution_plan.add_task(TaskType.sync)
-    if has_non_context_relationships(generator):
+    # always add finalize_training if there are non-context relationships or constraints
+    # (finalize_training handles both FK model training and column restoration)
+    has_constraints = bool(getattr(generator, "constraints", None))
+    if has_non_context_relationships(generator) or has_constraints:
         execution_plan.add_task(TaskType.finalize_training, parent=post_training_sync)
         execution_plan.add_task(TaskType.sync)
     return execution_plan

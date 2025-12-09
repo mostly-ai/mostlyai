@@ -37,6 +37,7 @@ class FixedCombination(CustomBaseModel):
     """constraint that ensures synthetic data preserves valid combinations of column values from training data."""
 
     type: Literal["FixedCombination"] = Field(default="FixedCombination", description="Constraint type discriminator.")
+    table_name: str = Field(..., description="Name of the table this constraint applies to.")
     columns: list[str] = Field(..., description="List of column names that form a fixed combination.")
 
     @field_validator("columns")
@@ -52,6 +53,7 @@ class Inequality(CustomBaseModel):
     If strict_boundaries=True, enforces low_column < high_column (strict inequality)."""
 
     type: Literal["Inequality"] = Field(default="Inequality", description="Constraint type discriminator.")
+    table_name: str = Field(..., description="Name of the table this constraint applies to.")
     low_column: str = Field(..., description="Column that should have the lower value.")
     high_column: str = Field(..., description="Column that should have the higher value.")
     strict_boundaries: bool = Field(
@@ -70,6 +72,7 @@ class Range(CustomBaseModel):
     """constraint that ensures low_column <= middle_column <= high_column in synthetic data."""
 
     type: Literal["Range"] = Field(default="Range", description="Constraint type discriminator.")
+    table_name: str = Field(..., description="Name of the table this constraint applies to.")
     low_column: str = Field(..., description="Column that should have the lowest value.")
     middle_column: str = Field(..., description="Column that should be between low and high.")
     high_column: str = Field(..., description="Column that should have the highest value.")
@@ -86,6 +89,7 @@ class OneHotEncoding(CustomBaseModel):
     """constraint that ensures exactly one column has value 1 and all others have value 0."""
 
     type: Literal["OneHotEncoding"] = Field(default="OneHotEncoding", description="Constraint type discriminator.")
+    table_name: str = Field(..., description="Name of the table this constraint applies to.")
     columns: list[str] = Field(..., description="List of column names that form a one-hot encoding.")
 
     @field_validator("columns")
@@ -2714,9 +2718,6 @@ class ModelConfiguration(CustomBaseModel):
         alias="enableModelReport",
         description="If false, then the Model report is not generated.\n",
     )
-    constraints: (
-        list[Annotated[FixedCombination | Inequality | Range | OneHotEncoding, Discriminator("type")]] | None
-    ) = Field(None, description="List of constraint objects that define data relationships.")
 
     @model_validator(mode="after")
     def validate_differential_privacy_config(self):
@@ -3617,6 +3618,9 @@ class Generator(CustomBaseModel):
         alias="randomState",
         description="Seed for the random number generators. If None, the random number generator is initialized randomly, yielding different results for every run.\nSetting it to a specific integer ensures reproducible results across runs.\nUseful when consistent results are desired, e.g. for testing or debugging.\n",
     )
+    constraints: (
+        list[Annotated[FixedCombination | Inequality | Range | OneHotEncoding, Discriminator("type")]] | None
+    ) = Field(None, description="List of constraint objects that define data relationships.")
     OPEN_URL_PARTS: ClassVar[list] = ["d", "generators"]
     training: Annotated[Any | None, Field(exclude=True)] = None
 
@@ -3848,6 +3852,9 @@ class GeneratorConfig(CustomBaseModel):
         description="Seed for the random number generators. If None, the random number generator is initialized randomly, yielding different results for every run.\nSetting it to a specific integer ensures reproducible results across runs.\nUseful when consistent results are desired, e.g. for testing or debugging.\n",
     )
     tables: list[SourceTableConfig] | None = Field(None, description="The tables of a generator")
+    constraints: (
+        list[Annotated[FixedCombination | Inequality | Range | OneHotEncoding, Discriminator("type")]] | None
+    ) = Field(None, description="List of constraint objects that define data relationships.")
 
     @field_validator("tables", mode="after")
     @classmethod

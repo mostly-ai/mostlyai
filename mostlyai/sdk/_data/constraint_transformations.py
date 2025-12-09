@@ -31,6 +31,8 @@ from mostlyai.sdk.domain import FixedCombination, Inequality, OneHotEncoding, Ra
 
 if TYPE_CHECKING:
     from mostlyai.sdk.domain import Generator, ModelType
+else:
+    from mostlyai.sdk.domain import Generator
 
 _LOG = logging.getLogger(__name__)
 
@@ -77,11 +79,45 @@ class ConstraintHandler(ABC):
         """return encoding types for internal columns."""
         pass
 
+    @abstractmethod
+    def get_table_column_tuples(self) -> list[tuple[str, str]]:
+        """return list of (table_name, column_name) tuples involved in this constraint."""
+        pass
+
     def _validate_columns(self, df: pd.DataFrame, columns: list[str]) -> None:
         """validate that all required columns exist in the dataframe."""
         missing_cols = set(columns) - set(df.columns)
         if missing_cols:
             raise ValueError(f"columns {sorted(missing_cols)} not found in dataframe")
+
+    def validate_against_generator(self, generator: Generator) -> None:
+        """validate that tables and columns referenced by this constraint exist in the generator.
+
+        Args:
+            generator: Generator to validate against.
+
+        Raises:
+            ValueError: If table or columns don't exist.
+        """
+        table_column_tuples = self.get_table_column_tuples()
+        if not table_column_tuples:
+            return
+
+        # build table map
+        table_map = {table.name: table for table in (generator.tables or [])}
+
+        # validate each (table, column) tuple
+        for table_name, column_name in table_column_tuples:
+            if table_name not in table_map:
+                raise ValueError(f"table '{table_name}' referenced by constraint not found in generator")
+
+            table = table_map[table_name]
+            table_columns = {col.name for col in (table.columns or []) if col.included}
+
+            if column_name not in table_columns:
+                raise ValueError(
+                    f"column '{column_name}' in table '{table_name}' referenced by constraint not found or not included"
+                )
 
 
 class FixedCombinationHandler(ConstraintHandler):
@@ -93,6 +129,7 @@ class FixedCombinationHandler(ConstraintHandler):
 
     def __init__(self, constraint: FixedCombination):
         self.constraint = constraint
+        self.table_name = constraint.table_name
         self.columns = constraint.columns
         # use separator for column name (for display/debugging, actual data uses _SEPARATOR)
         self.merged_name = "|".join(self.columns)
@@ -185,6 +222,10 @@ class FixedCombinationHandler(ConstraintHandler):
     def get_encoding_types(self) -> dict[str, str]:
         return {self.merged_name: "TABULAR_CATEGORICAL"}
 
+    def get_table_column_tuples(self) -> list[tuple[str, str]]:
+        """return list of (table_name, column_name) tuples involved in this constraint."""
+        return [(self.table_name, col) for col in self.columns]
+
 
 class InequalityHandler(ConstraintHandler):
     """handler for Inequality constraints (low <= high or low < high if strict_boundaries=True)."""
@@ -195,6 +236,7 @@ class InequalityHandler(ConstraintHandler):
 
     def __init__(self, constraint: Inequality):
         self.constraint = constraint
+        self.table_name = constraint.table_name
         self.low_column = constraint.low_column
         self.high_column = constraint.high_column
         self.strict_boundaries = constraint.strict_boundaries
@@ -396,12 +438,17 @@ class InequalityHandler(ConstraintHandler):
     def get_encoding_types(self) -> dict[str, str]:
         return {self._delta_column: "TABULAR_NUMERIC_AUTO"}
 
+    def get_table_column_tuples(self) -> list[tuple[str, str]]:
+        """return list of (table_name, column_name) tuples involved in this constraint."""
+        return [(self.table_name, self.low_column), (self.table_name, self.high_column)]
+
 
 class RangeHandler(ConstraintHandler):
     """handler for Range constraints (low <= middle <= high)."""
 
     def __init__(self, constraint: Range):
         self.constraint = constraint
+        self.table_name = constraint.table_name
         self.low_column = constraint.low_column
         self.middle_column = constraint.middle_column
         self.high_column = constraint.high_column
@@ -498,12 +545,21 @@ class RangeHandler(ConstraintHandler):
             self._delta2_column: "TABULAR_NUMERIC_AUTO",
         }
 
+    def get_table_column_tuples(self) -> list[tuple[str, str]]:
+        """return list of (table_name, column_name) tuples involved in this constraint."""
+        return [
+            (self.table_name, self.low_column),
+            (self.table_name, self.middle_column),
+            (self.table_name, self.high_column),
+        ]
+
 
 class OneHotEncodingHandler(ConstraintHandler):
     """handler for OneHotEncoding constraints (exactly one column has value 1)."""
 
     def __init__(self, constraint: OneHotEncoding):
         self.constraint = constraint
+        self.table_name = constraint.table_name
         self.columns = constraint.columns
         self._internal_column = _generate_internal_column_name("onehot", self.columns)
 
@@ -555,6 +611,10 @@ class OneHotEncodingHandler(ConstraintHandler):
 
     def get_encoding_types(self) -> dict[str, str]:
         return {self._internal_column: "TABULAR_CATEGORICAL"}
+
+    def get_table_column_tuples(self) -> list[tuple[str, str]]:
+        """return list of (table_name, column_name) tuples involved in this constraint."""
+        return [(self.table_name, col) for col in self.columns]
 
 
 def _create_constraint_handler(constraint: FixedCombination | Inequality | Range | OneHotEncoding) -> ConstraintHandler:
@@ -675,23 +735,26 @@ class ConstraintTranslator:
         generator: Generator,
         table_name: str,
     ) -> tuple[ConstraintTranslator | None, list[str] | None]:
-        """create constraint translator from generator configuration."""
+        """create constraint translator from generator configuration.
+
+        reads constraints from generator root level and filters by table_name.
+        """
+        # get constraints from generator root level (if generator has constraints field)
+        # note: GeneratorConfig has constraints, but Generator might not
+        # we need to check if generator has constraints attribute (from config)
+        all_constraints = getattr(generator, "constraints", None)
+        if not all_constraints:
+            return None, None
+
+        # filter constraints for this table
+        table_constraints = [c for c in all_constraints if hasattr(c, "table_name") and c.table_name == table_name]
+
+        if not table_constraints:
+            return None, None
+
+        translator = ConstraintTranslator(table_constraints)
         table = next((t for t in generator.tables if t.name == table_name), None)
-        if not table:
-            return None, None
-
-        constraints = None
-        if table.tabular_model_configuration and table.tabular_model_configuration.constraints:
-            constraints = table.tabular_model_configuration.constraints
-        if not constraints and table.language_model_configuration:
-            if table.language_model_configuration.constraints:
-                constraints = table.language_model_configuration.constraints
-
-        if not constraints:
-            return None, None
-
-        translator = ConstraintTranslator(constraints)
-        current_columns = [c.name for c in table.columns] if table.columns else None
+        current_columns = [c.name for c in table.columns] if table and table.columns else None
 
         if not current_columns:
             return translator, None
@@ -782,16 +845,19 @@ def preprocess_constraints_for_training(
         _LOG.info(f"table {target_table_name} not found in generator")
         return None
 
-    if model_type.value == "language":
-        model_config = target_table.language_model_configuration
-    else:
-        model_config = target_table.tabular_model_configuration
+    # get constraints from generator root level and filter by table
+    all_constraints = getattr(generator, "constraints", None)
+    if not all_constraints:
+        return None
 
-    if not model_config or not model_config.constraints:
+    # filter constraints for this table
+    table_constraints = [c for c in all_constraints if hasattr(c, "table_name") and c.table_name == target_table_name]
+
+    if not table_constraints:
         return None
 
     _LOG.info(f"preprocessing constraints for table {target_table_name} in {model_type} model")
-    translator = ConstraintTranslator(model_config.constraints)
+    translator = ConstraintTranslator(table_constraints)
 
     tgt_data_dir = workspace_dir / "OriginalData" / "tgt-data"
     if not tgt_data_dir.exists():
