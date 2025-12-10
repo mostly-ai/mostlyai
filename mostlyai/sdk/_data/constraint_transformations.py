@@ -165,10 +165,18 @@ class ConstraintHandler(ABC):
 
 
 class FixedCombinationHandler(ConstraintHandler):
-    """handler for FixedCombination constraints."""
+    """handler for FixedCombination constraints.
 
-    # use record separator (ASCII 30) as delimiter - very unlikely to appear in text data
-    # csv module handles escaping automatically using quotes
+    uses csv module for merge/split operations because:
+    - handles escaping of separator characters that appear in data values
+    - properly quotes fields containing the delimiter, quotes, or newlines
+    - standard library with well-tested edge case handling
+    - record separator (ASCII 30, \\x1E) is used as delimiter since it's
+      extremely rare in text data, reducing the need for escaping overhead
+    """
+
+    # record separator (ASCII 30) - control character extremely rare in text data
+    # chosen over common delimiters (comma, pipe, tab) to minimize escaping needs
     _SEPARATOR = "\x1e"
 
     def __init__(self, constraint: FixedCombination):
@@ -268,7 +276,12 @@ class FixedCombinationHandler(ConstraintHandler):
 class InequalityHandler(ConstraintHandler):
     """handler for Inequality constraints (low <= high or low < high if strict_boundaries=True)."""
 
-    # fixed epsilon values for strict boundaries
+    # epsilon values for strict boundaries enforcement (ensuring low < high):
+    # - _NUMERIC_EPSILON: 1e-10 chosen as smallest practical difference for float64,
+    #   avoiding numerical precision issues while being negligible for real-world data.
+    #   for integer types, we use 1 instead (smallest integer difference).
+    # - _DATETIME_EPSILON: 1 microsecond is the smallest timedelta that pandas can
+    #   reliably represent and is imperceptible for real-world datetime comparisons.
     _NUMERIC_EPSILON = 1e-10
     _DATETIME_EPSILON = pd.Timedelta(microseconds=1)
 
@@ -762,25 +775,32 @@ class ConstraintTranslator:
             df = handler.to_original(df, seed_data=seed_data)
         return df
 
+    def _compute_columns_to_remove(self) -> set[str]:
+        """compute columns that should be removed when transforming to internal schema.
+
+        each handler type has different removal rules:
+        - InequalityHandler: removes high_column (reconstructed from low + delta)
+        - RangeHandler: removes middle and high columns (reconstructed from deltas)
+        - OneHotEncodingHandler: removes all one-hot columns (replaced by categorical)
+        - FixedCombinationHandler: keeps all original columns (merged column is added)
+        """
+        columns = set()
+        for handler in self.handlers:
+            if isinstance(handler, InequalityHandler):
+                columns.add(handler.high_column)
+            elif isinstance(handler, RangeHandler):
+                columns.add(handler.middle_column)
+                columns.add(handler.high_column)
+            elif isinstance(handler, OneHotEncodingHandler):
+                columns.update(handler.columns)
+        return columns
+
     def get_internal_columns(self, original_columns: list[str]) -> list[str]:
         """get list of column names in internal schema."""
-        columns_to_remove = set()
-        columns_to_add = []
-
-        for handler in self.handlers:
-            # compute columns to remove based on handler type
-            if isinstance(handler, InequalityHandler):
-                columns_to_remove.add(handler.high_column)
-            elif isinstance(handler, RangeHandler):
-                columns_to_remove.add(handler.middle_column)
-                columns_to_remove.add(handler.high_column)
-            elif isinstance(handler, OneHotEncodingHandler):
-                columns_to_remove.update(handler.columns)
-            # FixedCombinationHandler keeps all original columns, so nothing to remove
-            columns_to_add.extend(handler.get_internal_column_names())
-
+        columns_to_remove = self._compute_columns_to_remove()
         internal_columns = [c for c in original_columns if c not in columns_to_remove]
-        internal_columns.extend(columns_to_add)
+        for handler in self.handlers:
+            internal_columns.extend(handler.get_internal_column_names())
         return internal_columns
 
     def get_original_columns(self, internal_columns: list[str]) -> list[str]:
@@ -813,18 +833,7 @@ class ConstraintTranslator:
 
     def get_columns_to_remove(self) -> set[str]:
         """get all columns that should be removed from encoding types."""
-        columns = set()
-        for handler in self.handlers:
-            # compute columns to remove based on handler type
-            if isinstance(handler, InequalityHandler):
-                columns.add(handler.high_column)
-            elif isinstance(handler, RangeHandler):
-                columns.add(handler.middle_column)
-                columns.add(handler.high_column)
-            elif isinstance(handler, OneHotEncodingHandler):
-                columns.update(handler.columns)
-            # FixedCombinationHandler keeps all original columns, so nothing to remove
-        return columns
+        return self._compute_columns_to_remove()
 
     @property
     def merged_columns(self) -> list[tuple[list[str], str]]:
@@ -880,9 +889,6 @@ def _align_seed_data(
 ) -> pd.DataFrame | None:
     """align seed data with dataframe for constraint column preservation.
 
-    handles both subject tables (1:1 row alignment) and sequential tables
-    (alignment by context key + row index).
-
     Args:
         df: generated dataframe to align with
         seed_data: seed dataframe (may contain __row_idx__ and context key)
@@ -892,56 +898,46 @@ def _align_seed_data(
     Returns:
         aligned dataframe with requested columns, or None if alignment fails
     """
-    if seed_data is None:
+    if seed_data is None or len(seed_data) == 0:
         return None
 
-    # check if this is a sequential table (has __row_idx__)
-    if "__row_idx__" in seed_data.columns and context_key_col is not None:
-        # sequential table: align by context key + row index
-        if context_key_col not in df.columns:
-            _LOG.warning(f"context key column {context_key_col} not found in dataframe, skipping seed alignment")
-            return None
+    # sequential table: align by context key + row index
+    if "__row_idx__" in seed_data.columns and context_key_col:
+        return _align_sequential_seed(df, seed_data, columns, context_key_col)
 
-        # add row index to df for alignment
-        df_with_idx = df.copy()
-        df_with_idx["__row_idx__"] = df_with_idx.groupby(context_key_col).cumcount()
+    # subject table: 1:1 row alignment
+    return _align_subject_seed(df, seed_data, columns)
 
-        # merge seed data
-        aligned = pd.merge(
-            df_with_idx[[context_key_col, "__row_idx__"]],
-            seed_data,
-            on=[context_key_col, "__row_idx__"],
-            how="left",
-        )
 
-        # extract requested columns if they exist
-        available_cols = [col for col in columns if col in aligned.columns]
-        if not available_cols:
-            return None
-
-        return aligned[available_cols].reset_index(drop=True)
-
-    # subject table: 1:1 row alignment (allow partial seed - fewer rows than df)
-    if len(seed_data) > len(df):
-        _LOG.warning(
-            f"seed data length ({len(seed_data)}) is greater than dataframe length ({len(df)}), skipping seed alignment"
-        )
+def _align_sequential_seed(
+    df: pd.DataFrame, seed_data: pd.DataFrame, columns: list[str], context_key_col: str
+) -> pd.DataFrame | None:
+    """align seed data for sequential tables using context key + row index."""
+    if context_key_col not in df.columns:
+        _LOG.warning(f"context key column {context_key_col} not found, skipping seed alignment")
         return None
 
-    # extract requested columns if they exist in seed_data
-    available_cols = [col for col in columns if col in seed_data.columns]
+    df_with_idx = df[[context_key_col]].copy()
+    df_with_idx["__row_idx__"] = df.groupby(context_key_col).cumcount()
+
+    aligned = pd.merge(df_with_idx, seed_data, on=[context_key_col, "__row_idx__"], how="left")
+    available_cols = [c for c in columns if c in aligned.columns]
+    return aligned[available_cols].reset_index(drop=True) if available_cols else None
+
+
+def _align_subject_seed(df: pd.DataFrame, seed_data: pd.DataFrame, columns: list[str]) -> pd.DataFrame | None:
+    """align seed data for subject tables (1:1 row alignment with padding/truncation)."""
+    available_cols = [c for c in columns if c in seed_data.columns]
     if not available_cols:
         return None
 
-    # for subject tables, align first N rows where N is seed size
-    # if seed has fewer rows, we'll align the first N rows
-    aligned = seed_data[available_cols].copy()
-    if len(aligned) < len(df):
-        # pad with NaN rows to match df length (handlers will only use first N rows)
-        padding = pd.DataFrame(index=range(len(df) - len(aligned)), columns=available_cols)
-        aligned = pd.concat([aligned, padding], ignore_index=True)
-
-    return aligned.reset_index(drop=True)
+    seed_len, df_len = len(seed_data), len(df)
+    if seed_len > df_len:
+        return seed_data[available_cols].iloc[:df_len].reset_index(drop=True)
+    elif seed_len < df_len:
+        padding = pd.DataFrame(index=range(df_len - seed_len), columns=available_cols)
+        return pd.concat([seed_data[available_cols], padding], ignore_index=True)
+    return seed_data[available_cols].reset_index(drop=True)
 
 
 def preprocess_constraints_for_training(

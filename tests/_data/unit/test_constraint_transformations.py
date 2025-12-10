@@ -659,11 +659,11 @@ class TestConstraintTranslator:
 
 class TestDomainValidation:
     def test_fixed_combination_requires_two_columns(self):
-        with pytest.raises(ValueError, match="at least 2 columns"):
+        with pytest.raises(ValueError, match="at least 2 columns, got 1"):
             FixedCombination(table_name="test_table", columns=["single"])
 
     def test_inequality_same_column_fails(self):
-        with pytest.raises(ValueError, match="must be different"):
+        with pytest.raises(ValueError, match="must be different, both are 'col'"):
             Inequality(table_name="test_table", low_column="col", high_column="col")
 
     def test_range_duplicate_columns_fails(self):
@@ -674,7 +674,7 @@ class TestDomainValidation:
             Range(table_name="test_table", low_column="a", middle_column="b", high_column="a")
 
     def test_onehot_requires_two_columns(self):
-        with pytest.raises(ValueError, match="at least 2 columns"):
+        with pytest.raises(ValueError, match="at least 2 columns, got 1"):
             OneHotEncoding(table_name="test_table", columns=["single"])
 
     def test_valid_constraints_create(self):
@@ -1136,3 +1136,138 @@ class TestEdgeCases:
 
         assert list(result["start"]) == [10, 20]
         assert list(result["end"]) == [15, 30]
+
+    def test_inequality_all_nan_values(self):
+        """test Inequality with all NaN values in constraint columns."""
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [np.nan, np.nan], "end": [np.nan, np.nan]})
+
+        # should not crash
+        internal = handler.to_internal(df)
+        assert len(internal) == 2
+        assert handler._delta_column in internal.columns
+        # delta should be NaN for NaN inputs
+        assert internal[handler._delta_column].isna().all()
+
+        restored = handler.to_original(internal)
+        assert len(restored) == 2
+        # NaN + NaN = NaN
+        assert restored["end"].isna().all()
+
+    def test_fixed_combination_all_nan_values(self):
+        """test FixedCombination with all NaN values."""
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b"]))
+        df = pd.DataFrame({"a": [np.nan, np.nan], "b": [np.nan, np.nan]})
+
+        internal = handler.to_internal(df)
+        assert len(internal) == 2
+        assert handler.merged_name in internal.columns
+
+        restored = handler.to_original(internal)
+        assert len(restored) == 2
+        # NaN values are converted to empty strings in merge
+        assert list(restored["a"]) == ["", ""]
+        assert list(restored["b"]) == ["", ""]
+
+    def test_range_all_nan_values(self):
+        """test Range with all NaN values."""
+        handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
+        df = pd.DataFrame({"min": [np.nan, np.nan], "mid": [np.nan, np.nan], "max": [np.nan, np.nan]})
+
+        internal = handler.to_internal(df)
+        assert len(internal) == 2
+
+        restored = handler.to_original(internal)
+        assert len(restored) == 2
+
+    def test_onehot_multiple_ones_takes_first(self):
+        """test OneHotEncoding with multiple 1s takes the first column."""
+        handler = OneHotEncodingHandler(OneHotEncoding(table_name="test_table", columns=["a", "b", "c"]))
+        # row 0: both a and b are 1 (invalid input)
+        df = pd.DataFrame({"a": [1, 0], "b": [1, 1], "c": [0, 0]})
+
+        internal = handler.to_internal(df)
+
+        # should take first column with value 1
+        assert internal[handler._internal_column].iloc[0] == "a"  # first 1 wins
+        assert internal[handler._internal_column].iloc[1] == "b"
+
+    def test_multiple_constraints_same_table(self):
+        """test multiple constraints on the same table work together."""
+        constraints = [
+            FixedCombination(table_name="test_table", columns=["state", "city"]),
+            Inequality(table_name="test_table", low_column="start_age", high_column="end_age"),
+            Range(table_name="test_table", low_column="min_sal", middle_column="med_sal", high_column="max_sal"),
+        ]
+        translator = ConstraintTranslator(constraints)
+        df = pd.DataFrame(
+            {
+                "state": ["CA", "NY"],
+                "city": ["LA", "NYC"],
+                "start_age": [20, 30],
+                "end_age": [25, 40],
+                "min_sal": [50000, 60000],
+                "med_sal": [70000, 80000],
+                "max_sal": [90000, 100000],
+            }
+        )
+
+        internal = translator.to_internal(df)
+        restored = translator.to_original(internal)
+
+        # all values should be preserved
+        assert list(restored["state"]) == ["CA", "NY"]
+        assert list(restored["city"]) == ["LA", "NYC"]
+        assert list(restored["start_age"]) == [20, 30]
+        assert list(restored["end_age"]) == [25, 40]
+        assert list(restored["min_sal"]) == [50000, 60000]
+        assert list(restored["med_sal"]) == [70000, 80000]
+        assert list(restored["max_sal"]) == [90000, 100000]
+
+    def test_seed_data_length_mismatch_padding(self):
+        """test that seed_data with fewer rows is properly padded."""
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [10, 20, 30, 40], handler._delta_column: [5, 10, 15, 20]})
+        # seed_data has fewer rows
+        seed_data = pd.DataFrame({"start": [100], "end": [150]})
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # first row from seed, rest reconstructed
+        assert result["start"].iloc[0] == 100
+        assert result["end"].iloc[0] == 150
+        assert result["start"].iloc[1] == 20
+        assert result["end"].iloc[1] == 30  # 20 + 10
+
+    def test_seed_data_length_mismatch_truncation(self):
+        """test that seed_data with more rows is properly truncated."""
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [10, 20], handler._delta_column: [5, 10]})
+        # seed_data has more rows
+        seed_data = pd.DataFrame({"start": [100, 200, 300, 400], "end": [150, 250, 350, 450]})
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # only first 2 rows of seed used
+        assert len(result) == 2
+        assert list(result["start"]) == [100, 200]
+        assert list(result["end"]) == [150, 250]
+
+    def test_partial_nulls_in_seed_data(self):
+        """test handling of partial nulls in seed_data columns."""
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [10, 20, 30], handler._delta_column: [5, 10, 15]})
+        # mix of seeded and null values
+        seed_data = pd.DataFrame({"start": [100, np.nan, 300], "end": [np.nan, 250, 350]})
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # row 0: start seeded, end reconstructed
+        assert result["start"].iloc[0] == 100
+        assert result["end"].iloc[0] == 105  # 100 + 5
+        # row 1: end seeded, start reconstructed
+        assert result["start"].iloc[1] == 240  # 250 - 10
+        assert result["end"].iloc[1] == 250
+        # row 2: both seeded
+        assert result["start"].iloc[2] == 300
+        assert result["end"].iloc[2] == 350

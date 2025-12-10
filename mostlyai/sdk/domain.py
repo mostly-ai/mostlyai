@@ -44,7 +44,7 @@ class FixedCombination(CustomBaseModel):
     @classmethod
     def validate_columns(cls, columns):
         if len(columns) < 2:
-            raise ValueError("FixedCombination requires at least 2 columns.")
+            raise ValueError(f"FixedCombination requires at least 2 columns, got {len(columns)}.")
         return columns
 
 
@@ -64,7 +64,7 @@ class Inequality(CustomBaseModel):
     @model_validator(mode="after")
     def validate_columns(self):
         if self.low_column == self.high_column:
-            raise ValueError("low_column and high_column must be different.")
+            raise ValueError(f"low_column and high_column must be different, both are '{self.low_column}'.")
         return self
 
 
@@ -81,7 +81,10 @@ class Range(CustomBaseModel):
     def validate_columns(self):
         cols = [self.low_column, self.middle_column, self.high_column]
         if len(set(cols)) != 3:
-            raise ValueError("low_column, middle_column, and high_column must all be different.")
+            raise ValueError(
+                f"low_column, middle_column, and high_column must all be different, "
+                f"got: low='{self.low_column}', middle='{self.middle_column}', high='{self.high_column}'."
+            )
         return self
 
 
@@ -96,7 +99,7 @@ class OneHotEncoding(CustomBaseModel):
     @classmethod
     def validate_columns(cls, columns):
         if len(columns) < 2:
-            raise ValueError("OneHotEncoding requires at least 2 columns.")
+            raise ValueError(f"OneHotEncoding requires at least 2 columns, got {len(columns)}.")
         return columns
 
 
