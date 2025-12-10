@@ -851,6 +851,80 @@ class TestSeedDataPreservation:
         assert handler._delta1_column not in result.columns
         assert handler._delta2_column not in result.columns
 
+    def test_range_seed_data_fewer_rows(self):
+        """test that Range handles seed_data with fewer rows than df (pads with NaN)."""
+        handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
+        # df has 3 rows
+        df = pd.DataFrame({"min": [10, 20, 30], handler._delta1_column: [5, 10, 15], handler._delta2_column: [3, 5, 7]})
+        # seed_data has only 1 row
+        seed_data = pd.DataFrame({"min": [100], "mid": [150], "max": [180]})
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # row 0: seeded values preserved
+        assert result["min"].iloc[0] == 100
+        assert result["mid"].iloc[0] == 150
+        assert result["max"].iloc[0] == 180
+        # row 1 and 2: reconstructed from delta (not seeded)
+        assert result["min"].iloc[1] == 20  # original low value
+        assert result["mid"].iloc[1] == 30  # 20 + 10
+        assert result["max"].iloc[1] == 35  # 20 + 10 + 5
+        assert result["min"].iloc[2] == 30  # original low value
+        assert result["mid"].iloc[2] == 45  # 30 + 15
+        assert result["max"].iloc[2] == 52  # 30 + 15 + 7
+        assert handler._delta1_column not in result.columns
+        assert handler._delta2_column not in result.columns
+
+    def test_range_seed_data_more_rows(self):
+        """test that Range handles seed_data with more rows than df (truncates)."""
+        handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
+        # df has 2 rows
+        df = pd.DataFrame({"min": [10, 20], handler._delta1_column: [5, 10], handler._delta2_column: [3, 5]})
+        # seed_data has 5 rows
+        seed_data = pd.DataFrame(
+            {"min": [100, 200, 300, 400, 500], "mid": [150, 250, 350, 450, 550], "max": [180, 280, 380, 480, 580]}
+        )
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # only first 2 rows of seed_data should be used
+        assert list(result["min"]) == [100, 200]
+        assert list(result["mid"]) == [150, 250]
+        assert list(result["max"]) == [180, 280]
+        assert len(result) == 2
+        assert handler._delta1_column not in result.columns
+        assert handler._delta2_column not in result.columns
+
+    def test_range_partial_seed_with_nan(self):
+        """test that Range handles partial seeding with NaN values row-by-row."""
+        handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
+        df = pd.DataFrame({"min": [10, 20, 30], handler._delta1_column: [5, 10, 15], handler._delta2_column: [3, 5, 7]})
+        # seed_data has NaN in some positions
+        seed_data = pd.DataFrame(
+            {
+                "min": [100, np.nan, 300],  # row 1 not seeded
+                "mid": [np.nan, 250, np.nan],  # only row 1 seeded
+                "max": [180, np.nan, np.nan],  # only row 0 seeded
+            }
+        )
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # row 0: min and max seeded, mid reconstructed
+        assert result["min"].iloc[0] == 100
+        assert result["mid"].iloc[0] == 105  # 100 + 5
+        assert result["max"].iloc[0] == 180
+        # row 1: mid seeded, min and max reconstructed
+        assert result["min"].iloc[1] == 20  # original
+        assert result["mid"].iloc[1] == 250  # seeded
+        assert result["max"].iloc[1] == 35  # 20 + 10 + 5
+        # row 2: only min seeded, mid and max reconstructed
+        assert result["min"].iloc[2] == 300
+        assert result["mid"].iloc[2] == 315  # 300 + 15
+        assert result["max"].iloc[2] == 322  # 300 + 15 + 7
+        assert handler._delta1_column not in result.columns
+        assert handler._delta2_column not in result.columns
+
     def test_onehot_preserves_seed_data(self):
         """test that OneHotEncoding preserves seed values."""
         handler = OneHotEncodingHandler(OneHotEncoding(table_name="test_table", columns=["is_a", "is_b", "is_c"]))

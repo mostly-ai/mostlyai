@@ -501,26 +501,13 @@ class RangeHandler(ConstraintHandler):
     def to_original(self, df: pd.DataFrame, seed_data: pd.DataFrame | None = None) -> pd.DataFrame:
         df = df.copy()
         if self._delta1_column in df.columns and self._delta2_column in df.columns:
-            # check if constraint columns were seeded
-            if seed_data is not None and len(seed_data) == len(df):
-                seed_cols = set(seed_data.columns)
-                # if all three columns were seeded, preserve them and skip reconstruction
-                if all(col in seed_cols for col in [self.low_column, self.middle_column, self.high_column]):
-                    df[self.low_column] = seed_data[self.low_column].values
-                    df[self.middle_column] = seed_data[self.middle_column].values
-                    df[self.high_column] = seed_data[self.high_column].values
-                    df = df.drop(columns=[self._delta1_column, self._delta2_column])
-                    return df
-                # if individual columns were seeded, preserve them
-                for col in [self.low_column, self.middle_column, self.high_column]:
-                    if col in seed_cols:
-                        df[col] = seed_data[col].values
-
             low = df[self.low_column]
             delta1 = df[self._delta1_column]
             delta2 = df[self._delta2_column]
 
-            if pd.api.types.is_datetime64_any_dtype(low):
+            # determine data types
+            is_datetime = pd.api.types.is_datetime64_any_dtype(low)
+            if is_datetime:
                 low = pd.to_datetime(low)
                 if not pd.api.types.is_timedelta64_dtype(delta1):
                     delta1 = pd.to_timedelta(delta1)
@@ -531,11 +518,60 @@ class RangeHandler(ConstraintHandler):
                 delta1 = pd.to_numeric(delta1, errors="coerce")
                 delta2 = pd.to_numeric(delta2, errors="coerce")
 
-            # only reconstruct columns that weren't seeded
-            if seed_data is None or self.middle_column not in seed_data.columns:
+            # handle seed data with row-by-row support
+            if seed_data is not None and len(seed_data) > 0:
+                seed_cols = set(seed_data.columns)
+                seed_len = len(seed_data)
+                df_len = len(df)
+
+                # align seed data length with df if needed
+                if seed_len < df_len:
+                    # pad seed_data with NaN rows to match df length
+                    padding = pd.DataFrame(index=range(df_len - seed_len), columns=seed_data.columns)
+                    seed_data = pd.concat([seed_data, padding], ignore_index=True)
+                elif seed_len > df_len:
+                    # truncate seed_data to match df length
+                    seed_data = seed_data.iloc[:df_len].copy()
+
+                # use notna() masks for row-by-row handling
+                low_seeded_mask = seed_data[self.low_column].notna() if self.low_column in seed_cols else None
+                mid_seeded_mask = seed_data[self.middle_column].notna() if self.middle_column in seed_cols else None
+                high_seeded_mask = seed_data[self.high_column].notna() if self.high_column in seed_cols else None
+
+                # preserve seeded low values and update low variable
+                if low_seeded_mask is not None and low_seeded_mask.any():
+                    df.loc[low_seeded_mask, self.low_column] = seed_data.loc[low_seeded_mask, self.low_column].values
+                    if is_datetime:
+                        low = pd.to_datetime(df[self.low_column])
+                    else:
+                        low = pd.to_numeric(df[self.low_column], errors="coerce")
+
+                # preserve seeded middle values
+                if mid_seeded_mask is not None and mid_seeded_mask.any():
+                    df.loc[mid_seeded_mask, self.middle_column] = seed_data.loc[
+                        mid_seeded_mask, self.middle_column
+                    ].values
+
+                # preserve seeded high values
+                if high_seeded_mask is not None and high_seeded_mask.any():
+                    df.loc[high_seeded_mask, self.high_column] = seed_data.loc[
+                        high_seeded_mask, self.high_column
+                    ].values
+
+                # reconstruct middle for non-seeded rows
+                not_mid_seeded = ~mid_seeded_mask if mid_seeded_mask is not None else pd.Series([True] * len(df))
+                if not_mid_seeded.any():
+                    df.loc[not_mid_seeded, self.middle_column] = (low + delta1).loc[not_mid_seeded].values
+
+                # reconstruct high for non-seeded rows
+                not_high_seeded = ~high_seeded_mask if high_seeded_mask is not None else pd.Series([True] * len(df))
+                if not_high_seeded.any():
+                    df.loc[not_high_seeded, self.high_column] = (low + delta1 + delta2).loc[not_high_seeded].values
+            else:
+                # no seed data: normal reconstruction
                 df[self.middle_column] = low + delta1
-            if seed_data is None or self.high_column not in seed_data.columns:
                 df[self.high_column] = low + delta1 + delta2
+
             df = df.drop(columns=[self._delta1_column, self._delta2_column])
         return df
 
