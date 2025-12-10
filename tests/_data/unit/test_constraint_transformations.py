@@ -966,3 +966,173 @@ class TestSeedDataPreservation:
         assert list(result["city"]) == ["Houston", "Miami"]
         assert list(result["start"]) == [100, 200]
         assert list(result["end"]) == [150, 250]
+
+
+class TestEdgeCases:
+    """test edge cases and simple scenarios that may have been missed."""
+
+    def test_inequality_empty_dataframe(self):
+        """test that empty dataframes are handled gracefully."""
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": pd.Series([], dtype=float), "end": pd.Series([], dtype=float)})
+
+        result = handler.to_internal(df)
+        assert len(result) == 0
+        assert handler._delta_column in result.columns
+
+        restored = handler.to_original(result)
+        assert len(restored) == 0
+        assert "start" in restored.columns
+        assert "end" in restored.columns
+
+    def test_inequality_single_row(self):
+        """test single row case."""
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [10], "end": [20]})
+
+        internal = handler.to_internal(df)
+        assert len(internal) == 1
+
+        restored = handler.to_original(internal)
+        assert len(restored) == 1
+        assert restored["start"].iloc[0] == 10
+        assert restored["end"].iloc[0] == 20
+
+    def test_fixed_combination_empty_strings(self):
+        """test fixed combination with empty string values."""
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b"]))
+        df = pd.DataFrame({"a": ["", "x", ""], "b": ["y", "", "z"]})
+
+        internal = handler.to_internal(df)
+        restored = handler.to_original(internal)
+
+        assert list(restored["a"]) == ["", "x", ""]
+        assert list(restored["b"]) == ["y", "", "z"]
+
+    def test_fixed_combination_empty_dataframe(self):
+        """test that empty dataframes work for FixedCombination."""
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b"]))
+        df = pd.DataFrame({"a": pd.Series([], dtype=str), "b": pd.Series([], dtype=str)})
+
+        internal = handler.to_internal(df)
+        assert len(internal) == 0
+        assert handler.merged_name in internal.columns
+
+        restored = handler.to_original(internal)
+        assert len(restored) == 0
+
+    def test_fixed_combination_single_row(self):
+        """test FixedCombination with single row."""
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b"]))
+        df = pd.DataFrame({"a": ["x"], "b": ["y"]})
+
+        internal = handler.to_internal(df)
+        restored = handler.to_original(internal)
+
+        assert list(restored["a"]) == ["x"]
+        assert list(restored["b"]) == ["y"]
+
+    def test_range_empty_dataframe(self):
+        """test Range with empty dataframe."""
+        handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
+        df = pd.DataFrame(
+            {"min": pd.Series([], dtype=float), "mid": pd.Series([], dtype=float), "max": pd.Series([], dtype=float)}
+        )
+
+        internal = handler.to_internal(df)
+        assert len(internal) == 0
+
+        restored = handler.to_original(internal)
+        assert len(restored) == 0
+
+    def test_range_single_row(self):
+        """test Range with single row."""
+        handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
+        df = pd.DataFrame({"min": [10], "mid": [20], "max": [30]})
+
+        internal = handler.to_internal(df)
+        restored = handler.to_original(internal)
+
+        assert restored["min"].iloc[0] == 10
+        assert restored["mid"].iloc[0] == 20
+        assert restored["max"].iloc[0] == 30
+
+    def test_onehot_empty_dataframe(self):
+        """test OneHotEncoding with empty dataframe."""
+        handler = OneHotEncodingHandler(OneHotEncoding(table_name="test_table", columns=["a", "b", "c"]))
+        df = pd.DataFrame({"a": pd.Series([], dtype=int), "b": pd.Series([], dtype=int), "c": pd.Series([], dtype=int)})
+
+        internal = handler.to_internal(df)
+        assert len(internal) == 0
+
+        restored = handler.to_original(internal)
+        assert len(restored) == 0
+
+    def test_onehot_single_row(self):
+        """test OneHotEncoding with single row."""
+        handler = OneHotEncodingHandler(OneHotEncoding(table_name="test_table", columns=["a", "b"]))
+        df = pd.DataFrame({"a": [1], "b": [0]})
+
+        internal = handler.to_internal(df)
+        restored = handler.to_original(internal)
+
+        assert restored["a"].iloc[0] == 1
+        assert restored["b"].iloc[0] == 0
+
+    def test_all_seeded_inequality(self):
+        """test Inequality when all constraint columns are fully seeded."""
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [10, 20, 30], handler._delta_column: [5, 10, 15]})
+        # all rows seeded for both columns
+        seed_data = pd.DataFrame({"start": [100, 200, 300], "end": [150, 250, 350]})
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        # all values should come from seed
+        assert list(result["start"]) == [100, 200, 300]
+        assert list(result["end"]) == [150, 250, 350]
+
+    def test_all_seeded_fixed_combination(self):
+        """test FixedCombination when all columns are fully seeded."""
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b"]))
+        # create internal representation
+        df = pd.DataFrame({"a": ["x", "y"], "b": ["1", "2"], "a|b": ["merged1", "merged2"]})
+        seed_data = pd.DataFrame({"a": ["seeded_a", "seeded_b"], "b": ["seeded_1", "seeded_2"]})
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        assert list(result["a"]) == ["seeded_a", "seeded_b"]
+        assert list(result["b"]) == ["seeded_1", "seeded_2"]
+
+    def test_all_seeded_range(self):
+        """test Range when all columns are fully seeded."""
+        handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
+        df = pd.DataFrame({"min": [10, 20], handler._delta1_column: [5, 10], handler._delta2_column: [3, 5]})
+        seed_data = pd.DataFrame({"min": [100, 200], "mid": [150, 250], "max": [180, 280]})
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        assert list(result["min"]) == [100, 200]
+        assert list(result["mid"]) == [150, 250]
+        assert list(result["max"]) == [180, 280]
+
+    def test_inequality_with_none_seed_data(self):
+        """test that None seed_data is handled correctly."""
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [10, 20], handler._delta_column: [5, 10]})
+
+        result = handler.to_original(df, seed_data=None)
+
+        assert list(result["start"]) == [10, 20]
+        assert list(result["end"]) == [15, 30]
+
+    def test_inequality_with_empty_seed_data(self):
+        """test that empty seed_data is handled correctly."""
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
+        df = pd.DataFrame({"start": [10, 20], handler._delta_column: [5, 10]})
+        seed_data = pd.DataFrame()
+
+        result = handler.to_original(df, seed_data=seed_data)
+
+        assert list(result["start"]) == [10, 20]
+        assert list(result["end"]) == [15, 30]
