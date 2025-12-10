@@ -835,15 +835,6 @@ class ConstraintTranslator:
         """get all columns that should be removed from encoding types."""
         return self._compute_columns_to_remove()
 
-    @property
-    def merged_columns(self) -> list[tuple[list[str], str]]:
-        """backward compatibility: get list of (original_columns, merged_name) for FixedCombination handlers."""
-        result = []
-        for handler in self.handlers:
-            if isinstance(handler, FixedCombinationHandler):
-                result.append((list(handler.columns), handler.merged_name))
-        return result
-
     def get_all_internal_column_names(self) -> list[str]:
         """get all internal column names from all handlers."""
         result = []
@@ -950,7 +941,7 @@ def preprocess_constraints_for_training(
     """preprocess constraint transformations for training data."""
     target_table = next((t for t in generator.tables if t.name == target_table_name), None)
     if not target_table:
-        _LOG.info(f"table {target_table_name} not found in generator")
+        _LOG.debug(f"table {target_table_name} not found in generator")
         return None
 
     # get constraints from generator root level and filter by table
@@ -1008,4 +999,4 @@ def _update_meta_with_internal_columns(
         with open(encoding_types_file, "w") as f:
             json.dump(encoding_types, f, indent=2)
 
-        _LOG.info(f"updated encoding-types.json with internal columns for {table_name}")
+        _LOG.debug(f"updated encoding-types.json with internal columns for {table_name}")

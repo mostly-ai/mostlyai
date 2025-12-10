@@ -1271,3 +1271,308 @@ class TestEdgeCases:
         # row 2: both seeded
         assert result["start"].iloc[2] == 300
         assert result["end"].iloc[2] == 350
+
+
+class TestIntegration:
+    """integration tests for multiple constraints interacting and advanced scenarios."""
+
+    def test_overlapping_columns_fixed_combination_and_inequality(self):
+        """test constraints that share a column work correctly together."""
+        # FixedCombination on [state, city], Inequality on [city_pop, state_pop]
+        # these don't overlap, but let's test a scenario with shared context
+        constraints = [
+            FixedCombination(table_name="test_table", columns=["region", "country"]),
+            FixedCombination(table_name="test_table", columns=["country", "city"]),
+        ]
+        translator = ConstraintTranslator(constraints)
+        df = pd.DataFrame(
+            {
+                "region": ["Europe", "Americas", "Asia"],
+                "country": ["Germany", "USA", "Japan"],
+                "city": ["Berlin", "NYC", "Tokyo"],
+            }
+        )
+
+        internal = translator.to_internal(df)
+        # both merged columns should exist
+        assert "region|country" in internal.columns
+        assert "country|city" in internal.columns
+
+        restored = translator.to_original(internal)
+        assert list(restored["region"]) == ["Europe", "Americas", "Asia"]
+        assert list(restored["country"]) == ["Germany", "USA", "Japan"]
+        assert list(restored["city"]) == ["Berlin", "NYC", "Tokyo"]
+
+    def test_multiple_inequalities_on_same_table(self):
+        """test multiple inequality constraints on the same table."""
+        constraints = [
+            Inequality(table_name="test_table", low_column="start_date", high_column="mid_date"),
+            Inequality(table_name="test_table", low_column="mid_date", high_column="end_date"),
+        ]
+        translator = ConstraintTranslator(constraints)
+        df = pd.DataFrame(
+            {
+                "start_date": pd.to_datetime(["2024-01-01", "2024-06-01"]),
+                "mid_date": pd.to_datetime(["2024-03-01", "2024-09-01"]),
+                "end_date": pd.to_datetime(["2024-06-01", "2024-12-01"]),
+            }
+        )
+
+        internal = translator.to_internal(df)
+        restored = translator.to_original(internal)
+
+        pd.testing.assert_series_equal(restored["start_date"], df["start_date"])
+        pd.testing.assert_series_equal(restored["mid_date"], df["mid_date"])
+        pd.testing.assert_series_equal(restored["end_date"], df["end_date"])
+
+    def test_multiple_constraints_with_seed_data(self):
+        """test multiple constraints preserve seed data correctly."""
+        constraints = [
+            FixedCombination(table_name="test_table", columns=["state", "city"]),
+            Inequality(table_name="test_table", low_column="age", high_column="retirement_age"),
+        ]
+        translator = ConstraintTranslator(constraints)
+
+        # create internal representation with both constraint columns
+        ineq_handler = translator.handlers[1]
+        df = pd.DataFrame(
+            {
+                "state": ["CA", "NY", "TX"],
+                "city": ["LA", "NYC", "Houston"],
+                "state|city": ["CA\x1eLA", "NY\x1eNYC", "TX\x1eHouston"],
+                "age": [25, 30, 35],
+                ineq_handler._delta_column: [40, 35, 30],
+            }
+        )
+
+        # seed data for all columns
+        seed_data = pd.DataFrame(
+            {
+                "state": ["FL", "WA", "OR"],
+                "city": ["Miami", "Seattle", "Portland"],
+                "age": [20, 25, 30],
+                "retirement_age": [65, 70, 67],
+            }
+        )
+
+        result = translator.to_original(df, seed_data=seed_data)
+
+        # all seed values should be preserved
+        assert list(result["state"]) == ["FL", "WA", "OR"]
+        assert list(result["city"]) == ["Miami", "Seattle", "Portland"]
+        assert list(result["age"]) == [20, 25, 30]
+        assert list(result["retirement_age"]) == [65, 70, 67]
+
+    def test_onehot_and_inequality_combined(self):
+        """test OneHotEncoding and Inequality constraints together."""
+        constraints = [
+            OneHotEncoding(table_name="test_table", columns=["type_a", "type_b", "type_c"]),
+            Inequality(table_name="test_table", low_column="min_value", high_column="max_value"),
+        ]
+        translator = ConstraintTranslator(constraints)
+        df = pd.DataFrame(
+            {
+                "type_a": [1, 0, 0],
+                "type_b": [0, 1, 0],
+                "type_c": [0, 0, 1],
+                "min_value": [10, 20, 30],
+                "max_value": [15, 25, 35],
+            }
+        )
+
+        internal = translator.to_internal(df)
+        restored = translator.to_original(internal)
+
+        assert list(restored["type_a"]) == [1, 0, 0]
+        assert list(restored["type_b"]) == [0, 1, 0]
+        assert list(restored["type_c"]) == [0, 0, 1]
+        assert list(restored["min_value"]) == [10, 20, 30]
+        assert list(restored["max_value"]) == [15, 25, 35]
+
+    def test_constraint_columns_to_remove_correctness(self):
+        """test that get_columns_to_remove returns correct columns for each constraint type."""
+        constraints = [
+            FixedCombination(table_name="test_table", columns=["a", "b"]),  # removes nothing
+            Inequality(table_name="test_table", low_column="low", high_column="high"),  # removes high
+            Range(
+                table_name="test_table", low_column="min", middle_column="mid", high_column="max"
+            ),  # removes mid, max
+            OneHotEncoding(table_name="test_table", columns=["x", "y", "z"]),  # removes x, y, z
+        ]
+        translator = ConstraintTranslator(constraints)
+
+        columns_to_remove = translator.get_columns_to_remove()
+
+        # FixedCombination: keeps original columns
+        assert "a" not in columns_to_remove
+        assert "b" not in columns_to_remove
+        # Inequality: removes high_column
+        assert "high" in columns_to_remove
+        assert "low" not in columns_to_remove
+        # Range: removes middle and high
+        assert "mid" in columns_to_remove
+        assert "max" in columns_to_remove
+        assert "min" not in columns_to_remove
+        # OneHotEncoding: removes all columns
+        assert "x" in columns_to_remove
+        assert "y" in columns_to_remove
+        assert "z" in columns_to_remove
+
+    def test_validate_against_generator_success(self):
+        """test that constraint validation passes for valid generator config."""
+        generator = Generator(
+            id="test-gen",
+            name="Test Generator",
+            tables=[
+                SourceTable(
+                    name="customers",
+                    columns=[
+                        SourceColumn(name="id"),
+                        SourceColumn(name="state"),
+                        SourceColumn(name="city"),
+                        SourceColumn(name="start_date"),
+                        SourceColumn(name="end_date"),
+                    ],
+                    tabular_model_configuration=ModelConfiguration(),
+                )
+            ],
+        )
+
+        handler1 = FixedCombinationHandler(FixedCombination(table_name="customers", columns=["state", "city"]))
+        handler2 = InequalityHandler(
+            Inequality(table_name="customers", low_column="start_date", high_column="end_date")
+        )
+
+        # should not raise
+        handler1.validate_against_generator(generator)
+        handler2.validate_against_generator(generator)
+
+    def test_validate_against_generator_missing_table(self):
+        """test that constraint validation fails for missing table."""
+        generator = Generator(
+            id="test-gen",
+            name="Test Generator",
+            tables=[
+                SourceTable(
+                    name="customers",
+                    columns=[SourceColumn(name="id")],
+                )
+            ],
+        )
+
+        handler = FixedCombinationHandler(FixedCombination(table_name="orders", columns=["state", "city"]))
+
+        with pytest.raises(ValueError, match="table 'orders' referenced by constraint not found"):
+            handler.validate_against_generator(generator)
+
+    def test_validate_against_generator_missing_column(self):
+        """test that constraint validation fails for missing column."""
+        generator = Generator(
+            id="test-gen",
+            name="Test Generator",
+            tables=[
+                SourceTable(
+                    name="customers",
+                    columns=[
+                        SourceColumn(name="id"),
+                        SourceColumn(name="state"),
+                        # "city" column is missing
+                    ],
+                )
+            ],
+        )
+
+        handler = FixedCombinationHandler(FixedCombination(table_name="customers", columns=["state", "city"]))
+
+        with pytest.raises(ValueError, match="column 'city' in table 'customers' referenced by constraint not found"):
+            handler.validate_against_generator(generator)
+
+    def test_validate_against_generator_excluded_column(self):
+        """test that constraint validation fails for excluded column."""
+        generator = Generator(
+            id="test-gen",
+            name="Test Generator",
+            tables=[
+                SourceTable(
+                    name="customers",
+                    columns=[
+                        SourceColumn(name="id"),
+                        SourceColumn(name="state"),
+                        SourceColumn(name="city", included=False),  # excluded
+                    ],
+                )
+            ],
+        )
+
+        handler = FixedCombinationHandler(FixedCombination(table_name="customers", columns=["state", "city"]))
+
+        with pytest.raises(
+            ValueError, match="column 'city' in table 'customers' referenced by constraint not found or not included"
+        ):
+            handler.validate_against_generator(generator)
+
+    def test_all_constraint_types_combined(self):
+        """test all four constraint types working together on the same table."""
+        constraints = [
+            FixedCombination(table_name="test_table", columns=["region", "country"]),
+            Inequality(table_name="test_table", low_column="start_time", high_column="end_time"),
+            Range(table_name="test_table", low_column="min_temp", middle_column="avg_temp", high_column="max_temp"),
+            OneHotEncoding(table_name="test_table", columns=["is_active", "is_pending", "is_complete"]),
+        ]
+        translator = ConstraintTranslator(constraints)
+        df = pd.DataFrame(
+            {
+                "region": ["EU", "US"],
+                "country": ["DE", "CA"],
+                "start_time": [10, 20],
+                "end_time": [15, 30],
+                "min_temp": [0, 5],
+                "avg_temp": [10, 15],
+                "max_temp": [20, 25],
+                "is_active": [1, 0],
+                "is_pending": [0, 1],
+                "is_complete": [0, 0],
+                "other_col": ["x", "y"],
+            }
+        )
+
+        internal = translator.to_internal(df)
+        restored = translator.to_original(internal)
+
+        # verify all values preserved correctly
+        assert list(restored["region"]) == ["EU", "US"]
+        assert list(restored["country"]) == ["DE", "CA"]
+        assert list(restored["start_time"]) == [10, 20]
+        assert list(restored["end_time"]) == [15, 30]
+        assert list(restored["min_temp"]) == [0, 5]
+        assert list(restored["avg_temp"]) == [10, 15]
+        assert list(restored["max_temp"]) == [20, 25]
+        assert list(restored["is_active"]) == [1, 0]
+        assert list(restored["is_pending"]) == [0, 1]
+        assert list(restored["is_complete"]) == [0, 0]
+        assert list(restored["other_col"]) == ["x", "y"]
+
+    def test_encoding_types_combined(self):
+        """test that combined constraints produce correct encoding types."""
+        constraints = [
+            FixedCombination(table_name="test_table", columns=["a", "b"]),
+            Inequality(table_name="test_table", low_column="low", high_column="high"),
+            Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"),
+            OneHotEncoding(table_name="test_table", columns=["x", "y"]),
+        ]
+        translator = ConstraintTranslator(constraints)
+
+        encoding_types = translator.get_encoding_types()
+
+        # FixedCombination: categorical
+        assert encoding_types["a|b"] == "TABULAR_CATEGORICAL"
+        # Inequality: numeric
+        assert any("ineq_delta" in k and v == "TABULAR_NUMERIC_AUTO" for k, v in encoding_types.items())
+        # Range: 2 numeric deltas
+        range_deltas = [k for k in encoding_types if "range" in k]
+        assert len(range_deltas) == 2
+        assert all(encoding_types[k] == "TABULAR_NUMERIC_AUTO" for k in range_deltas)
+        # OneHotEncoding: categorical
+        onehot_cols = [k for k in encoding_types if "onehot" in k]
+        assert len(onehot_cols) == 1
+        assert encoding_types[onehot_cols[0]] == "TABULAR_CATEGORICAL"
