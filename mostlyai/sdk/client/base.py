@@ -164,10 +164,10 @@ class _MostlyBaseClient:
             raise APIStatusError(f"HTTP {exc.response.status_code}: {error_msg}") from None
         except httpx.ReadTimeout as exc:
             # Handle timeout errors
-            raise APIError(f"Timed out while requesting {exc.request.url!r}.") from None
+            raise APIError(f"Timed out while requesting {str(exc.request.url)!r}.") from None
         except httpx.RequestError as exc:
             # Handle request errors (e.g., network issues)
-            raise APIError(f"An error occurred while requesting {exc.request.url!r}.") from None
+            raise APIError(f"An error occurred while requesting {str(exc.request.url)!r} ({exc}).") from None
 
         if raw_response:
             return response
