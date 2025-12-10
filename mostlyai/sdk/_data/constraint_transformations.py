@@ -27,14 +27,15 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from mostlyai.sdk.domain import FixedCombination, Inequality, OneHotEncoding, Range
+from mostlyai.sdk.domain import FixedCombination, Generator, Inequality, OneHotEncoding, Range
 
 if TYPE_CHECKING:
-    from mostlyai.sdk.domain import Generator, ModelType
-else:
-    from mostlyai.sdk.domain import Generator
+    from mostlyai.sdk.domain import ModelType
 
 _LOG = logging.getLogger(__name__)
+
+# type alias for constraint types
+ConstraintType = FixedCombination | Inequality | Range | OneHotEncoding
 
 
 def _generate_internal_column_name(prefix: str, columns: list[str]) -> str:
@@ -82,6 +83,11 @@ class ConstraintHandler(ABC):
     @abstractmethod
     def get_table_column_tuples(self) -> list[tuple[str, str]]:
         """return list of (table_name, column_name) tuples involved in this constraint."""
+        pass
+
+    @abstractmethod
+    def get_columns_to_remove(self) -> set[str]:
+        """columns excluded from training (reconstructed from internal representation)."""
         pass
 
     def _validate_columns(self, df: pd.DataFrame, columns: list[str]) -> None:
@@ -165,18 +171,9 @@ class ConstraintHandler(ABC):
 
 
 class FixedCombinationHandler(ConstraintHandler):
-    """handler for FixedCombination constraints.
+    """handler for FixedCombination constraints."""
 
-    uses csv module for merge/split operations because:
-    - handles escaping of separator characters that appear in data values
-    - properly quotes fields containing the delimiter, quotes, or newlines
-    - standard library with well-tested edge case handling
-    - record separator (ASCII 30, \\x1E) is used as delimiter since it's
-      extremely rare in text data, reducing the need for escaping overhead
-    """
-
-    # record separator (ASCII 30) - control character extremely rare in text data
-    # chosen over common delimiters (comma, pipe, tab) to minimize escaping needs
+    # uses csv module with record separator (ASCII 30) for reliable escaping
     _SEPARATOR = "\x1e"
 
     def __init__(self, constraint: FixedCombination):
@@ -272,18 +269,15 @@ class FixedCombinationHandler(ConstraintHandler):
         """return list of (table_name, column_name) tuples involved in this constraint."""
         return [(self.table_name, col) for col in self.columns]
 
+    def get_columns_to_remove(self) -> set[str]:
+        return set()  # keeps original columns alongside merged column
+
 
 class InequalityHandler(ConstraintHandler):
     """handler for Inequality constraints (low <= high or low < high if strict_boundaries=True)."""
 
-    # epsilon values for strict boundaries enforcement (ensuring low < high):
-    # - _NUMERIC_EPSILON: 1e-10 chosen as smallest practical difference for float64,
-    #   avoiding numerical precision issues while being negligible for real-world data.
-    #   for integer types, we use 1 instead (smallest integer difference).
-    # - _DATETIME_EPSILON: 1 microsecond is the smallest timedelta that pandas can
-    #   reliably represent and is imperceptible for real-world datetime comparisons.
-    _NUMERIC_EPSILON = 1e-10
-    _DATETIME_EPSILON = pd.Timedelta(microseconds=1)
+    _NUMERIC_EPSILON = 1e-10  # smallest practical float64 difference (1 for integers)
+    _DATETIME_EPSILON = pd.Timedelta(microseconds=1)  # smallest reliable timedelta
 
     def __init__(self, constraint: Inequality):
         self.constraint = constraint
@@ -368,153 +362,6 @@ class InequalityHandler(ConstraintHandler):
         df[self._delta_column] = delta
         return df
 
-    def _prepare_reconstruction(self, df: pd.DataFrame) -> tuple[pd.Series, pd.Series, bool, type | None]:
-        """prepare low and delta for reconstruction, determine types.
-
-        Args:
-            df: dataframe containing low_column and delta_column
-
-        Returns:
-            tuple of (low, delta, is_datetime, original_dtype)
-        """
-        low = df[self.low_column]
-        delta = df[self._delta_column]
-        is_datetime = self._is_datetime_column(low)
-        original_dtype = None
-
-        if is_datetime:
-            low = self._normalize_datetime(low)
-            delta = self._ensure_delta_type(delta, is_datetime=True)
-        else:
-            low = self._normalize_numeric(low)
-            delta = self._ensure_delta_type(delta, is_datetime=False)
-            original_dtype = low.dtype
-
-        return low, delta, is_datetime, original_dtype
-
-    def _apply_seed_and_reconstruct(
-        self,
-        df: pd.DataFrame,
-        low: pd.Series,
-        delta: pd.Series,
-        aligned_seed: pd.DataFrame | None,
-        is_datetime: bool,
-        original_dtype: type | None,
-    ) -> pd.DataFrame:
-        """apply seed data and reconstruct high column.
-
-        handles row-by-row imputation based on which columns are seeded.
-
-        Args:
-            df: dataframe to modify
-            low: normalized low column values
-            delta: normalized delta values
-            aligned_seed: aligned seed data (or None)
-            is_datetime: whether data is datetime type
-            original_dtype: original dtype to preserve (for numeric)
-
-        Returns:
-            modified dataframe with high column reconstructed
-        """
-        if aligned_seed is None:
-            # no seed data: simple reconstruction high = low + delta
-            df[self.high_column] = low + delta
-            if not is_datetime and original_dtype and pd.api.types.is_integer_dtype(original_dtype):
-                df[self.high_column] = df[self.high_column].astype(original_dtype)
-            return df
-
-        seed_cols = set(aligned_seed.columns)
-
-        # determine seeded masks and apply seeded values
-        low_seeded_mask = None
-        high_seeded_mask = None
-
-        if self.low_column in seed_cols:
-            low_seeded_mask = aligned_seed[self.low_column].notna()
-            df.loc[low_seeded_mask, self.low_column] = aligned_seed.loc[low_seeded_mask, self.low_column].values
-            # update low to include seeded values
-            low = (
-                self._normalize_datetime(df[self.low_column])
-                if is_datetime
-                else self._normalize_numeric(df[self.low_column])
-            )
-
-        if self.high_column in seed_cols:
-            high_seeded_mask = aligned_seed[self.high_column].notna()
-            df.loc[high_seeded_mask, self.high_column] = aligned_seed.loc[high_seeded_mask, self.high_column].values
-
-        # reconstruct based on seeding scenario
-        df = self._reconstruct_by_seed_scenario(df, low, delta, low_seeded_mask, high_seeded_mask, is_datetime)
-
-        # preserve original dtype
-        if not is_datetime and original_dtype and pd.api.types.is_integer_dtype(original_dtype):
-            df[self.low_column] = df[self.low_column].astype(original_dtype)
-            df[self.high_column] = df[self.high_column].astype(original_dtype)
-
-        return df
-
-    def _reconstruct_by_seed_scenario(
-        self,
-        df: pd.DataFrame,
-        low: pd.Series,
-        delta: pd.Series,
-        low_seeded_mask: pd.Series | None,
-        high_seeded_mask: pd.Series | None,
-        is_datetime: bool,
-    ) -> pd.DataFrame:
-        """reconstruct columns based on which are seeded.
-
-        Args:
-            df: dataframe to modify
-            low: normalized low values
-            delta: delta values
-            low_seeded_mask: mask of rows where low is seeded (or None)
-            high_seeded_mask: mask of rows where high is seeded (or None)
-            is_datetime: whether data is datetime
-
-        Returns:
-            modified dataframe
-        """
-        if low_seeded_mask is not None and high_seeded_mask is not None:
-            # both columns may be seeded: handle row-by-row
-            only_low = low_seeded_mask & ~high_seeded_mask
-            only_high = ~low_seeded_mask & high_seeded_mask
-            neither = ~low_seeded_mask & ~high_seeded_mask
-
-            if only_low.any():
-                df.loc[only_low, self.high_column] = (low + delta).loc[only_low].values
-            if only_high.any():
-                high = (
-                    self._normalize_datetime(df[self.high_column])
-                    if is_datetime
-                    else self._normalize_numeric(df[self.high_column])
-                )
-                df.loc[only_high, self.low_column] = (high - delta).loc[only_high].values
-            if neither.any():
-                df.loc[neither, self.high_column] = (low + delta).loc[neither].values
-
-        elif low_seeded_mask is not None:
-            # only low may be seeded: reconstruct high = low + delta
-            df[self.high_column] = (low + delta).values
-
-        elif high_seeded_mask is not None:
-            # only high may be seeded
-            high = (
-                self._normalize_datetime(df[self.high_column])
-                if is_datetime
-                else self._normalize_numeric(df[self.high_column])
-            )
-            if high_seeded_mask.any():
-                df.loc[high_seeded_mask, self.low_column] = (high - delta).loc[high_seeded_mask].values
-            if (~high_seeded_mask).any():
-                df.loc[~high_seeded_mask, self.high_column] = (low + delta).loc[~high_seeded_mask].values
-
-        else:
-            # neither column in seed: normal reconstruction
-            df[self.high_column] = (low + delta).values
-
-        return df
-
     def to_original(self, df: pd.DataFrame, seed_data: pd.DataFrame | None = None) -> pd.DataFrame:
         """transform from internal schema back to original schema."""
         df = df.copy()
@@ -522,16 +369,59 @@ class InequalityHandler(ConstraintHandler):
             return df
 
         # prepare data and types
-        low, delta, is_datetime, original_dtype = self._prepare_reconstruction(df)
+        is_datetime = self._is_datetime_column(df[self.low_column])
+        if is_datetime:
+            low = self._normalize_datetime(df[self.low_column])
+            delta = self._ensure_delta_type(df[self._delta_column], is_datetime=True)
+            original_dtype = None
+        else:
+            low = self._normalize_numeric(df[self.low_column])
+            delta = self._ensure_delta_type(df[self._delta_column], is_datetime=False)
+            original_dtype = low.dtype
 
         # enforce strict boundaries if needed
         if self.strict_boundaries:
-            is_integer = pd.api.types.is_integer_dtype(low)
-            delta = self._enforce_strict_delta(delta, is_datetime, is_integer, log_warning=False)
+            delta = self._enforce_strict_delta(
+                delta, is_datetime, pd.api.types.is_integer_dtype(low), log_warning=False
+            )
 
-        # align and apply seed data
-        aligned_seed = self._align_seed_data_simple(df, seed_data)
-        df = self._apply_seed_and_reconstruct(df, low, delta, aligned_seed, is_datetime, original_dtype)
+        # align seed data
+        aligned = self._align_seed_data_simple(df, seed_data)
+        low_mask = (
+            aligned[self.low_column].notna() if aligned is not None and self.low_column in aligned.columns else None
+        )
+        high_mask = (
+            aligned[self.high_column].notna() if aligned is not None and self.high_column in aligned.columns else None
+        )
+
+        # default reconstruction: high = low + delta
+        df[self.high_column] = low + delta
+
+        # apply seed overrides
+        if aligned is not None:
+            if low_mask is not None and low_mask.any():
+                df.loc[low_mask, self.low_column] = aligned.loc[low_mask, self.low_column].values
+                low = (
+                    self._normalize_datetime(df[self.low_column])
+                    if is_datetime
+                    else self._normalize_numeric(df[self.low_column])
+                )
+                df.loc[low_mask, self.high_column] = (low + delta).loc[low_mask].values
+            if high_mask is not None and high_mask.any():
+                df.loc[high_mask, self.high_column] = aligned.loc[high_mask, self.high_column].values
+                only_high = high_mask & ~(low_mask if low_mask is not None else pd.Series([False] * len(df)))
+                if only_high.any():
+                    high = (
+                        self._normalize_datetime(df[self.high_column])
+                        if is_datetime
+                        else self._normalize_numeric(df[self.high_column])
+                    )
+                    df.loc[only_high, self.low_column] = (high - delta).loc[only_high].values
+
+        # preserve dtype
+        if not is_datetime and original_dtype and pd.api.types.is_integer_dtype(original_dtype):
+            df[self.low_column] = df[self.low_column].astype(original_dtype)
+            df[self.high_column] = df[self.high_column].astype(original_dtype)
 
         return df.drop(columns=[self._delta_column])
 
@@ -541,6 +431,9 @@ class InequalityHandler(ConstraintHandler):
     def get_table_column_tuples(self) -> list[tuple[str, str]]:
         """return list of (table_name, column_name) tuples involved in this constraint."""
         return [(self.table_name, self.low_column), (self.table_name, self.high_column)]
+
+    def get_columns_to_remove(self) -> set[str]:
+        return {self.high_column}
 
 
 class RangeHandler(ConstraintHandler):
@@ -600,69 +493,55 @@ class RangeHandler(ConstraintHandler):
 
     def to_original(self, df: pd.DataFrame, seed_data: pd.DataFrame | None = None) -> pd.DataFrame:
         df = df.copy()
-        if self._delta1_column in df.columns and self._delta2_column in df.columns:
-            low = df[self.low_column]
-            delta1 = df[self._delta1_column]
-            delta2 = df[self._delta2_column]
+        if self._delta1_column not in df.columns or self._delta2_column not in df.columns:
+            return df
 
-            # determine data types
-            is_datetime = self._is_datetime_column(low)
-            if is_datetime:
-                low = self._normalize_datetime(low)
-                delta1 = self._ensure_delta_type(delta1, is_datetime=True)
-                delta2 = self._ensure_delta_type(delta2, is_datetime=True)
-            else:
-                low = self._normalize_numeric(low)
-                delta1 = self._ensure_delta_type(delta1, is_datetime=False)
-                delta2 = self._ensure_delta_type(delta2, is_datetime=False)
+        # prepare data and types
+        is_datetime = self._is_datetime_column(df[self.low_column])
+        low = (
+            self._normalize_datetime(df[self.low_column])
+            if is_datetime
+            else self._normalize_numeric(df[self.low_column])
+        )
+        delta1 = self._ensure_delta_type(df[self._delta1_column], is_datetime)
+        delta2 = self._ensure_delta_type(df[self._delta2_column], is_datetime)
 
-            # handle seed data with row-by-row support
-            aligned_seed = self._align_seed_data_simple(df, seed_data)
-            if aligned_seed is not None:
-                seed_cols = set(aligned_seed.columns)
+        # align seed data and get masks
+        aligned = self._align_seed_data_simple(df, seed_data)
+        low_mask = (
+            aligned[self.low_column].notna() if aligned is not None and self.low_column in aligned.columns else None
+        )
+        mid_mask = (
+            aligned[self.middle_column].notna()
+            if aligned is not None and self.middle_column in aligned.columns
+            else None
+        )
+        high_mask = (
+            aligned[self.high_column].notna() if aligned is not None and self.high_column in aligned.columns else None
+        )
 
-                # use notna() masks for row-by-row handling
-                low_seeded_mask = aligned_seed[self.low_column].notna() if self.low_column in seed_cols else None
-                mid_seeded_mask = aligned_seed[self.middle_column].notna() if self.middle_column in seed_cols else None
-                high_seeded_mask = aligned_seed[self.high_column].notna() if self.high_column in seed_cols else None
+        # default reconstruction
+        df[self.middle_column] = low + delta1
+        df[self.high_column] = low + delta1 + delta2
 
-                # preserve seeded low values and update low variable
-                if low_seeded_mask is not None and low_seeded_mask.any():
-                    df.loc[low_seeded_mask, self.low_column] = aligned_seed.loc[low_seeded_mask, self.low_column].values
-                    low = (
-                        self._normalize_datetime(df[self.low_column])
-                        if is_datetime
-                        else self._normalize_numeric(df[self.low_column])
-                    )
+        # apply seed overrides
+        if aligned is not None:
+            if low_mask is not None and low_mask.any():
+                df.loc[low_mask, self.low_column] = aligned.loc[low_mask, self.low_column].values
+                low = (
+                    self._normalize_datetime(df[self.low_column])
+                    if is_datetime
+                    else self._normalize_numeric(df[self.low_column])
+                )
+                # recompute for seeded low rows
+                df.loc[low_mask, self.middle_column] = (low + delta1).loc[low_mask].values
+                df.loc[low_mask, self.high_column] = (low + delta1 + delta2).loc[low_mask].values
+            if mid_mask is not None and mid_mask.any():
+                df.loc[mid_mask, self.middle_column] = aligned.loc[mid_mask, self.middle_column].values
+            if high_mask is not None and high_mask.any():
+                df.loc[high_mask, self.high_column] = aligned.loc[high_mask, self.high_column].values
 
-                # preserve seeded middle values
-                if mid_seeded_mask is not None and mid_seeded_mask.any():
-                    df.loc[mid_seeded_mask, self.middle_column] = aligned_seed.loc[
-                        mid_seeded_mask, self.middle_column
-                    ].values
-
-                # preserve seeded high values
-                if high_seeded_mask is not None and high_seeded_mask.any():
-                    df.loc[high_seeded_mask, self.high_column] = aligned_seed.loc[
-                        high_seeded_mask, self.high_column
-                    ].values
-
-                # reconstruct middle for non-seeded rows
-                not_mid_seeded = ~mid_seeded_mask if mid_seeded_mask is not None else pd.Series([True] * len(df))
-                if not_mid_seeded.any():
-                    df.loc[not_mid_seeded, self.middle_column] = (low + delta1).loc[not_mid_seeded].values
-
-                # reconstruct high for non-seeded rows
-                not_high_seeded = ~high_seeded_mask if high_seeded_mask is not None else pd.Series([True] * len(df))
-                if not_high_seeded.any():
-                    df.loc[not_high_seeded, self.high_column] = (low + delta1 + delta2).loc[not_high_seeded].values
-            else:
-                # no seed data: normal reconstruction
-                df[self.middle_column] = low + delta1
-                df[self.high_column] = low + delta1 + delta2
-
-            df = df.drop(columns=[self._delta1_column, self._delta2_column])
-        return df
+        return df.drop(columns=[self._delta1_column, self._delta2_column])
 
     def get_encoding_types(self) -> dict[str, str]:
         return {
@@ -677,6 +556,9 @@ class RangeHandler(ConstraintHandler):
             (self.table_name, self.middle_column),
             (self.table_name, self.high_column),
         ]
+
+    def get_columns_to_remove(self) -> set[str]:
+        return {self.middle_column, self.high_column}
 
 
 class OneHotEncodingHandler(ConstraintHandler):
@@ -741,8 +623,11 @@ class OneHotEncodingHandler(ConstraintHandler):
         """return list of (table_name, column_name) tuples involved in this constraint."""
         return [(self.table_name, col) for col in self.columns]
 
+    def get_columns_to_remove(self) -> set[str]:
+        return set(self.columns)
 
-def _create_constraint_handler(constraint: FixedCombination | Inequality | Range | OneHotEncoding) -> ConstraintHandler:
+
+def _create_constraint_handler(constraint: ConstraintType) -> ConstraintHandler:
     """factory function to create appropriate handler for a constraint."""
     if isinstance(constraint, FixedCombination):
         return FixedCombinationHandler(constraint)
@@ -759,7 +644,7 @@ def _create_constraint_handler(constraint: FixedCombination | Inequality | Range
 class ConstraintTranslator:
     """translates data between user schema and internal schema for constraints."""
 
-    def __init__(self, constraints: list[FixedCombination | Inequality | Range | OneHotEncoding]):
+    def __init__(self, constraints: list[ConstraintType]):
         self.constraints = constraints
         self.handlers = [_create_constraint_handler(c) for c in constraints]
 
@@ -776,24 +661,8 @@ class ConstraintTranslator:
         return df
 
     def _compute_columns_to_remove(self) -> set[str]:
-        """compute columns that should be removed when transforming to internal schema.
-
-        each handler type has different removal rules:
-        - InequalityHandler: removes high_column (reconstructed from low + delta)
-        - RangeHandler: removes middle and high columns (reconstructed from deltas)
-        - OneHotEncodingHandler: removes all one-hot columns (replaced by categorical)
-        - FixedCombinationHandler: keeps all original columns (merged column is added)
-        """
-        columns = set()
-        for handler in self.handlers:
-            if isinstance(handler, InequalityHandler):
-                columns.add(handler.high_column)
-            elif isinstance(handler, RangeHandler):
-                columns.add(handler.middle_column)
-                columns.add(handler.high_column)
-            elif isinstance(handler, OneHotEncodingHandler):
-                columns.update(handler.columns)
-        return columns
+        """compute columns that should be removed when transforming to internal schema."""
+        return set().union(*(h.get_columns_to_remove() for h in self.handlers))
 
     def get_internal_columns(self, original_columns: list[str]) -> list[str]:
         """get list of column names in internal schema."""
@@ -842,6 +711,56 @@ class ConstraintTranslator:
             result.extend(handler.get_internal_column_names())
         return result
 
+    def align_seed_data(
+        self, df: pd.DataFrame, seed_data: pd.DataFrame | None, context_key_col: str | None = None
+    ) -> pd.DataFrame | None:
+        """align seed data for all constraint columns.
+
+        Args:
+            df: generated dataframe to align with
+            seed_data: seed dataframe (may contain __row_idx__ and context key)
+            context_key_col: context key column name for sequential tables
+
+        Returns:
+            aligned dataframe with constraint columns, or None if alignment fails
+        """
+        if seed_data is None or len(seed_data) == 0:
+            return None
+
+        columns = list(set().union(*(set(h.get_original_columns()) for h in self.handlers)))
+        if "__row_idx__" in seed_data.columns and context_key_col:
+            return self._align_sequential(df, seed_data, columns, context_key_col)
+        return self._align_subject(df, seed_data, columns)
+
+    def _align_sequential(
+        self, df: pd.DataFrame, seed_data: pd.DataFrame, columns: list[str], context_key_col: str
+    ) -> pd.DataFrame | None:
+        """align seed data for sequential tables using context key + row index."""
+        if context_key_col not in df.columns:
+            _LOG.warning(f"context key column {context_key_col} not found, skipping seed alignment")
+            return None
+
+        df_with_idx = df[[context_key_col]].copy()
+        df_with_idx["__row_idx__"] = df.groupby(context_key_col).cumcount()
+
+        aligned = pd.merge(df_with_idx, seed_data, on=[context_key_col, "__row_idx__"], how="left")
+        available_cols = [c for c in columns if c in aligned.columns]
+        return aligned[available_cols].reset_index(drop=True) if available_cols else None
+
+    def _align_subject(self, df: pd.DataFrame, seed_data: pd.DataFrame, columns: list[str]) -> pd.DataFrame | None:
+        """align seed data for subject tables (1:1 row alignment with padding/truncation)."""
+        available_cols = [c for c in columns if c in seed_data.columns]
+        if not available_cols:
+            return None
+
+        seed_len, df_len = len(seed_data), len(df)
+        if seed_len > df_len:
+            return seed_data[available_cols].iloc[:df_len].reset_index(drop=True)
+        elif seed_len < df_len:
+            padding = pd.DataFrame(index=range(df_len - seed_len), columns=available_cols)
+            return pd.concat([seed_data[available_cols], padding], ignore_index=True)
+        return seed_data[available_cols].reset_index(drop=True)
+
     @staticmethod
     def from_generator_config(
         generator: Generator,
@@ -873,62 +792,6 @@ class ConstraintTranslator:
 
         original_columns = translator.get_original_columns(current_columns)
         return translator, original_columns
-
-
-def _align_seed_data(
-    df: pd.DataFrame, seed_data: pd.DataFrame, columns: list[str], context_key_col: str | None = None
-) -> pd.DataFrame | None:
-    """align seed data with dataframe for constraint column preservation.
-
-    Args:
-        df: generated dataframe to align with
-        seed_data: seed dataframe (may contain __row_idx__ and context key)
-        columns: list of columns to extract from seed_data
-        context_key_col: context key column name for sequential tables
-
-    Returns:
-        aligned dataframe with requested columns, or None if alignment fails
-    """
-    if seed_data is None or len(seed_data) == 0:
-        return None
-
-    # sequential table: align by context key + row index
-    if "__row_idx__" in seed_data.columns and context_key_col:
-        return _align_sequential_seed(df, seed_data, columns, context_key_col)
-
-    # subject table: 1:1 row alignment
-    return _align_subject_seed(df, seed_data, columns)
-
-
-def _align_sequential_seed(
-    df: pd.DataFrame, seed_data: pd.DataFrame, columns: list[str], context_key_col: str
-) -> pd.DataFrame | None:
-    """align seed data for sequential tables using context key + row index."""
-    if context_key_col not in df.columns:
-        _LOG.warning(f"context key column {context_key_col} not found, skipping seed alignment")
-        return None
-
-    df_with_idx = df[[context_key_col]].copy()
-    df_with_idx["__row_idx__"] = df.groupby(context_key_col).cumcount()
-
-    aligned = pd.merge(df_with_idx, seed_data, on=[context_key_col, "__row_idx__"], how="left")
-    available_cols = [c for c in columns if c in aligned.columns]
-    return aligned[available_cols].reset_index(drop=True) if available_cols else None
-
-
-def _align_subject_seed(df: pd.DataFrame, seed_data: pd.DataFrame, columns: list[str]) -> pd.DataFrame | None:
-    """align seed data for subject tables (1:1 row alignment with padding/truncation)."""
-    available_cols = [c for c in columns if c in seed_data.columns]
-    if not available_cols:
-        return None
-
-    seed_len, df_len = len(seed_data), len(df)
-    if seed_len > df_len:
-        return seed_data[available_cols].iloc[:df_len].reset_index(drop=True)
-    elif seed_len < df_len:
-        padding = pd.DataFrame(index=range(df_len - seed_len), columns=available_cols)
-        return pd.concat([seed_data[available_cols], padding], ignore_index=True)
-    return seed_data[available_cols].reset_index(drop=True)
 
 
 def preprocess_constraints_for_training(

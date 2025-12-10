@@ -21,7 +21,7 @@ from typing import Literal
 import pandas as pd
 
 from mostlyai.sdk._data.base import ForeignKey, NonContextRelation, Schema
-from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator, _align_seed_data
+from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator
 from mostlyai.sdk._data.dtype import is_timestamp_dtype
 from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
@@ -428,24 +428,11 @@ def process_table_with_random_fk_assignment(
             tgt=table_name,
         )
 
-        # align seed data for this chunk if needed
-        chunk_seed_data = None
-        if seed_data is not None and constraint_translator is not None:
-            # get all columns that might be needed for constraints
-            constraint_columns = set()
-            for handler in constraint_translator.handlers:
-                constraint_columns.update(handler.get_original_columns())
-
-            if constraint_columns:
-                chunk_seed_data = _align_seed_data(
-                    df=processed_data,
-                    seed_data=seed_data,
-                    columns=list(constraint_columns),
-                    context_key_col=context_key_col,
-                )
-
         # apply constraint reverse transformation AFTER FK assignment
+        chunk_seed_data = None
         if constraint_translator:
+            if seed_data is not None:
+                chunk_seed_data = constraint_translator.align_seed_data(processed_data, seed_data, context_key_col)
             processed_data = constraint_translator.to_original(processed_data, seed_data=chunk_seed_data)
 
         processed_data = filter_and_order_columns(processed_data, table_name, schema)
@@ -606,23 +593,11 @@ def process_table_with_fk_models(
             chunk_data = pd.concat(processed_batches, ignore_index=True)
 
         # align seed data for this chunk if needed
-        chunk_seed_data = None
-        if seed_data is not None and constraint_translator is not None:
-            # get all columns that might be needed for constraints
-            constraint_columns = set()
-            for handler in constraint_translator.handlers:
-                constraint_columns.update(handler.get_original_columns())
-
-            if constraint_columns:
-                chunk_seed_data = _align_seed_data(
-                    df=chunk_data,
-                    seed_data=seed_data,
-                    columns=list(constraint_columns),
-                    context_key_col=context_key_col,
-                )
-
         # apply constraint reverse transformation AFTER FK assignment
+        chunk_seed_data = None
         if constraint_translator:
+            if seed_data is not None:
+                chunk_seed_data = constraint_translator.align_seed_data(chunk_data, seed_data, context_key_col)
             chunk_data = constraint_translator.to_original(chunk_data, seed_data=chunk_seed_data)
 
         chunk_data = filter_and_order_columns(chunk_data, table_name, schema)
