@@ -131,6 +131,29 @@ class _MostlyIntegrationsClient(_MostlyBaseClient):
         )
         return response.get("authorization_url", "")
 
+    def refresh(self, provider_id: str) -> None:
+        """
+        Refresh integration OAuth token.
+
+        Refresh the OAuth access token for an integration.
+        If the integration has a refresh token, it will be used to obtain new access tokens.
+        If no refresh token exists, a new authorization flow must be initiated.
+
+        Args:
+            provider_id: The provider identifier (e.g., "google", "slack", "github").
+
+        Example for refreshing an integration token:
+            ```python
+            from mostlyai.sdk import MostlyAI
+            mostly = MostlyAI()
+            mostly.integrations.refresh('google')
+            ```
+
+        Raises:
+            APIError: If the integration is not found (404) or no refresh token is available (400).
+        """
+        self.request(verb=POST, path=[provider_id, "refresh"])
+
     def disconnect(self, provider_id: str) -> None:
         """
         Disconnect an integration.
