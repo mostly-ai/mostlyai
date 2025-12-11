@@ -34,11 +34,16 @@ _LOG = logging.getLogger(__name__)
 ConstraintType = FixedCombination | Inequality | Range | OneHotEncoding
 
 
-def _generate_internal_column_name(prefix: str, columns: list[str]) -> str:
-    """generate a deterministic internal column name."""
+def _generate_internal_column_name(prefix: str, columns: list[str], model_type: ModelType = ModelType.tabular) -> str:
+    """generate a deterministic internal column name.
+
+    use model type prefix to avoid pydantic validation errors with language models.
+    """
     key = "|".join(columns)
     hash_suffix = hashlib.md5(key.encode()).hexdigest()[:8]
-    return f"__constraint_{prefix}_{hash_suffix}"
+    # use model type prefix instead of underscores (pydantic doesn't allow leading underscores)
+    model_prefix = "language" if model_type == ModelType.language else "tabular"
+    return f"{model_prefix}_constraint_{prefix}_{hash_suffix}"
 
 
 def get_tgt_meta_path(workspace_dir: Path) -> Path:
@@ -284,7 +289,9 @@ class InequalityHandler(ConstraintHandler):
         self.high_column = constraint.high_column
         self.strict_boundaries = constraint.strict_boundaries
         self.model_type = model_type
-        self._delta_column = _generate_internal_column_name("ineq_delta", [self.low_column, self.high_column])
+        self._delta_column = _generate_internal_column_name(
+            "ineq_delta", [self.low_column, self.high_column], model_type
+        )
 
     def _enforce_strict_delta(
         self, delta: pd.Series, is_datetime: bool, is_integer: bool, log_warning: bool = True
@@ -367,6 +374,11 @@ class InequalityHandler(ConstraintHandler):
         if self._delta_column not in df.columns:
             return df
 
+        # check if low_column exists (should always exist, but be defensive)
+        if self.low_column not in df.columns:
+            _LOG.warning(f"low_column '{self.low_column}' not found in dataframe, skipping constraint transformation")
+            return df
+
         # prepare data and types
         is_datetime = self._is_datetime_column(df[self.low_column])
         if is_datetime:
@@ -447,8 +459,8 @@ class RangeHandler(ConstraintHandler):
         self.high_column = constraint.high_column
         self.model_type = model_type
         cols = [self.low_column, self.middle_column, self.high_column]
-        self._delta1_column = _generate_internal_column_name("range_d1", cols)
-        self._delta2_column = _generate_internal_column_name("range_d2", cols)
+        self._delta1_column = _generate_internal_column_name("range_d1", cols, model_type)
+        self._delta2_column = _generate_internal_column_name("range_d2", cols, model_type)
 
     def get_internal_column_names(self) -> list[str]:
         return [self._delta1_column, self._delta2_column]
@@ -571,7 +583,7 @@ class OneHotEncodingHandler(ConstraintHandler):
         self.table_name = constraint.table_name
         self.columns = constraint.columns
         self.model_type = model_type
-        self._internal_column = _generate_internal_column_name("onehot", self.columns)
+        self._internal_column = _generate_internal_column_name("onehot", self.columns, model_type)
 
     def get_internal_column_names(self) -> list[str]:
         return [self._internal_column]
