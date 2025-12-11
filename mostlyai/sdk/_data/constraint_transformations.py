@@ -23,14 +23,10 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from mostlyai.sdk.domain import FixedCombination, Generator, Inequality, OneHotEncoding, Range
-
-if TYPE_CHECKING:
-    from mostlyai.sdk.domain import ModelType
+from mostlyai.sdk.domain import FixedCombination, Generator, Inequality, ModelType, OneHotEncoding, Range
 
 _LOG = logging.getLogger(__name__)
 
@@ -176,10 +172,11 @@ class FixedCombinationHandler(ConstraintHandler):
     # uses csv module with record separator (ASCII 30) for reliable escaping
     _SEPARATOR = "\x1e"
 
-    def __init__(self, constraint: FixedCombination):
+    def __init__(self, constraint: FixedCombination, model_type: ModelType = ModelType.tabular):
         self.constraint = constraint
         self.table_name = constraint.table_name
         self.columns = constraint.columns
+        self.model_type = model_type
         # use separator for column name (for display/debugging, actual data uses _SEPARATOR)
         self.merged_name = "|".join(self.columns)
 
@@ -263,7 +260,8 @@ class FixedCombinationHandler(ConstraintHandler):
         return df
 
     def get_encoding_types(self) -> dict[str, str]:
-        return {self.merged_name: "TABULAR_CATEGORICAL"}
+        encoding = "LANGUAGE_CATEGORICAL" if self.model_type == ModelType.language else "TABULAR_CATEGORICAL"
+        return {self.merged_name: encoding}
 
     def get_table_column_tuples(self) -> list[tuple[str, str]]:
         """return list of (table_name, column_name) tuples involved in this constraint."""
@@ -279,12 +277,13 @@ class InequalityHandler(ConstraintHandler):
     _NUMERIC_EPSILON = 1e-10  # smallest practical float64 difference (1 for integers)
     _DATETIME_EPSILON = pd.Timedelta(microseconds=1)  # smallest reliable timedelta
 
-    def __init__(self, constraint: Inequality):
+    def __init__(self, constraint: Inequality, model_type: ModelType = ModelType.tabular):
         self.constraint = constraint
         self.table_name = constraint.table_name
         self.low_column = constraint.low_column
         self.high_column = constraint.high_column
         self.strict_boundaries = constraint.strict_boundaries
+        self.model_type = model_type
         self._delta_column = _generate_internal_column_name("ineq_delta", [self.low_column, self.high_column])
 
     def _enforce_strict_delta(
@@ -426,7 +425,8 @@ class InequalityHandler(ConstraintHandler):
         return df.drop(columns=[self._delta_column])
 
     def get_encoding_types(self) -> dict[str, str]:
-        return {self._delta_column: "TABULAR_NUMERIC_AUTO"}
+        encoding = "LANGUAGE_NUMERIC" if self.model_type == ModelType.language else "TABULAR_NUMERIC_AUTO"
+        return {self._delta_column: encoding}
 
     def get_table_column_tuples(self) -> list[tuple[str, str]]:
         """return list of (table_name, column_name) tuples involved in this constraint."""
@@ -439,12 +439,13 @@ class InequalityHandler(ConstraintHandler):
 class RangeHandler(ConstraintHandler):
     """handler for Range constraints (low <= middle <= high)."""
 
-    def __init__(self, constraint: Range):
+    def __init__(self, constraint: Range, model_type: ModelType = ModelType.tabular):
         self.constraint = constraint
         self.table_name = constraint.table_name
         self.low_column = constraint.low_column
         self.middle_column = constraint.middle_column
         self.high_column = constraint.high_column
+        self.model_type = model_type
         cols = [self.low_column, self.middle_column, self.high_column]
         self._delta1_column = _generate_internal_column_name("range_d1", cols)
         self._delta2_column = _generate_internal_column_name("range_d2", cols)
@@ -544,9 +545,10 @@ class RangeHandler(ConstraintHandler):
         return df.drop(columns=[self._delta1_column, self._delta2_column])
 
     def get_encoding_types(self) -> dict[str, str]:
+        encoding = "LANGUAGE_NUMERIC" if self.model_type == ModelType.language else "TABULAR_NUMERIC_AUTO"
         return {
-            self._delta1_column: "TABULAR_NUMERIC_AUTO",
-            self._delta2_column: "TABULAR_NUMERIC_AUTO",
+            self._delta1_column: encoding,
+            self._delta2_column: encoding,
         }
 
     def get_table_column_tuples(self) -> list[tuple[str, str]]:
@@ -564,10 +566,11 @@ class RangeHandler(ConstraintHandler):
 class OneHotEncodingHandler(ConstraintHandler):
     """handler for OneHotEncoding constraints (exactly one column has value 1)."""
 
-    def __init__(self, constraint: OneHotEncoding):
+    def __init__(self, constraint: OneHotEncoding, model_type: ModelType = ModelType.tabular):
         self.constraint = constraint
         self.table_name = constraint.table_name
         self.columns = constraint.columns
+        self.model_type = model_type
         self._internal_column = _generate_internal_column_name("onehot", self.columns)
 
     def get_internal_column_names(self) -> list[str]:
@@ -617,7 +620,8 @@ class OneHotEncodingHandler(ConstraintHandler):
         return df
 
     def get_encoding_types(self) -> dict[str, str]:
-        return {self._internal_column: "TABULAR_CATEGORICAL"}
+        encoding = "LANGUAGE_CATEGORICAL" if self.model_type == ModelType.language else "TABULAR_CATEGORICAL"
+        return {self._internal_column: encoding}
 
     def get_table_column_tuples(self) -> list[tuple[str, str]]:
         """return list of (table_name, column_name) tuples involved in this constraint."""
@@ -627,16 +631,18 @@ class OneHotEncodingHandler(ConstraintHandler):
         return set(self.columns)
 
 
-def _create_constraint_handler(constraint: ConstraintType) -> ConstraintHandler:
+def _create_constraint_handler(
+    constraint: ConstraintType, model_type: ModelType = ModelType.tabular
+) -> ConstraintHandler:
     """factory function to create appropriate handler for a constraint."""
     if isinstance(constraint, FixedCombination):
-        return FixedCombinationHandler(constraint)
+        return FixedCombinationHandler(constraint, model_type)
     elif isinstance(constraint, Inequality):
-        return InequalityHandler(constraint)
+        return InequalityHandler(constraint, model_type)
     elif isinstance(constraint, Range):
-        return RangeHandler(constraint)
+        return RangeHandler(constraint, model_type)
     elif isinstance(constraint, OneHotEncoding):
-        return OneHotEncodingHandler(constraint)
+        return OneHotEncodingHandler(constraint, model_type)
     else:
         raise ValueError(f"unknown constraint type: {type(constraint)}")
 
@@ -644,9 +650,10 @@ def _create_constraint_handler(constraint: ConstraintType) -> ConstraintHandler:
 class ConstraintTranslator:
     """translates data between user schema and internal schema for constraints."""
 
-    def __init__(self, constraints: list[ConstraintType]):
+    def __init__(self, constraints: list[ConstraintType], model_type: ModelType = ModelType.tabular):
         self.constraints = constraints
-        self.handlers = [_create_constraint_handler(c) for c in constraints]
+        self.model_type = model_type
+        self.handlers = [_create_constraint_handler(c, model_type) for c in constraints]
 
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         """transform dataframe from user schema to internal schema."""
@@ -783,9 +790,15 @@ class ConstraintTranslator:
         if not table_constraints:
             return None, None
 
-        translator = ConstraintTranslator(table_constraints)
+        # determine model type from table configuration
         table = next((t for t in generator.tables if t.name == table_name), None)
-        current_columns = [c.name for c in table.columns] if table and table.columns else None
+        if not table:
+            return None, None
+
+        model_type = ModelType.language if table.language_model_configuration else ModelType.tabular
+
+        translator = ConstraintTranslator(table_constraints, model_type)
+        current_columns = [c.name for c in table.columns] if table.columns else None
 
         if not current_columns:
             return translator, None
@@ -819,7 +832,7 @@ def preprocess_constraints_for_training(
         return None
 
     _LOG.info(f"preprocessing constraints for table {target_table_name} in {model_type} model")
-    translator = ConstraintTranslator(table_constraints)
+    translator = ConstraintTranslator(table_constraints, model_type)
 
     tgt_data_dir = workspace_dir / "OriginalData" / "tgt-data"
     if not tgt_data_dir.exists():

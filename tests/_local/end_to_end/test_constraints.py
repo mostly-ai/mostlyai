@@ -207,3 +207,82 @@ def test_constraints_with_seed_data(mostly):
     # cleanup
     g.delete()
     sd.delete()
+
+
+def test_language_model_constraints(mostly):
+    """test constraints with language model encoding types (categorical, numeric, datetime)."""
+
+    # create training data with language model columns
+    df = pd.DataFrame(
+        {
+            "category": ["A", "B", "C"] * 30,  # will use LANGUAGE_CATEGORICAL
+            "subcategory": ["X", "Y", "Z"] * 30,  # will use LANGUAGE_CATEGORICAL
+            "min_value": [10, 20, 30] * 30,  # will use LANGUAGE_NUMERIC
+            "max_value": [15, 25, 35] * 30,  # will use LANGUAGE_NUMERIC
+            "start_date": pd.to_datetime(["2024-01-01", "2024-02-01", "2024-03-01"] * 30),  # will use LANGUAGE_DATETIME
+            "end_date": pd.to_datetime(["2024-01-15", "2024-02-15", "2024-03-15"] * 30),  # will use LANGUAGE_DATETIME
+        }
+    )
+
+    # define valid category-subcategory pairs
+    valid_pairs = {("A", "X"), ("B", "Y"), ("C", "Z")}
+
+    # train generator with language model and constraints
+    g = mostly.train(
+        config={
+            "name": "Test Language Model Constraints",
+            "tables": [
+                {
+                    "name": "test",
+                    "data": df,
+                    "language_model_configuration": {
+                        "max_epochs": 0.5,
+                    },
+                    "columns": [
+                        {"name": "category", "model_encoding_type": "LANGUAGE_CATEGORICAL"},
+                        {"name": "subcategory", "model_encoding_type": "LANGUAGE_CATEGORICAL"},
+                        {"name": "min_value", "model_encoding_type": "LANGUAGE_NUMERIC"},
+                        {"name": "max_value", "model_encoding_type": "LANGUAGE_NUMERIC"},
+                        {"name": "start_date", "model_encoding_type": "LANGUAGE_DATETIME"},
+                        {"name": "end_date", "model_encoding_type": "LANGUAGE_DATETIME"},
+                    ],
+                }
+            ],
+            "constraints": [
+                FixedCombination(table_name="test", columns=["category", "subcategory"]),
+                Inequality(table_name="test", low_column="min_value", high_column="max_value"),
+                Inequality(table_name="test", low_column="start_date", high_column="end_date"),
+            ],
+        }
+    )
+
+    # verify generator was created
+    assert g is not None
+
+    # generate synthetic data
+    sd = mostly.generate(g, size=50)
+    df_syn = sd.data()
+
+    # verify synthetic data has correct columns
+    assert "category" in df_syn.columns
+    assert "subcategory" in df_syn.columns
+    assert "min_value" in df_syn.columns
+    assert "max_value" in df_syn.columns
+    assert "start_date" in df_syn.columns
+    assert "end_date" in df_syn.columns
+
+    # verify fixed combination constraint (category-subcategory pairs)
+    syn_pairs = set(zip(df_syn["category"], df_syn["subcategory"]))
+    assert syn_pairs.issubset(valid_pairs), f"invalid pairs found: {syn_pairs - valid_pairs}"
+
+    # verify inequality constraint for numeric columns
+    assert (df_syn["min_value"] <= df_syn["max_value"]).all(), "numeric inequality constraint violated"
+
+    # verify inequality constraint for datetime columns
+    df_syn["start_date"] = pd.to_datetime(df_syn["start_date"])
+    df_syn["end_date"] = pd.to_datetime(df_syn["end_date"])
+    assert (df_syn["start_date"] <= df_syn["end_date"]).all(), "datetime inequality constraint violated"
+
+    # cleanup
+    g.delete()
+    sd.delete()
