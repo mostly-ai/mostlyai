@@ -25,7 +25,6 @@ from mostlyai.sdk.client.base import (
 from mostlyai.sdk.domain import (
     Integration,
     IntegrationAuthorizationRequest,
-    IntegrationProvidersConfig,
 )
 
 
@@ -75,25 +74,6 @@ class _MostlyIntegrationsClient(_MostlyBaseClient):
         """
         response = self.request(verb=GET, path=[provider_id], response_type=Integration)
         return response
-
-    def providers(self) -> list[IntegrationProvidersConfig]:
-        """
-        List all available integration providers.
-
-        Returns:
-            list[IntegrationProvidersConfig]: A list of available integration providers configuration objects.
-
-        Example for listing providers:
-            ```python
-            from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI()
-            providers = mostly.integrations.providers()
-            for p in providers:
-                print(f"Provider: {p.name} ({p.id})")
-            ```
-        """
-        response = self.request(verb=GET, path=["providers"], do_include_client=False)
-        return [IntegrationProvidersConfig(**item) for item in response["providers"]]
 
     def authorize(
         self,
@@ -169,9 +149,6 @@ class _MostlyIntegrationsClient(_MostlyBaseClient):
             ```
         """
         self.request(verb=DELETE, path=[provider_id])
-        if self.local:
-            rich.print(f"Disconnected integration [dodger_blue2]{provider_id}[/]")
-        else:
-            rich.print(
-                f"Disconnected integration [link={self.base_url}/d/integrations/{provider_id} dodger_blue2 underline]{provider_id}[/]"
-            )
+        rich.print(
+            f"Disconnected integration [link={self.base_url}/d/integrations/{provider_id} dodger_blue2 underline]{provider_id}[/]"
+        )
