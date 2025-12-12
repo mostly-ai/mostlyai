@@ -1,6 +1,7 @@
 name: '[GPU] mostlyai Tests'
 
-on: [workflow_call]
+# on: [workflow_call]
+on: [push]
 
 env:
   PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
@@ -10,7 +11,7 @@ jobs:
   run-test-gpu:
     runs-on: gha-gpu-public
     container:
-      image: nvidia/cuda:12.9.1-cudnn-runtime-ubuntu22.04
+      image: nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04
       options: --gpus all
     permissions:
       contents: read
