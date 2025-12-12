@@ -160,7 +160,7 @@ class TestInequalityHandler:
         result = handler.to_internal(df)
 
         assert "start" in result.columns
-        delta_col = [c for c in result.columns if c.startswith("__constraint_ineq_delta")][0]
+        delta_col = [c for c in result.columns if "constraint_ineq_delta" in c][0]
         assert list(result[delta_col]) == [5, 5, 5]
 
     def test_to_internal_datetime(self):
@@ -174,7 +174,7 @@ class TestInequalityHandler:
 
         result = handler.to_internal(df)
 
-        delta_col = [c for c in result.columns if c.startswith("__constraint_ineq_delta")][0]
+        delta_col = [c for c in result.columns if "constraint_ineq_delta" in c][0]
         assert result[delta_col].iloc[0] == pd.Timedelta(days=9)
         assert result[delta_col].iloc[1] == pd.Timedelta(days=14)
 
@@ -562,7 +562,7 @@ class TestConstraintTranslator:
         assert "high" not in internal
         assert "low" in internal
         assert "other" in internal
-        assert any(c.startswith("__constraint_ineq_delta") for c in internal)
+        assert any("constraint_ineq_delta" in c for c in internal)
 
     def test_get_original_columns(self):
         constraints = [FixedCombination(table_name="test_table", columns=["a", "b"])]
