@@ -261,7 +261,7 @@ class MostlyAI(_MostlyBaseClient):
                     msg += f" as [bold]{email}[/bold]" if email else ""
                     rich.print(msg)
                 except Exception as e:
-                    rich.print(f"Failed to connect to {self.base_url} : {e}.")
+                    rich.print(f"Failed to connect to {self.base_url} : {e}")
         else:
             raise ValueError("Invalid SDK mode")
 
