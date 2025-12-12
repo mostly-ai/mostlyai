@@ -34,6 +34,7 @@ from mostlyai.sdk.client.connectors import _MostlyConnectorsClient
 from mostlyai.sdk.client.datasets import _MostlyDatasetsClient
 from mostlyai.sdk.client.exceptions import APIError
 from mostlyai.sdk.client.generators import _MostlyGeneratorsClient
+from mostlyai.sdk.client.integrations import _MostlyIntegrationsClient
 from mostlyai.sdk.client.synthetic_datasets import (
     _MostlySyntheticDatasetsClient,
     _MostlySyntheticProbesClient,
@@ -228,6 +229,7 @@ class MostlyAI(_MostlyBaseClient):
         self.generators = _MostlyGeneratorsClient(**client_kwargs)
         self.datasets = _MostlyDatasetsClient(**client_kwargs)
         self.artifacts = _MostlyArtifactsClient(**client_kwargs)
+        self.integrations = _MostlyIntegrationsClient(**client_kwargs)
         self.synthetic_datasets = _MostlySyntheticDatasetsClient(**client_kwargs)
         self.synthetic_probes = _MostlySyntheticProbesClient(**client_kwargs)
         if mode == "LOCAL":
