@@ -49,8 +49,8 @@ def postprocess_model_file(file_path):
     private_classes = get_private_classes(MODEL_FILE_PATH)
 
     for line in lines:
-        # Remove filename comment
-        if "#   filename:" in line:
+        # skip filename comment and uuid import (UUID gets replaced with str)
+        if "#   filename:" in line or "from uuid import" in line:
             pass
         # Add additional imports
         elif "from enum import Enum" in line:
@@ -127,6 +127,13 @@ for _, _obj in inspect.getmembers(sys.modules[__name__]):
     content = "".join(new_lines)
     content = re.sub(r"(secrets: )([^=]+?)( =)", r"\1Annotated[\2, Field(repr=False)]\3", content)
     content = re.sub(r"(ssl: )([^=]+?)( =)", r"\1Annotated[\2, Field(repr=False)]\3", content)
+
+    # exclude icon field from serialization (svg images are too large)
+    content = re.sub(
+        r"(icon: str \| None = Field\(None, description=['\"]svg image['\"])\)",
+        r"\1, repr=False, exclude=True)",
+        content,
+    )
 
     # Write the modified contents back to the file
     with open(file_path, "w") as file:
