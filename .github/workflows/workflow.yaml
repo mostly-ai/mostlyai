@@ -1,10 +1,9 @@
 name: 'mostlyai CI'
 
 on:
-  # push:
-  # pull_request:
-  #   types: [opened, reopened, synchronize, edited]
-  workflow_call:
+  push:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
 
 jobs:
   pre-commit-check:
