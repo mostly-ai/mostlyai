@@ -62,7 +62,7 @@ RUN apk add --no-cache --virtual temp-build-deps gcc~12 postgresql-dev \
   --no-install-project \
   && apk del temp-build-deps
 
-RUN uv pip install torch==2.8.0 torchvision==0.23.0 --torch-backend=cpu
+RUN uv pip install torch==2.9.1 torchvision==0.24.1 --torch-backend=cpu
 COPY mostlyai ./mostlyai
 COPY README.md ./
 RUN uv pip install -e .
