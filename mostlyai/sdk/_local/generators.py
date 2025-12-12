@@ -174,7 +174,10 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                         status=ProgressStatus.new,
                     )
                 )
-    if has_non_context_relationships(generator):
+    # always add finalize_training progress steps if there are non-context relationships or constraints
+    # (finalize_training handles both FK model training and column restoration)
+    has_constraints = bool(getattr(generator, "constraints", None))
+    if has_non_context_relationships(generator) or has_constraints:
         for step in FINALIZE_TRAINING_TASK_STEPS:
             progress_steps.append(
                 ProgressStep(
@@ -202,6 +205,7 @@ def get_generator_config(home_dir: Path, generator_id: str) -> GeneratorConfig:
     config = GeneratorConfig(
         name=generator.name,
         description=generator.description,
+        random_state=generator.random_state,
         tables=[
             SourceTableConfig(
                 name=t.name,
@@ -221,5 +225,6 @@ def get_generator_config(home_dir: Path, generator_id: str) -> GeneratorConfig:
         ]
         if generator.tables
         else None,
+        constraints=getattr(generator, "constraints", None),
     )
     return config

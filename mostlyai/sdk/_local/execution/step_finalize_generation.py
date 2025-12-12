@@ -21,6 +21,7 @@ from typing import Literal
 import pandas as pd
 
 from mostlyai.sdk._data.base import ForeignKey, NonContextRelation, Schema
+from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator
 from mostlyai.sdk._data.dtype import is_timestamp_dtype
 from mostlyai.sdk._data.file.base import LocalFileContainer
 from mostlyai.sdk._data.file.table.csv import CsvDataTable
@@ -49,11 +50,31 @@ FK_MAX_CHILDREN_BATCH_SIZE = 10_000
 FK_PARENT_BATCH_SIZE = 1_000
 
 
+def load_constraint_translator_from_generator(
+    generator: Generator,
+    table_name: str,
+) -> tuple[ConstraintTranslator | None, list[str] | None]:
+    """load constraint translator for a table from generator configuration.
+
+    This function loads constraints directly from the generator config without
+    needing any external files. All constraint information is in the generator.
+
+    Args:
+        generator: Generator object.
+        table_name: Name of the table.
+
+    Returns:
+        Tuple of (translator, original_columns) or (None, None).
+    """
+    return ConstraintTranslator.from_generator_config(generator=generator, table_name=table_name)
+
+
 def execute_step_finalize_generation(
     *,
     schema: Schema,
     is_probe: bool,
     job_workspace_dir: Path,
+    generator: Generator,
     update_progress: ProgressCallback | None = None,
 ) -> dict[str, int]:
     # get synthetic table usage
@@ -70,6 +91,7 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=False,
                 job_workspace_dir=job_workspace_dir,
+                generator=generator,
             )
         return usages
 
@@ -91,6 +113,7 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=export_csv,
                 job_workspace_dir=job_workspace_dir,
+                generator=generator,
             )
             progress.update(advance=1)
 
@@ -299,6 +322,15 @@ def load_extra_seed_columns(workspace_dir: Path) -> pd.DataFrame | None:
     return None
 
 
+def load_seed_data(workspace_dir: Path) -> pd.DataFrame | None:
+    """load seed data for a table if it exists."""
+    seed_path = workspace_dir / "SeedData" / "seed.parquet"
+    if seed_path.exists():
+        _LOG.info(f"loading seed data from {seed_path}")
+        return pd.read_parquet(seed_path)
+    return None
+
+
 def write_batch_outputs(
     data: pd.DataFrame, table_name: str, batch_counter: int, pqt_path: Path, csv_path: Path | None
 ) -> None:
@@ -380,9 +412,13 @@ def process_table_with_random_fk_assignment(
     schema: Schema,
     pqt_path: Path,
     csv_path: Path | None,
+    constraint_translator: ConstraintTranslator | None = None,
+    seed_data: pd.DataFrame | None = None,
 ) -> None:
     """Process table with random FK assignment, chunk by chunk."""
     table = schema.tables[table_name]
+    context_key = next((fk for fk in table.foreign_keys if fk.is_context), None)
+    context_key_col = context_key.column if context_key else None
 
     for chunk_idx, chunk_data in enumerate(table.read_chunks(do_coerce_dtypes=True)):
         _LOG.info(f"Processing chunk {chunk_idx + 1} ({len(chunk_data)} rows)")
@@ -391,6 +427,14 @@ def process_table_with_random_fk_assignment(
             generated_data_schema=schema,
             tgt=table_name,
         )
+
+        # apply constraint reverse transformation AFTER FK assignment
+        chunk_seed_data = None
+        if constraint_translator:
+            if seed_data is not None:
+                chunk_seed_data = constraint_translator.align_seed_data(processed_data, seed_data, context_key_col)
+            processed_data = constraint_translator.to_original(processed_data, seed_data=chunk_seed_data)
+
         processed_data = filter_and_order_columns(processed_data, table_name, schema)
         write_batch_outputs(processed_data, table_name, chunk_idx, pqt_path, csv_path)
 
@@ -436,12 +480,16 @@ def process_table_with_fk_models(
     csv_path: Path | None,
     parent_batch_size: int = FK_PARENT_BATCH_SIZE,
     job_workspace_dir: Path,
+    constraint_translator: ConstraintTranslator | None = None,
+    seed_data: pd.DataFrame | None = None,
 ) -> None:
     """Process table with ML model-based FK assignment using logical child batches."""
 
     fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / table_name
     non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == table_name]
     children_table = schema.tables[table_name]
+    context_key = next((fk for fk in children_table.foreign_keys if fk.is_context), None)
+    context_key_col = context_key.column if context_key else None
 
     # Load parent keys upfront (memory efficient)
     parent_keys_cache = {}
@@ -544,6 +592,14 @@ def process_table_with_fk_models(
 
             chunk_data = pd.concat(processed_batches, ignore_index=True)
 
+        # align seed data for this chunk if needed
+        # apply constraint reverse transformation AFTER FK assignment
+        chunk_seed_data = None
+        if constraint_translator:
+            if seed_data is not None:
+                chunk_seed_data = constraint_translator.align_seed_data(chunk_data, seed_data, context_key_col)
+            chunk_data = constraint_translator.to_original(chunk_data, seed_data=chunk_seed_data)
+
         chunk_data = filter_and_order_columns(chunk_data, table_name, schema)
         write_batch_outputs(chunk_data, table_name, chunk_idx, pqt_path, csv_path)
 
@@ -554,6 +610,7 @@ def finalize_table_generation(
     delivery_dir: Path,
     export_csv: bool,
     job_workspace_dir: Path,
+    generator: Generator | None = None,
 ) -> None:
     """
     Post-process the generated data for a given table.
@@ -566,6 +623,25 @@ def finalize_table_generation(
     pqt_path, csv_path = setup_output_paths(delivery_dir, target_table_name, export_csv)
     fk_models_available = are_fk_models_available(job_workspace_dir, target_table_name, generated_data_schema)
 
+    # load constraint translator from generator config (only if generator provided)
+    constraint_translator = None
+    if generator:
+        constraint_translator, original_columns = load_constraint_translator_from_generator(
+            generator=generator, table_name=target_table_name
+        )
+
+        if constraint_translator:
+            _LOG.info(f"loaded constraint translator for table {target_table_name}")
+
+            # restore original column names in schema (before transformation)
+            if original_columns:
+                generated_data_schema.tables[target_table_name].columns = original_columns
+
+    # load seed data if available
+    table = generated_data_schema.tables[target_table_name]
+    workspace_dir = table.container.path.parent  # SyntheticData -> workspace_dir
+    seed_data = load_seed_data(workspace_dir)
+
     if fk_models_available:
         _LOG.info(f"Assigning non context FKs (if exists) through FK models for table {target_table_name}")
         try:
@@ -575,6 +651,8 @@ def finalize_table_generation(
                 pqt_path=pqt_path,
                 csv_path=csv_path,
                 job_workspace_dir=job_workspace_dir,
+                constraint_translator=constraint_translator,
+                seed_data=seed_data,
             )
         except Exception as e:
             _LOG.error(f"FK model processing failed for table {target_table_name}: {e}")
@@ -584,6 +662,8 @@ def finalize_table_generation(
                 schema=generated_data_schema,
                 pqt_path=pqt_path,
                 csv_path=csv_path,
+                constraint_translator=constraint_translator,
+                seed_data=seed_data,
             )
     else:
         _LOG.info(f"Assigning non context FKs (if exists) through random assignment for table {target_table_name}")
@@ -592,6 +672,8 @@ def finalize_table_generation(
             schema=generated_data_schema,
             pqt_path=pqt_path,
             csv_path=csv_path,
+            constraint_translator=constraint_translator,
+            seed_data=seed_data,
         )
 
     # merge extra seed columns as a separate post-processing step
