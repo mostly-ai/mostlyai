@@ -101,133 +101,127 @@ class TestFixedCombinationHandler:
         handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b"]))
         assert handler.get_encoding_types() == {"a|b": "TABULAR_CATEGORICAL"}
 
-    def test_separator_character_in_data_escaping(self):
-        """test that separator characters in data are properly escaped."""
-        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
-        # include the record separator character (\x1E) in the data
-        df = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA\x1eSF", "NYC"], "value": [1, 2]})
+    @pytest.mark.parametrize(
+        "columns,df_data,expected",
+        [
+            (
+                ["state", "city"],
+                {"state": ["CA", "NY"], "city": ["LA\x1eSF", "NYC"], "value": [1, 2]},
+                {"state": ["CA", "NY"], "city": ["LA\x1eSF", "NYC"]},
+            ),
+            (
+                ["state", "city"],
+                {"state": ["CA", "NY"], "city": ["LA|SF", "NYC"], "value": [1, 2]},
+                {"state": ["CA", "NY"], "city": ["LA|SF", "NYC"]},
+            ),
+            (
+                ["a", "b", "c"],
+                {"a": ["x\x1ey", "z"], "b": ["1", "2\x1e3"], "c": ["!", "@"], "other": [10, 20]},
+                {"a": ["x\x1ey", "z"], "b": ["1", "2\x1e3"], "c": ["!", "@"]},
+            ),
+        ],
+    )
+    def test_separator_escaping(self, columns, df_data, expected):
+        """test that separator characters (record separator and pipe) in data are properly handled."""
+        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=columns))
+        df = pd.DataFrame(df_data)
 
         internal = handler.to_internal(df)
         restored = handler.to_original(internal)
 
-        assert list(restored["state"]) == ["CA", "NY"]
-        assert list(restored["city"]) == ["LA\x1eSF", "NYC"]
-
-    def test_pipe_character_in_data(self):
-        """test that pipe characters in data are preserved (not used as separator)."""
-        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
-        # pipe character in data should be preserved since we use record separator
-        df = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA|SF", "NYC"], "value": [1, 2]})
-
-        internal = handler.to_internal(df)
-        # new format uses record separator, so pipe in data is preserved
-        restored = handler.to_original(internal)
-
-        assert list(restored["state"]) == ["CA", "NY"]
-        assert list(restored["city"]) == ["LA|SF", "NYC"]
-
-    def test_multiple_columns_with_separator(self):
-        """test escaping with multiple columns containing separator."""
-        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b", "c"]))
-        df = pd.DataFrame({"a": ["x\x1ey", "z"], "b": ["1", "2\x1e3"], "c": ["!", "@"], "other": [10, 20]})
-
-        internal = handler.to_internal(df)
-        restored = handler.to_original(internal)
-
-        assert list(restored["a"]) == ["x\x1ey", "z"]
-        assert list(restored["b"]) == ["1", "2\x1e3"]
-        assert list(restored["c"]) == ["!", "@"]
-
-    def test_malformed_split_handling(self):
-        """test that malformed splits are handled gracefully."""
-        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b", "c"]))
-        # create data that would split into wrong number of columns
-        # this shouldn't happen in practice, but we should handle it
-        df = pd.DataFrame({"a|b|c": ["x", "y|z"], "value": [1, 2]})
-
-        # should not crash, but may produce incomplete data
-        restored = handler.to_original(df)
-        assert "a" in restored.columns
-        assert "b" in restored.columns
-        assert "c" in restored.columns
+        for col, expected_values in expected.items():
+            assert list(restored[col]) == expected_values
 
 
 class TestInequalityHandler:
-    def test_to_internal_numeric(self):
+    @pytest.mark.parametrize(
+        "df_data,expected_delta",
+        [
+            (
+                {"start": [10, 20, 30], "end": [15, 25, 35]},
+                [5, 5, 5],
+            ),
+            (
+                {
+                    "start": pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                    "end": pd.to_datetime(["2024-01-10", "2024-02-15"]),
+                },
+                [pd.Timedelta(days=9), pd.Timedelta(days=14)],
+            ),
+        ],
+    )
+    def test_to_internal(self, df_data, expected_delta):
+        """test to_internal for both numeric and datetime types."""
         handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
-        df = pd.DataFrame({"start": [10, 20, 30], "end": [15, 25, 35]})
+        df = pd.DataFrame(df_data)
 
         result = handler.to_internal(df)
 
         assert "start" in result.columns
         delta_col = [c for c in result.columns if "constraint_ineq_delta" in c][0]
-        assert list(result[delta_col]) == [5, 5, 5]
+        if isinstance(expected_delta[0], pd.Timedelta):
+            assert result[delta_col].iloc[0] == expected_delta[0]
+            assert result[delta_col].iloc[1] == expected_delta[1]
+        else:
+            assert list(result[delta_col]) == expected_delta
 
-    def test_to_internal_datetime(self):
-        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
-        df = pd.DataFrame(
-            {
-                "start": pd.to_datetime(["2024-01-01", "2024-02-01"]),
-                "end": pd.to_datetime(["2024-01-10", "2024-02-15"]),
-            }
-        )
-
-        result = handler.to_internal(df)
-
-        delta_col = [c for c in result.columns if "constraint_ineq_delta" in c][0]
-        assert result[delta_col].iloc[0] == pd.Timedelta(days=9)
-        assert result[delta_col].iloc[1] == pd.Timedelta(days=14)
-
-    def test_to_original_numeric(self):
+    @pytest.mark.parametrize(
+        "df_data,delta_values,expected_end",
+        [
+            (
+                {"start": [10, 20]},
+                [5, 10],
+                [15, 30],
+            ),
+            (
+                {"start": pd.to_datetime(["2024-01-01", "2024-02-01"])},
+                pd.to_timedelta(["9 days", "14 days"]),
+                [pd.Timestamp("2024-01-10"), pd.Timestamp("2024-02-15")],
+            ),
+        ],
+    )
+    def test_to_original(self, df_data, delta_values, expected_end):
+        """test to_original for both numeric and datetime types."""
         handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         delta_col = handler._delta_column
-        df = pd.DataFrame({"start": [10, 20], delta_col: [5, 10]})
+        df = pd.DataFrame({**df_data, delta_col: delta_values})
 
         result = handler.to_original(df)
 
         assert "end" in result.columns
-        assert list(result["end"]) == [15, 30]
         assert delta_col not in result.columns
+        if isinstance(expected_end[0], pd.Timestamp):
+            assert result["end"].iloc[0] == expected_end[0]
+            assert result["end"].iloc[1] == expected_end[1]
+        else:
+            assert list(result["end"]) == expected_end
 
-    def test_to_original_datetime(self):
-        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
-        delta_col = handler._delta_column
-        df = pd.DataFrame(
-            {
-                "start": pd.to_datetime(["2024-01-01", "2024-02-01"]),
-                delta_col: pd.to_timedelta(["9 days", "14 days"]),
-            }
-        )
-
-        result = handler.to_original(df)
-
-        assert result["end"].iloc[0] == pd.Timestamp("2024-01-10")
-        assert result["end"].iloc[1] == pd.Timestamp("2024-02-15")
-
-    def test_round_trip_numeric(self):
-        handler = InequalityHandler(Inequality(table_name="test_table", low_column="low", high_column="high"))
-        df = pd.DataFrame({"low": [1.0, 2.0, 3.0], "high": [5.0, 7.0, 10.0], "other": ["a", "b", "c"]})
-
-        internal = handler.to_internal(df)
-        restored = handler.to_original(internal)
-
-        assert list(restored["low"]) == [1.0, 2.0, 3.0]
-        assert list(restored["high"]) == [5.0, 7.0, 10.0]
-
-    def test_round_trip_datetime(self):
-        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
-        df = pd.DataFrame(
+    @pytest.mark.parametrize(
+        "df_data",
+        [
+            {"low": [1.0, 2.0, 3.0], "high": [5.0, 7.0, 10.0], "other": ["a", "b", "c"]},
             {
                 "start": pd.to_datetime(["2024-01-01", "2024-06-15"]),
                 "end": pd.to_datetime(["2024-01-31", "2024-12-31"]),
-            }
-        )
+            },
+        ],
+    )
+    def test_round_trip(self, df_data):
+        """test round-trip for both numeric and datetime types."""
+        low_col = "low" if "low" in df_data else "start"
+        high_col = "high" if "high" in df_data else "end"
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column=low_col, high_column=high_col))
+        df = pd.DataFrame(df_data)
 
         internal = handler.to_internal(df)
         restored = handler.to_original(internal)
 
-        pd.testing.assert_series_equal(restored["start"], df["start"])
-        pd.testing.assert_series_equal(restored["end"], df["end"])
+        if isinstance(df[low_col].iloc[0], pd.Timestamp):
+            pd.testing.assert_series_equal(restored[low_col], df[low_col])
+            pd.testing.assert_series_equal(restored[high_col], df[high_col])
+        else:
+            assert list(restored[low_col]) == list(df[low_col])
+            assert list(restored[high_col]) == list(df[high_col])
 
     def test_violation_correction(self):
         handler = InequalityHandler(Inequality(table_name="test_table", low_column="low", high_column="high"))
@@ -365,37 +359,48 @@ class TestInequalityHandler:
 
 
 class TestRangeHandler:
-    def test_to_internal_numeric(self):
-        handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
-        df = pd.DataFrame({"min": [0, 10], "mid": [5, 15], "max": [10, 20]})
-
-        result = handler.to_internal(df)
-
-        delta1_col = handler._delta1_column
-        delta2_col = handler._delta2_column
-        assert list(result[delta1_col]) == [5, 5]
-        assert list(result[delta2_col]) == [5, 5]
-
-    def test_to_internal_datetime(self):
+    @pytest.mark.parametrize(
+        "df_data,expected_delta1,expected_delta2",
+        [
+            (
+                {"min": [0, 10], "mid": [5, 15], "max": [10, 20]},
+                [5, 5],
+                [5, 5],
+            ),
+            (
+                {
+                    "start": pd.to_datetime(["2024-01-01"]),
+                    "middle": pd.to_datetime(["2024-01-10"]),
+                    "end": pd.to_datetime(["2024-01-20"]),
+                },
+                [pd.Timedelta(days=9)],
+                [pd.Timedelta(days=10)],
+            ),
+        ],
+    )
+    def test_to_internal(self, df_data, expected_delta1, expected_delta2):
+        """test to_internal for both numeric and datetime types."""
+        low_col = "min" if "min" in df_data else "start"
+        mid_col = "mid" if "mid" in df_data else "middle"
+        high_col = "max" if "max" in df_data else "end"
         handler = RangeHandler(
-            Range(table_name="test_table", low_column="start", middle_column="middle", high_column="end")
+            Range(table_name="test_table", low_column=low_col, middle_column=mid_col, high_column=high_col)
         )
-        df = pd.DataFrame(
-            {
-                "start": pd.to_datetime(["2024-01-01"]),
-                "middle": pd.to_datetime(["2024-01-10"]),
-                "end": pd.to_datetime(["2024-01-20"]),
-            }
-        )
+        df = pd.DataFrame(df_data)
 
         result = handler.to_internal(df)
 
         delta1_col = handler._delta1_column
         delta2_col = handler._delta2_column
-        assert result[delta1_col].iloc[0] == pd.Timedelta(days=9)
-        assert result[delta2_col].iloc[0] == pd.Timedelta(days=10)
+        if isinstance(expected_delta1[0], pd.Timedelta):
+            assert result[delta1_col].iloc[0] == expected_delta1[0]
+            assert result[delta2_col].iloc[0] == expected_delta2[0]
+        else:
+            assert list(result[delta1_col]) == expected_delta1
+            assert list(result[delta2_col]) == expected_delta2
 
     def test_to_original_numeric(self):
+        """test to_original for numeric type."""
         handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
         delta1_col = handler._delta1_column
         delta2_col = handler._delta2_column
@@ -406,35 +411,38 @@ class TestRangeHandler:
         assert list(result["mid"]) == [5, 110]
         assert list(result["max"]) == [10, 130]
 
-    def test_round_trip_numeric(self):
-        handler = RangeHandler(Range(table_name="test_table", low_column="a", middle_column="b", high_column="c"))
-        df = pd.DataFrame({"a": [0.0, 100.0], "b": [50.0, 150.0], "c": [100.0, 200.0]})
-
-        internal = handler.to_internal(df)
-        restored = handler.to_original(internal)
-
-        assert list(restored["a"]) == [0.0, 100.0]
-        assert list(restored["b"]) == [50.0, 150.0]
-        assert list(restored["c"]) == [100.0, 200.0]
-
-    def test_round_trip_datetime(self):
-        handler = RangeHandler(
-            Range(table_name="test_table", low_column="start", middle_column="middle", high_column="end")
-        )
-        df = pd.DataFrame(
+    @pytest.mark.parametrize(
+        "df_data",
+        [
+            {"a": [0.0, 100.0], "b": [50.0, 150.0], "c": [100.0, 200.0]},
             {
                 "start": pd.to_datetime(["2024-01-01", "2024-06-01"]),
                 "middle": pd.to_datetime(["2024-03-01", "2024-09-01"]),
                 "end": pd.to_datetime(["2024-06-01", "2024-12-01"]),
-            }
+            },
+        ],
+    )
+    def test_round_trip(self, df_data):
+        """test round-trip for both numeric and datetime types."""
+        low_col = "a" if "a" in df_data else "start"
+        mid_col = "b" if "b" in df_data else "middle"
+        high_col = "c" if "c" in df_data else "end"
+        handler = RangeHandler(
+            Range(table_name="test_table", low_column=low_col, middle_column=mid_col, high_column=high_col)
         )
+        df = pd.DataFrame(df_data)
 
         internal = handler.to_internal(df)
         restored = handler.to_original(internal)
 
-        pd.testing.assert_series_equal(restored["start"], df["start"])
-        pd.testing.assert_series_equal(restored["middle"], df["middle"])
-        pd.testing.assert_series_equal(restored["end"], df["end"])
+        if isinstance(df[low_col].iloc[0], pd.Timestamp):
+            pd.testing.assert_series_equal(restored[low_col], df[low_col])
+            pd.testing.assert_series_equal(restored[mid_col], df[mid_col])
+            pd.testing.assert_series_equal(restored[high_col], df[high_col])
+        else:
+            assert list(restored[low_col]) == list(df[low_col])
+            assert list(restored[mid_col]) == list(df[mid_col])
+            assert list(restored[high_col]) == list(df[high_col])
 
     def test_violation_correction(self):
         handler = RangeHandler(Range(table_name="test_table", low_column="a", middle_column="b", high_column="c"))
@@ -794,47 +802,32 @@ class TestSeedDataPreservation:
         assert list(result["end"]) == [r[1] for r in expected]
         assert handler._delta_column not in result.columns
 
-    def test_inequality_imputation_only_low_seeded(self):
-        """test that Inequality handles imputation when only low_column has partial nulls."""
+    @pytest.mark.parametrize(
+        "seed_data,expected_start,expected_end",
+        [
+            (
+                {"start": [100, None, 300]},
+                [100, 20, 300],
+                [105, 30, 315],
+            ),
+            (
+                {"end": [150, None, 350]},
+                [145, 20, 335],
+                [150, 30, 350],
+            ),
+        ],
+    )
+    def test_inequality_imputation_partial_seeding(self, seed_data, expected_start, expected_end):
+        """test that Inequality handles imputation with partial seeding (only low or only high column)."""
         handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         df = pd.DataFrame({"start": [10, 20, 30], handler._delta_column: [5, 10, 15]})
-        # only start has some seeded values
-        seed_data = pd.DataFrame({"start": [100, None, 300]})  # rows 0 and 2 seeded
+        seed_df = pd.DataFrame(seed_data)
 
-        result = handler.to_original(df, seed_data=seed_data)
+        result = handler.to_original(df, seed_data=seed_df)
 
-        # row 0: start seeded -> use seeded value, reconstruct end = 100 + 5 = 105
-        assert result["start"].iloc[0] == 100
-        assert result["end"].iloc[0] == 105
-
-        # row 1: start not seeded -> use generated value, reconstruct end = 20 + 10 = 30
-        assert result["start"].iloc[1] == 20
-        assert result["end"].iloc[1] == 30
-
-        # row 2: start seeded -> use seeded value, reconstruct end = 300 + 15 = 315
-        assert result["start"].iloc[2] == 300
-        assert result["end"].iloc[2] == 315
-
-    def test_inequality_imputation_only_high_seeded(self):
-        """test that Inequality handles imputation when only high_column has partial nulls."""
-        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
-        df = pd.DataFrame({"start": [10, 20, 30], handler._delta_column: [5, 10, 15]})
-        # only end has some seeded values
-        seed_data = pd.DataFrame({"end": [150, None, 350]})  # rows 0 and 2 seeded
-
-        result = handler.to_original(df, seed_data=seed_data)
-
-        # row 0: end seeded -> use seeded value, reconstruct start = 150 - 5 = 145
-        assert result["start"].iloc[0] == 145
-        assert result["end"].iloc[0] == 150
-
-        # row 1: end not seeded -> reconstruct end = 20 + 10 = 30
-        assert result["start"].iloc[1] == 20
-        assert result["end"].iloc[1] == 30
-
-        # row 2: end seeded -> use seeded value, reconstruct start = 350 - 15 = 335
-        assert result["start"].iloc[2] == 335
-        assert result["end"].iloc[2] == 350
+        assert list(result["start"]) == expected_start
+        assert list(result["end"]) == expected_end
+        assert handler._delta_column not in result.columns
 
     def test_range_preserves_seed_data(self):
         """test that Range preserves seed values."""
@@ -1137,24 +1130,21 @@ class TestEdgeCases:
         assert list(result["start"]) == [10, 20]
         assert list(result["end"]) == [15, 30]
 
-    def test_inequality_all_nan_values(self):
-        """test Inequality with all NaN values in constraint columns."""
+    def test_all_nan_values_inequality(self):
+        """test Inequality with all NaN values."""
         handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         df = pd.DataFrame({"start": [np.nan, np.nan], "end": [np.nan, np.nan]})
 
-        # should not crash
         internal = handler.to_internal(df)
         assert len(internal) == 2
         assert handler._delta_column in internal.columns
-        # delta should be NaN for NaN inputs
         assert internal[handler._delta_column].isna().all()
 
         restored = handler.to_original(internal)
         assert len(restored) == 2
-        # NaN + NaN = NaN
         assert restored["end"].isna().all()
 
-    def test_fixed_combination_all_nan_values(self):
+    def test_all_nan_values_fixed_combination(self):
         """test FixedCombination with all NaN values."""
         handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b"]))
         df = pd.DataFrame({"a": [np.nan, np.nan], "b": [np.nan, np.nan]})
@@ -1169,7 +1159,7 @@ class TestEdgeCases:
         assert list(restored["a"]) == ["", ""]
         assert list(restored["b"]) == ["", ""]
 
-    def test_range_all_nan_values(self):
+    def test_all_nan_values_range(self):
         """test Range with all NaN values."""
         handler = RangeHandler(Range(table_name="test_table", low_column="min", middle_column="mid", high_column="max"))
         df = pd.DataFrame({"min": [np.nan, np.nan], "mid": [np.nan, np.nan], "max": [np.nan, np.nan]})

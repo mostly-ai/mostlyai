@@ -657,6 +657,7 @@ class MostlyAI(_MostlyBaseClient):
                 'city': ['Los Angeles', 'New York', 'Toronto', 'Vancouver']
             })
             from mostlyai.sdk import MostlyAI
+            from mostlyai.sdk.domain import FixedCombination
             mostly = MostlyAI()
             g = mostly.train(
                 config={
@@ -664,20 +665,17 @@ class MostlyAI(_MostlyBaseClient):
                     'tables': [{
                         'name': 'locations',
                         'data': df,
-                        'tabular_model_configuration': {
-                            'constraints': [
-                                {'columns': ['country', 'state']},      # ensures valid country-state pairs
-                                {'columns': ['state', 'city']},         # ensures valid state-city pairs
-                            ]
-                        }
-                    }]
+                    }],
+                    'constraints': [
+                        FixedCombination(table_name='locations', columns=['country', 'state']),  # ensures valid country-state pairs
+                        FixedCombination(table_name='locations', columns=['state', 'city']),     # ensures valid state-city pairs
+                    ]
                 },
                 start=True,
                 wait=True
             )
             # synthetic data will never generate impossible combinations like: country='US', state='ON'
             # each constraint requires at least 2 columns
-            # constraints can be added to both tabular_model_configuration and language_model_configuration
             ```
         """
         if data is None and config is None:
