@@ -403,15 +403,22 @@ class InequalityHandler(ConstraintHandler):
         # apply seed overrides
         if aligned is not None:
             if low_mask is not None and low_mask.any():
-                df.loc[low_mask, self.low_column] = aligned.loc[low_mask, self.low_column].values
+                target_dtype = df[self.low_column].dtype
+                values = aligned.loc[low_mask, self.low_column].values
+                df.loc[low_mask, self.low_column] = pd.Series(values, dtype=target_dtype).values
                 low = (
                     self._normalize_datetime(df[self.low_column])
                     if is_datetime
                     else self._normalize_numeric(df[self.low_column])
                 )
-                df.loc[low_mask, self.high_column] = (low + delta).loc[low_mask].values
+                target_dtype = df[self.high_column].dtype
+                values = (low + delta).loc[low_mask].values
+                df.loc[low_mask, self.high_column] = pd.Series(values, dtype=target_dtype).values
             if high_mask is not None and high_mask.any():
-                df.loc[high_mask, self.high_column] = aligned.loc[high_mask, self.high_column].values
+                target_dtype = df[self.high_column].dtype
+                values = aligned.loc[high_mask, self.high_column].values
+                df.loc[high_mask, self.high_column] = pd.Series(values, dtype=target_dtype).values
+                # reconstruct low_column from high_column when only high is seeded
                 only_high = high_mask & ~(low_mask if low_mask is not None else pd.Series([False] * len(df)))
                 if only_high.any():
                     high = (
@@ -419,7 +426,9 @@ class InequalityHandler(ConstraintHandler):
                         if is_datetime
                         else self._normalize_numeric(df[self.high_column])
                     )
-                    df.loc[only_high, self.low_column] = (high - delta).loc[only_high].values
+                    target_dtype = df[self.low_column].dtype
+                    values = (high - delta).loc[only_high].values
+                    df.loc[only_high, self.low_column] = pd.Series(values, dtype=target_dtype).values
 
         # preserve dtype
         if not is_datetime and original_dtype and pd.api.types.is_integer_dtype(original_dtype):
@@ -532,19 +541,29 @@ class RangeHandler(ConstraintHandler):
         # apply seed overrides
         if aligned is not None:
             if low_mask is not None and low_mask.any():
-                df.loc[low_mask, self.low_column] = aligned.loc[low_mask, self.low_column].values
+                target_dtype = df[self.low_column].dtype
+                values = aligned.loc[low_mask, self.low_column].values
+                df.loc[low_mask, self.low_column] = pd.Series(values, dtype=target_dtype).values
                 low = (
                     self._normalize_datetime(df[self.low_column])
                     if is_datetime
                     else self._normalize_numeric(df[self.low_column])
                 )
                 # recompute for seeded low rows
-                df.loc[low_mask, self.middle_column] = (low + delta1).loc[low_mask].values
-                df.loc[low_mask, self.high_column] = (low + delta1 + delta2).loc[low_mask].values
+                target_dtype = df[self.middle_column].dtype
+                values = (low + delta1).loc[low_mask].values
+                df.loc[low_mask, self.middle_column] = pd.Series(values, dtype=target_dtype).values
+                target_dtype = df[self.high_column].dtype
+                values = (low + delta1 + delta2).loc[low_mask].values
+                df.loc[low_mask, self.high_column] = pd.Series(values, dtype=target_dtype).values
             if mid_mask is not None and mid_mask.any():
-                df.loc[mid_mask, self.middle_column] = aligned.loc[mid_mask, self.middle_column].values
+                target_dtype = df[self.middle_column].dtype
+                values = aligned.loc[mid_mask, self.middle_column].values
+                df.loc[mid_mask, self.middle_column] = pd.Series(values, dtype=target_dtype).values
             if high_mask is not None and high_mask.any():
-                df.loc[high_mask, self.high_column] = aligned.loc[high_mask, self.high_column].values
+                target_dtype = df[self.high_column].dtype
+                values = aligned.loc[high_mask, self.high_column].values
+                df.loc[high_mask, self.high_column] = pd.Series(values, dtype=target_dtype).values
 
         return df.drop(columns=[self._delta1_column, self._delta2_column])
 
