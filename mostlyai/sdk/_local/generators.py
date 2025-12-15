@@ -225,6 +225,6 @@ def get_generator_config(home_dir: Path, generator_id: str) -> GeneratorConfig:
         ]
         if generator.tables
         else None,
-        constraints=getattr(generator, "constraints", None),
+        constraints=generator.constraints,
     )
     return config

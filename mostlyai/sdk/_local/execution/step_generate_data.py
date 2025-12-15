@@ -99,8 +99,7 @@ def execute_step_generate_data(
         context_fk = next((fk for fk in (tgt_g_table.foreign_keys or []) if fk.is_context), None)
 
         # save original seed data BEFORE filtering for constraint transformations
-        # this preserves original column names (e.g., ORIGIN_AIRPORT) that may have been
-        # transformed to internal names (e.g., ORIGIN_AIRPORT|DESTINATION_AIRPORT|AIRLINE)
+        # this preserves original column names
         # TODO revist this part of the code, as it may not be necessary
         seed_dir = workspace_dir / "SeedData"
         seed_dir.mkdir(parents=True, exist_ok=True)

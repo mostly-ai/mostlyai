@@ -50,25 +50,6 @@ FK_MAX_CHILDREN_BATCH_SIZE = 10_000
 FK_PARENT_BATCH_SIZE = 1_000
 
 
-def load_constraint_translator_from_generator(
-    generator: Generator,
-    table_name: str,
-) -> tuple[ConstraintTranslator | None, list[str] | None]:
-    """load constraint translator for a table from generator configuration.
-
-    This function loads constraints directly from the generator config without
-    needing any external files. All constraint information is in the generator.
-
-    Args:
-        generator: Generator object.
-        table_name: Name of the table.
-
-    Returns:
-        Tuple of (translator, original_columns) or (None, None).
-    """
-    return ConstraintTranslator.from_generator_config(generator=generator, table_name=table_name)
-
-
 def execute_step_finalize_generation(
     *,
     schema: Schema,
@@ -626,7 +607,7 @@ def finalize_table_generation(
     # load constraint translator from generator config (only if generator provided)
     constraint_translator = None
     if generator:
-        constraint_translator, original_columns = load_constraint_translator_from_generator(
+        constraint_translator, original_columns = ConstraintTranslator.from_generator_config(
             generator=generator, table_name=target_table_name
         )
 
