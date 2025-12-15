@@ -44,7 +44,7 @@ class TestFixedCombinationHandler:
 
         result = handler.to_internal(df)
 
-        assert "state|city" in result.columns
+        assert handler.merged_name in result.columns
         # internal representation uses record separator (\x1E), not "|"
         # verify round-trip works instead of checking internal format
         restored = handler.to_original(result)
@@ -65,7 +65,7 @@ class TestFixedCombinationHandler:
 
         assert "state" in result.columns
         assert "city" in result.columns
-        assert "state|city" not in result.columns
+        assert handler.merged_name not in result.columns
         assert list(result["state"]) == ["CA", "NY"]
         assert list(result["city"]) == ["LA", "NYC"]
 
@@ -74,7 +74,9 @@ class TestFixedCombinationHandler:
         handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
         # create internal format with record separator
         internal = handler.to_internal(pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"]}))
-        df = pd.DataFrame({col: internal[col] for col in ["state|city", "state", "city"] if col in internal.columns})
+        df = pd.DataFrame(
+            {col: internal[col] for col in [handler.merged_name, "state", "city"] if col in internal.columns}
+        )
         # remove original columns to test fallback
         df = df.drop(columns=["state", "city"], errors="ignore")
 
@@ -82,7 +84,7 @@ class TestFixedCombinationHandler:
 
         assert "state" in result.columns
         assert "city" in result.columns
-        assert "state|city" not in result.columns
+        assert handler.merged_name not in result.columns
         assert list(result["state"]) == ["CA", "NY"]
         assert list(result["city"]) == ["LA", "NYC"]
 
@@ -99,7 +101,10 @@ class TestFixedCombinationHandler:
 
     def test_encoding_types(self):
         handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b"]))
-        assert handler.get_encoding_types() == {"a|b": "TABULAR_CATEGORICAL"}
+        enc = handler.get_encoding_types()
+        assert len(enc) == 1
+        assert handler.merged_name in enc
+        assert enc[handler.merged_name] == "TABULAR_CATEGORICAL"
 
     @pytest.mark.parametrize(
         "columns,df_data,expected",
@@ -565,7 +570,8 @@ class TestConstraintTranslator:
         # FixedCombination keeps original columns alongside merged column
         assert "a" in internal
         assert "b" in internal
-        assert "a|b" in internal
+        fc_handler = translator.handlers[0]
+        assert fc_handler.merged_name in internal
         # Inequality removes high column
         assert "high" not in internal
         assert "low" in internal
@@ -575,7 +581,8 @@ class TestConstraintTranslator:
     def test_get_original_columns(self):
         constraints = [FixedCombination(table_name="test_table", columns=["a", "b"])]
         translator = ConstraintTranslator(constraints)
-        internal = ["a|b", "other"]
+        fc_handler = translator.handlers[0]
+        internal = [fc_handler.merged_name, "other"]
 
         original = translator.get_original_columns(internal)
 
@@ -590,7 +597,8 @@ class TestConstraintTranslator:
 
         enc = translator.get_encoding_types()
 
-        assert enc["a|b"] == "TABULAR_CATEGORICAL"
+        fc_handler = translator.handlers[0]
+        assert enc[fc_handler.merged_name] == "TABULAR_CATEGORICAL"
         assert sum(1 for v in enc.values() if v == "TABULAR_NUMERIC_AUTO") == 2
 
     def test_from_generator_config_with_constraints(self):
@@ -705,7 +713,7 @@ class TestSeedDataPreservation:
     def test_fixed_combination_preserves_seed_data(self):
         """test that FixedCombination preserves seed values."""
         handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
-        df = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"], "state|city": ["merged1", "merged2"]})
+        df = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"], handler.merged_name: ["merged1", "merged2"]})
         seed_data = pd.DataFrame({"state": ["TX", "FL"], "city": ["Houston", "Miami"]})
 
         result = handler.to_original(df, seed_data=seed_data)
@@ -713,7 +721,7 @@ class TestSeedDataPreservation:
         # seed values should be preserved
         assert list(result["state"]) == ["TX", "FL"]
         assert list(result["city"]) == ["Houston", "Miami"]
-        assert "state|city" not in result.columns
+        assert handler.merged_name not in result.columns
 
     def test_inequality_preserves_seed_data(self):
         """test that Inequality preserves seed values."""
@@ -939,11 +947,12 @@ class TestSeedDataPreservation:
             Inequality(table_name="test_table", low_column="start", high_column="end"),
         ]
         translator = ConstraintTranslator(constraints)
+        fc_handler = translator.handlers[0]
         df = pd.DataFrame(
             {
                 "state": ["CA", "NY"],
                 "city": ["LA", "NYC"],
-                "state|city": ["merged1", "merged2"],
+                fc_handler.merged_name: ["merged1", "merged2"],
                 "start": [10, 20],
                 translator.handlers[1]._delta_column: [5, 10],
             }
@@ -1089,7 +1098,7 @@ class TestEdgeCases:
         """test FixedCombination when all columns are fully seeded."""
         handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b"]))
         # create internal representation
-        df = pd.DataFrame({"a": ["x", "y"], "b": ["1", "2"], "a|b": ["merged1", "merged2"]})
+        df = pd.DataFrame({"a": ["x", "y"], "b": ["1", "2"], handler.merged_name: ["merged1", "merged2"]})
         seed_data = pd.DataFrame({"a": ["seeded_a", "seeded_b"], "b": ["seeded_1", "seeded_2"]})
 
         result = handler.to_original(df, seed_data=seed_data)
@@ -1285,8 +1294,10 @@ class TestIntegration:
 
         internal = translator.to_internal(df)
         # both merged columns should exist
-        assert "region|country" in internal.columns
-        assert "country|city" in internal.columns
+        fc_handler1 = translator.handlers[0]
+        fc_handler2 = translator.handlers[1]
+        assert fc_handler1.merged_name in internal.columns
+        assert fc_handler2.merged_name in internal.columns
 
         restored = translator.to_original(internal)
         assert list(restored["region"]) == ["Europe", "Americas", "Asia"]
@@ -1324,12 +1335,13 @@ class TestIntegration:
         translator = ConstraintTranslator(constraints)
 
         # create internal representation with both constraint columns
+        fc_handler = translator.handlers[0]
         ineq_handler = translator.handlers[1]
         df = pd.DataFrame(
             {
                 "state": ["CA", "NY", "TX"],
                 "city": ["LA", "NYC", "Houston"],
-                "state|city": ["CA\x1eLA", "NY\x1eNYC", "TX\x1eHouston"],
+                fc_handler.merged_name: ["CA\x1eLA", "NY\x1eNYC", "TX\x1eHouston"],
                 "age": [25, 30, 35],
                 ineq_handler._delta_column: [40, 35, 30],
             }
@@ -1555,7 +1567,8 @@ class TestIntegration:
         encoding_types = translator.get_encoding_types()
 
         # FixedCombination: categorical
-        assert encoding_types["a|b"] == "TABULAR_CATEGORICAL"
+        fc_handler = translator.handlers[0]
+        assert encoding_types[fc_handler.merged_name] == "TABULAR_CATEGORICAL"
         # Inequality: numeric
         assert any("ineq_delta" in k and v == "TABULAR_NUMERIC_AUTO" for k, v in encoding_types.items())
         # Range: 2 numeric deltas

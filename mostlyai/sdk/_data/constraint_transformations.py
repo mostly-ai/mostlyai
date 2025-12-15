@@ -180,8 +180,7 @@ class FixedCombinationHandler(ConstraintHandler):
         self.table_name = constraint.table_name
         self.columns = constraint.columns
         self.model_type = model_type
-        # use separator for column name (for display/debugging)
-        self.merged_name = "|".join(self.columns)
+        self.merged_name = _generate_internal_column_name("fixedcomb", self.columns, model_type)
 
     def get_internal_column_names(self) -> list[str]:
         return [self.merged_name]
