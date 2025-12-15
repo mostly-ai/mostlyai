@@ -44,13 +44,6 @@ def _generate_internal_column_name(prefix: str, columns: list[str], model_type: 
     return f"{model_prefix}_constraint_{prefix}_{hash_suffix}"
 
 
-def get_tgt_meta_path(workspace_dir: Path) -> Path:
-    """get tgt-meta directory path in OriginalData."""
-    path = workspace_dir / "OriginalData" / "tgt-meta"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
 class ConstraintHandler(ABC):
     """abstract base class for constraint handlers."""
 
@@ -883,7 +876,8 @@ def _update_meta_with_internal_columns(
     if not parquet_files:
         return
 
-    meta_dir = get_tgt_meta_path(workspace_dir)
+    meta_dir = workspace_dir / "OriginalData" / "tgt-meta"
+    meta_dir.mkdir(parents=True, exist_ok=True)
     encoding_types_file = meta_dir / "encoding-types.json"
 
     if encoding_types_file.exists():
