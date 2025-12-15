@@ -354,7 +354,7 @@ class TestInequalityHandler:
         handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
         df = pd.DataFrame({"start": [10, 20]})  # missing "end" column
 
-        with pytest.raises(ValueError, match="columns.*not found in dataframe"):
+        with pytest.raises(ValueError, match="Columns.*not found in dataframe"):
             handler.to_internal(df)
 
 

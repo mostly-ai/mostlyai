@@ -16,9 +16,7 @@
 
 from __future__ import annotations
 
-import csv
 import hashlib
-import io
 import json
 import logging
 from abc import ABC, abstractmethod
@@ -95,7 +93,10 @@ class ConstraintHandler(ABC):
         """validate that all required columns exist in the dataframe."""
         missing_cols = set(columns) - set(df.columns)
         if missing_cols:
-            raise ValueError(f"columns {sorted(missing_cols)} not found in dataframe")
+            raise ValueError(
+                f"Columns {sorted(missing_cols)} required by {self.__class__.__name__} "
+                f"not found in dataframe. Available columns: {sorted(df.columns)}"
+            )
 
     def _align_seed_data_simple(self, df: pd.DataFrame, seed_data: pd.DataFrame | None) -> pd.DataFrame | None:
         """align seed data to match df length (1:1 row alignment).
@@ -174,15 +175,12 @@ class ConstraintHandler(ABC):
 class FixedCombinationHandler(ConstraintHandler):
     """handler for FixedCombination constraints."""
 
-    # uses csv module with record separator (ASCII 30) for reliable escaping
-    _SEPARATOR = "\x1e"
-
     def __init__(self, constraint: FixedCombination, model_type: ModelType = ModelType.tabular):
         self.constraint = constraint
         self.table_name = constraint.table_name
         self.columns = constraint.columns
         self.model_type = model_type
-        # use separator for column name (for display/debugging, actual data uses _SEPARATOR)
+        # use separator for column name (for display/debugging)
         self.merged_name = "|".join(self.columns)
 
     def get_internal_column_names(self) -> list[str]:
@@ -195,13 +193,10 @@ class FixedCombinationHandler(ConstraintHandler):
         self._validate_columns(df, self.columns)
         df = df.copy()
 
-        # use csv module to handle escaping automatically
         def merge_row(row):
-            values = ["" if pd.isna(row[col]) else str(row[col]) for col in self.columns]
-            s = io.StringIO()
-            writer = csv.writer(s, delimiter=self._SEPARATOR, lineterminator="", quoting=csv.QUOTE_MINIMAL)
-            writer.writerow(values)
-            return s.getvalue()
+            values = [row[col] if pd.notna(row[col]) else None for col in self.columns]
+            # JSON serialization handles all escaping automatically
+            return json.dumps(values, ensure_ascii=False)
 
         df[self.merged_name] = df.apply(merge_row, axis=1)
         return df
@@ -223,18 +218,14 @@ class FixedCombinationHandler(ConstraintHandler):
                     df = df.drop(columns=[self.merged_name])
                     return df
 
-            # split the merged column using csv module (handles escaping automatically)
             def split_row(merged_value: str) -> list[str]:
                 if pd.isna(merged_value):
                     return [""] * len(self.columns)
-                reader = csv.reader(io.StringIO(merged_value), delimiter=self._SEPARATOR)
                 try:
-                    parts = next(reader)
-                except StopIteration:
-                    parts = []
-                # pad or truncate to expected number of columns
-                parts = (parts + [""] * len(self.columns))[: len(self.columns)]
-                return parts
+                    values = json.loads(merged_value)
+                    return [str(v) if v is not None else "" for v in values]
+                except json.JSONDecodeError:
+                    return [""] * len(self.columns)
 
             # handle empty dataframe case
             if len(df) == 0:
@@ -279,7 +270,8 @@ class FixedCombinationHandler(ConstraintHandler):
 class InequalityHandler(ConstraintHandler):
     """handler for Inequality constraints (low <= high or low < high if strict_boundaries=True)."""
 
-    _NUMERIC_EPSILON = 1e-10  # smallest practical float64 difference (1 for integers)
+    _NUMERIC_EPSILON = 1e-8  # conservative practical float64 difference (1 for integers)
+    _INTEGER_EPSILON = 1  # Epsilon for integer types
     _DATETIME_EPSILON = pd.Timedelta(microseconds=1)  # smallest reliable timedelta
 
     def __init__(self, constraint: Inequality, model_type: ModelType = ModelType.tabular):
@@ -315,7 +307,7 @@ class InequalityHandler(ConstraintHandler):
         if is_datetime:
             epsilon = self._DATETIME_EPSILON
         elif is_integer:
-            epsilon = 1
+            epsilon = self._INTEGER_EPSILON
         else:
             epsilon = self._NUMERIC_EPSILON
             if not pd.api.types.is_float_dtype(delta):
