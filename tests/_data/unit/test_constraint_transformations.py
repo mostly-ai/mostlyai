@@ -1391,35 +1391,6 @@ class TestIntegration:
         assert list(restored["min_value"]) == [10, 20, 30]
         assert list(restored["max_value"]) == [15, 25, 35]
 
-    def test_constraint_columns_to_remove_correctness(self):
-        """test that get_columns_to_remove returns correct columns for each constraint type."""
-        constraints = [
-            FixedCombination(table_name="test_table", columns=["a", "b"]),  # removes nothing
-            Inequality(table_name="test_table", low_column="low", high_column="high"),  # removes high
-            Range(
-                table_name="test_table", low_column="min", middle_column="mid", high_column="max"
-            ),  # removes mid, max
-            OneHotEncoding(table_name="test_table", columns=["x", "y", "z"]),  # removes x, y, z
-        ]
-        translator = ConstraintTranslator(constraints)
-
-        columns_to_remove = translator.get_columns_to_remove()
-
-        # FixedCombination: keeps original columns
-        assert "a" not in columns_to_remove
-        assert "b" not in columns_to_remove
-        # Inequality: removes high_column
-        assert "high" in columns_to_remove
-        assert "low" not in columns_to_remove
-        # Range: removes middle and high
-        assert "mid" in columns_to_remove
-        assert "max" in columns_to_remove
-        assert "min" not in columns_to_remove
-        # OneHotEncoding: removes all columns
-        assert "x" in columns_to_remove
-        assert "y" in columns_to_remove
-        assert "z" in columns_to_remove
-
     def test_validate_against_generator_success(self):
         """test that constraint validation passes for valid generator config."""
         generator = Generator(

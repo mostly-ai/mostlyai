@@ -77,11 +77,6 @@ class ConstraintHandler(ABC):
         """return list of (table_name, column_name) tuples involved in this constraint."""
         pass
 
-    @abstractmethod
-    def get_columns_to_remove(self) -> set[str]:
-        """columns excluded from training (reconstructed from internal representation)."""
-        pass
-
     def _validate_columns(self, df: pd.DataFrame, columns: list[str]) -> None:
         """validate that all required columns exist in the dataframe."""
         missing_cols = set(columns) - set(df.columns)
@@ -255,9 +250,6 @@ class FixedCombinationHandler(ConstraintHandler):
     def get_table_column_tuples(self) -> list[tuple[str, str]]:
         """return list of (table_name, column_name) tuples involved in this constraint."""
         return [(self.table_name, col) for col in self.columns]
-
-    def get_columns_to_remove(self) -> set[str]:
-        return set()  # keeps original columns alongside merged column
 
 
 class InequalityHandler(ConstraintHandler):
@@ -438,9 +430,6 @@ class InequalityHandler(ConstraintHandler):
         """return list of (table_name, column_name) tuples involved in this constraint."""
         return [(self.table_name, self.low_column), (self.table_name, self.high_column)]
 
-    def get_columns_to_remove(self) -> set[str]:
-        return {self.high_column}
-
 
 class RangeHandler(ConstraintHandler):
     """handler for Range constraints (low <= middle <= high)."""
@@ -575,9 +564,6 @@ class RangeHandler(ConstraintHandler):
             (self.table_name, self.high_column),
         ]
 
-    def get_columns_to_remove(self) -> set[str]:
-        return {self.middle_column, self.high_column}
-
 
 class OneHotEncodingHandler(ConstraintHandler):
     """handler for OneHotEncoding constraints (exactly one column has value 1)."""
@@ -643,9 +629,6 @@ class OneHotEncodingHandler(ConstraintHandler):
         """return list of (table_name, column_name) tuples involved in this constraint."""
         return [(self.table_name, col) for col in self.columns]
 
-    def get_columns_to_remove(self) -> set[str]:
-        return set(self.columns)
-
 
 def _create_constraint_handler(
     constraint: ConstraintType, model_type: ModelType = ModelType.tabular
@@ -683,14 +666,10 @@ class ConstraintTranslator:
             df = handler.to_original(df, seed_data=seed_data)
         return df
 
-    def _compute_columns_to_remove(self) -> set[str]:
-        """compute columns that should be removed when transforming to internal schema."""
-        return set().union(*(h.get_columns_to_remove() for h in self.handlers))
-
     def get_internal_columns(self, original_columns: list[str]) -> list[str]:
         """get list of column names in internal schema."""
-        columns_to_remove = self._compute_columns_to_remove()
-        internal_columns = [c for c in original_columns if c not in columns_to_remove]
+        # keep all original columns and add internal constraint columns
+        internal_columns = list(original_columns)
         for handler in self.handlers:
             internal_columns.extend(handler.get_internal_column_names())
         return internal_columns
@@ -722,10 +701,6 @@ class ConstraintTranslator:
         for handler in self.handlers:
             encoding_types.update(handler.get_encoding_types())
         return encoding_types
-
-    def get_columns_to_remove(self) -> set[str]:
-        """get all columns that should be removed from encoding types."""
-        return self._compute_columns_to_remove()
 
     def get_all_internal_column_names(self) -> list[str]:
         """get all internal column names from all handlers."""
@@ -876,8 +851,6 @@ def _update_meta_with_internal_columns(
             encoding_types = json.load(f)
 
         encoding_types.update(translator.get_encoding_types())
-        for col in translator.get_columns_to_remove():
-            encoding_types.pop(col, None)
 
         with open(encoding_types_file, "w") as f:
             json.dump(encoding_types, f, indent=2)
