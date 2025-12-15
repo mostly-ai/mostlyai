@@ -248,8 +248,9 @@ class FixedCombinationHandler(ConstraintHandler):
         return df
 
     def get_encoding_types(self) -> dict[str, str]:
-        encoding = "LANGUAGE_CATEGORICAL" if self.model_type == ModelType.language else "TABULAR_CATEGORICAL"
-        return {self.merged_name: encoding}
+        # always use TABULAR encoding for constraints, regardless of model_type
+        # constraints merge columns which requires categorical encoding
+        return {self.merged_name: "TABULAR_CATEGORICAL"}
 
     def get_table_column_tuples(self) -> list[tuple[str, str]]:
         """return list of (table_name, column_name) tuples involved in this constraint."""
@@ -430,8 +431,8 @@ class InequalityHandler(ConstraintHandler):
         return df.drop(columns=[self._delta_column])
 
     def get_encoding_types(self) -> dict[str, str]:
-        encoding = "LANGUAGE_NUMERIC" if self.model_type == ModelType.language else "TABULAR_NUMERIC_AUTO"
-        return {self._delta_column: encoding}
+        # always use TABULAR encoding for constraints, regardless of model_type
+        return {self._delta_column: "TABULAR_NUMERIC_AUTO"}
 
     def get_table_column_tuples(self) -> list[tuple[str, str]]:
         """return list of (table_name, column_name) tuples involved in this constraint."""
@@ -560,10 +561,10 @@ class RangeHandler(ConstraintHandler):
         return df.drop(columns=[self._delta1_column, self._delta2_column])
 
     def get_encoding_types(self) -> dict[str, str]:
-        encoding = "LANGUAGE_NUMERIC" if self.model_type == ModelType.language else "TABULAR_NUMERIC_AUTO"
+        # always use TABULAR encoding for constraints, regardless of model_type
         return {
-            self._delta1_column: encoding,
-            self._delta2_column: encoding,
+            self._delta1_column: "TABULAR_NUMERIC_AUTO",
+            self._delta2_column: "TABULAR_NUMERIC_AUTO",
         }
 
     def get_table_column_tuples(self) -> list[tuple[str, str]]:
@@ -635,8 +636,8 @@ class OneHotEncodingHandler(ConstraintHandler):
         return df
 
     def get_encoding_types(self) -> dict[str, str]:
-        encoding = "LANGUAGE_CATEGORICAL" if self.model_type == ModelType.language else "TABULAR_CATEGORICAL"
-        return {self._internal_column: encoding}
+        # always use TABULAR encoding for constraints, regardless of model_type
+        return {self._internal_column: "TABULAR_CATEGORICAL"}
 
     def get_table_column_tuples(self) -> list[tuple[str, str]]:
         """return list of (table_name, column_name) tuples involved in this constraint."""
@@ -792,20 +793,14 @@ class ConstraintTranslator:
 
         reads constraints from generator root level and filters by table_name.
         """
-        # get constraints from generator root level (if generator has constraints field)
-        # note: GeneratorConfig has constraints, but Generator might not
-        # we need to check if generator has constraints attribute (from config)
-        all_constraints = getattr(generator, "constraints", None)
-        if not all_constraints:
+        if not generator.constraints:
             return None, None
 
-        # filter constraints for this table
-        table_constraints = [c for c in all_constraints if hasattr(c, "table_name") and c.table_name == table_name]
+        table_constraints = [c for c in generator.constraints if c.table_name == table_name]
 
         if not table_constraints:
             return None, None
 
-        # determine model type from table configuration
         table = next((t for t in generator.tables if t.name == table_name), None)
         if not table:
             return None, None
@@ -835,14 +830,10 @@ def preprocess_constraints_for_training(
         _LOG.debug(f"table {target_table_name} not found in generator")
         return None
 
-    # get constraints from generator root level and filter by table
-    all_constraints = getattr(generator, "constraints", None)
-    if not all_constraints:
+    if not generator.constraints:
         return None
 
-    # filter constraints for this table
-    table_constraints = [c for c in all_constraints if hasattr(c, "table_name") and c.table_name == target_table_name]
-
+    table_constraints = [c for c in generator.constraints if c.table_name == target_table_name]
     if not table_constraints:
         return None
 
