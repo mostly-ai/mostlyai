@@ -68,41 +68,6 @@ class Inequality(CustomBaseModel):
         return self
 
 
-class Range(CustomBaseModel):
-    """constraint that ensures low_column <= middle_column <= high_column in synthetic data."""
-
-    type: Literal["Range"] = Field(default="Range", description="Constraint type discriminator.")
-    table_name: str = Field(..., description="Name of the table this constraint applies to.")
-    low_column: str = Field(..., description="Column that should have the lowest value.")
-    middle_column: str = Field(..., description="Column that should be between low and high.")
-    high_column: str = Field(..., description="Column that should have the highest value.")
-
-    @model_validator(mode="after")
-    def validate_columns(self):
-        cols = [self.low_column, self.middle_column, self.high_column]
-        if len(set(cols)) != 3:
-            raise ValueError(
-                f"low_column, middle_column, and high_column must all be different, "
-                f"got: low='{self.low_column}', middle='{self.middle_column}', high='{self.high_column}'."
-            )
-        return self
-
-
-class OneHotEncoding(CustomBaseModel):
-    """constraint that ensures exactly one column has value 1 and all others have value 0."""
-
-    type: Literal["OneHotEncoding"] = Field(default="OneHotEncoding", description="Constraint type discriminator.")
-    table_name: str = Field(..., description="Name of the table this constraint applies to.")
-    columns: list[str] = Field(..., description="List of column names that form a one-hot encoding.")
-
-    @field_validator("columns")
-    @classmethod
-    def validate_columns(cls, columns):
-        if len(columns) < 2:
-            raise ValueError(f"OneHotEncoding requires at least 2 columns, got {len(columns)}.")
-        return columns
-
-
 class AboutService(CustomBaseModel):
     """
     General information about the service.
@@ -3806,9 +3771,9 @@ class Generator(CustomBaseModel):
         alias="randomState",
         description="Seed for the random number generators. If None, the random number generator is initialized randomly, yielding different results for every run.\nSetting it to a specific integer ensures reproducible results across runs.\nUseful when consistent results are desired, e.g. for testing or debugging.\n",
     )
-    constraints: (
-        list[Annotated[FixedCombination | Inequality | Range | OneHotEncoding, Discriminator("type")]] | None
-    ) = Field(None, description="List of constraint objects that define data relationships.")
+    constraints: list[Annotated[FixedCombination | Inequality, Discriminator("type")]] | None = Field(
+        None, description="List of constraint objects that define data relationships."
+    )
     OPEN_URL_PARTS: ClassVar[list] = ["d", "generators"]
     training: Annotated[Any | None, Field(exclude=True)] = None
 
@@ -4040,9 +4005,9 @@ class GeneratorConfig(CustomBaseModel):
         description="Seed for the random number generators. If None, the random number generator is initialized randomly, yielding different results for every run.\nSetting it to a specific integer ensures reproducible results across runs.\nUseful when consistent results are desired, e.g. for testing or debugging.\n",
     )
     tables: list[SourceTableConfig] | None = Field(None, description="The tables of a generator")
-    constraints: (
-        list[Annotated[FixedCombination | Inequality | Range | OneHotEncoding, Discriminator("type")]] | None
-    ) = Field(None, description="List of constraint objects that define data relationships.")
+    constraints: list[Annotated[FixedCombination | Inequality, Discriminator("type")]] | None = Field(
+        None, description="List of constraint objects that define data relationships."
+    )
 
     @field_validator("tables", mode="after")
     @classmethod
