@@ -394,12 +394,9 @@ def process_table_with_random_fk_assignment(
     pqt_path: Path,
     csv_path: Path | None,
     constraint_translator: ConstraintTranslator | None = None,
-    seed_data: pd.DataFrame | None = None,
 ) -> None:
     """Process table with random FK assignment, chunk by chunk."""
     table = schema.tables[table_name]
-    context_key = next((fk for fk in table.foreign_keys if fk.is_context), None)
-    context_key_col = context_key.column if context_key else None
 
     for chunk_idx, chunk_data in enumerate(table.read_chunks(do_coerce_dtypes=True)):
         _LOG.info(f"Processing chunk {chunk_idx + 1} ({len(chunk_data)} rows)")
@@ -410,11 +407,8 @@ def process_table_with_random_fk_assignment(
         )
 
         # apply constraint reverse transformation AFTER FK assignment
-        chunk_seed_data = None
         if constraint_translator:
-            if seed_data is not None:
-                chunk_seed_data = constraint_translator.align_seed_data(processed_data, seed_data, context_key_col)
-            processed_data = constraint_translator.to_original(processed_data, seed_data=chunk_seed_data)
+            processed_data = constraint_translator.to_original(processed_data)
 
         processed_data = filter_and_order_columns(processed_data, table_name, schema)
         write_batch_outputs(processed_data, table_name, chunk_idx, pqt_path, csv_path)
@@ -462,15 +456,12 @@ def process_table_with_fk_models(
     parent_batch_size: int = FK_PARENT_BATCH_SIZE,
     job_workspace_dir: Path,
     constraint_translator: ConstraintTranslator | None = None,
-    seed_data: pd.DataFrame | None = None,
 ) -> None:
     """Process table with ML model-based FK assignment using logical child batches."""
 
     fk_models_workspace_dir = job_workspace_dir / "FKModelsStore" / table_name
     non_ctx_relations = [rel for rel in schema.non_context_relations if rel.child.table == table_name]
     children_table = schema.tables[table_name]
-    context_key = next((fk for fk in children_table.foreign_keys if fk.is_context), None)
-    context_key_col = context_key.column if context_key else None
 
     # Load parent keys upfront (memory efficient)
     parent_keys_cache = {}
@@ -573,13 +564,9 @@ def process_table_with_fk_models(
 
             chunk_data = pd.concat(processed_batches, ignore_index=True)
 
-        # align seed data for this chunk if needed
         # apply constraint reverse transformation AFTER FK assignment
-        chunk_seed_data = None
         if constraint_translator:
-            if seed_data is not None:
-                chunk_seed_data = constraint_translator.align_seed_data(chunk_data, seed_data, context_key_col)
-            chunk_data = constraint_translator.to_original(chunk_data, seed_data=chunk_seed_data)
+            chunk_data = constraint_translator.to_original(chunk_data)
 
         chunk_data = filter_and_order_columns(chunk_data, table_name, schema)
         write_batch_outputs(chunk_data, table_name, chunk_idx, pqt_path, csv_path)
@@ -618,11 +605,6 @@ def finalize_table_generation(
             if original_columns:
                 generated_data_schema.tables[target_table_name].columns = original_columns
 
-    # load seed data if available
-    table = generated_data_schema.tables[target_table_name]
-    workspace_dir = table.container.path.parent  # SyntheticData -> workspace_dir
-    seed_data = load_seed_data(workspace_dir)
-
     if fk_models_available:
         _LOG.info(f"Assigning non context FKs (if exists) through FK models for table {target_table_name}")
         try:
@@ -633,7 +615,6 @@ def finalize_table_generation(
                 csv_path=csv_path,
                 job_workspace_dir=job_workspace_dir,
                 constraint_translator=constraint_translator,
-                seed_data=seed_data,
             )
         except Exception as e:
             _LOG.error(f"FK model processing failed for table {target_table_name}: {e}")
@@ -644,7 +625,6 @@ def finalize_table_generation(
                 pqt_path=pqt_path,
                 csv_path=csv_path,
                 constraint_translator=constraint_translator,
-                seed_data=seed_data,
             )
     else:
         _LOG.info(f"Assigning non context FKs (if exists) through random assignment for table {target_table_name}")
@@ -654,7 +634,6 @@ def finalize_table_generation(
             pqt_path=pqt_path,
             csv_path=csv_path,
             constraint_translator=constraint_translator,
-            seed_data=seed_data,
         )
 
     # merge extra seed columns as a separate post-processing step

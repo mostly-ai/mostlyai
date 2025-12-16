@@ -133,11 +133,9 @@ def create_report(
         ctx_columns += [f"{target_table_name}{TABLE_COLUMN_INFIX}{c}" for c in tgt_columns]
 
     # load constraint translator early to include merged columns in pull
-    # filter constraints to only include those for the current model_type
     translator, _ = ConstraintTranslator.from_generator_config(
         generator=generator,
         table_name=target_table_name,
-        model_type=model_type,
     )
 
     # add all internal column names so they survive column filtering in pull_data_for_report
