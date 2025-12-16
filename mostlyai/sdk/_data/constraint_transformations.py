@@ -41,7 +41,8 @@ def _generate_internal_column_name(prefix: str, columns: list[str]) -> str:
     """generate a deterministic internal column name."""
     key = "|".join(columns)
     hash_suffix = hashlib.md5(key.encode()).hexdigest()[:8]
-    return f"tabular_constraint_{prefix}_{hash_suffix}"
+    columns_str = "_".join(col.upper() for col in columns)
+    return f"__TABULAR_CONSTRAINT_{prefix.upper()}_{columns_str}_{hash_suffix}__"
 
 
 class ConstraintHandler(ABC):

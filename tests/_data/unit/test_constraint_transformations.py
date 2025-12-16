@@ -159,7 +159,7 @@ class TestInequalityHandler:
         result = handler.to_internal(df)
 
         assert "start" in result.columns
-        delta_col = [c for c in result.columns if "constraint_ineq_delta" in c][0]
+        delta_col = [c for c in result.columns if "TABULAR_CONSTRAINT_INEQ_DELTA" in c][0]
         if isinstance(expected_delta[0], pd.Timedelta):
             assert result[delta_col].iloc[0] == expected_delta[0]
             assert result[delta_col].iloc[1] == expected_delta[1]
@@ -322,7 +322,6 @@ class TestConstraintTranslator:
         original = ["a", "b", "low", "high", "other"]
 
         internal = translator.get_internal_columns(original)
-        # tabular_constraint_fixedcomb_d0726241 - > TABULAR_CONSTRAINT_FIXEDCOMB_D0726241
 
         # FixedCombination keeps all original columns + merged column
         assert "a" in internal
@@ -333,7 +332,7 @@ class TestConstraintTranslator:
         assert "high" in internal
         assert "low" in internal
         assert "other" in internal
-        assert any("constraint_ineq_delta" in c for c in internal)
+        assert any("TABULAR_CONSTRAINT_INEQ_DELTA" in c for c in internal)
 
     def test_get_original_columns(self):
         constraints = [FixedCombination(table_name="test_table", columns=["a", "b"])]
