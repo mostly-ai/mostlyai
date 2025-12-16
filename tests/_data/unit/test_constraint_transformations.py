@@ -567,13 +567,13 @@ class TestConstraintTranslator:
 
         internal = translator.get_internal_columns(original)
 
-        # FixedCombination keeps original columns alongside merged column
+        # FixedCombination keeps all original columns + merged column
         assert "a" in internal
         assert "b" in internal
         fc_handler = translator.handlers[0]
         assert fc_handler.merged_name in internal
-        # Inequality removes high column
-        assert "high" not in internal
+        # Inequality keeps all original columns + delta column
+        assert "high" in internal
         assert "low" in internal
         assert "other" in internal
         assert any("constraint_ineq_delta" in c for c in internal)
