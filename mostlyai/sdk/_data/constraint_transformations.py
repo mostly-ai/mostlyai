@@ -24,7 +24,15 @@ from pathlib import Path
 
 import pandas as pd
 
-from mostlyai.sdk.domain import FixedCombination, Generator, Inequality, ModelType, OneHotEncoding, Range
+from mostlyai.sdk.domain import (
+    FixedCombination,
+    Generator,
+    Inequality,
+    ModelEncodingType,
+    ModelType,
+    OneHotEncoding,
+    Range,
+)
 
 _LOG = logging.getLogger(__name__)
 
@@ -730,8 +738,9 @@ class ConstraintTranslator:
             return self._align_sequential(df, seed_data, columns, context_key_col)
         return self._align_subject(df, seed_data, columns)
 
+    @staticmethod
     def _align_sequential(
-        self, df: pd.DataFrame, seed_data: pd.DataFrame, columns: list[str], context_key_col: str
+        df: pd.DataFrame, seed_data: pd.DataFrame, columns: list[str], context_key_col: str
     ) -> pd.DataFrame | None:
         """align seed data for sequential tables using context key + row index."""
         if context_key_col not in df.columns:
@@ -745,7 +754,8 @@ class ConstraintTranslator:
         available_cols = [c for c in columns if c in aligned.columns]
         return aligned[available_cols].reset_index(drop=True) if available_cols else None
 
-    def _align_subject(self, df: pd.DataFrame, seed_data: pd.DataFrame, columns: list[str]) -> pd.DataFrame | None:
+    @staticmethod
+    def _align_subject(df: pd.DataFrame, seed_data: pd.DataFrame, columns: list[str]) -> pd.DataFrame | None:
         """align seed data for subject tables (1:1 row alignment with padding/truncation)."""
         available_cols = [c for c in columns if c in seed_data.columns]
         if not available_cols:
@@ -763,26 +773,55 @@ class ConstraintTranslator:
     def from_generator_config(
         generator: Generator,
         table_name: str,
+        model_type: ModelType | None = None,
     ) -> tuple[ConstraintTranslator | None, list[str] | None]:
         """create constraint translator from generator configuration.
 
         reads constraints from generator root level and filters by table_name.
+        if model_type is provided, only includes constraints whose columns all belong to that model type.
+        if model_type is None, includes all constraints (for finalize_generation where both models are merged).
         """
         if not generator.constraints:
-            return None, None
-
-        table_constraints = [c for c in generator.constraints if c.table_name == table_name]
-
-        if not table_constraints:
             return None, None
 
         table = next((t for t in generator.tables if t.name == table_name), None)
         if not table:
             return None, None
 
-        model_type = ModelType.language if table.language_model_configuration else ModelType.tabular
+        # filter by table_name
+        table_constraints = [c for c in generator.constraints if c.table_name == table_name]
+        if not table_constraints:
+            return None, None
 
-        translator = ConstraintTranslator(table_constraints, model_type)
+        # filter by model_type if provided (each model only handles its own constraints)
+        if model_type is not None and table.columns:
+            # build set of columns that belong to this model_type
+            model_columns = {
+                col.name
+                for col in table.columns
+                if col.model_encoding_type
+                and (
+                    col.model_encoding_type.startswith(model_type.value)
+                    or (col.model_encoding_type == ModelEncodingType.auto and model_type == ModelType.tabular)
+                )
+            }
+
+            # use handler's get_original_columns() to get columns for each constraint
+            table_constraints = [
+                c
+                for c in table_constraints
+                if all(col in model_columns for col in _create_constraint_handler(c, model_type).get_original_columns())
+            ]
+
+            if not table_constraints:
+                return None, None
+
+        # determine model_type for translator (use provided or infer from table)
+        translator_model_type = model_type or (
+            ModelType.language if table.language_model_configuration else ModelType.tabular
+        )
+
+        translator = ConstraintTranslator(table_constraints, translator_model_type)
         current_columns = [c.name for c in table.columns] if table.columns else None
 
         if not current_columns:
@@ -808,9 +847,33 @@ def preprocess_constraints_for_training(
     if not generator.constraints:
         return None
 
+    # filter by table_name
     table_constraints = [c for c in generator.constraints if c.table_name == target_table_name]
     if not table_constraints:
         return None
+
+    # filter by model_type (each model only handles its own constraints)
+    if target_table.columns:
+        # build set of columns that belong to this model_type
+        model_columns = {
+            col.name
+            for col in target_table.columns
+            if col.model_encoding_type
+            and (
+                col.model_encoding_type.startswith(model_type.value)
+                or (col.model_encoding_type == ModelEncodingType.auto and model_type == ModelType.tabular)
+            )
+        }
+
+        # use handler's get_original_columns() to get columns for each constraint
+        table_constraints = [
+            c
+            for c in table_constraints
+            if all(col in model_columns for col in _create_constraint_handler(c, model_type).get_original_columns())
+        ]
+
+        if not table_constraints:
+            return None
 
     _LOG.info(f"preprocessing constraints for table {target_table_name} in {model_type} model")
     translator = ConstraintTranslator(table_constraints, model_type)
