@@ -86,18 +86,6 @@ class ConstraintHandler(ABC):
                 f"not found in dataframe. Available columns: {sorted(df.columns)}"
             )
 
-    def _is_datetime_column(self, series: pd.Series) -> bool:
-        """check if series is datetime type."""
-        return pd.api.types.is_datetime64_any_dtype(series)
-
-    def _normalize_numeric(self, series: pd.Series) -> pd.Series:
-        """convert series to numeric, coercing errors."""
-        return pd.to_numeric(series, errors="coerce")
-
-    def _normalize_datetime(self, series: pd.Series) -> pd.Series:
-        """convert series to datetime."""
-        return pd.to_datetime(series)
-
     def _ensure_delta_type(self, delta: pd.Series, is_datetime: bool) -> pd.Series:
         """ensure delta has correct type (timedelta or numeric)."""
         if is_datetime:
@@ -223,16 +211,21 @@ class InequalityHandler(ConstraintHandler):
         self.strict_boundaries = constraint.strict_boundaries
         self._delta_column = _generate_internal_column_name("ineq_delta", [self.low_column, self.high_column])
 
-    def _enforce_strict_delta(
-        self, delta: pd.Series, is_datetime: bool, is_integer: bool, log_warning: bool = True
-    ) -> pd.Series:
+    def _repr_boundaries(self) -> str:
+        """return string representation of inequality boundaries."""
+        return (
+            f"{self.low_column} <= {self.high_column}"
+            if not self.strict_boundaries
+            else f"{self.low_column} < {self.high_column}"
+        )
+
+    def _enforce_strict_delta(self, delta: pd.Series, is_datetime: bool, is_integer: bool) -> pd.Series:
         """enforce strict boundaries by ensuring delta > 0.
 
         Args:
             delta: delta series to enforce
             is_datetime: whether the data is datetime type
             is_integer: whether the data is integer type (for numeric)
-            log_warning: whether to log a warning when correcting violations
 
         Returns:
             corrected delta series with all values > 0
@@ -251,11 +244,9 @@ class InequalityHandler(ConstraintHandler):
             if not pd.api.types.is_float_dtype(delta):
                 delta = delta.astype(float)
 
-        if log_warning:
-            _LOG.warning(
-                f"correcting {zero_mask.sum()} equality violations for strict inequality "
-                f"{self.low_column} < {self.high_column}"
-            )
+        _LOG.warning(
+            f"correcting {zero_mask.sum()} equality violations for strict inequality {self._repr_boundaries()}"
+        )
         return delta.where(delta > zero, epsilon)
 
     def get_internal_column_names(self) -> list[str]:
@@ -270,25 +261,13 @@ class InequalityHandler(ConstraintHandler):
         low = df[self.low_column]
         high = df[self.high_column]
 
-        is_datetime = self._is_datetime_column(low) or self._is_datetime_column(high)
-
-        if is_datetime:
-            low = self._normalize_datetime(low)
-            high = self._normalize_datetime(high)
-            delta = high - low
-            zero = pd.Timedelta(0)
-        else:
-            low = self._normalize_numeric(low)
-            high = self._normalize_numeric(high)
-            delta = high - low
-            zero = 0
-
+        is_datetime = pd.api.types.is_datetime64_any_dtype(low)
+        zero = pd.Timedelta(0) if is_datetime else 0
+        delta = high - low
         violations = delta < zero
         if violations.any():
-            _LOG.warning(
-                f"correcting {violations.sum()} inequality violations for {self.low_column} <= {self.high_column}"
-            )
-            delta = delta.abs()
+            _LOG.warning(f"correcting {violations.sum()} inequality violations for {self._repr_boundaries()}")
+            delta[violations] = zero
 
         # enforce strict boundaries if needed
         if self.strict_boundaries:
@@ -304,27 +283,18 @@ class InequalityHandler(ConstraintHandler):
         if self._delta_column not in df.columns:
             return df
 
-        # check if low_column exists (should always exist, but be defensive)
-        if self.low_column not in df.columns:
-            _LOG.warning(f"low_column '{self.low_column}' not found in dataframe, skipping constraint transformation")
-            return df
-
         # prepare data and types
-        is_datetime = self._is_datetime_column(df[self.low_column])
-        if is_datetime:
-            low = self._normalize_datetime(df[self.low_column])
-            delta = self._ensure_delta_type(df[self._delta_column], is_datetime=True)
-            original_dtype = None
-        else:
-            low = self._normalize_numeric(df[self.low_column])
-            delta = self._ensure_delta_type(df[self._delta_column], is_datetime=False)
-            original_dtype = low.dtype
+        is_datetime = pd.api.types.is_datetime64_any_dtype(df[self.low_column])
+        low = df[self.low_column]
+        delta = df[self._delta_column]
+        original_dtype = None if is_datetime else low.dtype
+
+        # ensure delta has correct type (numeric or timedelta)
+        delta = self._ensure_delta_type(delta, is_datetime)
 
         # enforce strict boundaries if needed
         if self.strict_boundaries:
-            delta = self._enforce_strict_delta(
-                delta, is_datetime, pd.api.types.is_integer_dtype(low), log_warning=False
-            )
+            delta = self._enforce_strict_delta(delta, is_datetime, pd.api.types.is_integer_dtype(low))
 
         # default reconstruction: high = low + delta
         df[self.high_column] = low + delta
