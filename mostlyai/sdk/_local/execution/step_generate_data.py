@@ -100,7 +100,7 @@ def execute_step_generate_data(
 
         # save original seed data BEFORE filtering for constraint transformations
         # this preserves original column names
-        # TODO revist this part of the code, as it may not be necessary
+        # TODO revisit this part of the code
         seed_dir = workspace_dir / "SeedData"
         seed_dir.mkdir(parents=True, exist_ok=True)
         seed_data_to_save = sample_seed.copy()
