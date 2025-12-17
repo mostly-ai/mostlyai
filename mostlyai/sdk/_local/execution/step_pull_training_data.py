@@ -58,16 +58,16 @@ def execute_step_pull_training_data(
     )
 
     # preprocess constraints (if any)
-    internal_columns = preprocess_constraints_for_training(
-        generator=generator,
-        workspace_dir=workspace_dir,
-        model_type=model_type,
-        target_table_name=target_table_name,
-    )
+    if model_type == ModelType.tabular:
+        all_column_names = preprocess_constraints_for_training(
+            generator=generator,
+            workspace_dir=workspace_dir,
+            target_table_name=target_table_name,
+        )
 
-    # use internal columns if constraints were applied
-    if internal_columns is not None:
-        tgt_table_columns = internal_columns
+        # use internal columns if constraints were applied
+        if all_column_names is not None:
+            tgt_table_columns = all_column_names
 
     return tgt_table_columns, tgt_table_total_rows
 

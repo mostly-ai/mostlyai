@@ -28,7 +28,6 @@ from mostlyai.sdk.domain import (
     FixedCombination,
     Generator,
     Inequality,
-    ModelType,
 )
 
 _LOG = logging.getLogger(__name__)
@@ -275,6 +274,10 @@ class InequalityHandler(ConstraintHandler):
             is_integer = pd.api.types.is_integer_dtype(low) or pd.api.types.is_integer_dtype(high)
             delta = self._enforce_strict_delta(delta, is_datetime, is_integer)
 
+        # convert timedelta to fractional days (float) for numeric encoding
+        if is_datetime:
+            delta = delta / pd.Timedelta(days=1)
+
         df[self._delta_column] = delta
         return df
 
@@ -290,8 +293,11 @@ class InequalityHandler(ConstraintHandler):
         delta = df[self._delta_column]
         original_dtype = None if is_datetime else low.dtype
 
-        # ensure delta has correct type (numeric or timedelta)
-        delta = self._ensure_delta_type(delta, is_datetime)
+        # convert fractional days back to timedelta if needed
+        if is_datetime:
+            delta = pd.to_timedelta(delta, unit="D")
+        else:
+            delta = self._ensure_delta_type(delta, False)
 
         # enforce strict boundaries if needed
         if self.strict_boundaries:
@@ -345,15 +351,14 @@ class ConstraintTranslator:
             df = handler.to_original(df)
         return df
 
-    def get_internal_columns(self, original_columns: list[str]) -> list[str]:
-        """get list of column names in internal schema."""
-        # keep all original columns and add internal constraint columns
-        internal_columns = list(original_columns)
+    def get_all_column_names(self, original_column_names: list[str]) -> list[str]:
+        """get list of all column names (original and internal constraint columns)."""
+        all_column_names = list(original_column_names)
         for handler in self.handlers:
-            internal_columns.extend(handler.get_internal_column_names())
-        return internal_columns
+            all_column_names.extend(handler.get_internal_column_names())
+        return all_column_names
 
-    def get_original_columns(self, internal_columns: list[str]) -> list[str]:
+    def get_original_column_names(self, internal_column_names: list[str]) -> list[str]:
         """get list of column names in original schema from internal schema."""
         internal_to_original = {}
         for handler in self.handlers:
@@ -362,7 +367,7 @@ class ConstraintTranslator:
 
         original_columns = []
         seen = set()
-        for col in internal_columns:
+        for col in internal_column_names:
             if col in internal_to_original:
                 for orig_col in internal_to_original[col]:
                     if orig_col not in seen:
@@ -393,10 +398,7 @@ class ConstraintTranslator:
         generator: Generator,
         table_name: str,
     ) -> tuple[ConstraintTranslator | None, list[str] | None]:
-        """create constraint translator from generator configuration.
-
-        reads constraints from generator root level and filters by table_name.
-        """
+        """create constraint translator from generator configuration for a specific table."""
         if not generator.constraints:
             return None, None
 
@@ -410,20 +412,19 @@ class ConstraintTranslator:
             return None, None
 
         translator = ConstraintTranslator(table_constraints)
-        current_columns = [c.name for c in table.columns] if table.columns else None
+        current_column_names = [c.name for c in table.columns] if table.columns else None
 
-        if not current_columns:
+        if not current_column_names:
             return translator, None
 
-        original_columns = translator.get_original_columns(current_columns)
-        return translator, original_columns
+        original_column_names = translator.get_original_column_names(current_column_names)
+        return translator, original_column_names
 
 
 def preprocess_constraints_for_training(
     *,
     generator: Generator,
     workspace_dir: Path,
-    model_type: ModelType,
     target_table_name: str,
 ) -> list[str] | None:
     """preprocess constraint transformations for training data."""
@@ -456,8 +457,8 @@ def preprocess_constraints_for_training(
 
     original_columns = [c.name for c in target_table.columns] if target_table.columns else []
     _update_meta_with_internal_columns(workspace_dir, target_table_name, translator, parquet_files)
-    internal_columns = translator.get_internal_columns(original_columns)
-    return internal_columns
+    all_column_names = translator.get_all_column_names(original_columns)
+    return all_column_names
 
 
 def _update_meta_with_internal_columns(
