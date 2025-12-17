@@ -54,28 +54,18 @@ class ConstraintHandler(ABC):
         pass
 
     @abstractmethod
-    def get_original_columns(self) -> list[str]:
-        """return original column names involved in this constraint."""
-        pass
-
-    @abstractmethod
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
-        """transform dataframe from user schema to internal schema."""
+        """transform dataframe (in-place) from user schema to internal schema."""
         pass
 
     @abstractmethod
     def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
-        """transform dataframe from internal schema back to user schema."""
+        """transform dataframe (in-place) from internal schema back to user schema."""
         pass
 
     @abstractmethod
     def get_encoding_types(self) -> dict[str, str]:
         """return encoding types for internal columns."""
-        pass
-
-    @abstractmethod
-    def get_table_column_tuples(self) -> list[tuple[str, str]]:
-        """return list of (table_name, column_name) tuples involved in this constraint."""
         pass
 
     def _validate_columns(self, df: pd.DataFrame, columns: list[str]) -> None:
@@ -86,35 +76,6 @@ class ConstraintHandler(ABC):
                 f"Columns {sorted(missing_cols)} required by {self.__class__.__name__} "
                 f"not found in dataframe. Available columns: {sorted(df.columns)}"
             )
-
-    def validate_against_generator(self, generator: Generator) -> None:
-        """validate that tables and columns referenced by this constraint exist in the generator.
-
-        Args:
-            generator: Generator to validate against.
-
-        Raises:
-            ValueError: If table or columns don't exist.
-        """
-        table_column_tuples = self.get_table_column_tuples()
-        if not table_column_tuples:
-            return
-
-        # build table map
-        table_map = {table.name: table for table in (generator.tables or [])}
-
-        # validate each (table, column) tuple
-        for table_name, column_name in table_column_tuples:
-            if table_name not in table_map:
-                raise ValueError(f"table '{table_name}' referenced by constraint not found in generator")
-
-            table = table_map[table_name]
-            table_columns = {col.name for col in (table.columns or []) if col.included}
-
-            if column_name not in table_columns:
-                raise ValueError(
-                    f"column '{column_name}' in table '{table_name}' referenced by constraint not found or not included"
-                )
 
 
 class FixedCombinationHandler(ConstraintHandler):
@@ -129,12 +90,8 @@ class FixedCombinationHandler(ConstraintHandler):
     def get_internal_column_names(self) -> list[str]:
         return [self.merged_name]
 
-    def get_original_columns(self) -> list[str]:
-        return list(self.columns)
-
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         self._validate_columns(df, self.columns)
-        df = df.copy()
 
         def merge_row(row):
             values = [row[col] if pd.notna(row[col]) else None for col in self.columns]
@@ -145,7 +102,6 @@ class FixedCombinationHandler(ConstraintHandler):
         return df
 
     def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = df.copy()
         if self.merged_name in df.columns:
 
             def split_row(merged_value: str) -> list[str]:
@@ -163,9 +119,9 @@ class FixedCombinationHandler(ConstraintHandler):
             split_values = df[self.merged_name].astype(str).apply(split_row)
             split_df = pd.DataFrame(split_values.tolist(), index=df.index)
 
-            # reset df index to align with split_df
-            df = df.reset_index(drop=True)
-            split_df = split_df.reset_index(drop=True)
+            # preserve original index
+            original_index = df.index
+            split_df.index = original_index
 
             # assign to original columns
             for i, col in enumerate(self.columns):
@@ -179,10 +135,6 @@ class FixedCombinationHandler(ConstraintHandler):
         # always use TABULAR encoding for constraints, regardless of model_type
         # constraints merge columns which requires categorical encoding
         return {self.merged_name: "TABULAR_CATEGORICAL"}
-
-    def get_table_column_tuples(self) -> list[tuple[str, str]]:
-        """return list of (table_name, column_name) tuples involved in this constraint."""
-        return [(self.table_name, col) for col in self.columns]
 
 
 class InequalityHandler(ConstraintHandler):
@@ -247,12 +199,8 @@ class InequalityHandler(ConstraintHandler):
     def get_internal_column_names(self) -> list[str]:
         return [self._delta_column]
 
-    def get_original_columns(self) -> list[str]:
-        return [self.low_column, self.high_column]
-
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         self._validate_columns(df, [self.low_column, self.high_column])
-        df = df.copy()
         low = df[self.low_column]
         high = df[self.high_column]
 
@@ -278,7 +226,6 @@ class InequalityHandler(ConstraintHandler):
 
     def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
         """transform from internal schema back to original schema."""
-        df = df.copy()
         if self._delta_column not in df.columns:
             return df
 
@@ -305,10 +252,6 @@ class InequalityHandler(ConstraintHandler):
         if self._is_datetime:
             return {self._delta_column: "TABULAR_DATETIME"}
         return {self._delta_column: "TABULAR_NUMERIC_AUTO"}
-
-    def get_table_column_tuples(self) -> list[tuple[str, str]]:
-        """return list of (table_name, column_name) tuples involved in this constraint."""
-        return [(self.table_name, self.low_column), (self.table_name, self.high_column)]
 
 
 def _create_constraint_handler(constraint: ConstraintType, table=None) -> ConstraintHandler:
@@ -348,27 +291,6 @@ class ConstraintTranslator:
             all_column_names.extend(handler.get_internal_column_names())
         return all_column_names
 
-    def get_original_column_names(self, internal_column_names: list[str]) -> list[str]:
-        """get list of column names in original schema from internal schema."""
-        internal_to_original = {}
-        for handler in self.handlers:
-            for internal_col in handler.get_internal_column_names():
-                internal_to_original[internal_col] = handler.get_original_columns()
-
-        original_columns = []
-        seen = set()
-        for col in internal_column_names:
-            if col in internal_to_original:
-                for orig_col in internal_to_original[col]:
-                    if orig_col not in seen:
-                        original_columns.append(orig_col)
-                        seen.add(orig_col)
-            else:
-                if col not in seen:
-                    original_columns.append(col)
-                    seen.add(col)
-        return original_columns
-
     def get_encoding_types(self) -> dict[str, str]:
         """get combined encoding types for all internal columns."""
         encoding_types = {}
@@ -376,40 +298,27 @@ class ConstraintTranslator:
             encoding_types.update(handler.get_encoding_types())
         return encoding_types
 
-    def get_all_internal_column_names(self) -> list[str]:
-        """get all internal column names from all handlers."""
-        result = []
-        for handler in self.handlers:
-            result.extend(handler.get_internal_column_names())
-        return result
-
     @staticmethod
     def from_generator_config(
         generator: Generator,
         table_name: str,
-    ) -> tuple[ConstraintTranslator | None, list[str] | None]:
+    ) -> ConstraintTranslator | None:
         """create constraint translator from generator configuration for a specific table."""
         if not generator.constraints:
-            return None, None
+            return None
 
         table = next((t for t in generator.tables if t.name == table_name), None)
         if not table:
-            return None, None
+            return None
 
         # filter by table_name
         table_constraints = [c for c in generator.constraints if c.table_name == table_name]
         if not table_constraints:
-            return None, None
+            return None
 
         # pass table to translator so handlers can check column types
-        translator = ConstraintTranslator(table_constraints, table=table)
-        current_column_names = [c.name for c in table.columns] if table.columns else None
-
-        if not current_column_names:
-            return translator, None
-
-        original_column_names = translator.get_original_column_names(current_column_names)
-        return translator, original_column_names
+        constraint_translator = ConstraintTranslator(table_constraints, table=table)
+        return constraint_translator
 
 
 def preprocess_constraints_for_training(

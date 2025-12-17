@@ -26,11 +26,14 @@ from mostlyai.sdk._data.constraint_transformations import (
 from mostlyai.sdk.domain import (
     FixedCombination,
     Generator,
+    GeneratorConfig,
     Inequality,
     ModelConfiguration,
     ModelEncodingType,
     SourceColumn,
+    SourceColumnConfig,
     SourceTable,
+    SourceTableConfig,
 )
 
 
@@ -89,7 +92,8 @@ class TestFixedCombinationHandler:
         handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b", "c"]))
         df = pd.DataFrame({"a": ["x", "y"], "b": ["1", "2"], "c": ["!", "@"], "other": [10, 20]})
 
-        internal = handler.to_internal(df)
+        # make a copy since to_internal modifies the dataframe in place
+        internal = handler.to_internal(df.copy())
         restored = handler.to_original(internal)
 
         assert set(df.columns) == set(restored.columns)
@@ -359,7 +363,8 @@ class TestConstraintTranslator:
             }
         )
 
-        internal = translator.to_internal(df)
+        # make a copy since to_internal modifies the dataframe in place
+        internal = translator.to_internal(df.copy())
         restored = translator.to_original(internal)
 
         assert set(df.columns) == set(restored.columns)
@@ -386,16 +391,6 @@ class TestConstraintTranslator:
         assert "low" in all_column_names
         assert "other" in all_column_names
         assert any("TABULAR_CONSTRAINT_INEQ_DELTA" in c for c in all_column_names)
-
-    def test_get_original_columns(self):
-        constraints = [FixedCombination(table_name="test_table", columns=["a", "b"])]
-        translator = ConstraintTranslator(constraints)
-        fc_handler = translator.handlers[0]
-        internal = [fc_handler.merged_name, "other"]
-
-        original = translator.get_original_column_names(internal)
-
-        assert original == ["a", "b", "other"]
 
     def test_get_encoding_types(self):
         constraints = [
@@ -428,13 +423,10 @@ class TestConstraintTranslator:
             constraints=[FixedCombination(table_name="customers", columns=["state", "city"])],
         )
 
-        translator, original_columns = ConstraintTranslator.from_generator_config(
-            generator=generator, table_name="customers"
-        )
+        translator = ConstraintTranslator.from_generator_config(generator=generator, table_name="customers")
 
         assert translator is not None
         assert len(translator.handlers) == 1
-        assert original_columns == ["id", "state", "city"]
 
     def test_from_generator_config_no_constraints(self):
         generator = Generator(
@@ -443,10 +435,9 @@ class TestConstraintTranslator:
             tables=[SourceTable(name="table", columns=[SourceColumn(name="col1")])],
         )
 
-        translator, columns = ConstraintTranslator.from_generator_config(generator=generator, table_name="table")
+        translator = ConstraintTranslator.from_generator_config(generator=generator, table_name="table")
 
         assert translator is None
-        assert columns is None
 
     def test_from_generator_config_table_not_found(self):
         generator = Generator(
@@ -455,10 +446,9 @@ class TestConstraintTranslator:
             tables=[SourceTable(name="existing", columns=[SourceColumn(name="col1")])],
         )
 
-        translator, columns = ConstraintTranslator.from_generator_config(generator=generator, table_name="nonexistent")
+        translator = ConstraintTranslator.from_generator_config(generator=generator, table_name="nonexistent")
 
         assert translator is None
-        assert columns is None
 
 
 class TestDomainValidation:
@@ -538,52 +528,45 @@ class TestIntegration:
     """integration tests for multiple constraints interacting and advanced scenarios."""
 
     @pytest.mark.parametrize(
-        "constraint,generator,should_raise,match",
+        "constraints,tables,should_raise,match",
         [
             (
-                FixedCombination(table_name="customers", columns=["state", "city"]),
-                Generator(
-                    id="test-gen",
-                    name="Test Generator",
-                    tables=[
-                        SourceTable(
-                            name="customers",
-                            columns=[SourceColumn(name="id"), SourceColumn(name="state"), SourceColumn(name="city")],
-                        )
-                    ],
-                ),
+                [FixedCombination(table_name="customers", columns=["state", "city"])],
+                [
+                    SourceTableConfig(
+                        name="customers",
+                        columns=[
+                            SourceColumnConfig(name="id"),
+                            SourceColumnConfig(name="state"),
+                            SourceColumnConfig(name="city"),
+                        ],
+                    )
+                ],
                 False,
                 None,
             ),
             (
-                FixedCombination(table_name="orders", columns=["state", "city"]),
-                Generator(
-                    id="test-gen",
-                    name="Test Generator",
-                    tables=[SourceTable(name="customers", columns=[SourceColumn(name="id")])],
-                ),
+                [FixedCombination(table_name="orders", columns=["state", "city"])],
+                [SourceTableConfig(name="customers", columns=[SourceColumnConfig(name="id")])],
                 True,
                 "table 'orders' referenced by constraint not found",
             ),
             (
-                FixedCombination(table_name="customers", columns=["state", "city"]),
-                Generator(
-                    id="test-gen",
-                    name="Test Generator",
-                    tables=[
-                        SourceTable(name="customers", columns=[SourceColumn(name="id"), SourceColumn(name="state")])
-                    ],
-                ),
+                [FixedCombination(table_name="customers", columns=["state", "city"])],
+                [
+                    SourceTableConfig(
+                        name="customers", columns=[SourceColumnConfig(name="id"), SourceColumnConfig(name="state")]
+                    )
+                ],
                 True,
-                "column 'city' in table 'customers' referenced by constraint not found",
+                "columns \\['city'\\] in table 'customers' referenced by constraint not found",
             ),
         ],
     )
-    def test_validate_against_generator(self, constraint, generator, should_raise, match):
-        """test constraint validation against generator config."""
-        handler = FixedCombinationHandler(constraint)
+    def test_validate_against_generator(self, constraints, tables, should_raise, match):
+        """test constraint validation in GeneratorConfig."""
         if should_raise:
             with pytest.raises(ValueError, match=match):
-                handler.validate_against_generator(generator)
+                GeneratorConfig(constraints=constraints, tables=tables)
         else:
-            handler.validate_against_generator(generator)
+            GeneratorConfig(constraints=constraints, tables=tables)

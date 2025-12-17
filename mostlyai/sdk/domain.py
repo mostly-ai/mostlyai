@@ -29,7 +29,7 @@ import pandas as pd
 import rich
 from pydantic import AnyUrl, AwareDatetime, Discriminator, Field, RootModel, field_validator, model_validator
 
-from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
+from mostlyai.sdk.client._base_utils import convert_to_base64, convert_to_df, read_table_from_path
 from mostlyai.sdk.client.base import CustomBaseModel
 
 
@@ -3443,6 +3443,22 @@ class SourceTableConfig(CustomBaseModel):
             self.language_model_configuration.max_sequence_window = None
         return self
 
+    @model_validator(mode="after")
+    def extract_columns_from_data_if_missing(self):
+        """extract column names from base64 data if columns are not provided."""
+        if self.columns is None and self.data is not None and len(self.data) >= 512:
+            # assume base64-encoded parquet if data is long enough
+            try:
+                df = convert_to_df(self.data, format="parquet")
+                self.columns = [
+                    SourceColumnConfig(name=col_name, model_encoding_type=ModelEncodingType.auto)
+                    for col_name in df.columns
+                ]
+            except Exception:
+                # if conversion fails, leave columns as None
+                pass
+        return self
+
     @field_validator("columns", mode="after")
     @classmethod
     def validate_unique_columns(cls, columns):
@@ -4057,6 +4073,37 @@ class GeneratorConfig(CustomBaseModel):
                 current_table = table_map.get(context_fk.referenced_table)
             visited.update(seen_tables)
         return tables
+
+    @model_validator(mode="after")
+    def validate_constraints(self):
+        """validate that constraints reference existing tables and columns."""
+        if not self.constraints or not self.tables:
+            return self
+
+        table_map = {table.name: table for table in self.tables}
+        for constraint in self.constraints:
+            if constraint.table_name not in table_map:
+                raise ValueError(f"table '{constraint.table_name}' referenced by constraint not found in generator")
+
+            table = table_map[constraint.table_name]
+            # SourceTableConfig.filter_excluded_columns already filters out excluded columns
+            table_columns = {col.name for col in (table.columns or [])}
+
+            if isinstance(constraint, FixedCombination):
+                missing_cols = set(constraint.columns) - table_columns
+                if missing_cols:
+                    raise ValueError(
+                        f"columns {sorted(missing_cols)} in table '{constraint.table_name}' "
+                        f"referenced by constraint not found or not included"
+                    )
+            elif isinstance(constraint, Inequality):
+                for col_name in [constraint.low_column, constraint.high_column]:
+                    if col_name not in table_columns:
+                        raise ValueError(
+                            f"column '{col_name}' in table '{constraint.table_name}' "
+                            f"referenced by constraint not found or not included"
+                        )
+        return self
 
 
 class SyntheticDataset(CustomBaseModel):
