@@ -87,14 +87,6 @@ class ConstraintHandler(ABC):
                 f"not found in dataframe. Available columns: {sorted(df.columns)}"
             )
 
-    def _ensure_delta_type(self, delta: pd.Series, is_datetime: bool) -> pd.Series:
-        """ensure delta has correct type (timedelta or numeric)."""
-        if is_datetime:
-            if not pd.api.types.is_timedelta64_dtype(delta):
-                return pd.to_timedelta(delta)
-            return delta
-        return pd.to_numeric(delta, errors="coerce")
-
     def validate_against_generator(self, generator: Generator) -> None:
         """validate that tables and columns referenced by this constraint exist in the generator.
 
@@ -163,14 +155,8 @@ class FixedCombinationHandler(ConstraintHandler):
                     values = json.loads(merged_value)
                     return [str(v) if v is not None else "" for v in values]
                 except json.JSONDecodeError:
+                    _LOG.error(f"failed to decode JSON for {merged_value}; using empty values")
                     return [""] * len(self.columns)
-
-            # handle empty dataframe case
-            if len(df) == 0:
-                for col in self.columns:
-                    df[col] = pd.Series([], dtype=str)
-                df = df.drop(columns=[self.merged_name])
-                return df
 
             split_values = df[self.merged_name].astype(str).apply(split_row)
             split_df = pd.DataFrame(split_values.tolist(), index=df.index)
@@ -302,8 +288,6 @@ class InequalityHandler(ConstraintHandler):
         # convert datetime back to timedelta if needed
         if self._is_datetime:
             delta = delta - self._DATETIME_EPOCH
-        else:
-            delta = self._ensure_delta_type(delta, False)
 
         # enforce strict boundaries if needed
         if self.strict_boundaries:
@@ -438,7 +422,11 @@ def preprocess_constraints_for_training(
     workspace_dir: Path,
     target_table_name: str,
 ) -> list[str] | None:
-    """preprocess constraint transformations for training data."""
+    """preprocess constraint transformations for training data:
+    - transform constraints from user schema to internal schema (if any)
+    - update tgt-meta (encoding-types) and tgt-data with internal columns (if any)
+    - return list of all column names (original and internal constraint columns) for use in training
+    """
     target_table = next((t for t in generator.tables if t.name == target_table_name), None)
     if not target_table:
         _LOG.debug(f"table {target_table_name} not found in generator")
@@ -454,7 +442,7 @@ def preprocess_constraints_for_training(
 
     _LOG.info(f"preprocessing constraints for table {target_table_name}")
     # pass table to translator so handlers can check column types
-    translator = ConstraintTranslator(table_constraints, table=target_table)
+    constraint_translator = ConstraintTranslator(table_constraints, table=target_table)
 
     tgt_data_dir = workspace_dir / "OriginalData" / "tgt-data"
     if not tgt_data_dir.exists():
@@ -464,19 +452,19 @@ def preprocess_constraints_for_training(
     parquet_files = sorted(list(tgt_data_dir.glob("part.*.parquet")))
     for parquet_file in parquet_files:
         df = pd.read_parquet(parquet_file)
-        df_transformed = translator.to_internal(df)
+        df_transformed = constraint_translator.to_internal(df)
         df_transformed.to_parquet(parquet_file, index=True)
 
     original_columns = [c.name for c in target_table.columns] if target_table.columns else []
-    _update_meta_with_internal_columns(workspace_dir, target_table_name, translator, parquet_files)
-    all_column_names = translator.get_all_column_names(original_columns)
+    _update_meta_with_internal_columns(workspace_dir, target_table_name, constraint_translator, parquet_files)
+    all_column_names = constraint_translator.get_all_column_names(original_columns)
     return all_column_names
 
 
 def _update_meta_with_internal_columns(
     workspace_dir: Path,
     table_name: str,
-    translator: ConstraintTranslator,
+    constraint_translator: ConstraintTranslator,
     parquet_files: list[Path],
 ) -> None:
     """update tgt-meta to reflect internal column structure after transformation."""
@@ -491,7 +479,7 @@ def _update_meta_with_internal_columns(
         with open(encoding_types_file) as f:
             encoding_types = json.load(f)
 
-        encoding_types.update(translator.get_encoding_types())
+        encoding_types.update(constraint_translator.get_encoding_types())
 
         with open(encoding_types_file, "w") as f:
             json.dump(encoding_types, f, indent=2)
