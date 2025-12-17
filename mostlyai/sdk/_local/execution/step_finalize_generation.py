@@ -303,15 +303,6 @@ def load_extra_seed_columns(workspace_dir: Path) -> pd.DataFrame | None:
     return None
 
 
-def load_seed_data(workspace_dir: Path) -> pd.DataFrame | None:
-    """load seed data for a table if it exists."""
-    seed_path = workspace_dir / "SeedData" / "seed.parquet"
-    if seed_path.exists():
-        _LOG.info(f"loading seed data from {seed_path}")
-        return pd.read_parquet(seed_path)
-    return None
-
-
 def write_batch_outputs(
     data: pd.DataFrame, table_name: str, batch_counter: int, pqt_path: Path, csv_path: Path | None
 ) -> None:

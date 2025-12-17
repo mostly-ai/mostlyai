@@ -96,25 +96,13 @@ def execute_step_generate_data(
     if sample_seed is not None:
         model_columns = [c.name for c in tgt_g_table.columns if c.included]
         extra_columns = [c for c in sample_seed.columns if c not in model_columns]
-        context_fk = next((fk for fk in (tgt_g_table.foreign_keys or []) if fk.is_context), None)
-
-        # save original seed data BEFORE filtering for constraint transformations
-        # this preserves original column names
-        # TODO revisit this part of the code
-        seed_dir = workspace_dir / "SeedData"
-        seed_dir.mkdir(parents=True, exist_ok=True)
-        seed_data_to_save = sample_seed.copy()
-        if context_fk and context_fk.column in seed_data_to_save.columns:
-            # for sequential tables, save context key + row index for alignment
-            seed_data_to_save[context_fk.column] = seed_data_to_save[context_fk.column].astype("string[pyarrow]")
-            seed_data_to_save["__row_idx__"] = seed_data_to_save.groupby(context_fk.column).cumcount()
-        seed_data_to_save.to_parquet(seed_dir / "seed.parquet")
 
         if extra_columns:
             extra_seed_dir = workspace_dir / "ExtraSeedColumns"
             extra_seed_dir.mkdir(parents=True, exist_ok=True)
 
             extra_seed_data = sample_seed[extra_columns].copy()
+            context_fk = next((fk for fk in (tgt_g_table.foreign_keys or []) if fk.is_context), None)
             if context_fk and context_fk.column in sample_seed.columns:
                 # for sequential tables, save context key + row index to align seed data after sequence completion
                 extra_seed_data[context_fk.column] = sample_seed[context_fk.column].astype("string[pyarrow]")
