@@ -29,30 +29,36 @@ def mostly(tmp_path_factory):
 
 
 def test_constraints(mostly):
-    """test FixedCombination and Inequality constraints with partial seed data."""
+    """test FixedCombination and Inequality constraints with flights-like data."""
 
     # create training data with both constraint types
+    # valid route-airline combinations (similar to flights dataset)
+    valid_triplets = [("JFK", "LAX", "AA"), ("LAX", "ORD", "UA"), ("ORD", "JFK", "DL")]
+
     df = pd.DataFrame(
         {
-            "state": ["CA", "NY", "TX"] * 30,
-            "city": ["LA", "NYC", "Houston"] * 30,
-            "start_age": [20, 25, 30] * 30,
-            "end_age": [25, 30, 35] * 30,
-            # start_date varies every 6 hours, end_date is 1-30 days after start_date
-            "start_date": pd.date_range(start="2024-01-01", periods=90, freq="6h"),
-            "end_date": pd.date_range(start="2024-01-01", periods=90, freq="6h")
-            + pd.Timedelta(days=1)
-            + pd.to_timedelta(np.random.randint(0, 30, 90), unit="d"),
-            "value": np.random.rand(90),
+            "ORIGIN_AIRPORT": [t[0] for t in valid_triplets] * 30,
+            "DESTINATION_AIRPORT": [t[1] for t in valid_triplets] * 30,
+            "AIRLINE": [t[2] for t in valid_triplets] * 30,
+            # numeric inequality: air_time <= elapsed_time (air_time + taxi/ground time)
+            "AIR_TIME": np.random.randint(60, 300, 90),  # 1-5 hours in minutes
+            "ELAPSED_TIME": np.random.randint(60, 300, 90)
+            + np.random.randint(20, 60, 90),  # air_time + 20-60 min ground
+            # datetime inequality: departure < arrival (strict boundaries)
+            "DEPARTURE_TIME": pd.date_range(start="2024-01-01 08:00", periods=90, freq="3h"),
+            "ARRIVAL_TIME": pd.date_range(start="2024-01-01 08:00", periods=90, freq="3h")
+            + pd.Timedelta(hours=2)
+            + pd.to_timedelta(np.random.randint(0, 60, 90), unit="m"),
         }
     )
 
-    # define expected time difference range (1-30 days based on training data)
-    min_time_diff = pd.Timedelta(days=1)
-    max_time_diff = pd.Timedelta(days=30)
+    # define expected time difference range (2-3 hours based on training data)
+    min_time_diff = pd.Timedelta(hours=2)
+    max_time_diff = pd.Timedelta(hours=3)
+    expected_mean_time_diff = pd.Timedelta(hours=2.5)  # midpoint of 2-3 hours
 
-    # define valid state-city pairs
-    valid_pairs = {("CA", "LA"), ("NY", "NYC"), ("TX", "Houston")}
+    # define valid origin-destination-airline triplets
+    valid_combos = {("JFK", "LAX", "AA"), ("LAX", "ORD", "UA"), ("ORD", "JFK", "DL")}
 
     # train generator with both constraints
     g = mostly.train(
@@ -68,9 +74,11 @@ def test_constraints(mostly):
                 }
             ],
             "constraints": [
-                FixedCombination(table_name="test", columns=["state", "city"]),
-                Inequality(table_name="test", low_column="start_age", high_column="end_age"),
-                Inequality(table_name="test", low_column="start_date", high_column="end_date", strict_boundaries=True),
+                FixedCombination(table_name="test", columns=["ORIGIN_AIRPORT", "DESTINATION_AIRPORT", "AIRLINE"]),
+                Inequality(table_name="test", low_column="AIR_TIME", high_column="ELAPSED_TIME"),
+                Inequality(
+                    table_name="test", low_column="DEPARTURE_TIME", high_column="ARRIVAL_TIME", strict_boundaries=True
+                ),
             ],
         }
     )
@@ -80,28 +88,30 @@ def test_constraints(mostly):
     df_syn = sd.data()
 
     # verify FixedCombination constraint
-    syn_pairs = set(zip(df_syn["state"], df_syn["city"]))
-    assert syn_pairs.issubset(valid_pairs), f"invalid pairs found: {syn_pairs - valid_pairs}"
+    syn_triplets = set(zip(df_syn["ORIGIN_AIRPORT"], df_syn["DESTINATION_AIRPORT"], df_syn["AIRLINE"]))
+    assert syn_triplets.issubset(valid_combos), f"invalid triplets found: {syn_triplets - valid_combos}"
 
-    # verify Inequality constraint
-    assert (df_syn["start_age"] <= df_syn["end_age"]).all(), "inequality constraint violated"
+    # verify numeric Inequality constraint
+    assert (df_syn["AIR_TIME"] <= df_syn["ELAPSED_TIME"]).all(), (
+        "inequality constraint violated: AIR_TIME must be <= ELAPSED_TIME"
+    )
 
     # verify datetime Inequality constraint (strict boundaries)
-    assert (df_syn["start_date"] < df_syn["end_date"]).all(), (
-        "datetime inequality constraint violated: start_date must be < end_date"
+    assert (df_syn["DEPARTURE_TIME"] < df_syn["ARRIVAL_TIME"]).all(), (
+        "datetime inequality constraint violated: DEPARTURE_TIME must be < ARRIVAL_TIME"
     )
 
     # verify time differences follow predefined rules
-    time_diffs = df_syn["end_date"] - df_syn["start_date"]
+    time_diffs = df_syn["ARRIVAL_TIME"] - df_syn["DEPARTURE_TIME"]
     assert (time_diffs >= min_time_diff).all(), (
         f"time difference too small: min={time_diffs.min()}, expected >= {min_time_diff}"
     )
     assert (time_diffs <= max_time_diff).all(), (
         f"time difference too large: max={time_diffs.max()}, expected <= {max_time_diff}"
     )
-    # verify overall mean time difference is close to 15 days
-    assert np.abs(time_diffs.mean() - pd.Timedelta(days=15)) < pd.Timedelta(days=1), (
-        f"overall mean time difference is not close to 15 days: mean={time_diffs.mean()}, expected ≈ {pd.Timedelta(days=15)}"
+    # verify overall mean time difference is close to expected value
+    assert np.abs(time_diffs.mean() - expected_mean_time_diff) < pd.Timedelta(minutes=12), (
+        f"overall mean time difference is not close to {expected_mean_time_diff}: mean={time_diffs.mean()}, expected ≈ {expected_mean_time_diff}"
     )
 
     g.delete()
