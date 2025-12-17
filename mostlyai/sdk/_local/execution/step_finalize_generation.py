@@ -71,7 +71,6 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=False,
                 job_workspace_dir=job_workspace_dir,
-                generator=generator,
             )
         return usages
 
@@ -93,7 +92,6 @@ def execute_step_finalize_generation(
                 delivery_dir=delivery_dir,
                 export_csv=export_csv,
                 job_workspace_dir=job_workspace_dir,
-                generator=generator,
             )
             progress.update(advance=1)
 
@@ -558,7 +556,6 @@ def finalize_table_generation(
     delivery_dir: Path,
     export_csv: bool,
     job_workspace_dir: Path,
-    generator: Generator | None = None,
 ) -> None:
     """
     Post-process the generated data for a given table.
