@@ -174,10 +174,7 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
                         status=ProgressStatus.new,
                     )
                 )
-    # always add finalize_training progress steps if there are non-context relationships or constraints
-    # (finalize_training handles both FK model training and column restoration)
-    has_constraints = bool(getattr(generator, "constraints", None))
-    if has_non_context_relationships(generator) or has_constraints:
+    if has_non_context_relationships(generator):
         for step in FINALIZE_TRAINING_TASK_STEPS:
             progress_steps.append(
                 ProgressStep(
