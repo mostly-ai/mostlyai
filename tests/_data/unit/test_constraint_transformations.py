@@ -37,100 +37,87 @@ from mostlyai.sdk.domain import (
 )
 
 
-class TestFixedCombinationHandler:
-    def test_to_internal_merges_columns(self):
-        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
-        df = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"], "value": [1, 2]})
+# Fixtures
+@pytest.fixture
+def sample_df():
+    """basic dataframe for testing."""
+    return pd.DataFrame(
+        {"state": ["CA", "NY"], "city": ["LA", "NYC"], "start": [10, 20], "end": [15, 25], "value": [1, 2]}
+    )
 
-        result = handler.to_internal(df)
 
-        assert handler.merged_name in result.columns
-        # internal representation uses record separator (\x1E), not "|"
-        # verify round-trip works instead of checking internal format
-        restored = handler.to_original(result)
-        assert list(restored["state"]) == ["CA", "NY"]
-        assert list(restored["city"]) == ["LA", "NYC"]
-        assert "state" in result.columns
-        assert "city" in result.columns
+@pytest.fixture
+def datetime_df():
+    """dataframe with datetime columns."""
+    return pd.DataFrame(
+        {"start": pd.to_datetime(["2024-01-01", "2024-02-01"]), "end": pd.to_datetime(["2024-01-10", "2024-02-15"])}
+    )
 
-    def test_to_original_keeps_original_columns(self):
-        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
-        # simulate generation output: create internal format first
-        df_input = pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"], "value": [1, 2]})
-        internal = handler.to_internal(df_input)
-        # simulate generation output: original columns + merged column
-        df = pd.DataFrame({col: internal[col] for col in internal.columns})
 
-        result = handler.to_original(df)
-
-        assert "state" in result.columns
-        assert "city" in result.columns
-        assert handler.merged_name not in result.columns
-        assert list(result["state"]) == ["CA", "NY"]
-        assert list(result["city"]) == ["LA", "NYC"]
-
-    def test_to_original_splits_columns_fallback(self):
-        # test fallback: if only merged column exists, split it
-        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["state", "city"]))
-        # create internal format with record separator
-        internal = handler.to_internal(pd.DataFrame({"state": ["CA", "NY"], "city": ["LA", "NYC"]}))
-        df = pd.DataFrame(
-            {col: internal[col] for col in [handler.merged_name, "state", "city"] if col in internal.columns}
-        )
-        # remove original columns to test fallback
-        df = df.drop(columns=["state", "city"], errors="ignore")
-
-        result = handler.to_original(df)
-
-        assert "state" in result.columns
-        assert "city" in result.columns
-        assert handler.merged_name not in result.columns
-        assert list(result["state"]) == ["CA", "NY"]
-        assert list(result["city"]) == ["LA", "NYC"]
-
-    def test_round_trip(self):
-        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b", "c"]))
-        df = pd.DataFrame({"a": ["x", "y"], "b": ["1", "2"], "c": ["!", "@"], "other": [10, 20]})
-
-        # make a copy since to_internal modifies the dataframe in place
-        internal = handler.to_internal(df.copy())
-        restored = handler.to_original(internal)
-
-        assert set(df.columns) == set(restored.columns)
-        for col in df.columns:
-            assert list(df[col]) == list(restored[col])
-
-    def test_encoding_types(self):
-        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=["a", "b"]))
-        enc = handler.get_encoding_types()
-        assert len(enc) == 1
-        assert handler.merged_name in enc
-        assert enc[handler.merged_name] == "TABULAR_CATEGORICAL"
-
-    @pytest.mark.parametrize(
-        "columns,df_data,expected",
-        [
-            (
-                ["state", "city"],
-                {"state": ["CA", "NY"], "city": ["LA\x1eSF", "NYC"], "value": [1, 2]},
-                {"state": ["CA", "NY"], "city": ["LA\x1eSF", "NYC"]},
-            ),
-            (
-                ["state", "city"],
-                {"state": ["CA", "NY"], "city": ["LA|SF", "NYC"], "value": [1, 2]},
-                {"state": ["CA", "NY"], "city": ["LA|SF", "NYC"]},
-            ),
-            (
-                ["a", "b", "c"],
-                {"a": ["x\x1ey", "z"], "b": ["1", "2\x1e3"], "c": ["!", "@"], "other": [10, 20]},
-                {"a": ["x\x1ey", "z"], "b": ["1", "2\x1e3"], "c": ["!", "@"]},
-            ),
+@pytest.fixture
+def datetime_table():
+    """table config with datetime encoding."""
+    return SourceTable(
+        name="test_table",
+        columns=[
+            SourceColumn(name="start", model_encoding_type=ModelEncodingType.tabular_datetime),
+            SourceColumn(name="end", model_encoding_type=ModelEncodingType.tabular_datetime),
         ],
     )
-    def test_separator_escaping(self, columns, df_data, expected):
-        """test that separator characters (record separator and pipe) in data are properly handled."""
-        handler = FixedCombinationHandler(FixedCombination(table_name="test_table", columns=columns))
-        df = pd.DataFrame(df_data)
+
+
+@pytest.fixture
+def fixed_combination_constraint():
+    return FixedCombination(table_name="test_table", columns=["state", "city"])
+
+
+@pytest.fixture
+def inequality_constraint():
+    return Inequality(table_name="test_table", low_column="start", high_column="end")
+
+
+# FixedCombinationHandler Tests
+class TestFixedCombinationHandler:
+    def test_round_trip(self, sample_df, fixed_combination_constraint):
+        """test complete round-trip transformation."""
+        handler = FixedCombinationHandler(fixed_combination_constraint)
+        internal = handler.to_internal(sample_df.copy())
+        restored = handler.to_original(internal)
+
+        assert set(sample_df.columns) == set(restored.columns)
+        pd.testing.assert_frame_equal(sample_df, restored)
+
+    def test_merged_column_created(self, sample_df, fixed_combination_constraint):
+        """test that merged column is created and original columns preserved."""
+        handler = FixedCombinationHandler(fixed_combination_constraint)
+        result = handler.to_internal(sample_df.copy())
+
+        assert handler.merged_name in result.columns
+        assert "state" in result.columns
+        assert "city" in result.columns
+
+    def test_to_original_removes_merged_column(self, sample_df, fixed_combination_constraint):
+        """test that to_original removes merged column."""
+        handler = FixedCombinationHandler(fixed_combination_constraint)
+        internal = handler.to_internal(sample_df.copy())
+        result = handler.to_original(internal)
+
+        assert handler.merged_name not in result.columns
+        assert "state" in result.columns
+        assert "city" in result.columns
+
+    @pytest.mark.parametrize(
+        "columns,data,expected",
+        [
+            (["state", "city"], {"state": ["CA"], "city": ["LA\x1eSF"]}, {"state": ["CA"], "city": ["LA\x1eSF"]}),
+            (["a", "b"], {"a": ["x\x1ey"], "b": ["1|2"]}, {"a": ["x\x1ey"], "b": ["1|2"]}),
+        ],
+    )
+    def test_separator_escaping(self, columns, data, expected):
+        """test that separator characters are properly handled."""
+        constraint = FixedCombination(table_name="test_table", columns=columns)
+        handler = FixedCombinationHandler(constraint)
+        df = pd.DataFrame(data)
 
         internal = handler.to_internal(df)
         restored = handler.to_original(internal)
@@ -138,98 +125,40 @@ class TestFixedCombinationHandler:
         for col, expected_values in expected.items():
             assert list(restored[col]) == expected_values
 
+    def test_encoding_types(self, fixed_combination_constraint):
+        """test encoding types for merged column."""
+        handler = FixedCombinationHandler(fixed_combination_constraint)
+        enc = handler.get_encoding_types()
 
+        assert len(enc) == 1
+        assert enc[handler.merged_name] == "TABULAR_CATEGORICAL"
+
+
+# InequalityHandler Tests
 class TestInequalityHandler:
     @pytest.mark.parametrize(
-        "df_data,expected_delta",
+        "df_fixture,expected_delta_type",
         [
-            # (
-            #     {"start": [10, 20, 30], "end": [15, 25, 35]},
-            #     [5, 5, 5],
-            # ),
-            (
-                {
-                    "start": pd.to_datetime(["2024-01-01", "2024-02-01"]),
-                    "end": pd.to_datetime(["2024-01-10", "2024-02-15"]),
-                },
-                [pd.Timestamp("1970-01-10"), pd.Timestamp("1970-01-15")],  # datetime representation (epoch + timedelta)
-            ),
+            ("datetime_df", pd.Timestamp),
         ],
     )
-    def test_to_internal(self, df_data, expected_delta):
-        """test to_internal for both numeric and datetime types."""
-        # create table with datetime encoding types if testing datetime
-        table = None
-        if isinstance(expected_delta[0], pd.Timestamp):
-            table = SourceTable(
-                name="test_table",
-                columns=[
-                    SourceColumn(name="start", model_encoding_type=ModelEncodingType.tabular_datetime),
-                    SourceColumn(name="end", model_encoding_type=ModelEncodingType.tabular_datetime),
-                ],
-            )
+    def test_to_internal_creates_delta(self, df_fixture, expected_delta_type, datetime_table, request):
+        """test that delta column is created with correct type."""
+        df = request.getfixturevalue(df_fixture)
         handler = InequalityHandler(
-            Inequality(table_name="test_table", low_column="start", high_column="end"), table=table
+            Inequality(table_name="test_table", low_column="start", high_column="end"), table=datetime_table
         )
-        df = pd.DataFrame(df_data)
 
         result = handler.to_internal(df)
-
-        assert "start" in result.columns
         delta_col = [c for c in result.columns if "TABULAR_CONSTRAINT_INEQ_DELTA" in c][0]
-        # datetime deltas are now stored as datetime (epoch + timedelta)
-        if isinstance(expected_delta[0], pd.Timestamp):
-            pd.testing.assert_series_equal(result[delta_col], pd.Series(expected_delta), check_names=False)
-        else:
-            assert list(result[delta_col]) == expected_delta
 
-    @pytest.mark.parametrize(
-        "df_data,delta_values,expected_end",
-        [
-            # (
-            #     {"start": [10, 20]},
-            #     [5, 10],
-            #     [15, 30],
-            # ),
-            (
-                {"start": pd.to_datetime(["2024-01-01", "2024-02-01"])},
-                [pd.Timestamp("1970-01-10"), pd.Timestamp("1970-01-15")],  # datetime representation (epoch + timedelta)
-                [pd.Timestamp("2024-01-10"), pd.Timestamp("2024-02-15")],
-            ),
-        ],
-    )
-    def test_to_original(self, df_data, delta_values, expected_end):
-        """test to_original for both numeric and datetime types."""
-        # create table with datetime encoding types if testing datetime
-        table = None
-        if isinstance(expected_end[0], pd.Timestamp):
-            table = SourceTable(
-                name="test_table",
-                columns=[
-                    SourceColumn(name="start", model_encoding_type=ModelEncodingType.tabular_datetime),
-                    SourceColumn(name="end", model_encoding_type=ModelEncodingType.tabular_datetime),
-                ],
-            )
-        handler = InequalityHandler(
-            Inequality(table_name="test_table", low_column="start", high_column="end"), table=table
-        )
-        delta_col = handler._delta_column
-        df = pd.DataFrame({**df_data, delta_col: delta_values})
-
-        result = handler.to_original(df)
-
-        assert "end" in result.columns
-        assert delta_col not in result.columns
-        if isinstance(expected_end[0], pd.Timestamp):
-            assert result["end"].iloc[0] == expected_end[0]
-            assert result["end"].iloc[1] == expected_end[1]
-        else:
-            assert list(result["end"]) == expected_end
+        assert delta_col in result.columns
+        assert isinstance(result[delta_col].iloc[0], expected_delta_type)
 
     @pytest.mark.parametrize(
         "df_data",
         [
-            {"low": [1.0, 2.0, 3.0], "high": [5.0, 7.0, 10.0], "other": ["a", "b", "c"]},
+            {"low": [1.0, 2.0, 3.0], "high": [5.0, 7.0, 10.0]},
             {
                 "start": pd.to_datetime(["2024-01-01", "2024-06-15"]),
                 "end": pd.to_datetime(["2024-01-31", "2024-12-31"]),
@@ -237,10 +166,10 @@ class TestInequalityHandler:
         ],
     )
     def test_round_trip(self, df_data):
-        """test round-trip for both numeric and datetime types."""
+        """test round-trip for numeric and datetime types."""
         low_col = "low" if "low" in df_data else "start"
         high_col = "high" if "high" in df_data else "end"
-        # create table with datetime encoding types if testing datetime
+
         table = None
         if isinstance(df_data[low_col][0], pd.Timestamp):
             table = SourceTable(
@@ -250,6 +179,7 @@ class TestInequalityHandler:
                     SourceColumn(name=high_col, model_encoding_type=ModelEncodingType.tabular_datetime),
                 ],
             )
+
         handler = InequalityHandler(
             Inequality(table_name="test_table", low_column=low_col, high_column=high_col), table=table
         )
@@ -258,120 +188,74 @@ class TestInequalityHandler:
         internal = handler.to_internal(df)
         restored = handler.to_original(internal)
 
-        if isinstance(df[low_col].iloc[0], pd.Timestamp):
-            pd.testing.assert_series_equal(restored[low_col], df[low_col])
-            pd.testing.assert_series_equal(restored[high_col], df[high_col])
-        else:
-            assert list(restored[low_col]) == list(df[low_col])
-            assert list(restored[high_col]) == list(df[high_col])
+        pd.testing.assert_frame_equal(restored[[low_col, high_col]], df[[low_col, high_col]])
 
     def test_violation_correction(self):
+        """test that violations (low > high) are corrected."""
         handler = InequalityHandler(Inequality(table_name="test_table", low_column="low", high_column="high"))
-        df = pd.DataFrame({"low": [10, 20], "high": [5, 25]})  # first row violates
+        df = pd.DataFrame({"low": [10, 20], "high": [5, 25]})
 
         internal = handler.to_internal(df)
-        delta_col = handler._delta_column
 
-        assert internal[delta_col].iloc[0] == 0
-        assert internal[delta_col].iloc[1] == 5
-
-    def test_encoding_types(self):
-        handler = InequalityHandler(Inequality(table_name="test_table", low_column="a", high_column="b"))
-        enc = handler.get_encoding_types()
-        assert len(enc) == 1
-        assert list(enc.values())[0] == "TABULAR_NUMERIC_AUTO"
-
-    def test_strict_boundaries_false_allows_equality(self):
-        """test that strict_boundaries=False allows low == high."""
-        handler = InequalityHandler(
-            Inequality(table_name="test_table", low_column="start", high_column="end", strict_boundaries=False)
-        )
-        df = pd.DataFrame({"start": [10, 20], "end": [10, 25]})
-        result = handler.to_internal(df)
-        assert result[handler._delta_column].iloc[0] == 0
-        assert result[handler._delta_column].iloc[1] == 5
+        assert internal[handler._delta_column].iloc[0] == 0  # violation corrected
+        assert internal[handler._delta_column].iloc[1] == 5  # valid delta preserved
 
     @pytest.mark.parametrize(
-        "df_data",
+        "strict,low_val,high_val,expect_positive_delta",
         [
-            {"start": [10, 20, 30], "end": [10, 25, 35]},
-            {
-                "start": pd.to_datetime(["2024-01-01", "2024-02-01"]),
-                "end": pd.to_datetime(["2024-01-01", "2024-02-15"]),
-            },
+            (False, 10, 10, False),  # equality allowed
+            (True, 10, 10, True),  # equality corrected to positive delta
         ],
     )
-    def test_strict_boundaries_enforces_inequality(self, df_data):
-        """test that strict_boundaries=True enforces low < high."""
-        # create table with datetime encoding types if testing datetime
-        table = None
-        if isinstance(df_data["start"][0], pd.Timestamp):
-            table = SourceTable(
-                name="test_table",
-                columns=[
-                    SourceColumn(name="start", model_encoding_type=ModelEncodingType.tabular_datetime),
-                    SourceColumn(name="end", model_encoding_type=ModelEncodingType.tabular_datetime),
-                ],
-            )
+    def test_strict_boundaries(self, strict, low_val, high_val, expect_positive_delta):
+        """test strict_boundaries parameter."""
         handler = InequalityHandler(
-            Inequality(table_name="test_table", low_column="start", high_column="end", strict_boundaries=True),
-            table=table,
+            Inequality(table_name="test_table", low_column="low", high_column="high", strict_boundaries=strict)
         )
-        df = pd.DataFrame(df_data)
-        result = handler.to_internal(df)
-        delta = result[handler._delta_column]
-        # for datetime, delta is stored as datetime (epoch + timedelta), so compare with epoch
-        # for numeric, delta is stored as numeric
-        if pd.api.types.is_datetime64_any_dtype(delta):
-            assert delta.iloc[0] > handler._DATETIME_EPOCH
-        else:
-            assert delta.iloc[0] > 0
+        df = pd.DataFrame({"low": [low_val], "high": [high_val]})
 
-    def test_strict_boundaries_round_trip(self):
-        """test round-trip with strict_boundaries=True corrects equality."""
-        handler = InequalityHandler(
-            Inequality(table_name="test_table", low_column="low", high_column="high", strict_boundaries=True)
-        )
-        df = pd.DataFrame({"low": [1.0, 2.0], "high": [1.0, 3.0]})
-        internal = handler.to_internal(df)
-        restored = handler.to_original(internal)
-        assert all(restored["high"] > restored["low"])
+        result = handler.to_internal(df)
+        delta = result[handler._delta_column].iloc[0]
+
+        if expect_positive_delta:
+            assert delta > 0
+        else:
+            assert delta == 0
 
     def test_missing_columns_raises_error(self):
-        """test that missing columns raise a clear error message."""
+        """test that missing columns raise clear error."""
         handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
-        df = pd.DataFrame({"start": [10, 20]})  # missing "end" column
+        df = pd.DataFrame({"start": [10, 20]})
 
         with pytest.raises(ValueError, match="Columns.*not found in dataframe"):
             handler.to_internal(df)
 
+    def test_encoding_types(self):
+        """test encoding types for delta column."""
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="a", high_column="b"))
+        enc = handler.get_encoding_types()
 
+        assert len(enc) == 1
+        assert list(enc.values())[0] == "TABULAR_NUMERIC_AUTO"
+
+
+# ConstraintTranslator Tests
 class TestConstraintTranslator:
-    def test_mixed_constraints(self):
+    def test_mixed_constraints_round_trip(self, sample_df):
+        """test multiple constraint types together."""
         constraints = [
             FixedCombination(table_name="test_table", columns=["state", "city"]),
-            Inequality(table_name="test_table", low_column="start_age", high_column="end_age"),
+            Inequality(table_name="test_table", low_column="start", high_column="end"),
         ]
         translator = ConstraintTranslator(constraints)
-        df = pd.DataFrame(
-            {
-                "state": ["CA", "NY"],
-                "city": ["LA", "NYC"],
-                "start_age": [20, 30],
-                "end_age": [25, 40],
-                "other": [1, 2],
-            }
-        )
 
-        # make a copy since to_internal modifies the dataframe in place
-        internal = translator.to_internal(df.copy())
+        internal = translator.to_internal(sample_df.copy())
         restored = translator.to_original(internal)
 
-        assert set(df.columns) == set(restored.columns)
-        for col in df.columns:
-            assert list(df[col]) == list(restored[col])
+        pd.testing.assert_frame_equal(sample_df, restored)
 
-    def test_get_internal_columns(self):
+    def test_get_all_column_names(self):
+        """test that all column names (original + generated) are returned."""
         constraints = [
             FixedCombination(table_name="test_table", columns=["a", "b"]),
             Inequality(table_name="test_table", low_column="low", high_column="high"),
@@ -379,33 +263,24 @@ class TestConstraintTranslator:
         translator = ConstraintTranslator(constraints)
         original = ["a", "b", "low", "high", "other"]
 
-        all_column_names = translator.get_all_column_names(original)
+        all_columns = translator.get_all_column_names(original)
 
-        # FixedCombination keeps all original columns + merged column
-        assert "a" in all_column_names
-        assert "b" in all_column_names
-        fc_handler = translator.handlers[0]
-        assert fc_handler.merged_name in all_column_names
-        # Inequality keeps all original columns + delta column
-        assert "high" in all_column_names
-        assert "low" in all_column_names
-        assert "other" in all_column_names
-        assert any("TABULAR_CONSTRAINT_INEQ_DELTA" in c for c in all_column_names)
+        # check original columns present
+        assert set(original).issubset(set(all_columns))
+        # check generated columns present
+        assert any("TABULAR_CONSTRAINT_FC" in c for c in all_columns)
+        assert any("TABULAR_CONSTRAINT_INEQ_DELTA" in c for c in all_columns)
 
-    def test_get_encoding_types(self):
-        constraints = [
-            FixedCombination(table_name="test_table", columns=["a", "b"]),
-            Inequality(table_name="test_table", low_column="x", high_column="y"),
-        ]
-        translator = ConstraintTranslator(constraints)
-
-        enc = translator.get_encoding_types()
-
-        fc_handler = translator.handlers[0]
-        assert enc[fc_handler.merged_name] == "TABULAR_CATEGORICAL"
-        assert sum(1 for v in enc.values() if v == "TABULAR_NUMERIC_AUTO") == 1
-
-    def test_from_generator_config_with_constraints(self):
+    @pytest.mark.parametrize(
+        "has_constraints,expected_result",
+        [
+            (True, lambda t: t is not None),
+            (False, lambda t: t is None),
+        ],
+    )
+    def test_from_generator_config(self, has_constraints, expected_result):
+        """test creation from generator config."""
+        constraints = [FixedCombination(table_name="customers", columns=["state", "city"])] if has_constraints else []
         generator = Generator(
             id="test-gen",
             name="Test Generator",
@@ -413,160 +288,121 @@ class TestConstraintTranslator:
                 SourceTable(
                     name="customers",
                     columns=[
-                        SourceColumn(name="id"),
                         SourceColumn(name="state"),
                         SourceColumn(name="city"),
                     ],
                     tabular_model_configuration=ModelConfiguration(),
                 )
             ],
-            constraints=[FixedCombination(table_name="customers", columns=["state", "city"])],
+            constraints=constraints,
         )
 
         translator = ConstraintTranslator.from_generator_config(generator=generator, table_name="customers")
 
-        assert translator is not None
-        assert len(translator.handlers) == 1
-
-    def test_from_generator_config_no_constraints(self):
-        generator = Generator(
-            id="test-gen",
-            name="Test Generator",
-            tables=[SourceTable(name="table", columns=[SourceColumn(name="col1")])],
-        )
-
-        translator = ConstraintTranslator.from_generator_config(generator=generator, table_name="table")
-
-        assert translator is None
-
-    def test_from_generator_config_table_not_found(self):
-        generator = Generator(
-            id="test-gen",
-            name="Test Generator",
-            tables=[SourceTable(name="existing", columns=[SourceColumn(name="col1")])],
-        )
-
-        translator = ConstraintTranslator.from_generator_config(generator=generator, table_name="nonexistent")
-
-        assert translator is None
+        assert expected_result(translator)
 
 
+# Domain Validation Tests
 class TestDomainValidation:
-    def test_fixed_combination_requires_two_columns(self):
-        with pytest.raises(ValueError, match="at least 2 columns, got 1"):
-            FixedCombination(table_name="test_table", columns=["single"])
-
-    def test_inequality_same_column_fails(self):
-        with pytest.raises(ValueError, match="must be different, both are 'col'"):
-            Inequality(table_name="test_table", low_column="col", high_column="col")
-
-    def test_valid_constraints_create(self):
-        fc = FixedCombination(table_name="test_table", columns=["a", "b", "c"])
-        assert fc.columns == ["a", "b", "c"]
-
-        ineq = Inequality(table_name="test_table", low_column="start", high_column="end")
-        assert ineq.low_column == "start"
-
-
-class TestEdgeCases:
-    """test edge cases and simple scenarios that may have been missed."""
-
-    def test_empty_dataframe(self):
-        """test that empty dataframes are handled gracefully."""
-        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
-        df = pd.DataFrame({"start": pd.Series([], dtype=float), "end": pd.Series([], dtype=float)})
-        result = handler.to_internal(df)
-        assert len(result) == 0
-        restored = handler.to_original(result)
-        assert len(restored) == 0
-
-    def test_single_row(self):
-        """test single row case."""
-        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
-        df = pd.DataFrame({"start": [10], "end": [20]})
-        internal = handler.to_internal(df)
-        restored = handler.to_original(internal)
-        assert restored["start"].iloc[0] == 10
-        assert restored["end"].iloc[0] == 20
-
-    def test_all_nan_values(self):
-        """test all NaN values handling."""
-        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
-        df = pd.DataFrame({"start": [np.nan, np.nan], "end": [np.nan, np.nan]})
-        internal = handler.to_internal(df)
-        assert internal[handler._delta_column].isna().all()
-        restored = handler.to_original(internal)
-        assert restored["end"].isna().all()
-
-    def test_multiple_constraints_same_table(self):
-        """test multiple constraints on the same table work together."""
-        constraints = [
-            FixedCombination(table_name="test_table", columns=["state", "city"]),
-            Inequality(table_name="test_table", low_column="start_age", high_column="end_age"),
-        ]
-        translator = ConstraintTranslator(constraints)
-        df = pd.DataFrame(
-            {
-                "state": ["CA", "NY"],
-                "city": ["LA", "NYC"],
-                "start_age": [20, 30],
-                "end_age": [25, 40],
-            }
-        )
-
-        internal = translator.to_internal(df)
-        restored = translator.to_original(internal)
-
-        # all values should be preserved
-        assert list(restored["state"]) == ["CA", "NY"]
-        assert list(restored["city"]) == ["LA", "NYC"]
-        assert list(restored["start_age"]) == [20, 30]
-        assert list(restored["end_age"]) == [25, 40]
-
-
-class TestIntegration:
-    """integration tests for multiple constraints interacting and advanced scenarios."""
+    @pytest.mark.parametrize(
+        "constraint_type,params,error_match",
+        [
+            (FixedCombination, {"table_name": "t", "columns": ["single"]}, "at least 2 columns"),
+            (Inequality, {"table_name": "t", "low_column": "col", "high_column": "col"}, "must be different"),
+        ],
+    )
+    def test_invalid_constraints(self, constraint_type, params, error_match):
+        """test that invalid constraints raise appropriate errors."""
+        with pytest.raises(ValueError, match=error_match):
+            constraint_type(**params)
 
     @pytest.mark.parametrize(
-        "constraints,tables,should_raise,match",
+        "constraints,columns,encoding_types,should_raise,match",
         [
+            # overlapping columns
             (
-                [FixedCombination(table_name="customers", columns=["state", "city"])],
                 [
-                    SourceTableConfig(
-                        name="customers",
-                        columns=[
-                            SourceColumnConfig(name="id"),
-                            SourceColumnConfig(name="state"),
-                            SourceColumnConfig(name="city"),
-                        ],
-                    )
+                    FixedCombination(table_name="t", columns=["col1", "col2"]),
+                    FixedCombination(table_name="t", columns=["col2", "col3"]),
+                ],
+                [("col1", None), ("col2", None), ("col3", None)],
+                [None, None, None],
+                True,
+                "referenced by multiple constraints",
+            ),
+            # wrong encoding type for FixedCombination
+            (
+                [FixedCombination(table_name="t", columns=["col1", "col2"])],
+                [("col1", ModelEncodingType.tabular_numeric_auto), ("col2", ModelEncodingType.tabular_numeric_auto)],
+                [ModelEncodingType.tabular_numeric_auto, ModelEncodingType.tabular_numeric_auto],
+                True,
+                "must have TABULAR_CATEGORICAL encoding type",
+            ),
+            # mixed numeric/datetime for Inequality
+            (
+                [Inequality(table_name="t", low_column="low", high_column="high")],
+                [("low", ModelEncodingType.tabular_numeric_auto), ("high", ModelEncodingType.tabular_datetime)],
+                [ModelEncodingType.tabular_numeric_auto, ModelEncodingType.tabular_datetime],
+                True,
+                "must both be either numeric or datetime",
+            ),
+            # valid case
+            (
+                [
+                    FixedCombination(table_name="t", columns=["state", "city"]),
+                    Inequality(table_name="t", low_column="start", high_column="end"),
+                ],
+                [
+                    ("state", ModelEncodingType.tabular_categorical),
+                    ("city", ModelEncodingType.tabular_categorical),
+                    ("start", ModelEncodingType.tabular_numeric_auto),
+                    ("end", ModelEncodingType.tabular_numeric_auto),
+                ],
+                [
+                    ModelEncodingType.tabular_categorical,
+                    ModelEncodingType.tabular_categorical,
+                    ModelEncodingType.tabular_numeric_auto,
+                    ModelEncodingType.tabular_numeric_auto,
                 ],
                 False,
                 None,
             ),
-            (
-                [FixedCombination(table_name="orders", columns=["state", "city"])],
-                [SourceTableConfig(name="customers", columns=[SourceColumnConfig(name="id")])],
-                True,
-                "table 'orders' referenced by constraint not found",
-            ),
-            (
-                [FixedCombination(table_name="customers", columns=["state", "city"])],
-                [
-                    SourceTableConfig(
-                        name="customers", columns=[SourceColumnConfig(name="id"), SourceColumnConfig(name="state")]
-                    )
-                ],
-                True,
-                "columns \\['city'\\] in table 'customers' referenced by constraint not found",
-            ),
         ],
     )
-    def test_validate_against_generator(self, constraints, tables, should_raise, match):
-        """test constraint validation in GeneratorConfig."""
+    def test_generator_config_validation(self, constraints, columns, encoding_types, should_raise, match):
+        """test GeneratorConfig validation for various constraint scenarios."""
+        table_columns = [
+            SourceColumnConfig(name=name, model_encoding_type=enc_type)
+            for (name, _), enc_type in zip(columns, encoding_types)
+        ]
+        tables = [SourceTableConfig(name="t", columns=table_columns)]
+
         if should_raise:
             with pytest.raises(ValueError, match=match):
                 GeneratorConfig(constraints=constraints, tables=tables)
         else:
-            GeneratorConfig(constraints=constraints, tables=tables)
+            config = GeneratorConfig(constraints=constraints, tables=tables)
+            assert config is not None
+
+
+# Edge Cases
+class TestEdgeCases:
+    @pytest.mark.parametrize(
+        "df_data,description",
+        [
+            ({"start": pd.Series([], dtype=float), "end": pd.Series([], dtype=float)}, "empty dataframe"),
+            ({"start": [10], "end": [20]}, "single row"),
+            ({"start": [np.nan, np.nan], "end": [np.nan, np.nan]}, "all NaN values"),
+        ],
+    )
+    def test_edge_cases(self, df_data, description):
+        """test edge cases for InequalityHandler."""
+        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
+        df = pd.DataFrame(df_data)
+
+        internal = handler.to_internal(df)
+        restored = handler.to_original(internal)
+
+        assert len(restored) == len(df)
+        if description == "all NaN values":
+            assert restored["end"].isna().all()

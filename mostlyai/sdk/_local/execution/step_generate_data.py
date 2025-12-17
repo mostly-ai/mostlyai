@@ -129,7 +129,7 @@ def execute_step_generate_data(
         update_progress=update_progress,
     )
 
-    constraint_translator, _ = ConstraintTranslator.from_generator_config(
+    constraint_translator = ConstraintTranslator.from_generator_config(
         generator=generator,
         table_name=target_table_name,
     )
