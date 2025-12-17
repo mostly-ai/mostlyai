@@ -24,7 +24,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from mostlyai.sdk._data.dtype import STRING
 from mostlyai.sdk.domain import (
     FixedCombination,
     Generator,
@@ -117,7 +116,7 @@ class FixedCombinationHandler(ConstraintHandler):
                     _LOG.error(f"failed to decode JSON for {merged_value}; using empty values")
                     return [""] * len(self.columns)
 
-            split_values = df[self.merged_name].astype(STRING).apply(split_row)
+            split_values = df[self.merged_name].apply(split_row)
             split_df = pd.DataFrame(split_values.tolist(), index=df.index)
 
             # preserve original index
