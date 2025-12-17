@@ -24,6 +24,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from mostlyai.sdk._data.dtype import STRING
 from mostlyai.sdk.domain import (
     FixedCombination,
     Generator,
@@ -116,7 +117,7 @@ class FixedCombinationHandler(ConstraintHandler):
                     _LOG.error(f"failed to decode JSON for {merged_value}; using empty values")
                     return [""] * len(self.columns)
 
-            split_values = df[self.merged_name].astype(str).apply(split_row)
+            split_values = df[self.merged_name].astype(STRING).apply(split_row)
             split_df = pd.DataFrame(split_values.tolist(), index=df.index)
 
             # preserve original index
@@ -161,7 +162,7 @@ class InequalityHandler(ConstraintHandler):
                 ModelEncodingType.tabular_datetime_relative,
             }
             # check if either column is datetime-encoded
-            self._is_datetime = any(
+            self._is_datetime = all(
                 col.model_encoding_type in datetime_encodings
                 for col in table.columns
                 if col.name in {self.low_column, self.high_column}
