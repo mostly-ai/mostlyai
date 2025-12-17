@@ -235,30 +235,21 @@ class InequalityHandler(ConstraintHandler):
             else f"{self.low_column} < {self.high_column}"
         )
 
-    def _enforce_strict_delta(self, delta: pd.Series, is_datetime: bool, is_integer: bool) -> pd.Series:
-        """enforce strict boundaries by ensuring delta > 0.
-
-        Args:
-            delta: delta series to enforce
-            is_datetime: whether the data is datetime type
-            is_integer: whether the data is integer type (for numeric)
-
-        Returns:
-            corrected delta series with all values > 0
-        """
-        zero = pd.Timedelta(0) if is_datetime else 0
+    def _enforce_strict_delta(self, delta: pd.Series) -> pd.Series:
+        """enforce strict boundaries by ensuring delta > 0."""
+        zero = pd.Timedelta(0) if self._is_datetime else 0
         zero_mask = delta <= zero
         if not zero_mask.any():
             return delta
 
-        if is_datetime:
-            epsilon = self._DATETIME_EPSILON
-        elif is_integer:
-            epsilon = self._INTEGER_EPSILON
-        else:
-            epsilon = self._NUMERIC_EPSILON
-            if not pd.api.types.is_float_dtype(delta):
-                delta = delta.astype(float)
+        is_integer = pd.api.types.is_integer_dtype(delta)
+        epsilon = (
+            self._DATETIME_EPSILON
+            if self._is_datetime
+            else self._INTEGER_EPSILON
+            if is_integer
+            else self._NUMERIC_EPSILON
+        )
 
         _LOG.warning(
             f"correcting {zero_mask.sum()} equality violations for strict inequality {self._repr_boundaries()}"
@@ -286,8 +277,7 @@ class InequalityHandler(ConstraintHandler):
 
         # enforce strict boundaries if needed
         if self.strict_boundaries:
-            is_integer = pd.api.types.is_integer_dtype(low) or pd.api.types.is_integer_dtype(high)
-            delta = self._enforce_strict_delta(delta, self._is_datetime, is_integer)
+            delta = self._enforce_strict_delta(delta)
 
         # convert timedelta to datetime using epoch (for datetime constraints)
         if self._is_datetime:
@@ -311,19 +301,13 @@ class InequalityHandler(ConstraintHandler):
 
         # convert datetime back to timedelta if needed
         if self._is_datetime:
-            # check if delta is datetime (new format) or float (old format for backward compatibility)
-            if pd.api.types.is_datetime64_any_dtype(delta):
-                # delta is stored as datetime (epoch + timedelta), convert back to timedelta
-                delta = delta - self._DATETIME_EPOCH
-            else:
-                # delta is stored as fractional days (float) - old format, convert to timedelta
-                delta = pd.to_timedelta(delta, unit="D")
+            delta = delta - self._DATETIME_EPOCH
         else:
             delta = self._ensure_delta_type(delta, False)
 
         # enforce strict boundaries if needed
         if self.strict_boundaries:
-            delta = self._enforce_strict_delta(delta, self._is_datetime, pd.api.types.is_integer_dtype(low))
+            delta = self._enforce_strict_delta(delta)
 
         # default reconstruction: high = low + delta
         df[self.high_column] = low + delta

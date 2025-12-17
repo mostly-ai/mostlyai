@@ -669,8 +669,7 @@ class MostlyAI(_MostlyBaseClient):
                         'data': df,
                     }],
                     'constraints': [
-                        FixedCombination(table_name='locations', columns=['country', 'state']),  # ensures valid country-state pairs
-                        FixedCombination(table_name='locations', columns=['state', 'city']),     # ensures valid state-city pairs
+                        FixedCombination(table_name='locations', columns=['country', 'state', 'city']),  # ensures valid country-state-city combinations
                     ]
                 },
                 start=True,
