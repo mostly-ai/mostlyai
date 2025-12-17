@@ -28,6 +28,7 @@ from mostlyai.sdk.domain import (
     FixedCombination,
     Generator,
     Inequality,
+    ModelEncodingType,
 )
 
 _LOG = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ def _generate_internal_column_name(prefix: str, columns: list[str]) -> str:
     key = "|".join(columns)
     hash_suffix = hashlib.md5(key.encode()).hexdigest()[:8]
     columns_str = "_".join(col.upper() for col in columns)
-    return f"__TABULAR_CONSTRAINT_{prefix.upper()}_{columns_str}_{hash_suffix}__"
+    return f"__TABULAR_CONSTRAINT_{prefix}_{columns_str}_{hash_suffix}__"
 
 
 class ConstraintHandler(ABC):
@@ -131,7 +132,7 @@ class FixedCombinationHandler(ConstraintHandler):
         self.constraint = constraint
         self.table_name = constraint.table_name
         self.columns = constraint.columns
-        self.merged_name = _generate_internal_column_name("fixedcomb", self.columns)
+        self.merged_name = _generate_internal_column_name("FIXEDCOMB", self.columns)
 
     def get_internal_column_names(self) -> list[str]:
         return [self.merged_name]
@@ -202,14 +203,29 @@ class InequalityHandler(ConstraintHandler):
     _NUMERIC_EPSILON = 1e-8  # conservative practical float64 difference (1 for integers)
     _INTEGER_EPSILON = 1  # Epsilon for integer types
     _DATETIME_EPSILON = pd.Timedelta(microseconds=1)  # smallest reliable timedelta
+    _DATETIME_EPOCH = pd.Timestamp("1970-01-01")  # reference epoch for delta representation
 
-    def __init__(self, constraint: Inequality):
+    def __init__(self, constraint: Inequality, table=None):
         self.constraint = constraint
         self.table_name = constraint.table_name
         self.low_column = constraint.low_column
         self.high_column = constraint.high_column
         self.strict_boundaries = constraint.strict_boundaries
-        self._delta_column = _generate_internal_column_name("ineq_delta", [self.low_column, self.high_column])
+        self._delta_column = _generate_internal_column_name("INEQ_DELTA", [self.low_column, self.high_column])
+
+        # determine if this is a datetime constraint based on table encoding types
+        self._is_datetime = False
+        if table and table.columns:
+            datetime_encodings = {
+                ModelEncodingType.tabular_datetime,
+                ModelEncodingType.tabular_datetime_relative,
+            }
+            # check if either column is datetime-encoded
+            self._is_datetime = any(
+                col.model_encoding_type in datetime_encodings
+                for col in table.columns
+                if col.name in {self.low_column, self.high_column}
+            )
 
     def _repr_boundaries(self) -> str:
         """return string representation of inequality boundaries."""
@@ -261,8 +277,7 @@ class InequalityHandler(ConstraintHandler):
         low = df[self.low_column]
         high = df[self.high_column]
 
-        is_datetime = pd.api.types.is_datetime64_any_dtype(low)
-        zero = pd.Timedelta(0) if is_datetime else 0
+        zero = pd.Timedelta(0) if self._is_datetime else 0
         delta = high - low
         violations = delta < zero
         if violations.any():
@@ -272,11 +287,13 @@ class InequalityHandler(ConstraintHandler):
         # enforce strict boundaries if needed
         if self.strict_boundaries:
             is_integer = pd.api.types.is_integer_dtype(low) or pd.api.types.is_integer_dtype(high)
-            delta = self._enforce_strict_delta(delta, is_datetime, is_integer)
+            delta = self._enforce_strict_delta(delta, self._is_datetime, is_integer)
 
-        # convert timedelta to fractional days (float) for numeric encoding
-        if is_datetime:
-            delta = delta / pd.Timedelta(days=1)
+        # convert timedelta to datetime using epoch (for datetime constraints)
+        if self._is_datetime:
+            # represent delta as datetime: epoch + timedelta
+            delta = self._DATETIME_EPOCH + delta
+        # for numeric, keep as-is (numeric delta)
 
         df[self._delta_column] = delta
         return df
@@ -288,33 +305,41 @@ class InequalityHandler(ConstraintHandler):
             return df
 
         # prepare data and types
-        is_datetime = pd.api.types.is_datetime64_any_dtype(df[self.low_column])
         low = df[self.low_column]
         delta = df[self._delta_column]
-        original_dtype = None if is_datetime else low.dtype
+        original_dtype = None if self._is_datetime else low.dtype
 
-        # convert fractional days back to timedelta if needed
-        if is_datetime:
-            delta = pd.to_timedelta(delta, unit="D")
+        # convert datetime back to timedelta if needed
+        if self._is_datetime:
+            # check if delta is datetime (new format) or float (old format for backward compatibility)
+            if pd.api.types.is_datetime64_any_dtype(delta):
+                # delta is stored as datetime (epoch + timedelta), convert back to timedelta
+                delta = delta - self._DATETIME_EPOCH
+            else:
+                # delta is stored as fractional days (float) - old format, convert to timedelta
+                delta = pd.to_timedelta(delta, unit="D")
         else:
             delta = self._ensure_delta_type(delta, False)
 
         # enforce strict boundaries if needed
         if self.strict_boundaries:
-            delta = self._enforce_strict_delta(delta, is_datetime, pd.api.types.is_integer_dtype(low))
+            delta = self._enforce_strict_delta(delta, self._is_datetime, pd.api.types.is_integer_dtype(low))
 
         # default reconstruction: high = low + delta
         df[self.high_column] = low + delta
 
         # preserve dtype
-        if not is_datetime and original_dtype and pd.api.types.is_integer_dtype(original_dtype):
+        if not self._is_datetime and original_dtype and pd.api.types.is_integer_dtype(original_dtype):
             df[self.low_column] = df[self.low_column].astype(original_dtype)
             df[self.high_column] = df[self.high_column].astype(original_dtype)
 
         return df.drop(columns=[self._delta_column])
 
     def get_encoding_types(self) -> dict[str, str]:
-        # always use TABULAR encoding for constraints, regardless of model_type
+        # use TABULAR_DATETIME for datetime constraints to preserve precision
+        # use TABULAR_NUMERIC_AUTO for numeric constraints
+        if self._is_datetime:
+            return {self._delta_column: "TABULAR_DATETIME"}
         return {self._delta_column: "TABULAR_NUMERIC_AUTO"}
 
     def get_table_column_tuples(self) -> list[tuple[str, str]]:
@@ -322,12 +347,12 @@ class InequalityHandler(ConstraintHandler):
         return [(self.table_name, self.low_column), (self.table_name, self.high_column)]
 
 
-def _create_constraint_handler(constraint: ConstraintType) -> ConstraintHandler:
+def _create_constraint_handler(constraint: ConstraintType, table=None) -> ConstraintHandler:
     """factory function to create appropriate handler for a constraint."""
     if isinstance(constraint, FixedCombination):
         return FixedCombinationHandler(constraint)
     elif isinstance(constraint, Inequality):
-        return InequalityHandler(constraint)
+        return InequalityHandler(constraint, table=table)
     else:
         raise ValueError(f"unknown constraint type: {type(constraint)}")
 
@@ -335,9 +360,10 @@ def _create_constraint_handler(constraint: ConstraintType) -> ConstraintHandler:
 class ConstraintTranslator:
     """translates data between user schema and internal schema for constraints."""
 
-    def __init__(self, constraints: list[ConstraintType]):
+    def __init__(self, constraints: list[ConstraintType], table=None):
         self.constraints = constraints
-        self.handlers = [_create_constraint_handler(c) for c in constraints]
+        self.table = table
+        self.handlers = [_create_constraint_handler(c, table=table) for c in constraints]
 
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         """transform dataframe from user schema to internal schema."""
@@ -411,7 +437,8 @@ class ConstraintTranslator:
         if not table_constraints:
             return None, None
 
-        translator = ConstraintTranslator(table_constraints)
+        # pass table to translator so handlers can check column types
+        translator = ConstraintTranslator(table_constraints, table=table)
         current_column_names = [c.name for c in table.columns] if table.columns else None
 
         if not current_column_names:
@@ -442,7 +469,8 @@ def preprocess_constraints_for_training(
         return None
 
     _LOG.info(f"preprocessing constraints for table {target_table_name}")
-    translator = ConstraintTranslator(table_constraints)
+    # pass table to translator so handlers can check column types
+    translator = ConstraintTranslator(table_constraints, table=target_table)
 
     tgt_data_dir = workspace_dir / "OriginalData" / "tgt-data"
     if not tgt_data_dir.exists():

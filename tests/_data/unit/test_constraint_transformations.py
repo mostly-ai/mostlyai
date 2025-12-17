@@ -28,6 +28,7 @@ from mostlyai.sdk.domain import (
     Generator,
     Inequality,
     ModelConfiguration,
+    ModelEncodingType,
     SourceColumn,
     SourceTable,
 )
@@ -147,21 +148,36 @@ class TestInequalityHandler:
                     "start": pd.to_datetime(["2024-01-01", "2024-02-01"]),
                     "end": pd.to_datetime(["2024-01-10", "2024-02-15"]),
                 },
-                [9.0, 14.0],  # fractional days (float) instead of Timedelta
+                [pd.Timestamp("1970-01-10"), pd.Timestamp("1970-01-15")],  # datetime representation (epoch + timedelta)
             ),
         ],
     )
     def test_to_internal(self, df_data, expected_delta):
         """test to_internal for both numeric and datetime types."""
-        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
+        # create table with datetime encoding types if testing datetime
+        table = None
+        if isinstance(expected_delta[0], pd.Timestamp):
+            table = SourceTable(
+                name="test_table",
+                columns=[
+                    SourceColumn(name="start", model_encoding_type=ModelEncodingType.tabular_datetime),
+                    SourceColumn(name="end", model_encoding_type=ModelEncodingType.tabular_datetime),
+                ],
+            )
+        handler = InequalityHandler(
+            Inequality(table_name="test_table", low_column="start", high_column="end"), table=table
+        )
         df = pd.DataFrame(df_data)
 
         result = handler.to_internal(df)
 
         assert "start" in result.columns
         delta_col = [c for c in result.columns if "TABULAR_CONSTRAINT_INEQ_DELTA" in c][0]
-        # datetime deltas are now converted to fractional days (float)
-        assert list(result[delta_col]) == expected_delta
+        # datetime deltas are now stored as datetime (epoch + timedelta)
+        if isinstance(expected_delta[0], pd.Timestamp):
+            pd.testing.assert_series_equal(result[delta_col], pd.Series(expected_delta), check_names=False)
+        else:
+            assert list(result[delta_col]) == expected_delta
 
     @pytest.mark.parametrize(
         "df_data,delta_values,expected_end",
@@ -173,14 +189,26 @@ class TestInequalityHandler:
             # ),
             (
                 {"start": pd.to_datetime(["2024-01-01", "2024-02-01"])},
-                [9.0, 14.0],  # fractional days (float) - internal representation
+                [pd.Timestamp("1970-01-10"), pd.Timestamp("1970-01-15")],  # datetime representation (epoch + timedelta)
                 [pd.Timestamp("2024-01-10"), pd.Timestamp("2024-02-15")],
             ),
         ],
     )
     def test_to_original(self, df_data, delta_values, expected_end):
         """test to_original for both numeric and datetime types."""
-        handler = InequalityHandler(Inequality(table_name="test_table", low_column="start", high_column="end"))
+        # create table with datetime encoding types if testing datetime
+        table = None
+        if isinstance(expected_end[0], pd.Timestamp):
+            table = SourceTable(
+                name="test_table",
+                columns=[
+                    SourceColumn(name="start", model_encoding_type=ModelEncodingType.tabular_datetime),
+                    SourceColumn(name="end", model_encoding_type=ModelEncodingType.tabular_datetime),
+                ],
+            )
+        handler = InequalityHandler(
+            Inequality(table_name="test_table", low_column="start", high_column="end"), table=table
+        )
         delta_col = handler._delta_column
         df = pd.DataFrame({**df_data, delta_col: delta_values})
 
@@ -208,7 +236,19 @@ class TestInequalityHandler:
         """test round-trip for both numeric and datetime types."""
         low_col = "low" if "low" in df_data else "start"
         high_col = "high" if "high" in df_data else "end"
-        handler = InequalityHandler(Inequality(table_name="test_table", low_column=low_col, high_column=high_col))
+        # create table with datetime encoding types if testing datetime
+        table = None
+        if isinstance(df_data[low_col][0], pd.Timestamp):
+            table = SourceTable(
+                name="test_table",
+                columns=[
+                    SourceColumn(name=low_col, model_encoding_type=ModelEncodingType.tabular_datetime),
+                    SourceColumn(name=high_col, model_encoding_type=ModelEncodingType.tabular_datetime),
+                ],
+            )
+        handler = InequalityHandler(
+            Inequality(table_name="test_table", low_column=low_col, high_column=high_col), table=table
+        )
         df = pd.DataFrame(df_data)
 
         internal = handler.to_internal(df)
@@ -259,13 +299,29 @@ class TestInequalityHandler:
     )
     def test_strict_boundaries_enforces_inequality(self, df_data):
         """test that strict_boundaries=True enforces low < high."""
+        # create table with datetime encoding types if testing datetime
+        table = None
+        if isinstance(df_data["start"][0], pd.Timestamp):
+            table = SourceTable(
+                name="test_table",
+                columns=[
+                    SourceColumn(name="start", model_encoding_type=ModelEncodingType.tabular_datetime),
+                    SourceColumn(name="end", model_encoding_type=ModelEncodingType.tabular_datetime),
+                ],
+            )
         handler = InequalityHandler(
-            Inequality(table_name="test_table", low_column="start", high_column="end", strict_boundaries=True)
+            Inequality(table_name="test_table", low_column="start", high_column="end", strict_boundaries=True),
+            table=table,
         )
         df = pd.DataFrame(df_data)
         result = handler.to_internal(df)
         delta = result[handler._delta_column]
-        assert delta.iloc[0] > (pd.Timedelta(0) if isinstance(delta.iloc[0], pd.Timedelta) else 0)
+        # for datetime, delta is stored as datetime (epoch + timedelta), so compare with epoch
+        # for numeric, delta is stored as numeric
+        if pd.api.types.is_datetime64_any_dtype(delta):
+            assert delta.iloc[0] > handler._DATETIME_EPOCH
+        else:
+            assert delta.iloc[0] > 0
 
     def test_strict_boundaries_round_trip(self):
         """test round-trip with strict_boundaries=True corrects equality."""
