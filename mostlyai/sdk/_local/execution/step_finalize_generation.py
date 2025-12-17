@@ -54,7 +54,6 @@ def execute_step_finalize_generation(
     schema: Schema,
     is_probe: bool,
     job_workspace_dir: Path,
-    generator: Generator,
     update_progress: ProgressCallback | None = None,
 ) -> dict[str, int]:
     # get synthetic table usage
@@ -392,7 +391,6 @@ def process_table_with_random_fk_assignment(
             generated_data_schema=schema,
             tgt=table_name,
         )
-
         processed_data = filter_and_order_columns(processed_data, table_name, schema)
         write_batch_outputs(processed_data, table_name, chunk_idx, pqt_path, csv_path)
 
