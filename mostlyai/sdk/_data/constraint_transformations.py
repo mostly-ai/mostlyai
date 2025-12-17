@@ -151,6 +151,8 @@ class FixedCombinationHandler(ConstraintHandler):
             def split_row(merged_value: str) -> list[str]:
                 if pd.isna(merged_value):
                     return [""] * len(self.columns)
+                elif merged_value == "_RARE_":
+                    return ["_RARE_"] * len(self.columns)
                 try:
                     values = json.loads(merged_value)
                     return [str(v) if v is not None else "" for v in values]
@@ -283,7 +285,6 @@ class InequalityHandler(ConstraintHandler):
         # prepare data and types
         low = df[self.low_column]
         delta = df[self._delta_column]
-        original_dtype = None if self._is_datetime else low.dtype
 
         # convert datetime back to timedelta if needed
         if self._is_datetime:
@@ -295,11 +296,6 @@ class InequalityHandler(ConstraintHandler):
 
         # default reconstruction: high = low + delta
         df[self.high_column] = low + delta
-
-        # preserve dtype
-        if not self._is_datetime and original_dtype and pd.api.types.is_integer_dtype(original_dtype):
-            df[self.low_column] = df[self.low_column].astype(original_dtype)
-            df[self.high_column] = df[self.high_column].astype(original_dtype)
 
         return df.drop(columns=[self._delta_column])
 
