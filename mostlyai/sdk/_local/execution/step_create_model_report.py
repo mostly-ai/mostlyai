@@ -26,7 +26,6 @@ import pyarrow.parquet as papqt
 
 from mostlyai import qa
 from mostlyai.engine._workspace import Workspace
-from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator
 from mostlyai.sdk._data.util.common import TABLE_COLUMN_INFIX, TEMPORARY_PRIMARY_KEY, strip_column_prefix
 from mostlyai.sdk._local.execution.step_generate_model_report_data import qa_sample_size_heuristic
 from mostlyai.sdk._local.storage import get_model_label
@@ -132,22 +131,11 @@ def create_report(
         # consider TABULAR tgt columns a context
         ctx_columns += [f"{target_table_name}{TABLE_COLUMN_INFIX}{c}" for c in tgt_columns]
 
-    # load constraint translator early to include merged columns in pull
-    translator, _ = ConstraintTranslator.from_generator_config(
-        generator=generator,
-        table_name=target_table_name,
-    )
-
-    # add all internal column names so they survive column filtering in pull_data_for_report
-    tgt_columns_for_pull = tgt_columns.copy()
-    if translator is not None:
-        tgt_columns_for_pull.extend(translator.get_all_internal_column_names())
-
     pull_kwargs = dict(
         ctx_primary_key=ctx_primary_key if has_context else None,
         tgt_context_key=tgt_context_key if has_context else None,
         ctx_columns=ctx_columns if has_context else None,
-        tgt_columns=tgt_columns_for_pull,
+        tgt_columns=tgt_columns,
         ctx_table_name=ctx_table_name if has_context else None,
         max_sample_size=sample_size,
         max_sequence_length=1_000,
@@ -180,15 +168,6 @@ def create_report(
 
     if ctx_primary_key and ctx_table_name:
         ctx_primary_key = strip_column_prefix(prefixed_data=ctx_primary_key, table_name=ctx_table_name)
-
-    # apply constraint de-transformation if constraints exist
-    if translator is not None:
-        _LOG.info("applying constraint de-transformation for QA report")
-        syn_tgt_data = translator.to_original(syn_tgt_data)
-        if trn_tgt_data is not None:
-            trn_tgt_data = translator.to_original(trn_tgt_data)
-        if hol_tgt_data is not None:
-            hol_tgt_data = translator.to_original(hol_tgt_data)
 
     if step_code == StepCode.create_model_report:
         # generate Model QA report
