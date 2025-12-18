@@ -108,8 +108,18 @@ class TestFixedCombinationHandler:
 
 
 class TestInequalityHandler:
-    def test_round_trip_numeric(self, df):
+    @pytest.mark.parametrize(
+        "low,high",
+        [
+            ([10, 20], [15, 25]),
+            ([np.nan, 20], [15, 25]),  # low nan
+            ([10, 20], [np.nan, 25]),  # high nan
+            ([np.nan, 20], [np.nan, 25]),  # both nan
+        ],
+    )
+    def test_round_trip_numeric(self, low, high):
         """test numeric inequality round-trip."""
+        df = pd.DataFrame({"low": low, "high": high})
         constraint = Inequality(table_name="t", low_column="low", high_column="high")
         handler = InequalityHandler(constraint)
 
@@ -118,12 +128,21 @@ class TestInequalityHandler:
 
         pd.testing.assert_frame_equal(df[["low", "high"]], restored[["low", "high"]])
 
-    def test_round_trip_datetime(self):
+    @pytest.mark.parametrize(
+        "start,end",
+        [
+            (["2024-01-01", "2024-06-15"], ["2024-01-31", "2024-12-31"]),
+            ([pd.NaT, "2024-06-15"], ["2024-01-31", "2024-12-31"]),  # low nan
+            (["2024-01-01", "2024-06-15"], [pd.NaT, "2024-12-31"]),  # high nan
+            ([pd.NaT, "2024-06-15"], [pd.NaT, "2024-12-31"]),  # both nan
+        ],
+    )
+    def test_round_trip_datetime(self, start, end):
         """test datetime inequality round-trip."""
         df = pd.DataFrame(
             {
-                "start": pd.to_datetime(["2024-01-01", "2024-06-15"]),
-                "end": pd.to_datetime(["2024-01-31", "2024-12-31"]),
+                "start": pd.to_datetime(start),
+                "end": pd.to_datetime(end),
             }
         )
         table = SourceTable(
@@ -141,9 +160,18 @@ class TestInequalityHandler:
 
         pd.testing.assert_frame_equal(df, restored)
 
-    def test_creates_delta_column(self):
-        """test delta column is created."""
-        df = pd.DataFrame({"low": [10], "high": [20]})
+    @pytest.mark.parametrize(
+        "low,high,expected_delta",
+        [
+            ([10], [20], [10]),
+            ([np.nan], [20], [np.nan]),  # low nan -> delta is nan
+            ([10], [np.nan], [np.nan]),  # high nan -> delta is nan
+            ([np.nan], [np.nan], [np.nan]),  # both nan -> delta is nan
+        ],
+    )
+    def test_creates_delta_column(self, low, high, expected_delta):
+        """test delta column is created with correct values including NaN handling."""
+        df = pd.DataFrame({"low": low, "high": high})
         constraint = Inequality(table_name="t", low_column="low", high_column="high")
         handler = InequalityHandler(constraint)
 
@@ -151,17 +179,23 @@ class TestInequalityHandler:
         delta_col = handler._delta_column
 
         assert delta_col in internal.columns
-        assert internal[delta_col].iloc[0] == 10
+        if pd.isna(expected_delta[0]):
+            assert pd.isna(internal[delta_col].iloc[0])
+        else:
+            assert internal[delta_col].iloc[0] == expected_delta[0]
 
     def test_violation_correction(self):
-        """test violations are corrected."""
+        """test violations are logged but not corrected."""
         df = pd.DataFrame({"low": [10, 20], "high": [5, 25]})
         constraint = Inequality(table_name="t", low_column="low", high_column="high")
         handler = InequalityHandler(constraint)
 
         internal = handler.to_internal(df.copy())
 
-        assert internal[handler._delta_column].iloc[0] == 0
+        # violations are not corrected, delta values remain as computed
+        # row 0: low=10, high=5 -> delta = 5 - 10 = -5 (violation)
+        # row 1: low=20, high=25 -> delta = 25 - 20 = 5 (valid)
+        assert internal[handler._delta_column].iloc[0] == -5
         assert internal[handler._delta_column].iloc[1] == 5
 
     def test_missing_columns_error(self):
@@ -187,7 +221,6 @@ class TestInequalityHandler:
         [
             ({"low": pd.Series([], dtype=float), "high": pd.Series([], dtype=float)}, "empty"),
             ({"low": [10], "high": [20]}, "single row"),
-            ({"low": [np.nan], "high": [np.nan]}, "nan"),
         ],
     )
     def test_edge_cases(self, data, desc):
@@ -200,8 +233,6 @@ class TestInequalityHandler:
         restored = handler.to_original(internal)
 
         assert len(restored) == len(df)
-        if desc == "nan":
-            assert restored["high"].isna().all()
 
 
 class TestConstraintTranslator:

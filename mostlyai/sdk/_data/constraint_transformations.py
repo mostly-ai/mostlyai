@@ -163,8 +163,7 @@ class InequalityHandler(ConstraintHandler):
                 if col.name in {self.low_column, self.high_column}
             )
 
-    def _repr_boundaries(self) -> str:
-        """return string representation of inequality boundaries."""
+    def __repr__(self) -> str:
         return f"{self.low_column} <= {self.high_column}"
 
     def get_internal_column_names(self) -> list[str]:
@@ -187,8 +186,7 @@ class InequalityHandler(ConstraintHandler):
         # only check violations where we have valid values
         violations = (delta < zero) & ~na_mask
         if violations.any():
-            _LOG.warning(f"correcting {violations.sum()} inequality violations for {self._repr_boundaries()}")
-            delta[violations] = zero
+            _LOG.warning(f"detected {violations.sum() / len(delta) * 100:.2f}% inequality violations for {self}")
 
         # convert timedelta to datetime using epoch (for datetime constraints)
         if self._is_datetime:
@@ -367,3 +365,5 @@ def _update_meta_with_internal_columns(
             json.dump(encoding_types, f, indent=2)
 
         _LOG.debug(f"updated encoding-types.json with internal columns for {table_name}")
+    else:
+        _LOG.error(f"encoding-types.json not found to update internal columns for {table_name}")
