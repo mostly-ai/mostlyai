@@ -204,21 +204,30 @@ class InequalityHandler(ConstraintHandler):
         low = df[self.low_column]
         high = df[self.high_column]
 
+        # handle NAs: if either low or high is NA, set delta to NA
+        na_mask = low.isna() | high.isna()
+
         zero = pd.Timedelta(0) if self._is_datetime else 0
         delta = high - low
-        violations = delta < zero
+
+        # set delta to NA where either low or high is NA
+        delta[na_mask] = pd.NA
+
+        # only check violations where we have valid values
+        violations = (delta < zero) & ~na_mask
         if violations.any():
             _LOG.warning(f"correcting {violations.sum()} inequality violations for {self._repr_boundaries()}")
             delta[violations] = zero
 
-        # enforce strict boundaries if needed
+        # enforce strict boundaries if needed (only on non-NA values)
         if self.strict_boundaries:
             delta = self._enforce_strict_delta(delta)
 
         # convert timedelta to datetime using epoch (for datetime constraints)
         if self._is_datetime:
             # represent delta as datetime: epoch + timedelta
-            delta = self._DATETIME_EPOCH + delta
+            # preserve NAs during conversion
+            delta = delta.where(na_mask, self._DATETIME_EPOCH + delta)
         # for numeric, keep as-is (numeric delta)
 
         df[self._delta_column] = delta
@@ -235,14 +244,18 @@ class InequalityHandler(ConstraintHandler):
 
         # convert datetime back to timedelta if needed
         if self._is_datetime:
-            delta = delta - self._DATETIME_EPOCH
+            # ensure delta is datetime dtype before subtraction
+            delta = pd.to_datetime(delta)
+            # preserve NAs during conversion
+            delta = delta.where(delta.isna(), delta - self._DATETIME_EPOCH)
 
-        # enforce strict boundaries if needed
+        # enforce strict boundaries if needed (only on non-NA values)
         if self.strict_boundaries:
             delta = self._enforce_strict_delta(delta)
 
-        # default reconstruction: high = low + delta
-        df[self.high_column] = low + delta
+        # reconstruction: high = low + delta, but if delta is NA, keep generated values
+        na_mask = delta.isna()
+        df[self.high_column] = df[self.high_column].where(na_mask, low + delta)
 
         return df.drop(columns=[self._delta_column])
 
