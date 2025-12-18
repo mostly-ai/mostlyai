@@ -35,20 +35,27 @@ def test_constraints(mostly):
     # valid route-airline combinations (similar to flights dataset)
     valid_triplets = [("JFK", "LAX", "AA"), ("LAX", "ORD", "UA"), ("ORD", "JFK", "DL")]
 
+    # generate air_time first, then ensure elapsed_time = air_time + ground_time
+    air_time = np.random.randint(60, 300, 90)  # 1-5 hours in minutes
+    ground_time = np.random.randint(20, 60, 90)  # 20-60 min ground time
+    elapsed_time = air_time + ground_time  # ensure air_time < elapsed_time
+
+    # generate departure times, then ensure arrival_time = departure_time + flight_duration
+    departure_time = pd.date_range(start="2024-01-01 08:00", periods=90, freq="3h")
+    flight_duration = pd.Timedelta(hours=2) + pd.to_timedelta(np.random.randint(0, 60, 90), unit="m")
+    arrival_time = departure_time + flight_duration  # ensure departure_time < arrival_time
+
     df = pd.DataFrame(
         {
             "ORIGIN_AIRPORT": [t[0] for t in valid_triplets] * 30,
             "DESTINATION_AIRPORT": [t[1] for t in valid_triplets] * 30,
             "AIRLINE": [t[2] for t in valid_triplets] * 30,
-            # numeric inequality: air_time <= elapsed_time (air_time + taxi/ground time)
-            "AIR_TIME": np.random.randint(60, 300, 90),  # 1-5 hours in minutes
-            "ELAPSED_TIME": np.random.randint(60, 300, 90)
-            + np.random.randint(20, 60, 90),  # air_time + 20-60 min ground
+            # numeric inequality: air_time < elapsed_time (air_time + taxi/ground time)
+            "AIR_TIME": air_time,
+            "ELAPSED_TIME": elapsed_time,
             # datetime inequality: departure < arrival (strict boundaries)
-            "DEPARTURE_TIME": pd.date_range(start="2024-01-01 08:00", periods=90, freq="3h"),
-            "ARRIVAL_TIME": pd.date_range(start="2024-01-01 08:00", periods=90, freq="3h")
-            + pd.Timedelta(hours=2)
-            + pd.to_timedelta(np.random.randint(0, 60, 90), unit="m"),
+            "DEPARTURE_TIME": departure_time,
+            "ARRIVAL_TIME": arrival_time,
         }
     )
 
