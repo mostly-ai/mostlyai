@@ -4156,7 +4156,7 @@ class GeneratorConfig(CustomBaseModel):
         }
         datetime_types = {
             ModelEncodingType.tabular_datetime,
-            ModelEncodingType.tabular_datetime_relative,
+            # ModelEncodingType.tabular_datetime_relative,  # not supported yet
         }
 
         both_numeric = low_encoding in numeric_types and high_encoding in numeric_types

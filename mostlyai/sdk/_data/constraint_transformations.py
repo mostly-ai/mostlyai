@@ -158,7 +158,7 @@ class InequalityHandler(ConstraintHandler):
         if table and table.columns:
             datetime_encodings = {
                 ModelEncodingType.tabular_datetime,
-                ModelEncodingType.tabular_datetime_relative,
+                # ModelEncodingType.tabular_datetime_relative,  # not supported yet
             }
             # check if either column is datetime-encoded
             self._is_datetime = all(

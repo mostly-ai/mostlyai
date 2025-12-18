@@ -648,35 +648,40 @@ class MostlyAI(_MostlyBaseClient):
             }, start=True, wait=True)
             ```
 
-        Example with constraints to preserve valid combinations:
+        Example with constraints to preserve valid combinations and enforce inequalities:
             ```python
             # constraints ensure that synthetic data only contains combinations of values that existed in training data
-            # useful for: country-city pairs, product-category pairs, medical codes, etc.
+            # and enforce logical relationships like departure_time < arrival_time
+            import numpy as np
             import pandas as pd
+            departure_times = pd.date_range(start='2024-01-01 08:00', periods=40, freq='2h')
+            flight_durations = np.clip(np.random.normal(2.5, 0.2, 40), 2, 3)
             df = pd.DataFrame({
-                'country': ['US', 'US', 'CA', 'CA'],
-                'state': ['CA', 'NY', 'ON', 'BC'],
-                'city': ['Los Angeles', 'New York', 'Toronto', 'Vancouver']
+                'origin_airport': ['JFK', 'JFK', 'LAX', 'LAX'] * 10,
+                'destination_airport': ['LAX', 'ORD', 'ORD', 'JFK'] * 10,
+                'departure_time': departure_times,
+                'arrival_time': departure_times + pd.to_timedelta(flight_durations, unit='h'),
             })
             from mostlyai.sdk import MostlyAI
-            from mostlyai.sdk.domain import FixedCombination
+            from mostlyai.sdk.domain import FixedCombination, Inequality
             mostly = MostlyAI()
             g = mostly.train(
                 config={
-                    'name': 'locations',
+                    'name': 'flights',
                     'tables': [{
-                        'name': 'locations',
+                        'name': 'flights',
                         'data': df,
                     }],
                     'constraints': [
-                        FixedCombination(table_name='locations', columns=['country', 'state', 'city']),  # ensures valid country-state-city combinations
+                        FixedCombination(table_name='flights', columns=['origin_airport', 'destination_airport']),  # ensures valid route combinations
+                        Inequality(table_name='flights', low_column='departure_time', high_column='arrival_time', strict_boundaries=True),  # ensures departure < arrival
                     ]
                 },
                 start=True,
                 wait=True
             )
-            # synthetic data will never generate impossible combinations like: country='US', state='ON'
-            # each constraint requires at least 2 columns
+            # synthetic data will never generate impossible combinations like: origin='JFK', destination='JFK'
+            # and will always satisfy departure_time < arrival_time
             ```
         """
         if data is None and config is None:
