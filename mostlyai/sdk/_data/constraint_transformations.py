@@ -206,6 +206,7 @@ class InequalityHandler(ConstraintHandler):
         # prepare data and types
         low = df[self.low_column]
         delta = df[self._delta_column]
+        high_dtype = df[self.high_column].dtype
 
         # convert datetime back to timedelta if needed
         if self._is_datetime:
@@ -218,6 +219,8 @@ class InequalityHandler(ConstraintHandler):
         # reconstruction: high = low + delta, but if delta is NA, keep generated values
         na_mask = delta.isna()
         df[self.high_column] = df[self.high_column].where(na_mask, low + delta)
+        if pd.api.types.is_integer_dtype(high_dtype):
+            df[self.high_column] = df[self.high_column].astype(high_dtype)
 
         return df.drop(columns=[self._delta_column])
 

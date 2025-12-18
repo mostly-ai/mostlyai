@@ -57,7 +57,7 @@ def postprocess_model_file(file_path):
             new_lines.append(
                 "from enum import Enum\n"
                 "import pandas as pd\nfrom pathlib import Path\n"
-                "from pydantic import field_validator, model_validator\n"
+                "from pydantic import field_validator, model_validator, Discriminator\n"
                 "import uuid\n"
                 "import rich\n"
                 "import zipfile\n"
@@ -68,8 +68,10 @@ def postprocess_model_file(file_path):
         elif "from typing" in line and not import_typing_updated:
             # Append ', ClassVar' to the line if it doesn't already contain ClassVar
             if "ClassVar" not in line:
-                line = line.rstrip() + ", ClassVar, Literal, Annotated\n"
+                line = line.rstrip() + ", ClassVar, Literal, Annotated, Union\n"
                 import_typing_updated = True
+            elif "Union" not in line:
+                line = line.rstrip() + ", Union\n"
             new_lines.append(line)
         else:
             # Replace 'UUID' with 'str'
@@ -133,6 +135,12 @@ for _, _obj in inspect.getmembers(sys.modules[__name__]):
         r"(icon: str \| None = Field\(None, description=['\"]svg image['\"])\)",
         r"\1, repr=False, exclude=True)",
         content,
+    )
+
+    # fix constraints to use discriminated union
+    content = content.replace(
+        "constraints: list[FixedCombination | Inequality] | None = Field(",
+        'constraints: list[Annotated[Union[FixedCombination, Inequality], Discriminator("type")]] | None = Field(',
     )
 
     # Write the modified contents back to the file
