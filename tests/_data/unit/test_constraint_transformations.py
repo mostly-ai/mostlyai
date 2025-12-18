@@ -164,24 +164,6 @@ class TestInequalityHandler:
         assert internal[handler._delta_column].iloc[0] == 0
         assert internal[handler._delta_column].iloc[1] == 5
 
-    @pytest.mark.parametrize(
-        "strict,low,high,expect_positive",
-        [
-            (False, 10, 10, False),
-            (True, 10, 10, True),
-        ],
-    )
-    def test_strict_boundaries(self, strict, low, high, expect_positive):
-        """test strict_boundaries parameter."""
-        df = pd.DataFrame({"low": [low], "high": [high]})
-        constraint = Inequality(table_name="t", low_column="low", high_column="high", strict_boundaries=strict)
-        handler = InequalityHandler(constraint)
-
-        result = handler.to_internal(df.copy())
-        delta = result[handler._delta_column].iloc[0]
-
-        assert (delta > 0) == expect_positive
-
     def test_missing_columns_error(self):
         """test missing columns raise error."""
         df = pd.DataFrame({"low": [10]})

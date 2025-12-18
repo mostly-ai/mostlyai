@@ -138,11 +138,8 @@ class FixedCombinationHandler(ConstraintHandler):
 
 
 class InequalityHandler(ConstraintHandler):
-    """handler for Inequality constraints (low <= high or low < high if strict_boundaries=True)."""
+    """handler for Inequality constraints (low <= high)."""
 
-    _NUMERIC_EPSILON = 1e-8  # conservative practical float64 difference (1 for integers)
-    _INTEGER_EPSILON = 1  # Epsilon for integer types
-    _DATETIME_EPSILON = pd.Timedelta(microseconds=1)  # smallest reliable timedelta
     _DATETIME_EPOCH = pd.Timestamp("1970-01-01")  # reference epoch for delta representation
 
     def __init__(self, constraint: Inequality, table=None):
@@ -150,7 +147,6 @@ class InequalityHandler(ConstraintHandler):
         self.table_name = constraint.table_name
         self.low_column = constraint.low_column
         self.high_column = constraint.high_column
-        self.strict_boundaries = constraint.strict_boundaries
         self._delta_column = _generate_internal_column_name("INEQ_DELTA", [self.low_column, self.high_column])
 
         # determine if this is a datetime constraint based on table encoding types
@@ -169,32 +165,7 @@ class InequalityHandler(ConstraintHandler):
 
     def _repr_boundaries(self) -> str:
         """return string representation of inequality boundaries."""
-        return (
-            f"{self.low_column} <= {self.high_column}"
-            if not self.strict_boundaries
-            else f"{self.low_column} < {self.high_column}"
-        )
-
-    def _enforce_strict_delta(self, delta: pd.Series) -> pd.Series:
-        """enforce strict boundaries by ensuring delta > 0."""
-        zero = pd.Timedelta(0) if self._is_datetime else 0
-        zero_mask = delta <= zero
-        if not zero_mask.any():
-            return delta
-
-        is_integer = pd.api.types.is_integer_dtype(delta)
-        epsilon = (
-            self._DATETIME_EPSILON
-            if self._is_datetime
-            else self._INTEGER_EPSILON
-            if is_integer
-            else self._NUMERIC_EPSILON
-        )
-
-        _LOG.warning(
-            f"correcting {zero_mask.sum()} equality violations for strict inequality {self._repr_boundaries()}"
-        )
-        return delta.where(delta > zero, epsilon)
+        return f"{self.low_column} <= {self.high_column}"
 
     def get_internal_column_names(self) -> list[str]:
         return [self._delta_column]
@@ -218,10 +189,6 @@ class InequalityHandler(ConstraintHandler):
         if violations.any():
             _LOG.warning(f"correcting {violations.sum()} inequality violations for {self._repr_boundaries()}")
             delta[violations] = zero
-
-        # enforce strict boundaries if needed (only on non-NA values)
-        if self.strict_boundaries:
-            delta = self._enforce_strict_delta(delta)
 
         # convert timedelta to datetime using epoch (for datetime constraints)
         if self._is_datetime:
@@ -247,11 +214,8 @@ class InequalityHandler(ConstraintHandler):
             # ensure delta is datetime dtype before subtraction
             delta = pd.to_datetime(delta)
             # preserve NAs during conversion
-            delta = delta.where(delta.isna(), delta - self._DATETIME_EPOCH)
-
-        # enforce strict boundaries if needed (only on non-NA values)
-        if self.strict_boundaries:
-            delta = self._enforce_strict_delta(delta)
+            delta = delta - self._DATETIME_EPOCH
+            delta = delta.astype("timedelta64[ns]")  # explicit dtype conversion
 
         # reconstruction: high = low + delta, but if delta is NA, keep generated values
         na_mask = delta.isna()

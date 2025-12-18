@@ -76,9 +76,7 @@ def test_constraints(mostly):
             "constraints": [
                 FixedCombination(table_name="test", columns=["ORIGIN_AIRPORT", "DESTINATION_AIRPORT", "AIRLINE"]),
                 Inequality(table_name="test", low_column="AIR_TIME", high_column="ELAPSED_TIME"),
-                Inequality(
-                    table_name="test", low_column="DEPARTURE_TIME", high_column="ARRIVAL_TIME", strict_boundaries=True
-                ),
+                Inequality(table_name="test", low_column="DEPARTURE_TIME", high_column="ARRIVAL_TIME"),
             ],
         }
     )
@@ -96,9 +94,9 @@ def test_constraints(mostly):
         "inequality constraint violated: AIR_TIME must be <= ELAPSED_TIME"
     )
 
-    # verify datetime Inequality constraint (strict boundaries)
-    assert (df_syn["DEPARTURE_TIME"] < df_syn["ARRIVAL_TIME"]).all(), (
-        "datetime inequality constraint violated: DEPARTURE_TIME must be < ARRIVAL_TIME"
+    # verify datetime Inequality constraint
+    assert (df_syn["DEPARTURE_TIME"] <= df_syn["ARRIVAL_TIME"]).all(), (
+        "datetime inequality constraint violated: DEPARTURE_TIME must be <= ARRIVAL_TIME"
     )
 
     # verify time differences follow predefined rules

@@ -674,7 +674,7 @@ class MostlyAI(_MostlyBaseClient):
                     }],
                     'constraints': [
                         FixedCombination(table_name='flights', columns=['origin_airport', 'destination_airport']),  # ensures valid route combinations
-                        Inequality(table_name='flights', low_column='departure_time', high_column='arrival_time', strict_boundaries=True),  # ensures departure < arrival
+                        Inequality(table_name='flights', low_column='departure_time', high_column='arrival_time'),  # ensures departure <= arrival
                     ]
                 },
                 start=True,
