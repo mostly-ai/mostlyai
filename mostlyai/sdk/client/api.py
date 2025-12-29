@@ -663,7 +663,6 @@ class MostlyAI(_MostlyBaseClient):
                 'arrival_time': departure_times + pd.to_timedelta(flight_durations, unit='h'),
             })
             from mostlyai.sdk import MostlyAI
-            from mostlyai.sdk.domain import FixedCombination, Inequality
             mostly = MostlyAI()
             g = mostly.train(
                 config={
@@ -673,8 +672,8 @@ class MostlyAI(_MostlyBaseClient):
                         'data': df,
                     }],
                     'constraints': [
-                        FixedCombination(table_name='flights', columns=['origin_airport', 'destination_airport']),  # ensures valid route combinations
-                        Inequality(table_name='flights', low_column='departure_time', high_column='arrival_time'),  # ensures departure <= arrival
+                        {'type': 'FixedCombination', 'config': {'table_name': 'flights', 'columns': ['origin_airport', 'destination_airport']}},  # ensures valid route combinations
+                        {'type': 'Inequality', 'config': {'table_name': 'flights', 'low_column': 'departure_time', 'high_column': 'arrival_time'}},  # ensures departure <= arrival
                     ]
                 },
                 start=True,
