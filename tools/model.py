@@ -522,43 +522,6 @@ class GeneratorConfig:
             visited.update(seen_tables)
         return tables
 
-    def _validate_tabular_encoding(self, col_name, table_name, encoding):
-        """validate that column uses TABULAR model encoding."""
-        if encoding != ModelEncodingType.auto and not encoding.value.startswith(ModelType.tabular.value):
-            raise ValueError(f"Column '{col_name}' in table '{table_name}' is not part of TABULAR model")
-
-    def _validate_compatible_encodings(self, constraint, low_encoding, high_encoding):
-        """validate that both columns have compatible encoding types."""
-        numeric_types = {
-            ModelEncodingType.tabular_numeric_auto,
-            ModelEncodingType.tabular_numeric_discrete,
-            ModelEncodingType.tabular_numeric_binned,
-            ModelEncodingType.tabular_numeric_digit,
-        }
-        datetime_types = {
-            ModelEncodingType.tabular_datetime,
-            # ModelEncodingType.tabular_datetime_relative,  # not supported yet
-        }
-
-        both_numeric = low_encoding in numeric_types and high_encoding in numeric_types
-        both_datetime = low_encoding in datetime_types and high_encoding in datetime_types
-
-        if not (both_numeric or both_datetime):
-            raise ValueError(
-                f"Columns '{constraint.low_column}' and '{constraint.high_column}' in table "
-                f"'{constraint.table_name}' must both be either numeric or datetime encoding types"
-            )
-
-    def _track_column_usage(self, table_name, col_name, constraint_idx, column_usage):
-        """track column usage and detect overlaps."""
-        if table_name not in column_usage:
-            column_usage[table_name] = {}
-
-        if col_name in column_usage[table_name]:
-            raise ValueError(f"column '{col_name}' in table '{table_name}' is referenced by multiple constraints")
-
-        column_usage[table_name][col_name] = constraint_idx
-
 
 class SourceTableConfig:
     @field_validator("data", mode="before")
