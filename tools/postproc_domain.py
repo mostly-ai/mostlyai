@@ -137,12 +137,6 @@ for _, _obj in inspect.getmembers(sys.modules[__name__]):
         content,
     )
 
-    # fix constraints to use discriminated union
-    content = content.replace(
-        "constraints: list[FixedCombination | Inequality] | None = Field(",
-        'constraints: list[Annotated[Union[FixedCombination, Inequality], Discriminator("type")]] | None = Field(',
-    )
-
     # Write the modified contents back to the file
     with open(file_path, "w") as file:
         file.write(content)
