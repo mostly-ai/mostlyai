@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 
 from mostlyai.sdk import MostlyAI
-from mostlyai.sdk.domain import ConstraintConfig, ConstraintConfigParams
+from mostlyai.sdk.domain import ConstraintConfig
 
 
 @pytest.fixture(scope="module")
@@ -83,19 +83,22 @@ def test_constraints(mostly):
             "constraints": [
                 ConstraintConfig(
                     type="FixedCombination",
-                    config=ConstraintConfigParams(
-                        table_name="test", columns=["ORIGIN_AIRPORT", "DESTINATION_AIRPORT", "AIRLINE"]
-                    ),
+                    config={
+                        "table_name": "test",
+                        "columns": ["ORIGIN_AIRPORT", "DESTINATION_AIRPORT", "AIRLINE"],
+                    },
                 ),
                 ConstraintConfig(
                     type="Inequality",
-                    config=ConstraintConfigParams(table_name="test", low_column="AIR_TIME", high_column="ELAPSED_TIME"),
+                    config={"table_name": "test", "low_column": "AIR_TIME", "high_column": "ELAPSED_TIME"},
                 ),
                 ConstraintConfig(
                     type="Inequality",
-                    config=ConstraintConfigParams(
-                        table_name="test", low_column="DEPARTURE_TIME", high_column="ARRIVAL_TIME"
-                    ),
+                    config={
+                        "table_name": "test",
+                        "low_column": "DEPARTURE_TIME",
+                        "high_column": "ARRIVAL_TIME",
+                    },
                 ),
             ],
         }
