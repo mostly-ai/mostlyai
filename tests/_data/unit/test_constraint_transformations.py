@@ -23,11 +23,10 @@ from mostlyai.sdk._data.constraint_transformations import (
     FixedCombinationHandler,
     InequalityHandler,
 )
+from mostlyai.sdk.client._constraint_types import FixedCombination, Inequality
 from mostlyai.sdk.domain import (
-    FixedCombination,
-    Generator,
+    ConstraintConfig,
     GeneratorConfig,
-    Inequality,
     ModelConfiguration,
     ModelEncodingType,
     SourceColumn,
@@ -267,14 +266,21 @@ class TestConstraintTranslator:
     @pytest.mark.parametrize("has_constraints", [True, False])
     def test_from_generator_config(self, has_constraints):
         """test creation from generator config."""
-        constraints = [FixedCombination(table_name="t", columns=["a", "b"])] if has_constraints else []
-        generator = Generator(
-            id="g",
-            name="G",
+        constraints = (
+            [
+                ConstraintConfig(
+                    type="FixedCombination",
+                    config={"table_name": "t", "columns": ["a", "b"]},
+                ),
+            ]
+            if has_constraints
+            else []
+        )
+        generator = GeneratorConfig(
             tables=[
-                SourceTable(
+                SourceTableConfig(
                     name="t",
-                    columns=[SourceColumn(name="a"), SourceColumn(name="b")],
+                    columns=[SourceColumnConfig(name="a"), SourceColumnConfig(name="b")],
                     tabular_model_configuration=ModelConfiguration(),
                 )
             ],
@@ -304,8 +310,8 @@ class TestValidation:
         [
             (
                 [
-                    FixedCombination(table_name="t", columns=["a", "b"]),
-                    FixedCombination(table_name="t", columns=["b", "c"]),
+                    ConstraintConfig(type="FixedCombination", config={"table_name": "t", "columns": ["a", "b"]}),
+                    ConstraintConfig(type="FixedCombination", config={"table_name": "t", "columns": ["b", "c"]}),
                 ],
                 ["a", "b", "c"],
                 [None, None, None],
@@ -313,14 +319,18 @@ class TestValidation:
                 "multiple constraints",
             ),
             (
-                [FixedCombination(table_name="t", columns=["a", "b"])],
+                [ConstraintConfig(type="FixedCombination", config={"table_name": "t", "columns": ["a", "b"]})],
                 ["a", "b"],
                 [ModelEncodingType.tabular_numeric_auto, ModelEncodingType.tabular_numeric_auto],
                 True,
                 "CATEGORICAL",
             ),
             (
-                [Inequality(table_name="t", low_column="low", high_column="high")],
+                [
+                    ConstraintConfig(
+                        type="Inequality", config={"table_name": "t", "low_column": "low", "high_column": "high"}
+                    )
+                ],
                 ["low", "high"],
                 [ModelEncodingType.tabular_numeric_auto, ModelEncodingType.tabular_datetime],
                 True,
@@ -328,8 +338,10 @@ class TestValidation:
             ),
             (
                 [
-                    FixedCombination(table_name="t", columns=["a", "b"]),
-                    Inequality(table_name="t", low_column="low", high_column="high"),
+                    ConstraintConfig(type="FixedCombination", config={"table_name": "t", "columns": ["a", "b"]}),
+                    ConstraintConfig(
+                        type="Inequality", config={"table_name": "t", "low_column": "low", "high_column": "high"}
+                    ),
                 ],
                 ["a", "b", "low", "high"],
                 [

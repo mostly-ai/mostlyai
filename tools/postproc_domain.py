@@ -64,6 +64,7 @@ def postprocess_model_file(file_path):
                 "import sys\n"
                 "import inspect\n"
                 "from mostlyai.sdk.client._base_utils import convert_to_base64, convert_to_df, read_table_from_path\n"
+                "from mostlyai.sdk.client._constraint_types import (FixedCombination, Inequality, convert_constraint_config_to_typed)\n"
             )
         elif "from typing" in line and not import_typing_updated:
             # Append ', ClassVar' to the line if it doesn't already contain ClassVar

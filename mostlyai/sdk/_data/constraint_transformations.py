@@ -24,10 +24,13 @@ from pathlib import Path
 
 import pandas as pd
 
-from mostlyai.sdk.domain import (
+from mostlyai.sdk.client._constraint_types import (
     FixedCombination,
-    Generator,
     Inequality,
+    convert_constraint_config_to_typed,
+)
+from mostlyai.sdk.domain import (
+    Generator,
     ModelEncodingType,
 )
 
@@ -289,13 +292,18 @@ class ConstraintTranslator:
         if not table:
             return None
 
-        # filter by table_name
-        table_constraints = [c for c in generator.constraints if c.table_name == table_name]
-        if not table_constraints:
+        # convert constraints to typed objects and filter by table_name
+        typed_constraints = []
+        for constraint in generator.constraints:
+            typed_constraint = convert_constraint_config_to_typed(constraint)
+            if typed_constraint.table_name == table_name:
+                typed_constraints.append(typed_constraint)
+
+        if not typed_constraints:
             return None
 
         # pass table to translator so handlers can check column types
-        constraint_translator = ConstraintTranslator(table_constraints, table=table)
+        constraint_translator = ConstraintTranslator(typed_constraints, table=table)
         return constraint_translator
 
 
@@ -318,14 +326,19 @@ def preprocess_constraints_for_training(
     if not generator.constraints:
         return None
 
-    # filter by table_name
-    table_constraints = [c for c in generator.constraints if c.table_name == target_table_name]
-    if not table_constraints:
+    # convert constraints to typed objects and filter by table_name
+    typed_constraints = []
+    for constraint in generator.constraints:
+        typed_constraint = convert_constraint_config_to_typed(constraint)
+        if typed_constraint.table_name == target_table_name:
+            typed_constraints.append(typed_constraint)
+
+    if not typed_constraints:
         return None
 
     _LOG.info(f"preprocessing constraints for table {target_table_name}")
     # pass table to translator so handlers can check column types
-    constraint_translator = ConstraintTranslator(table_constraints, table=target_table)
+    constraint_translator = ConstraintTranslator(typed_constraints, table=target_table)
 
     tgt_data_dir = workspace_dir / "OriginalData" / "tgt-data"
     if not tgt_data_dir.exists():

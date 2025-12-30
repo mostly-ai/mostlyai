@@ -21,6 +21,11 @@ import rich
 from pydantic import Field, field_validator, model_validator
 
 from mostlyai.sdk.client._base_utils import convert_to_base64, convert_to_df, read_table_from_path
+from mostlyai.sdk.client._constraint_types import (
+    FixedCombination,
+    Inequality,
+    convert_constraint_config_to_typed,
+)
 from mostlyai.sdk.client.base import CustomBaseModel
 from mostlyai.sdk.domain import (
     ArtifactPatchConfig,
@@ -40,23 +45,6 @@ from mostlyai.sdk.domain import (
     SyntheticDatasetPatchConfig,
     SyntheticDatasetReportType,
 )
-
-
-class FixedCombination:
-    @field_validator("columns")
-    @classmethod
-    def validate_columns(cls, columns):
-        if len(columns) < 2:
-            raise ValueError(f"FixedCombination requires at least 2 columns, got {len(columns)}.")
-        return columns
-
-
-class Inequality:
-    @model_validator(mode="after")
-    def validate_columns(self):
-        if self.low_column == self.high_column:
-            raise ValueError(f"low_column and high_column must be different, both are '{self.low_column}'.")
-        return self
 
 
 class Connector:
@@ -521,6 +509,117 @@ class GeneratorConfig:
                 current_table = table_map.get(context_fk.referenced_table)
             visited.update(seen_tables)
         return tables
+
+    @model_validator(mode="after")
+    def validate_constraints(self):
+        """validate that constraints reference existing tables and columns."""
+        if not self.constraints or not self.tables:
+            return self
+
+        table_map = {table.name: table for table in self.tables}
+        column_usage: dict[str, dict[str, int]] = {}  # table_name -> column_name -> constraint_index
+
+        for idx, constraint_config in enumerate(self.constraints):
+            # convert ConstraintConfig to typed constraint object
+            typed_constraint = convert_constraint_config_to_typed(constraint_config)
+
+            if typed_constraint.table_name not in table_map:
+                raise ValueError(f"table '{typed_constraint.table_name}' referenced by constraint not found")
+
+            table = table_map[typed_constraint.table_name]
+            table_columns = {col.name: col for col in (table.columns or [])}
+
+            if not table_columns:
+                # presumably not initialized yet, so we skip this validation
+                continue
+
+            if isinstance(typed_constraint, FixedCombination):
+                self._validate_constraint_fixed_combination(typed_constraint, table_columns, column_usage, idx)
+            elif isinstance(typed_constraint, Inequality):
+                self._validate_constraint_inequality(typed_constraint, table_columns, column_usage, idx)
+
+        return self
+
+    def _validate_constraint_fixed_combination(self, constraint, table_columns, column_usage, idx):
+        """validate FixedCombination constraint."""
+        missing_cols = set(constraint.columns) - set(table_columns.keys())
+        if missing_cols:
+            raise ValueError(
+                f"columns {sorted(missing_cols)} in table '{constraint.table_name}' referenced by constraint not found"
+            )
+
+        for col_name in constraint.columns:
+            encoding = table_columns[col_name].model_encoding_type or ModelEncodingType.auto
+
+            self._validate_tabular_encoding(col_name, constraint.table_name, encoding)
+
+            if encoding not in (ModelEncodingType.auto, ModelEncodingType.tabular_categorical):
+                raise ValueError(
+                    f"Column '{col_name}' in table '{constraint.table_name}' must have TABULAR_CATEGORICAL encoding type"
+                )
+
+            self._track_column_usage(constraint.table_name, col_name, idx, column_usage)
+
+    def _validate_constraint_inequality(self, constraint, table_columns, column_usage, idx):
+        """validate Inequality constraint."""
+        missing_cols = []
+        for col_name in [constraint.low_column, constraint.high_column]:
+            if col_name not in table_columns:
+                missing_cols.append(col_name)
+
+        if missing_cols:
+            raise ValueError(
+                f"columns {missing_cols} in table '{constraint.table_name}' referenced by constraint not found"
+            )
+
+        low_encoding = table_columns[constraint.low_column].model_encoding_type or ModelEncodingType.auto
+        high_encoding = table_columns[constraint.high_column].model_encoding_type or ModelEncodingType.auto
+
+        self._validate_tabular_encoding(constraint.low_column, constraint.table_name, low_encoding)
+        self._validate_tabular_encoding(constraint.high_column, constraint.table_name, high_encoding)
+
+        if low_encoding != ModelEncodingType.auto and high_encoding != ModelEncodingType.auto:
+            self._validate_compatible_encodings(constraint, low_encoding, high_encoding)
+
+        for col_name in [constraint.low_column, constraint.high_column]:
+            self._track_column_usage(constraint.table_name, col_name, idx, column_usage)
+
+    def _validate_tabular_encoding(self, col_name, table_name, encoding):
+        """validate that column uses TABULAR model encoding."""
+        if encoding != ModelEncodingType.auto and not encoding.value.startswith(ModelType.tabular.value):
+            raise ValueError(f"Column '{col_name}' in table '{table_name}' is not part of TABULAR model")
+
+    def _validate_compatible_encodings(self, constraint, low_encoding, high_encoding):
+        """validate that both columns have compatible encoding types."""
+        numeric_types = {
+            ModelEncodingType.tabular_numeric_auto,
+            ModelEncodingType.tabular_numeric_discrete,
+            ModelEncodingType.tabular_numeric_binned,
+            ModelEncodingType.tabular_numeric_digit,
+        }
+        datetime_types = {
+            ModelEncodingType.tabular_datetime,
+            # ModelEncodingType.tabular_datetime_relative,  # not supported yet
+        }
+
+        both_numeric = low_encoding in numeric_types and high_encoding in numeric_types
+        both_datetime = low_encoding in datetime_types and high_encoding in datetime_types
+
+        if not (both_numeric or both_datetime):
+            raise ValueError(
+                f"Columns '{constraint.low_column}' and '{constraint.high_column}' in table "
+                f"'{constraint.table_name}' must both be either numeric or datetime encoding types"
+            )
+
+    def _track_column_usage(self, table_name, col_name, constraint_idx, column_usage):
+        """track column usage and detect overlaps."""
+        if table_name not in column_usage:
+            column_usage[table_name] = {}
+
+        if col_name in column_usage[table_name]:
+            raise ValueError(f"column '{col_name}' in table '{table_name}' is referenced by multiple constraints")
+
+        column_usage[table_name][col_name] = constraint_idx
 
 
 class SourceTableConfig:
