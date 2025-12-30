@@ -1564,4 +1564,12 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
         if self.low_column == self.high_column:
             raise ValueError(f"low_column and high_column must be different, both are '{self.low_column}'.")
         return self
+{%- endif %}{%- if class_name == "Constraint" %}
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
+        return values
 {%- endif %}

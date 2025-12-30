@@ -793,6 +793,16 @@ class ModelConfiguration:
         return self
 
 
+class Constraint:
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
+        return values
+
+
 class SyntheticTableConfiguration:
     @field_validator("sample_seed_dict", mode="before")
     @classmethod
