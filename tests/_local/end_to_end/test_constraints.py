@@ -81,6 +81,7 @@ def test_constraints(mostly):
                 }
             ],
             "constraints": [
+                # both snake_case and camelCase are supported for the config dict
                 ConstraintConfig(
                     type="FixedCombination",
                     config={
@@ -95,9 +96,9 @@ def test_constraints(mostly):
                 ConstraintConfig(
                     type="Inequality",
                     config={
-                        "table_name": "test",
-                        "low_column": "DEPARTURE_TIME",
-                        "high_column": "ARRIVAL_TIME",
+                        "tableName": "test",
+                        "lowColumn": "DEPARTURE_TIME",
+                        "highColumn": "ARRIVAL_TIME",
                     },
                 ),
             ],

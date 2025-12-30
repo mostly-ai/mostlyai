@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pydantic import field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from mostlyai.sdk.client.base import CustomBaseModel
 
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 class FixedCombination(CustomBaseModel):
     """internal typed representation of FixedCombination constraint."""
 
-    table_name: str
+    table_name: str = Field(alias="tableName")
     columns: list[str]
 
     @field_validator("columns")
@@ -47,9 +47,9 @@ class FixedCombination(CustomBaseModel):
 class Inequality(CustomBaseModel):
     """internal typed representation of Inequality constraint."""
 
-    table_name: str
-    low_column: str
-    high_column: str
+    table_name: str = Field(alias="tableName")
+    low_column: str = Field(alias="lowColumn")
+    high_column: str = Field(alias="highColumn")
 
     @model_validator(mode="after")
     def validate_columns(self):
@@ -68,14 +68,10 @@ def convert_constraint_config_to_typed(
     # config is now a plain dict[str, Any]
     config_dict = constraint_config.config
 
-    # validate that we have the required fields
-    if not config_dict or ("table_name" not in config_dict and "low_column" not in config_dict):
-        raise ValueError(
-            f"constraint config is missing required fields. "
-            f"Expected 'table_name' and either 'columns' (for FixedCombination) or 'low_column'/'high_column' (for Inequality). "
-            f"Got config: {config_dict}"
-        )
+    if not config_dict:
+        raise ValueError(f"constraint config is missing required fields. Got config: {config_dict}")
 
+    # Pydantic with populate_by_name=True will accept both snake_case and camelCase
     if constraint_config.type == ConstraintType.fixed_combination:
         return FixedCombination(**config_dict)
     elif constraint_config.type == ConstraintType.inequality:
