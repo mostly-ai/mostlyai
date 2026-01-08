@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from mostlyai.sdk._data._constraint_types import (
+from mostlyai.sdk._data.constraints.types import (
     ConstraintHandler,
     FixedCombinationHandler,
     InequalityHandler,

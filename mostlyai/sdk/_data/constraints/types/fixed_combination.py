@@ -22,7 +22,7 @@ import logging
 
 import pandas as pd
 
-from mostlyai.sdk._data._constraint_types.base import ConstraintHandler
+from mostlyai.sdk._data.constraints.types.base import ConstraintHandler
 from mostlyai.sdk.client._constraint_types import FixedCombination
 
 _LOG = logging.getLogger(__name__)

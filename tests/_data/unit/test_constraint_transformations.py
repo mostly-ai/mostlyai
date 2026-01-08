@@ -18,11 +18,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mostlyai.sdk._data._constraint_types import (
+from mostlyai.sdk._data.constraints.transformations import ConstraintTranslator
+from mostlyai.sdk._data.constraints.types import (
     FixedCombinationHandler,
     InequalityHandler,
 )
-from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator
 from mostlyai.sdk.client._constraint_types import FixedCombination, Inequality
 from mostlyai.sdk.domain import (
     ConstraintConfig,

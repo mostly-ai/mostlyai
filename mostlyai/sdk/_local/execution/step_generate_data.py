@@ -19,7 +19,7 @@ import pandas as pd
 
 from mostlyai.sdk import _data as data
 from mostlyai.sdk._data.base import Schema
-from mostlyai.sdk._data.constraint_transformations import ConstraintTranslator
+from mostlyai.sdk._data.constraints.transformations import ConstraintTranslator
 from mostlyai.sdk._data.util.common import TABLE_COLUMN_INFIX, TEMPORARY_PRIMARY_KEY
 from mostlyai.sdk._local.execution.migration import migrate_workspace
 from mostlyai.sdk.domain import Generator, ModelType, SyntheticDataset

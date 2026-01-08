@@ -17,7 +17,7 @@ from pathlib import Path
 
 from mostlyai.sdk import _data as data
 from mostlyai.sdk._data.base import ForeignKey, Schema
-from mostlyai.sdk._data.constraint_transformations import preprocess_constraints_for_training
+from mostlyai.sdk._data.constraints.transformations import preprocess_constraints_for_training
 from mostlyai.sdk._data.conversions import create_container_from_connector
 from mostlyai.sdk._data.db.base import SqlAlchemyTable
 from mostlyai.sdk._data.file.utils import make_data_table_from_container
