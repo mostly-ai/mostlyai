@@ -628,7 +628,7 @@ class IfExists(str, Enum):
     """
 
     append = "APPEND"
-    replace_ = "REPLACE"
+    replace = "REPLACE"
     fail = "FAIL"
 
 
