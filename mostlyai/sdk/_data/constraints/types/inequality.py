@@ -115,13 +115,26 @@ class InequalityHandler(ConstraintHandler):
             delta = delta - self._DATETIME_EPOCH
             delta = delta.astype("timedelta64[ns]")  # explicit dtype conversion
 
-        # reconstruction: high = low + delta, but if delta is NA, keep generated values
-        na_mask = delta.isna()
-        # reconstruct high_column from low + delta, ensuring high >= low
-        high = df[self.high_column].where(na_mask, low + delta)
-        # only apply constraint where both high and low are non-NA
-        valid_mask = ~(high.isna() | low.isna())
-        df[self.high_column] = high.where(~valid_mask | (high >= low), low)
+        # RECONSTRUCTION
+        low_na = low.isna()
+        delta_na = delta.isna()
+
+        # if low != NA and delta != NA, then high = low + delta
+        both_valid = ~low_na & ~delta_na
+        df.loc[both_valid, self.high_column] = low[both_valid] + delta[both_valid]
+
+        # if low != NA and delta == NA, then high = NA
+        low_valid_delta_na = ~low_na & delta_na
+        df.loc[low_valid_delta_na, self.high_column] = pd.NA
+        # else, if low == NA, then high is kept as is
+
+        # if any violations made it through, apply a primitive correction
+        high = df[self.high_column]
+        both_valid_for_check = ~low_na & ~high.isna()
+        violations = both_valid_for_check & (high < low)
+        df.loc[violations, self.high_column] = low[violations]
+
+        # convert back to original dtype
         if pd.api.types.is_integer_dtype(high_dtype):
             df[self.high_column] = df[self.high_column].astype(high_dtype)
 
