@@ -647,6 +647,41 @@ class MostlyAI(_MostlyBaseClient):
                 }],
             }, start=True, wait=True)
             ```
+
+        Example with constraints to preserve valid combinations and enforce inequalities:
+            ```python
+            # constraints ensure that synthetic data only contains combinations of values that existed in training data
+            # and enforce logical relationships like departure_time < arrival_time
+            import numpy as np
+            import pandas as pd
+            departure_times = pd.date_range(start='2024-01-01 08:00', periods=40, freq='2h')
+            flight_durations = np.clip(np.random.normal(2.5, 0.2, 40), 2, 3)
+            df = pd.DataFrame({
+                'origin_airport': ['JFK', 'JFK', 'LAX', 'LAX'] * 10,
+                'destination_airport': ['LAX', 'ORD', 'ORD', 'JFK'] * 10,
+                'departure_time': departure_times,
+                'arrival_time': departure_times + pd.to_timedelta(flight_durations, unit='h'),
+            })
+            from mostlyai.sdk import MostlyAI
+            mostly = MostlyAI()
+            g = mostly.train(
+                config={
+                    'name': 'flights',
+                    'tables': [{
+                        'name': 'flights',
+                        'data': df,
+                    }],
+                    'constraints': [
+                        {'type': 'FixedCombinations', 'config': {'table_name': 'flights', 'columns': ['origin_airport', 'destination_airport']}},  # ensures valid route combinations
+                        {'type': 'Inequality', 'config': {'table_name': 'flights', 'low_column': 'departure_time', 'high_column': 'arrival_time'}},  # ensures departure <= arrival
+                    ]
+                },
+                start=True,
+                wait=True
+            )
+            # synthetic data will never generate impossible combinations like: origin='JFK', destination='JFK'
+            # and will always satisfy departure_time < arrival_time
+            ```
         """
         if data is None and config is None:
             raise ValueError("Either config or data must be provided")

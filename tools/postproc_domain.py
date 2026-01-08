@@ -57,19 +57,22 @@ def postprocess_model_file(file_path):
             new_lines.append(
                 "from enum import Enum\n"
                 "import pandas as pd\nfrom pathlib import Path\n"
-                "from pydantic import field_validator, model_validator\n"
+                "from pydantic import field_validator, model_validator, Discriminator\n"
                 "import uuid\n"
                 "import rich\n"
                 "import zipfile\n"
                 "import sys\n"
                 "import inspect\n"
-                "from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path\n"
+                "from mostlyai.sdk.client._base_utils import convert_to_base64, convert_to_df, read_table_from_path\n"
+                "from mostlyai.sdk.client._constraint_types import convert_constraint_config_to_typed\n"
             )
         elif "from typing" in line and not import_typing_updated:
             # Append ', ClassVar' to the line if it doesn't already contain ClassVar
             if "ClassVar" not in line:
-                line = line.rstrip() + ", ClassVar, Literal, Annotated\n"
+                line = line.rstrip() + ", ClassVar, Literal, Annotated, Union\n"
                 import_typing_updated = True
+            elif "Union" not in line:
+                line = line.rstrip() + ", Union\n"
             new_lines.append(line)
         else:
             # Replace 'UUID' with 'str'

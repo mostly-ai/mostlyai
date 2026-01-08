@@ -19,6 +19,7 @@ import pandas as pd
 
 from mostlyai.sdk import _data as data
 from mostlyai.sdk._data.base import Schema
+from mostlyai.sdk._data.constraints.transformations import ConstraintTranslator
 from mostlyai.sdk._data.util.common import TABLE_COLUMN_INFIX, TEMPORARY_PRIMARY_KEY
 from mostlyai.sdk._local.execution.migration import migrate_workspace
 from mostlyai.sdk.domain import Generator, ModelType, SyntheticDataset
@@ -127,3 +128,13 @@ def execute_step_generate_data(
         workspace_dir=workspace_dir,
         update_progress=update_progress,
     )
+
+    constraint_translator = ConstraintTranslator.from_generator_config(
+        generator=generator,
+        table_name=target_table_name,
+    )
+    if constraint_translator:
+        for file in (workspace_dir / "SyntheticData").glob("*.parquet"):
+            df = pd.read_parquet(file)
+            df = constraint_translator.to_original(df)
+            df.to_parquet(file)

@@ -202,6 +202,7 @@ def get_generator_config(home_dir: Path, generator_id: str) -> GeneratorConfig:
     config = GeneratorConfig(
         name=generator.name,
         description=generator.description,
+        random_state=generator.random_state,
         tables=[
             SourceTableConfig(
                 name=t.name,
@@ -221,5 +222,6 @@ def get_generator_config(home_dir: Path, generator_id: str) -> GeneratorConfig:
         ]
         if generator.tables
         else None,
+        constraints=generator.constraints,
     )
     return config

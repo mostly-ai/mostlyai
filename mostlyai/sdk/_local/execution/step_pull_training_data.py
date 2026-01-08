@@ -17,6 +17,7 @@ from pathlib import Path
 
 from mostlyai.sdk import _data as data
 from mostlyai.sdk._data.base import ForeignKey, Schema
+from mostlyai.sdk._data.constraints.transformations import preprocess_constraints_for_training
 from mostlyai.sdk._data.conversions import create_container_from_connector
 from mostlyai.sdk._data.db.base import SqlAlchemyTable
 from mostlyai.sdk._data.file.utils import make_data_table_from_container
@@ -55,6 +56,19 @@ def execute_step_pull_training_data(
         workspace_dir=workspace_dir,
         update_progress=update_progress,
     )
+
+    # preprocess constraints (if any)
+    if model_type == ModelType.tabular:
+        all_column_names = preprocess_constraints_for_training(
+            generator=generator,
+            workspace_dir=workspace_dir,
+            target_table_name=target_table_name,
+        )
+
+        # use internal columns if constraints were applied
+        if all_column_names is not None:
+            tgt_table_columns = all_column_names
+
     return tgt_table_columns, tgt_table_total_rows
 
 

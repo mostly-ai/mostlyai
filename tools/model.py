@@ -20,7 +20,10 @@ import pandas as pd
 import rich
 from pydantic import Field, field_validator, model_validator
 
-from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
+from mostlyai.sdk.client._base_utils import convert_to_base64, convert_to_df, read_table_from_path
+from mostlyai.sdk.client._constraint_types import (
+    convert_constraint_config_to_typed,
+)
 from mostlyai.sdk.client.base import CustomBaseModel
 from mostlyai.sdk.domain import (
     ArtifactPatchConfig,
@@ -505,6 +508,43 @@ class GeneratorConfig:
             visited.update(seen_tables)
         return tables
 
+    @model_validator(mode="after")
+    def validate_constraints(self):
+        """validate that constraints reference existing tables and columns."""
+        if not self.constraints or not self.tables:
+            return self
+
+        table_map = {table.name: table for table in self.tables}
+        column_usage: dict[str, dict[str, int]] = {}  # table_name -> column_name -> constraint_index
+
+        for idx, constraint_config in enumerate(self.constraints):
+            # convert ConstraintConfig to typed constraint object
+            typed_constraint = convert_constraint_config_to_typed(constraint_config)
+
+            if typed_constraint.table_name not in table_map:
+                raise ValueError(f"table '{typed_constraint.table_name}' referenced by constraint not found")
+
+            table = table_map[typed_constraint.table_name]
+            table_columns = {col.name: col for col in (table.columns or [])}
+
+            if not table_columns:
+                # presumably not initialized yet, so we skip this validation
+                continue
+
+            typed_constraint.validate(table_columns, column_usage, idx)
+
+        return self
+
+    def _track_column_usage(self, table_name, col_name, constraint_idx, column_usage):
+        """track column usage and detect overlaps."""
+        if table_name not in column_usage:
+            column_usage[table_name] = {}
+
+        if col_name in column_usage[table_name]:
+            raise ValueError(f"column '{col_name}' in table '{table_name}' is referenced by multiple constraints")
+
+        column_usage[table_name][col_name] = constraint_idx
+
 
 class SourceTableConfig:
     @field_validator("data", mode="before")
@@ -586,6 +626,22 @@ class SourceTableConfig:
             self.language_model_configuration.max_sequence_window = None
         return self
 
+    @model_validator(mode="after")
+    def extract_columns_from_data_if_missing(self):
+        """extract column names from base64 data if columns are not provided."""
+        if self.columns is None and self.data is not None and len(self.data) >= 512:
+            # assume base64-encoded parquet if data is long enough
+            try:
+                df = convert_to_df(self.data, format="parquet")
+                self.columns = [
+                    SourceColumnConfig(name=col_name, model_encoding_type=ModelEncodingType.auto)
+                    for col_name in df.columns
+                ]
+            except Exception:
+                # if conversion fails, leave columns as None
+                pass
+        return self
+
     @field_validator("columns", mode="after")
     @classmethod
     def validate_unique_columns(cls, columns):
@@ -659,6 +715,16 @@ class ModelConfiguration:
                 if self.differential_privacy.value_protection_epsilon is None:
                     self.differential_privacy.value_protection_epsilon = 1.0
         return self
+
+
+class Constraint:
+    @model_validator(mode="before")
+    @classmethod
+    def add_required_fields(cls, values):
+        if isinstance(values, dict):
+            if "id" not in values:
+                values["id"] = str(uuid.uuid4())
+        return values
 
 
 class SyntheticTableConfiguration:
