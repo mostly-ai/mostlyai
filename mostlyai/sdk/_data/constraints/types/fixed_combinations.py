@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""fixed combination constraint handler."""
+"""fixed combinations constraint handler."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ import logging
 import pandas as pd
 
 from mostlyai.sdk._data.constraints.types.base import ConstraintHandler
-from mostlyai.sdk.client._constraint_types import FixedCombination
+from mostlyai.sdk.client._constraint_types import FixedCombinations
 
 _LOG = logging.getLogger(__name__)
 
@@ -36,10 +36,10 @@ def _generate_internal_column_name(prefix: str, columns: list[str]) -> str:
     return f"__CONSTRAINT_{prefix}_{columns_str}_{hash_suffix}__"
 
 
-class FixedCombinationHandler(ConstraintHandler):
-    """handler for FixedCombination constraints."""
+class FixedCombinationsHandler(ConstraintHandler):
+    """handler for FixedCombinations constraints."""
 
-    def __init__(self, constraint: FixedCombination):
+    def __init__(self, constraint: FixedCombinations):
         self.constraint = constraint
         self.table_name = constraint.table_name
         self.columns = constraint.columns

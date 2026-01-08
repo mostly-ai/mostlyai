@@ -47,8 +47,8 @@ class BaseConstraint(CustomBaseModel, ABC):
         pass
 
 
-class FixedCombination(BaseConstraint):
-    """internal typed representation of FixedCombination constraint."""
+class FixedCombinations(BaseConstraint):
+    """internal typed representation of FixedCombinations constraint."""
 
     columns: list[str]
 
@@ -56,7 +56,7 @@ class FixedCombination(BaseConstraint):
     @classmethod
     def validate_columns(cls, columns):
         if len(columns) < 2:
-            raise ValueError(f"FixedCombination requires at least 2 columns, got {len(columns)}.")
+            raise ValueError(f"FixedCombinations requires at least 2 columns, got {len(columns)}.")
         return columns
 
     def validate(
@@ -65,7 +65,7 @@ class FixedCombination(BaseConstraint):
         column_usage: dict[str, dict[str, int]],
         constraint_idx: int,
     ) -> None:
-        """validate FixedCombination constraint."""
+        """validate FixedCombinations constraint."""
         # import here to avoid circular imports
         from mostlyai.sdk.domain import ModelEncodingType
 
@@ -201,8 +201,8 @@ def convert_constraint_config_to_typed(
         raise ValueError(f"constraint config is missing required fields. Got config: {config_dict}")
 
     # Pydantic with populate_by_name=True will accept both snake_case and camelCase
-    if constraint_config.type == ConstraintType.fixed_combination:
-        return FixedCombination(**config_dict)
+    if constraint_config.type == ConstraintType.fixed_combinations:
+        return FixedCombinations(**config_dict)
     elif constraint_config.type == ConstraintType.inequality:
         return Inequality(**config_dict)
     raise ValueError(f"unknown constraint type: {constraint_config.type}")

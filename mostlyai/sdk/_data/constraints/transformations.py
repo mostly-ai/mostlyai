@@ -24,11 +24,11 @@ import pandas as pd
 
 from mostlyai.sdk._data.constraints.types import (
     ConstraintHandler,
-    FixedCombinationHandler,
+    FixedCombinationsHandler,
     InequalityHandler,
 )
 from mostlyai.sdk.client._constraint_types import (
-    FixedCombination,
+    FixedCombinations,
     Inequality,
     convert_constraint_config_to_typed,
 )
@@ -37,13 +37,13 @@ from mostlyai.sdk.domain import Generator
 _LOG = logging.getLogger(__name__)
 
 # type alias for constraint types
-ConstraintType = FixedCombination | Inequality
+ConstraintType = FixedCombinations | Inequality
 
 
 def _create_constraint_handler(constraint: ConstraintType, table=None) -> ConstraintHandler:
     """factory function to create appropriate handler for a constraint."""
-    if isinstance(constraint, FixedCombination):
-        return FixedCombinationHandler(constraint)
+    if isinstance(constraint, FixedCombinations):
+        return FixedCombinationsHandler(constraint)
     elif isinstance(constraint, Inequality):
         return InequalityHandler(constraint, table=table)
     else:

@@ -1477,12 +1477,12 @@ class {{ class_name }}({{ base_class }}):{% if comment is defined %}  # {{ comme
         self.client._update(artifact_id=self.id, config=patch_config)
         self.reload()
 {%- endif %}
-{%- if class_name == "FixedCombination" %}
+{%- if class_name == "FixedCombinations" %}
     @field_validator("columns")
     @classmethod
     def validate_columns(cls, columns):
         if len(columns) < 2:
-            raise ValueError(f"FixedCombination requires at least 2 columns, got {len(columns)}.")
+            raise ValueError(f"FixedCombinations requires at least 2 columns, got {len(columns)}.")
         return columns
 {%- endif %}{%- if class_name == "Inequality" %}
     @model_validator(mode="after")

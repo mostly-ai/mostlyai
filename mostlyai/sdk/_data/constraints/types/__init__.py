@@ -15,11 +15,11 @@
 """constraint type handlers."""
 
 from mostlyai.sdk._data.constraints.types.base import ConstraintHandler
-from mostlyai.sdk._data.constraints.types.fixed_combination import FixedCombinationHandler
+from mostlyai.sdk._data.constraints.types.fixed_combinations import FixedCombinationsHandler
 from mostlyai.sdk._data.constraints.types.inequality import InequalityHandler
 
 __all__ = [
     "ConstraintHandler",
-    "FixedCombinationHandler",
+    "FixedCombinationsHandler",
     "InequalityHandler",
 ]

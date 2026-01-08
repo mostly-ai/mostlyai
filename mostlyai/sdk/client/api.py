@@ -672,7 +672,7 @@ class MostlyAI(_MostlyBaseClient):
                         'data': df,
                     }],
                     'constraints': [
-                        {'type': 'FixedCombination', 'config': {'table_name': 'flights', 'columns': ['origin_airport', 'destination_airport']}},  # ensures valid route combinations
+                        {'type': 'FixedCombinations', 'config': {'table_name': 'flights', 'columns': ['origin_airport', 'destination_airport']}},  # ensures valid route combinations
                         {'type': 'Inequality', 'config': {'table_name': 'flights', 'low_column': 'departure_time', 'high_column': 'arrival_time'}},  # ensures departure <= arrival
                     ]
                 },

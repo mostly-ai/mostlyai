@@ -20,10 +20,10 @@ import pytest
 
 from mostlyai.sdk._data.constraints.transformations import ConstraintTranslator
 from mostlyai.sdk._data.constraints.types import (
-    FixedCombinationHandler,
+    FixedCombinationsHandler,
     InequalityHandler,
 )
-from mostlyai.sdk.client._constraint_types import FixedCombination, Inequality
+from mostlyai.sdk.client._constraint_types import FixedCombinations, Inequality
 from mostlyai.sdk.domain import (
     ConstraintConfig,
     GeneratorConfig,
@@ -50,11 +50,11 @@ def df():
     )
 
 
-class TestFixedCombinationHandler:
+class TestFixedCombinationsHandler:
     def test_round_trip(self, df):
         """test transformation preserves data."""
-        constraint = FixedCombination(table_name="t", columns=["a", "b"])
-        handler = FixedCombinationHandler(constraint)
+        constraint = FixedCombinations(table_name="t", columns=["a", "b"])
+        handler = FixedCombinationsHandler(constraint)
 
         internal = handler.to_internal(df.copy())
         restored = handler.to_original(internal)
@@ -63,8 +63,8 @@ class TestFixedCombinationHandler:
 
     def test_creates_merged_column(self, df):
         """test merged column is created and removed correctly."""
-        constraint = FixedCombination(table_name="t", columns=["a", "b"])
-        handler = FixedCombinationHandler(constraint)
+        constraint = FixedCombinations(table_name="t", columns=["a", "b"])
+        handler = FixedCombinationsHandler(constraint)
 
         internal = handler.to_internal(df.copy())
         assert handler.merged_name in internal.columns
@@ -76,8 +76,8 @@ class TestFixedCombinationHandler:
 
     def test_encoding_type(self):
         """test encoding type is categorical."""
-        constraint = FixedCombination(table_name="t", columns=["a", "b"])
-        handler = FixedCombinationHandler(constraint)
+        constraint = FixedCombinations(table_name="t", columns=["a", "b"])
+        handler = FixedCombinationsHandler(constraint)
 
         enc = handler.get_encoding_types()
         assert len(enc) == 1
@@ -95,8 +95,8 @@ class TestFixedCombinationHandler:
     )
     def test_escaping(self, a_val, b_val):
         """test special characters are handled."""
-        constraint = FixedCombination(table_name="t", columns=["a", "b"])
-        handler = FixedCombinationHandler(constraint)
+        constraint = FixedCombinations(table_name="t", columns=["a", "b"])
+        handler = FixedCombinationsHandler(constraint)
         df = pd.DataFrame({"a": [a_val], "b": [b_val]})
 
         internal = handler.to_internal(df.copy())
@@ -238,7 +238,7 @@ class TestConstraintTranslator:
     def test_mixed_constraints(self, df):
         """test multiple constraint types together."""
         constraints = [
-            FixedCombination(table_name="t", columns=["a", "b"]),
+            FixedCombinations(table_name="t", columns=["a", "b"]),
             Inequality(table_name="t", low_column="low", high_column="high"),
         ]
         translator = ConstraintTranslator(constraints)
@@ -251,7 +251,7 @@ class TestConstraintTranslator:
     def test_get_all_column_names(self):
         """test all column names are returned."""
         constraints = [
-            FixedCombination(table_name="t", columns=["a", "b"]),
+            FixedCombinations(table_name="t", columns=["a", "b"]),
             Inequality(table_name="t", low_column="low", high_column="high"),
         ]
         translator = ConstraintTranslator(constraints)
@@ -269,7 +269,7 @@ class TestConstraintTranslator:
         constraints = (
             [
                 ConstraintConfig(
-                    type="FixedCombination",
+                    type="FixedCombinations",
                     config={"table_name": "t", "columns": ["a", "b"]},
                 ),
             ]
@@ -296,7 +296,7 @@ class TestValidation:
     @pytest.mark.parametrize(
         "constraint_type,params,error_match",
         [
-            (FixedCombination, {"table_name": "t", "columns": ["a"]}, "at least 2 columns"),
+            (FixedCombinations, {"table_name": "t", "columns": ["a"]}, "at least 2 columns"),
             (Inequality, {"table_name": "t", "low_column": "a", "high_column": "a"}, "must be different"),
         ],
     )
@@ -310,8 +310,8 @@ class TestValidation:
         [
             (
                 [
-                    ConstraintConfig(type="FixedCombination", config={"table_name": "t", "columns": ["a", "b"]}),
-                    ConstraintConfig(type="FixedCombination", config={"table_name": "t", "columns": ["b", "c"]}),
+                    ConstraintConfig(type="FixedCombinations", config={"table_name": "t", "columns": ["a", "b"]}),
+                    ConstraintConfig(type="FixedCombinations", config={"table_name": "t", "columns": ["b", "c"]}),
                 ],
                 ["a", "b", "c"],
                 [None, None, None],
@@ -319,7 +319,7 @@ class TestValidation:
                 "multiple constraints",
             ),
             (
-                [ConstraintConfig(type="FixedCombination", config={"table_name": "t", "columns": ["a", "b"]})],
+                [ConstraintConfig(type="FixedCombinations", config={"table_name": "t", "columns": ["a", "b"]})],
                 ["a", "b"],
                 [ModelEncodingType.tabular_numeric_auto, ModelEncodingType.tabular_numeric_auto],
                 True,
@@ -338,7 +338,7 @@ class TestValidation:
             ),
             (
                 [
-                    ConstraintConfig(type="FixedCombination", config={"table_name": "t", "columns": ["a", "b"]}),
+                    ConstraintConfig(type="FixedCombinations", config={"table_name": "t", "columns": ["a", "b"]}),
                     ConstraintConfig(
                         type="Inequality", config={"table_name": "t", "low_column": "low", "high_column": "high"}
                     ),

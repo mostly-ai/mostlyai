@@ -29,7 +29,7 @@ def mostly(tmp_path_factory):
 
 
 def test_constraints(mostly):
-    """test FixedCombination and Inequality constraints with flights-like data."""
+    """test FixedCombinations and Inequality constraints with flights-like data."""
 
     # create training data with both constraint types
     # valid route-airline combinations (similar to flights dataset)
@@ -83,7 +83,7 @@ def test_constraints(mostly):
             "constraints": [
                 # both snake_case and camelCase are supported for the config dict
                 ConstraintConfig(
-                    type="FixedCombination",
+                    type="FixedCombinations",
                     config={
                         "table_name": "test",
                         "columns": ["ORIGIN_AIRPORT", "DESTINATION_AIRPORT", "AIRLINE"],
@@ -109,7 +109,7 @@ def test_constraints(mostly):
     sd = mostly.generate(g, size=50)
     df_syn = sd.data()
 
-    # verify FixedCombination constraint
+    # verify FixedCombinations constraint
     syn_triplets = set(zip(df_syn["ORIGIN_AIRPORT"], df_syn["DESTINATION_AIRPORT"], df_syn["AIRLINE"]))
     assert syn_triplets.issubset(valid_combos), f"invalid triplets found: {syn_triplets - valid_combos}"
 
