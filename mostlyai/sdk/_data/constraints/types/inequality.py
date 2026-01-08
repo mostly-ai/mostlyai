@@ -117,7 +117,11 @@ class InequalityHandler(ConstraintHandler):
 
         # reconstruction: high = low + delta, but if delta is NA, keep generated values
         na_mask = delta.isna()
-        df[self.high_column] = df[self.high_column].where(na_mask, low + delta)
+        # reconstruct high_column from low + delta, ensuring high >= low
+        high = df[self.high_column].where(na_mask, low + delta)
+        # only apply constraint where both high and low are non-NA
+        valid_mask = ~(high.isna() | low.isna())
+        df[self.high_column] = high.where(~valid_mask | (high >= low), low)
         if pd.api.types.is_integer_dtype(high_dtype):
             df[self.high_column] = df[self.high_column].astype(high_dtype)
 
