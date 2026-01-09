@@ -40,12 +40,14 @@ _LOG = logging.getLogger(__name__)
 ConstraintType = FixedCombinations | Inequality
 
 
-def _create_constraint_handler(constraint: ConstraintType, table=None) -> ConstraintHandler:
+def _create_constraint_handler(
+    constraint: ConstraintType, table=None, workspace_dir: Path | None = None
+) -> ConstraintHandler:
     """factory function to create appropriate handler for a constraint."""
     if isinstance(constraint, FixedCombinations):
         return FixedCombinationsHandler(constraint)
     elif isinstance(constraint, Inequality):
-        return InequalityHandler(constraint, table=table)
+        return InequalityHandler(constraint, table=table, workspace_dir=workspace_dir)
     else:
         raise ValueError(f"unknown constraint type: {type(constraint)}")
 
@@ -53,10 +55,10 @@ def _create_constraint_handler(constraint: ConstraintType, table=None) -> Constr
 class ConstraintTranslator:
     """translates data between user schema and internal schema for constraints."""
 
-    def __init__(self, constraints: list[ConstraintType], table=None):
+    def __init__(self, constraints: list[ConstraintType], table=None, workspace_dir: Path | None = None):
         self.constraints = constraints
         self.table = table
-        self.handlers = [_create_constraint_handler(c, table=table) for c in constraints]
+        self.handlers = [_create_constraint_handler(c, table=table, workspace_dir=workspace_dir) for c in constraints]
 
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         """transform dataframe from user schema to internal schema."""
@@ -88,6 +90,7 @@ class ConstraintTranslator:
     def from_generator_config(
         generator: Generator,
         table_name: str,
+        workspace_dir: Path | None = None,
     ) -> ConstraintTranslator | None:
         """create constraint translator from generator configuration for a specific table."""
         if not generator.constraints:
@@ -108,7 +111,7 @@ class ConstraintTranslator:
             return None
 
         # pass table to translator so handlers can check column types
-        constraint_translator = ConstraintTranslator(typed_constraints, table=table)
+        constraint_translator = ConstraintTranslator(typed_constraints, table=table, workspace_dir=workspace_dir)
         return constraint_translator
 
 
