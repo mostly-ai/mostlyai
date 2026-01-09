@@ -148,15 +148,13 @@ def test_constraints(mostly):
         f"training min={min_arrival_time}"
     )
 
-    # verify time differences follow predefined rules
-    # with clipping functionality, a few rows might be distorted, so check percentiles with slack
+    # verify time differences are reasonable (2-3 hours)
     time_diffs = df_syn["ARRIVAL_TIME"] - df_syn["DEPARTURE_TIME"]
-    p5 = time_diffs.quantile(0.05)
-    p95 = time_diffs.quantile(0.95)
-    # allow some slack: 5th percentile can be slightly below min, 95th slightly above max
-    slack = pd.Timedelta(minutes=15)  # 15 minutes tolerance
-    assert p5 >= (min_time_diff - slack), f"5th percentile too low: {p5}, expected >= {min_time_diff - slack}"
-    assert p95 <= (max_time_diff + slack), f"95th percentile too high: {p95}, expected <= {max_time_diff + slack}"
+    in_range = (time_diffs >= min_time_diff) & (time_diffs <= max_time_diff)
+    assert in_range.sum() >= len(df_syn) * 0.8, (
+        f"too many time differences outside 2-3 hour range: {in_range.sum()}/{len(df_syn)} in range"
+    )
+
     # verify overall mean time difference is close to expected value
     assert np.abs(time_diffs.mean() - expected_mean_time_diff) < pd.Timedelta(minutes=12), (
         f"overall mean time difference is not close to {expected_mean_time_diff}: mean={time_diffs.mean()}, expected ≈ {expected_mean_time_diff}"
