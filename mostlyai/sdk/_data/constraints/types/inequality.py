@@ -173,10 +173,10 @@ class InequalityHandler(ConstraintHandler):
         high = df[self.high_column]
         low = df[self.low_column]
         if self._is_datetime:
-            if min_val:
+            if min_val is not None:
                 min_val = pd.to_datetime(min_val)
                 df.loc[high.notna() & (high < min_val), self.high_column] = min_val
-            if max_val:
+            if max_val is not None:
                 max_val = pd.to_datetime(max_val)
                 df.loc[high.notna() & (high > max_val), self.high_column] = max_val
         else:
