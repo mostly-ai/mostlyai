@@ -132,6 +132,7 @@ def execute_step_generate_data(
     constraint_translator = ConstraintTranslator.from_generator_config(
         generator=generator,
         table_name=target_table_name,
+        workspace_dir=workspace_dir,
     )
     if constraint_translator:
         for file in (workspace_dir / "SyntheticData").glob("*.parquet"):
