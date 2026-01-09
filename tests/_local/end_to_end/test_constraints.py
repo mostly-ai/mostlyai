@@ -125,28 +125,28 @@ def test_constraints(mostly):
 
     # verify that high column values are clipped to training data bounds
     # ELAPSED_TIME should not exceed the max from training data
-    # max_elapsed_time = df["ELAPSED_TIME"].max()
-    # min_elapsed_time = df["ELAPSED_TIME"].min()
-    # assert (df_syn["ELAPSED_TIME"] <= max_elapsed_time).all(), (
-    #     f"ELAPSED_TIME exceeds training max: synthetic max={df_syn['ELAPSED_TIME'].max()}, "
-    #     f"training max={max_elapsed_time}"
-    # )
-    # assert (df_syn["ELAPSED_TIME"] >= min_elapsed_time).all(), (
-    #     f"ELAPSED_TIME below training min: synthetic min={df_syn['ELAPSED_TIME'].min()}, "
-    #     f"training min={min_elapsed_time}"
-    # )
+    max_elapsed_time = df["ELAPSED_TIME"].max()
+    min_elapsed_time = df["ELAPSED_TIME"].min()
+    assert (df_syn["ELAPSED_TIME"] <= max_elapsed_time).all(), (
+        f"ELAPSED_TIME exceeds training max: synthetic max={df_syn['ELAPSED_TIME'].max()}, "
+        f"training max={max_elapsed_time}"
+    )
+    assert (df_syn["ELAPSED_TIME"] >= min_elapsed_time).all(), (
+        f"ELAPSED_TIME below training min: synthetic min={df_syn['ELAPSED_TIME'].min()}, "
+        f"training min={min_elapsed_time}"
+    )
 
-    # # ARRIVAL_TIME should not exceed the max from training data
-    # max_arrival_time = df["ARRIVAL_TIME"].max()
-    # min_arrival_time = df["ARRIVAL_TIME"].min()
-    # assert (df_syn["ARRIVAL_TIME"] <= max_arrival_time).all(), (
-    #     f"ARRIVAL_TIME exceeds training max: synthetic max={df_syn['ARRIVAL_TIME'].max()}, "
-    #     f"training max={max_arrival_time}"
-    # )
-    # assert (df_syn["ARRIVAL_TIME"] >= min_arrival_time).all(), (
-    #     f"ARRIVAL_TIME below training min: synthetic min={df_syn['ARRIVAL_TIME'].min()}, "
-    #     f"training min={min_arrival_time}"
-    # )
+    # ARRIVAL_TIME should not exceed the max from training data
+    max_arrival_time = df["ARRIVAL_TIME"].max()
+    min_arrival_time = df["ARRIVAL_TIME"].min()
+    assert (df_syn["ARRIVAL_TIME"] <= max_arrival_time).all(), (
+        f"ARRIVAL_TIME exceeds training max: synthetic max={df_syn['ARRIVAL_TIME'].max()}, "
+        f"training max={max_arrival_time}"
+    )
+    assert (df_syn["ARRIVAL_TIME"] >= min_arrival_time).all(), (
+        f"ARRIVAL_TIME below training min: synthetic min={df_syn['ARRIVAL_TIME'].min()}, "
+        f"training min={min_arrival_time}"
+    )
 
     # verify time differences follow predefined rules
     # with clipping functionality, a few rows might be distorted, so check percentiles with slack
