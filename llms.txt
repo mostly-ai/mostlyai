@@ -1,0 +1,22 @@
+# mostlyai
+
+## Getting started
+
+- [Getting Started](https://mostly-ai.github.io/mostlyai/index.md)
+
+## Usage Examples
+
+- [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/index.md)
+
+## API Reference
+
+- [API Reference](https://mostly-ai.github.io/mostlyai/api_client/index.md)
+
+## Schema Reference
+
+- [Schema Reference](https://mostly-ai.github.io/mostlyai/api_domain/index.md)
+
+## Cheat Sheet
+
+- [Cheat Sheet](https://mostly-ai.github.io/mostlyai/syntax/index.md)
+
