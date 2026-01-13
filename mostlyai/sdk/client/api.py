@@ -649,6 +649,8 @@ class MostlyAI(_MostlyBaseClient):
             ```
 
         Example with constraints to preserve valid combinations and enforce inequalities:
+            Note: Each column can only appear in one constraint across all constraint types.
+            This applies to all columns referenced in any constraint, regardless of constraint type.
             ```python
             # constraints ensure that synthetic data only contains combinations of values that existed in training data
             # and enforce logical relationships like departure_time < arrival_time
