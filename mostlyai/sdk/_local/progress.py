@@ -24,7 +24,7 @@ from mostlyai.sdk.domain import ProgressStatus, StepCode
 
 def get_current_utc_time() -> datetime.datetime:
     # always use UTC time for platform compatibility
-    return datetime.datetime.now(datetime.timezone.utc)
+    return datetime.datetime.now(datetime.UTC)
 
 
 class LocalProgressCallback:
