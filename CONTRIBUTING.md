@@ -23,12 +23,12 @@ Thanks for your interest in contributing to Synthetic Data SDK! Follow these gui
 
 3. **Create a virtual environment and install dependencies**:
    ```bash
-   uv sync --frozen --extra local --python=3.10  # For CPU
+   uv sync --frozen --extra local --python=3.11  # For CPU
    source .venv/bin/activate
    ```
    If using GPU, run:
    ```bash
-   uv sync --frozen --extra local-gpu --python=3.10  # For GPU support
+   uv sync --frozen --extra local-gpu --python=3.11  # For GPU support
    source .venv/bin/activate
    ```
 

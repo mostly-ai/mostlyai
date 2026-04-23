@@ -23,7 +23,7 @@ jobs:
         uses: astral-sh/setup-uv@ed21f2f24f8dd64503750218de024bcf64c7250a # v7.1.5
         with:
           enable-cache: false
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Setup | Dependencies
         run: |
@@ -58,7 +58,7 @@ jobs:
         uses: astral-sh/setup-uv@ed21f2f24f8dd64503750218de024bcf64c7250a # v7.1.5
         with:
           enable-cache: false
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Setup | Dependencies
         run: |

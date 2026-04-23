@@ -23,7 +23,7 @@ COMMON_OPTIONS = \
 	--input-file-type openapi \
 	--output $(PUBLIC_API_OUTPUT_PATH) \
 	--snake-case-field \
-	--target-python-version 3.10 \
+	--target-python-version 3.11 \
 	--use-schema-description \
 	--use-union-operator \
 	--use-standard-collections \

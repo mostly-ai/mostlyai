@@ -19,7 +19,7 @@ body:
     attributes:
       label: Python Version
       description: The version of Python you're using.
-      placeholder: "e.g., 3.8, 3.9, 3.10"
+      placeholder: "e.g., 3.11, 3.12, 3.13"
     validations:
       required: true
   - type: textarea
