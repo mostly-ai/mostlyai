@@ -310,6 +310,10 @@ def coerce_dtype_by_encoding(
         x = pd.to_datetime(x, errors="coerce", utc=True)
         # currently we do not retain timezone info
         x = x.dt.tz_localize(None)
+        # clamp out-of-bounds values before ns downcast (pandas 3 returns us resolution)
+        _min = pd.Timestamp.min.tz_localize(None)
+        _max = pd.Timestamp.max.tz_localize(None)
+        x = x.where(x.between(_min, _max), other=pd.NaT)
         # convert to timestamp with ns resolution
         x = x.astype("datetime64[ns]")
     elif encoding_type in [
@@ -396,6 +400,10 @@ def datetime_coerce(s: pd.Series) -> pd.Series:
     n_coerced = n_na_1 - n_na_0
     if n_coerced > 0:
         _LOG.warning(f"{n_coerced} values coerced during datetime_coerce")
+    # clamp out-of-bounds values before ns downcast (pandas 3 returns us resolution)
+    _min = pd.Timestamp.min.tz_localize(None)
+    _max = pd.Timestamp.max.tz_localize(None)
+    s = s.where(s.between(_min, _max), other=pd.NaT)
     # map to "datetime64[ns]"
     return s.astype("datetime64[ns]")
 

@@ -137,9 +137,9 @@ def _shuffle_groups(df: pd.DataFrame, root_key: str) -> pd.DataFrame:
     # Shuffle the index
     shuffled_df = df.sample(frac=1).reset_index(drop=True)
     # Sorting by group_order within each group
-    shuffled_df.sort_values(by=[group_order], inplace=True)
+    shuffled_df = shuffled_df.sort_values(by=[group_order])
     # Remove the temporary group_order column
-    shuffled_df.drop(columns=group_order, inplace=True)
+    shuffled_df = shuffled_df.drop(columns=group_order)
     return shuffled_df
 
 

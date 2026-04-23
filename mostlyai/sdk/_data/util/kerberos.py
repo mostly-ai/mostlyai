@@ -61,7 +61,7 @@ def is_kerberos_ticket_alive(klist_result: str, service_principal: str):
     df["expires"] = expires.apply(safe_parse)
 
     # Drop rows where date parsing failed
-    df.dropna(subset=["issued", "expires"], inplace=True)
+    df = df.dropna(subset=["issued", "expires"])
 
     # Check if the principal's ticket has not expired
     now = datetime.now()

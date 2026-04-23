@@ -147,9 +147,8 @@ def postprocess_temp_columns(df: pd.DataFrame, table_name: str, schema: Schema):
         for col in temp_columns:
             df[col] = df[col].apply(lambda x: f"mostly{str(uuid.uuid4())[6:]}" if x == "False" else pd.NA)
         # remove suffix
-        df.rename(
+        df = df.rename(
             columns={c: c.removesuffix(suffix) for c in temp_columns},
-            inplace=True,
         )
 
     return df

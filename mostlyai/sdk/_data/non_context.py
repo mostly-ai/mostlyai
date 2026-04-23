@@ -164,7 +164,7 @@ def add_is_null_for_non_context_relation(
 
     # replace the fk column with the is_null values and rename it accordingly
     data[fk] = is_null_values
-    data.rename(columns={fk: relation.get_is_null_column(is_target=is_target)}, inplace=True)
+    data = data.rename(columns={fk: relation.get_is_null_column(is_target=is_target)})
 
     return data
 
