@@ -1,0 +1,60 @@
+name: Release Step 1 - Release on GitHub
+run-name: bump version to ${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "New version (e.g. 1.2.3)"
+        required: true
+        type: string
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update version
+        run: |
+          sed -i -E 's/^version = ".*"/version = "${{ inputs.version }}"/' pyproject.toml
+          sed -i -E 's/^__version__ = ".*"/__version__ = "${{ inputs.version }}"/' mostlyai/sdk/__init__.py
+
+      - name: Commit and Push
+        run: |
+          BRANCH_NAME="release-${{ inputs.version }}"
+          git checkout -B "$BRANCH_NAME"
+          git add pyproject.toml mostlyai/sdk/__init__.py
+          git commit -m "build: bump version to ${{ inputs.version }}"
+          git push -f origin "$BRANCH_NAME"
+
+      - name: Create and Merge PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr_id=$(gh pr list --head release-${{ inputs.version }} --base main --json number --jq '.[0].number')
+          if [ -z "$pr_id" ]; then
+            pr_id=$(gh pr create \
+              --title "build: release ${{ inputs.version }}" \
+              --body "Release version ${{ inputs.version }}." \
+              --base main \
+              --head release-${{ inputs.version }})
+          fi
+          gh pr merge "$pr_id" --squash
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ inputs.version }} \
+            --title "Release ${{ inputs.version }}" \
+            --generate-notes
