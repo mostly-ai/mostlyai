@@ -3323,7 +3323,7 @@ wheels = [
 
 [[package]]
 name = "mostlyai"
-version = "5.10.1"
+version = "5.11.2"
 source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
@@ -3474,10 +3474,10 @@ requires-dist = [
     { name = "joblib", marker = "extra == 'local'", specifier = ">=1.4.2" },
     { name = "joblib", marker = "extra == 'local-gpu'", specifier = ">=1.4.2" },
     { name = "kerberos", marker = "extra == 'hive'", specifier = ">=1.3.1,<2" },
-    { name = "mostlyai-engine", marker = "python_full_version >= '3.11' and extra == 'local'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=2.5.0" },
-    { name = "mostlyai-engine", extras = ["gpu"], marker = "python_full_version >= '3.11' and extra == 'local-gpu'", git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=2.5.0" },
-    { name = "mostlyai-qa", marker = "python_full_version >= '3.11' and extra == 'local'", git = "https://github.com/mostly-ai/mostlyai-qa.git?rev=1.10.4" },
-    { name = "mostlyai-qa", marker = "python_full_version >= '3.11' and extra == 'local-gpu'", git = "https://github.com/mostly-ai/mostlyai-qa.git?rev=1.10.4" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==2.5.0" },
+    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==2.5.0" },
+    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.10.4" },
+    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.10.4" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
     { name = "networkx", marker = "extra == 'local'", specifier = ">=3.0,<4" },
     { name = "networkx", marker = "extra == 'local-gpu'", specifier = ">=3.0,<4" },
@@ -3554,7 +3554,7 @@ docs = [
 [[package]]
 name = "mostlyai-engine"
 version = "2.5.0"
-source = { git = "https://github.com/mostly-ai/mostlyai-engine.git?rev=2.5.0#781173ea509e1ebd2de18b88308f3fe5a1d092ab" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
     { name = "datasets" },
@@ -3576,6 +3576,10 @@ dependencies = [
     { name = "transformers" },
     { name = "xgrammar" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/7f/9b/a4ddc1a44b5b14352ca3077f5b1ae3b1f727e357d548b68a4879b8b8c2ed/mostlyai_engine-2.5.0.tar.gz", hash = "sha256:30d13083216e3ef68d14dc186b173eed32ab4416ca19923eb9db37d2d9c02b9f", size = 138610, upload-time = "2026-04-24T20:35:15.485Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f6/98/6f0f0a76ad21a49694f629974e8183cdf54170fee40471986ca4cdd60686/mostlyai_engine-2.5.0-py3-none-any.whl", hash = "sha256:db73eb13116165a5114afb5bebcb2378689034436c04928b1e211fcff0f09309", size = 182509, upload-time = "2026-04-24T20:35:13.855Z" },
+]
 
 [package.optional-dependencies]
 gpu = [
@@ -3587,7 +3591,7 @@ gpu = [
 [[package]]
 name = "mostlyai-qa"
 version = "1.10.4"
-source = { git = "https://github.com/mostly-ai/mostlyai-qa.git?rev=1.10.4#45dfa4f55f276a7e269352dff32b908becc653b1" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
     { name = "jinja2" },
@@ -3604,6 +3608,10 @@ dependencies = [
     { name = "torch" },
     { name = "transformers" },
     { name = "xxhash" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/13/ab5c06464b3b4ca4ad074ff65da167e9fbc90ffab80a6da58e1d01505541/mostlyai_qa-1.10.4.tar.gz", hash = "sha256:d50cdc581af5504cefbc0c08db497ad061fec6420f4736f515bd170bda04ed58", size = 30647984, upload-time = "2026-04-23T17:34:32.271Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dc/2e/8f006872e0dc45916eaa2efafee8ee9c2448b01bea4592a72952c0a4d25e/mostlyai_qa-1.10.4-py3-none-any.whl", hash = "sha256:1a2d182205319522b9182c473014445967f64a3324d78181879df1df8f8cb6c5", size = 30671909, upload-time = "2026-04-23T17:34:29.147Z" },
 ]
 
 [[package]]
