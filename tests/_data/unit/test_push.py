@@ -55,7 +55,10 @@ def source_table_partitioned(tmp_path):
     source_data_path = tmp_path / "source"
     source_data_path.mkdir(exist_ok=True, parents=True)
     n_partitions = 10
-    get_data_partitioned = np.array_split(source_data, n_partitions)
+    # np.array_split returns ndarrays for DataFrames on numpy 2 / pandas 3,
+    # so split via positional indices to keep DataFrames
+    split_points = np.array_split(np.arange(len(source_data)), n_partitions)
+    get_data_partitioned = [source_data.iloc[idx] for idx in split_points]
     # save each part into a separate parquet file
     for i, df_part in enumerate(get_data_partitioned):
         part_fn = source_data_path / f"part.{i:06}.parquet"
