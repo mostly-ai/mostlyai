@@ -48,8 +48,10 @@ def test_finalize_table_generation(tmp_path, tgt_data):
     gen_data = tgt_table.read_data()
     gen_data_path = tmp_path / "gen"
     gen_data_path.mkdir(exist_ok=True, parents=True)
-    # make 3 partitions
-    get_data_partitioned = np.array_split(gen_data, 3)
+    # make 3 partitions (np.array_split returns ndarrays for DataFrames on
+    # numpy 2 / pandas 3, so split via positional indices to keep DataFrames)
+    split_points = np.array_split(np.arange(len(gen_data)), 3)
+    get_data_partitioned = [gen_data.iloc[idx] for idx in split_points]
     # save each part into a separate parquet file
     for i, df_part in enumerate(get_data_partitioned):
         part_fn = gen_data_path / f"part.{i:06}.parquet"
@@ -103,7 +105,7 @@ def test_export_data_to_excel(tmp_path):
     excel_file_path = tmp_path / "synthetic-samples.xlsx"
     xls = pd.ExcelFile(excel_file_path)
 
-    expected_values = pd.DataFrame({"A": [0, 1, 2, 3, 4, 5, 6, 7, 8], "X": ["x"] * 9, "N": [None] * 9})
+    expected_values = pd.DataFrame({"A": [0, 1, 2, 3, 4, 5, 6, 7, 8], "X": ["x"] * 9})
     # Iterate over each sheet
     for sheet_name in xls.sheet_names:
         df = pd.read_excel(xls, sheet_name=sheet_name)
@@ -115,7 +117,11 @@ def test_export_data_to_excel(tmp_path):
             # Check the expected values
             df.sort_values(by="A", ascending=True, inplace=True)
             df.reset_index(drop=True, inplace=True)
-            pd.testing.assert_frame_equal(df, expected_values, check_dtype=False)
+            # the "N" column is all-missing; compare via isna() to stay
+            # agnostic of how read_excel materializes nulls (NaN vs None vs NA)
+            # across pandas versions
+            assert df["N"].isna().all()
+            pd.testing.assert_frame_equal(df.drop(columns=["N"]), expected_values, check_dtype=False)
 
     # Check for the sheet names
     expected_sheets = ["_TOC_", "A", "B", "C"]

@@ -125,13 +125,17 @@ class JsonDataTable(FileDataTable):
             if is_date_dtype(df[c]):
                 df[c] = df[c].dt.strftime("%Y-%m-%d")
             elif is_timestamp_dtype(df[c]):
-                # we need to strip off any milliseconds
+                # we need to strip off any microseconds (pyarrow-backed
+                # timestamps include them in strftime output regardless of
+                # format string; use str.slice rather than str[:-7] because
+                # pandas 3.0 removed StringMethods.__getitem__ for pyarrow
+                # extension arrays)
                 df[c] = (
                     df[c]
                     .dt.tz_localize(None)
                     .astype("timestamp[us][pyarrow]")
                     .dt.strftime("%Y-%m-%d %H:%M:%S")
-                    .str[:-7]
+                    .str.slice(stop=-7)
                 )
         mode = self.handle_if_exists(if_exists)
         df.to_json(self.container.path_str, orient="records", lines=True, mode=mode)
