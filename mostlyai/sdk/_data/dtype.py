@@ -184,6 +184,16 @@ class VirtualBoolean(VirtualDType):
         return bool_coerce(data)
 
 
+def _to_numeric_or_same(data: pd.Series, downcast: str) -> pd.Series:
+    # pandas 3.0 dropped errors="ignore" for pd.to_numeric; emulate the
+    # previous "return input unchanged on failure" contract that our cast()
+    # callers relied on.
+    try:
+        return pd.to_numeric(data, errors="raise", downcast=downcast, dtype_backend="pyarrow")
+    except (ValueError, TypeError):
+        return data
+
+
 class VirtualInteger(VirtualDType):
     def get_encompass_data_fallback_dtypes(self) -> list["DType"]:
         return [VirtualFloat, VirtualVarchar]
@@ -192,7 +202,7 @@ class VirtualInteger(VirtualDType):
         return int_coerce(data)
 
     def cast(self, data: pd.Series) -> pd.Series:
-        return pd.to_numeric(data, errors="ignore", downcast="integer", dtype_backend="pyarrow")
+        return _to_numeric_or_same(data, downcast="integer")
 
 
 class VirtualFloat(VirtualDType):
@@ -200,7 +210,7 @@ class VirtualFloat(VirtualDType):
         return float_coerce(data)
 
     def cast(self, data: pd.Series) -> pd.Series:
-        return pd.to_numeric(data, errors="ignore", downcast="float", dtype_backend="pyarrow")
+        return _to_numeric_or_same(data, downcast="float")
 
 
 class VirtualDate(VirtualDType):
@@ -468,8 +478,11 @@ def time_coerce(s: pd.Series) -> pd.Series:
     n_coerced = n_na_1 - n_na_0
     if n_coerced > 0:
         _LOG.warning(f"{n_coerced} values coerced during datetime_coerce")
-    # map to "object"
-    return s.astype("object")
+    # map to "object", and normalize pd.NaT to pd.NA so the result is uniform
+    # regardless of whether any row survived coercion (pandas 3 is stricter
+    # about distinguishing NaT vs NA under the object dtype)
+    s = s.astype("object")
+    return s.where(~s.isna(), pd.NA)
 
 
 class PandasDType(WrappedDType):
