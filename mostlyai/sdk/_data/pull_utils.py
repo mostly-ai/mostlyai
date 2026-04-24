@@ -473,14 +473,14 @@ def fetch_table_data(
             key_fraction_df["n_rows"] = int_part + (random_draws < frac_part).astype(int)
 
             ctx_key = key_fraction_df.columns[0]
+            # shuffle, then keep the first n rows per ctx_key group via cumcount; this preserves
+            # the grouping column in the output across pandas versions (pandas 3.0 drops the
+            # grouping column from groupby().apply() results by default)
             chunk_df = chunk_df.sample(frac=1)
-
-            def sample_n_rows(group):
-                n = key_fraction_df.loc[key_fraction_df[ctx_key] == group.name, "n_rows"].values[0]
-                return group.sample(n=min(n, len(group)))  # don't exceed available rows
-
-            # group by ctx_key and apply the sampling function
-            chunk_df = chunk_df.groupby(ctx_key, group_keys=False).apply(sample_n_rows).reset_index(drop=True)
+            n_per_group = key_fraction_df.set_index(ctx_key)["n_rows"]
+            cumcount = chunk_df.groupby(ctx_key).cumcount()
+            limit = chunk_df[ctx_key].map(n_per_group).fillna(0).astype(int)
+            chunk_df = chunk_df.loc[cumcount < limit].reset_index(drop=True)
 
             _LOG.info(f"drop {chunk_size - len(chunk_df)} ctx_keys to protect privacy")
         if sample_fraction is not None:
