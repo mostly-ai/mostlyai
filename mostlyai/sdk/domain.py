@@ -14,8 +14,6 @@
 
 from __future__ import annotations
 
-import inspect
-import sys
 import uuid
 import zipfile
 from enum import Enum
@@ -24,7 +22,7 @@ from typing import Annotated, Any, ClassVar, Literal
 
 import pandas as pd
 import rich
-from pydantic import AnyUrl, AwareDatetime, Field, RootModel, field_validator, model_validator
+from pydantic import AwareDatetime, Field, field_validator, model_validator
 
 from mostlyai.sdk.client._base_utils import convert_to_base64, convert_to_df, read_table_from_path
 from mostlyai.sdk.client._constraint_types import convert_constraint_config_to_typed
@@ -38,262 +36,6 @@ class AboutService(CustomBaseModel):
 
     version: str | None = Field(None, description="The version number of the service.", examples=["4.0.0"])
     assistant: bool | None = Field(None, description="A flag indicating if the assistant is enabled.")
-
-
-class UserSettingsProfileUpdateConfig(CustomBaseModel):
-    """
-    Configuration for updating a user's profile settings.
-    """
-
-    name: str | None = Field(
-        None,
-        description="The name of a user.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique considering organizations and users.\n",
-    )
-    first_name: str | None = Field(None, alias="firstName", description="First name of a user", max_length=30)
-    last_name: str | None = Field(None, alias="lastName", description="Last name of a user", max_length=30)
-    avatar: str | None = Field(None, description="The base64-encoded image of the user's avatar")
-
-
-class UserSettingsAssistantUpdateConfig(CustomBaseModel):
-    """
-    Configuration for updating a user's assistant-related settings.
-    """
-
-    about_user_message: str | None = Field(
-        None,
-        alias="aboutUserMessage",
-        description="The instruction what the Assistant should know about the user to provide better response",
-    )
-    about_model_message: str | None = Field(
-        None,
-        alias="aboutModelMessage",
-        description="The instruction how the Assistant should respond",
-    )
-
-
-class UserSecretKey(RootModel[str]):
-    root: str = Field(
-        ...,
-        description="The name of a user secret environment variable.\nMust match pattern: [A-Z_][A-Z0-9_]*\nExamples: MY_API_KEY, DATABASE_PASSWORD, AWS_SECRET_KEY\n",
-        examples=["MY_API_KEY"],
-        max_length=255,
-        pattern="^[A-Z_][A-Z0-9_]*$",
-    )
-
-
-class UserSecretConfig(CustomBaseModel):
-    """
-    Request body for creating a new user secret
-    """
-
-    key: str = Field(
-        ...,
-        description="The name of a user secret environment variable.\nMust match pattern: [A-Z_][A-Z0-9_]*\nExamples: MY_API_KEY, DATABASE_PASSWORD, AWS_SECRET_KEY\n",
-        examples=["MY_API_KEY"],
-        max_length=255,
-        pattern="^[A-Z_][A-Z0-9_]*$",
-    )
-    value: str = Field(
-        ...,
-        description="The secret value (will be encrypted and stored securely)",
-        examples=["sk-1234567890abcdef"],
-        max_length=8192,
-    )
-
-
-class UsageCreditStats(CustomBaseModel):
-    """
-    User credits statistics and limits for the current user.
-    """
-
-    current: float | None = Field(None, description="The current credit balance for the user.")
-    limit: float | None = Field(
-        None,
-        description="The credit limit for the user. If empty, then there is no limit.",
-    )
-    period_start: AwareDatetime | None = Field(
-        None,
-        alias="periodStart",
-        description="The UTC date and time when the current time period started.",
-    )
-    period_end: AwareDatetime | None = Field(
-        None,
-        alias="periodEnd",
-        description="The UTC date and time when the current time period ends.",
-    )
-
-
-class ParallelTrainingJobs(CustomBaseModel):
-    """
-    The number of currently running training jobs and the limit
-    """
-
-    current: int | None = Field(None, description="The number of currently running training jobs")
-    limit: int | None = Field(
-        None,
-        description="The maximum number of running training jobs at any time. If empty, then there is no limit.",
-    )
-
-
-class ParallelGenerationJobs(CustomBaseModel):
-    """
-    The number of currently running generation jobs and the limit
-    """
-
-    current: int | None = Field(None, description="The number of currently running generation jobs.")
-    limit: int | None = Field(
-        None,
-        description="The maximum number of running generation jobs at any time. If empty, then there is no limit.",
-    )
-
-
-class UserUsage(CustomBaseModel):
-    """
-    Usage statistics and limits for the current user.
-    """
-
-    parallel_training_jobs: ParallelTrainingJobs | None = Field(
-        None,
-        alias="parallelTrainingJobs",
-        description="The number of currently running training jobs and the limit",
-    )
-    parallel_generation_jobs: ParallelGenerationJobs | None = Field(
-        None,
-        alias="parallelGenerationJobs",
-        description="The number of currently running generation jobs and the limit",
-    )
-
-
-class Free(CustomBaseModel):
-    """
-    Usage statistics of free credits.
-    """
-
-    daily: UsageCreditStats | None = None
-    monthly: UsageCreditStats | None = None
-
-
-class Paid(CustomBaseModel):
-    """
-    Usage statistics of paid credits.
-    """
-
-    monthly: UsageCreditStats | None = None
-
-
-class UserCredits(CustomBaseModel):
-    """
-    Usage statistics and limits for the current user.
-    """
-
-    free: Free = Field(..., description="Usage statistics of free credits.")
-    paid: Paid | None = Field(None, description="Usage statistics of paid credits.")
-
-
-class NotificationStatus(str, Enum):
-    """
-    The status of the notification.
-    """
-
-    unread = "UNREAD"
-    read = "READ"
-
-
-class NotificationType(str, Enum):
-    """
-    The type of the notification
-    """
-
-    resource_ready = "RESOURCE_READY"
-    resource_liked = "RESOURCE_LIKED"
-    resource_failed = "RESOURCE_FAILED"
-    member_joined = "MEMBER_JOINED"
-
-
-class IntegrationStatus(str, Enum):
-    """
-    Status of an integration connection
-    """
-
-    connected = "CONNECTED"
-    not_connected = "NOT_CONNECTED"
-
-
-class IntegrationScope(CustomBaseModel):
-    """
-    OAuth scope information for an integration
-    """
-
-    id: str = Field(
-        ...,
-        description="Unique identifier for the scope",
-        examples=["550e8400-e29b-41d4-a716-446655440000"],
-    )
-    name: str = Field(
-        ...,
-        description="Display name of the scope",
-        examples=["Google Drive (Read Only)"],
-    )
-    description: str | None = Field(
-        None,
-        description="Description of what this scope allows",
-        examples=["Read-only access to your Google Drive files"],
-    )
-    value: str = Field(
-        ...,
-        description="The actual OAuth scope value",
-        examples=["https://www.googleapis.com/auth/drive.readonly"],
-    )
-
-
-class IntegrationAuthorizationRequest(CustomBaseModel):
-    """
-    Request to generate an OAuth authorization URL
-    """
-
-    scope_ids: list[str] = Field(
-        ...,
-        alias="scopeIds",
-        description="List of scope identifiers for this integration",
-        examples=[["550e8400-e29b-41d4-a716-446655440000"]],
-        min_length=1,
-    )
-
-
-class ProviderScopeConfig(CustomBaseModel):
-    """
-    OAuth scope definition
-    """
-
-    id: str = Field(
-        ...,
-        description="Unique identifier for the scope",
-        examples=["550e8400-e29b-41d4-a716-446655440000"],
-    )
-    name: str = Field(
-        ...,
-        description="Display name of the scope",
-        examples=["Google Drive (Read Only)"],
-    )
-    description: str | None = Field(
-        None,
-        description="Description of what this scope allows",
-        examples=["Read-only access to your Google Drive files"],
-    )
-    value: str = Field(
-        ...,
-        description="The actual OAuth scope value",
-        examples=["https://www.googleapis.com/auth/drive.readonly"],
-    )
-    is_default: bool | None = Field(
-        False,
-        alias="isDefault",
-        description="Whether this scope is selected by default",
-    )
-
-
-class PaginatedTotalCount(RootModel[int]):
-    root: int = Field(..., description="The total number of entities within the list")
 
 
 class ConnectorAccessType(str, Enum):
@@ -362,15 +104,11 @@ class ConnectorUsage(CustomBaseModel):
     """
 
     no_of_generators: int | None = Field(
-        None,
-        alias="noOfGenerators",
-        description="Number of generators using this connector.",
+        None, alias="noOfGenerators", description="Number of generators using this connector."
     )
     no_of_likes: int | None = Field(None, alias="noOfLikes", description="Number of likes of this connector.")
     no_of_threads: int | None = Field(
-        None,
-        alias="noOfThreads",
-        description="Number of assistant threads using this connector.",
+        None, alias="noOfThreads", description="Number of assistant threads using this connector."
     )
 
 
@@ -556,9 +294,7 @@ class ConnectorReadDataConfig(CustomBaseModel):
         description="Specifies the target within the connector from which to retrieve the data. The format of this parameter varies by connector type.",
     )
     limit: int | None = Field(
-        None,
-        description="The maximum number of rows to return. Return all if not specified.",
-        ge=1,
+        None, description="The maximum number of rows to return. Return all if not specified.", ge=1
     )
     shuffle: bool | None = Field(False, description="Whether to shuffle the results.")
 
@@ -599,13 +335,6 @@ class ConnectorQueryConfig(CustomBaseModel):
     sql: str = Field(..., description="SQL read-only (e.g. SELECT) statement to execute.")
 
 
-class ConnectorSortField(str, Enum):
-    recency = "RECENCY"
-    no_of_generators = "NO_OF_GENERATORS"
-    no_of_likes = "NO_OF_LIKES"
-    no_of_threads = "NO_OF_THREADS"
-
-
 class GeneratorUsage(CustomBaseModel):
     """
     Usage statistics of a generator.
@@ -623,9 +352,7 @@ class GeneratorUsage(CustomBaseModel):
         description="The total compute time in seconds used for training this generator.\nThis is the sum of the elapsed compute time of all training tasks.\n",
     )
     total_credits: float | None = Field(
-        None,
-        alias="totalCredits",
-        description="The amount of credits consumed for training the generator.",
+        None, alias="totalCredits", description="The amount of credits consumed for training the generator."
     )
     total_virtual_cpu_time: float | None = Field(
         None,
@@ -638,15 +365,11 @@ class GeneratorUsage(CustomBaseModel):
         description="The total virtual GPU time in seconds used for training this generator.\nThis is the sum of the elapsed time multiplied by number of allocated virtual GPUs across all training tasks.\n",
     )
     no_of_synthetic_datasets: int | None = Field(
-        None,
-        alias="noOfSyntheticDatasets",
-        description="Number of synthetic datasets generated by this generator.",
+        None, alias="noOfSyntheticDatasets", description="Number of synthetic datasets generated by this generator."
     )
     no_of_likes: int | None = Field(None, alias="noOfLikes", description="Number of likes of this generator.")
     no_of_threads: int | None = Field(
-        None,
-        alias="noOfThreads",
-        description="Number of assistant threads using this generator.",
+        None, alias="noOfThreads", description="Number of assistant threads using this generator."
     )
 
 
@@ -661,16 +384,13 @@ class SourceColumnValueRange(CustomBaseModel):
     """
 
     min: str | None = Field(
-        None,
-        description="The minimum value of the column. For dates, this is represented in ISO format.",
+        None, description="The minimum value of the column. For dates, this is represented in ISO format."
     )
     max: str | None = Field(
-        None,
-        description="The maximum value of the column. For dates, this is represented in ISO format.",
+        None, description="The maximum value of the column. For dates, this is represented in ISO format."
     )
     values: list[str] | None = Field(
-        None,
-        description="The list of distinct values of the column. Limited to a maximum of 1000 values.",
+        None, description="The list of distinct values of the column. Limited to a maximum of 1000 values."
     )
     has_null: bool | None = Field(None, description="If true, null value was detected within the column.")
 
@@ -740,14 +460,6 @@ class GeneratorPatchConfig(CustomBaseModel):
     )
 
 
-class GeneratorImportFromFileConfig(CustomBaseModel):
-    """
-    Configuration for importing a generator from a file.
-    """
-
-    file: bytes
-
-
 class SourceForeignKeyConfig(CustomBaseModel):
     """
     Configuration for defining a foreign key relationship in a source table.
@@ -765,30 +477,6 @@ class SourceForeignKeyConfig(CustomBaseModel):
         alias="isContext",
         description="If true, then the foreign key will be considered as a context relation.\nNote, that only one foreign key relation per table can be a context relation.\n",
     )
-
-
-class SourceForeignKeyPatchConfig(CustomBaseModel):
-    """
-    Configuration for updating a foreign key relationship in a source table.
-    """
-
-    is_context: bool | None = Field(
-        None,
-        alias="isContext",
-        description="If true, then the foreign key will be considered as a context relation.\nNote, that only one foreign key relation per table can be a context relation.\n",
-    )
-
-
-class AssistantThreadSortField(str, Enum):
-    recency = "RECENCY"
-    last_message_at = "LAST_MESSAGE_AT"
-
-
-class GeneratorSortField(str, Enum):
-    recency = "RECENCY"
-    no_of_likes = "NO_OF_LIKES"
-    no_of_threads = "NO_OF_THREADS"
-    no_of_synthetic_datasets = "NO_OF_SYNTHETIC_DATASETS"
 
 
 class RareCategoryReplacementMethod(str, Enum):
@@ -898,9 +586,7 @@ class SyntheticDatasetUsage(CustomBaseModel):
         description="The total compute time in seconds used for generating this synthetic dataset.\nThis is the sum of the compute time of all trained tasks.\n",
     )
     total_credits: float | None = Field(
-        None,
-        alias="totalCredits",
-        description="The amount of credits consumed for generating the synthetic dataset.",
+        None, alias="totalCredits", description="The amount of credits consumed for generating the synthetic dataset."
     )
     total_virtual_cpu_time: float | None = Field(
         None,
@@ -912,20 +598,12 @@ class SyntheticDatasetUsage(CustomBaseModel):
         alias="totalVirtualGPUTime",
         description="The total virtual GPU time in seconds used for training this generator.\nThis is the sum of the elapsed time multiplied by number of allocated virtual GPUs across all training tasks.\n",
     )
-    no_of_likes: int | None = Field(
-        None,
-        alias="noOfLikes",
-        description="Number of likes of this synthetic dataset.",
-    )
+    no_of_likes: int | None = Field(None, alias="noOfLikes", description="Number of likes of this synthetic dataset.")
     no_of_downloads: int | None = Field(
-        None,
-        alias="noOfDownloads",
-        description="Number of downloads of this synthetic dataset.",
+        None, alias="noOfDownloads", description="Number of downloads of this synthetic dataset."
     )
     no_of_threads: int | None = Field(
-        None,
-        alias="noOfThreads",
-        description="Number of assistant threads using this synthetic dataset.",
+        None, alias="noOfThreads", description="Number of assistant threads using this synthetic dataset."
     )
 
 
@@ -951,332 +629,9 @@ class SyntheticDatasetDelivery(CustomBaseModel):
         description="If true, tables in the destination will be overwritten.\nIf false, any tables exist, the delivery will fail.\n",
     )
     destination_connector_id: str = Field(
-        ...,
-        alias="destinationConnectorId",
-        description="The unique identifier of a connector.",
+        ..., alias="destinationConnectorId", description="The unique identifier of a connector."
     )
     location: str = Field(..., description="The location for the destination connector.")
-
-
-class SyntheticDatasetSortField(str, Enum):
-    recency = "RECENCY"
-    no_of_likes = "NO_OF_LIKES"
-    no_of_downloads = "NO_OF_DOWNLOADS"
-    no_of_threads = "NO_OF_THREADS"
-
-
-class ArtifactSortField(str, Enum):
-    recency = "RECENCY"
-    no_of_threads = "NO_OF_THREADS"
-
-
-class AssistantLiteLlmExtraItem(CustomBaseModel):
-    """
-    Configuration parameter for the selected LiteLLM model.
-    """
-
-    key: str | None = None
-    value: str | None = None
-
-
-class LiteLlm(CustomBaseModel):
-    """
-    Configuration of the LiteLLM service
-    """
-
-    model: str | None = Field(
-        None,
-        description="The LiteLLM model of the assistant. See https://docs.litellm.ai/docs/providers.",
-        examples=[["openai/gpt-3.5-turbo", "mistral/mistral-tiny"]],
-    )
-    api_key: str | None = Field(
-        None,
-        alias="apiKey",
-        description="The API key for the selected LiteLLM model. See https://docs.litellm.ai/docs/providers.",
-    )
-    extra: list[AssistantLiteLlmExtraItem] | None = Field(
-        None,
-        description="Any additional configuration parameters for the selected LiteLLM model. See https://docs.litellm.ai/docs/providers.",
-    )
-
-
-class AssistantSettings(CustomBaseModel):
-    """
-    Additional optional assistant settings used for LiteLLM
-    """
-
-    is_enabled: bool | None = Field(None, alias="isEnabled", description="If true, the assistant is enabled.")
-    lite_llm: LiteLlm | None = Field(None, alias="liteLlm", description="Configuration of the LiteLLM service")
-    system_instructions: str | None = Field(
-        None,
-        alias="systemInstructions",
-        description="The system instructions of the assistant",
-    )
-    custom_instructions: str | None = Field(
-        None,
-        alias="customInstructions",
-        description="The custom instructions of the assistant",
-    )
-    default_system_instructions: str | None = Field(
-        None,
-        alias="defaultSystemInstructions",
-        description="The system instructions of the assistant",
-    )
-
-
-class AssistantThreadSessionStatus(str, Enum):
-    """
-    The current status of an assistant thread session.
-    """
-
-    initializing = "initializing"
-    running = "running"
-    expired = "expired"
-
-
-class AssistantThreadFile(CustomBaseModel):
-    """
-    A file associated with an assistant thread.
-    """
-
-    path: str
-    size: int | None = None
-    last_modified_at: AwareDatetime | None = Field(None, alias="lastModifiedAt")
-
-
-class AssistantMessageRole(str, Enum):
-    """
-    The role of the author of this message
-    user - message is written by assistant user
-    assistant - message is written by assistant
-
-    """
-
-    user = "user"
-    assistant = "assistant"
-
-
-class AssistantMessageContentType(str, Enum):
-    """
-    The type of the message content
-    """
-
-    text = "text"
-    python = "python"
-    files = "files"
-    artifact_image = "artifact/image"
-    artifact_data = "artifact/data"
-    artifact_file = "artifact/file"
-    artifact_html = "artifact/html"
-    artifact_generator = "artifact/generator"
-    artifact_synthetic_dataset = "artifact/synthetic-dataset"
-    artifact_connector = "artifact/connector"
-    artifact_dataset = "artifact/dataset"
-    artifact_shareable_artifact = "artifact/shareable-artifact"
-    artifact_integration = "artifact/integration"
-    compact_boundary = "compact_boundary"
-
-
-class AssistantMessageFile(CustomBaseModel):
-    name: str | None = None
-
-
-class AssistantMessageFinishReason(str, Enum):
-    """
-    The reason why the message generation finished.
-    """
-
-    stop = "stop"
-    length = "length"
-    tool_calls = "tool_calls"
-
-
-class AssistantMessage(CustomBaseModel):
-    """
-    A complete message.
-    """
-
-    id: str | None = Field(None, description="The unique identifier of a assistant message.")
-    role: AssistantMessageRole | None = None
-    content_type: AssistantMessageContentType | None = Field(None, alias="contentType")
-    content: str | None = Field(
-        None,
-        description="The content of a message.\nFor file-based artifacts, this contains the filename and nothing else.\nFor resource-based artifacts, this contains the str and nothing else.\n",
-        min_length=0,
-    )
-    result: str | None = Field(
-        None,
-        description="result applies only to python content type and is a result of python execution - the same console content type when streaming deltas",
-    )
-    files: list[AssistantMessageFile] | None = Field(
-        None,
-        description="Files associated with an assistant message, applicable only to files content type.",
-    )
-    tokens_consumed: int | None = Field(
-        None,
-        alias="tokensConsumed",
-        description="The number of tokens consumed by the assistant message.",
-    )
-    created_at: AwareDatetime | None = Field(
-        None,
-        alias="createdAt",
-        description="The UTC date and time when the message was created.",
-    )
-
-
-class ErrorMessage(CustomBaseModel):
-    """
-    An error message
-    """
-
-    message: str | None = Field(None, description="The error message")
-
-
-class ErrorEvent(CustomBaseModel):
-    """
-    An error event containing an error message
-    """
-
-    event: Literal["error"] | None = None
-    data: ErrorMessage | None = None
-
-
-class HeartbeatEvent(CustomBaseModel):
-    """
-    A heartbeat event to keep the connection alive
-    """
-
-    event: Literal["heartbeat"] | None = None
-
-
-class AssistantMessageDelta(CustomBaseModel):
-    """
-    A partial message delta generated by streamed model responses.
-    """
-
-    id: str | None = Field(None, description="The unique identifier of a assistant message.")
-    role: AssistantMessageRole | None = None
-    content_type: AssistantMessageContentType | None = Field(None, alias="contentType")
-    delta: str | None = Field(
-        None,
-        description="The partial content of a message in a streaming response.",
-        min_length=0,
-    )
-    finish_reason: AssistantMessageFinishReason | None = Field(None, alias="finishReason")
-    tokens_consumed: int | None = Field(
-        None,
-        alias="tokensConsumed",
-        description="The number of tokens consumed by the model.",
-    )
-
-
-class AssistantThreadUsage(CustomBaseModel):
-    total_tokens_consumed: int | None = Field(
-        None,
-        alias="totalTokensConsumed",
-        description="The total number of tokens consumed by the thread.",
-    )
-    total_credits: float | None = Field(
-        None,
-        alias="totalCredits",
-        description="The amount of credits consumed for this thread.",
-    )
-    total_virtual_cpu_time: float | None = Field(
-        None,
-        alias="totalVirtualCPUTime",
-        description="The total virtual CPU time in seconds used for the active session of this thread.",
-    )
-    total_virtual_gpu_time: float | None = Field(
-        None,
-        alias="totalVirtualGPUTime",
-        description="The total virtual GPU time in seconds used for the active session of this thread.",
-    )
-
-
-class ArtifactType(str, Enum):
-    """
-    The type of artifact content.
-    """
-
-    image = "image"
-    html = "html"
-
-
-class ArtifactUsage(CustomBaseModel):
-    """
-    Usage statistics of an artifact.
-    """
-
-    no_of_threads: int | None = Field(
-        None,
-        alias="noOfThreads",
-        description="Number of assistant threads started from this artifact.",
-    )
-
-
-class ArtifactPreview(CustomBaseModel):
-    """
-    Preview information for an artifact.
-    """
-
-    image: str | None = Field(None, description="URL to a preview image for the artifact.")
-
-
-class ArtifactConfig(CustomBaseModel):
-    """
-    Configuration for creating an artifact from an assistant message.
-    """
-
-    assistant_message_id: str = Field(
-        ...,
-        alias="assistantMessageId",
-        description="The unique identifier of a assistant message.",
-    )
-
-
-class ArtifactPatchConfig(CustomBaseModel):
-    """
-    Configuration for updating an artifact.
-    """
-
-    name: str | None = Field(None, description="The name/title of an artifact.", max_length=256, min_length=1)
-    description: str | None = Field(
-        None,
-        description="The description/prompt of an artifact that explains how to recreate it.",
-    )
-
-
-class AssistantThreadConfig(CustomBaseModel):
-    """
-    Configuration for creating a new assistant thread.
-    """
-
-    name: str | None = Field(None, description="The name of a assistant thread.")
-
-
-class AssistantThreadPatchConfig(CustomBaseModel):
-    """
-    Configuration for updating an assistant thread.
-    """
-
-    name: str | None = Field(None, description="The name of a assistant thread.")
-
-
-class AssistantMessageConfig(CustomBaseModel):
-    """
-    Submit a new message
-    """
-
-    stream: bool | None = Field(
-        True,
-        description="Whether to stream back partial progress. If set, message deltas will be sent as data-only [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format) as they become available, with the stream terminated by a data: [DONE] message.",
-    )
-    content: str | None = Field(
-        None,
-        description="The content of a message.\nFor file-based artifacts, this contains the filename and nothing else.\nFor resource-based artifacts, this contains the str and nothing else.\n",
-        min_length=0,
-    )
-    content_type: AssistantMessageContentType | None = Field(None, alias="contentType")
 
 
 class ComputeResources(CustomBaseModel):
@@ -1296,83 +651,10 @@ class ComputeListItem(CustomBaseModel):
     Essential compute details for listings.
     """
 
-    id: str | None = Field(
-        None,
-        description="The unique identifier of a compute resource. Not applicable for SDK.",
-    )
+    id: str | None = Field(None, description="The unique identifier of a compute resource. Not applicable for SDK.")
     type: Literal["KUBERNETES"] | None = Field(None, description="The type of compute.")
     name: str | None = Field(None, description="The name of a compute resource.", min_length=1)
     resources: ComputeResources | None = None
-
-
-class Compute(CustomBaseModel):
-    """
-    A compute resource for executing tasks.
-    """
-
-    id: str | None = Field(
-        None,
-        description="The unique identifier of a compute resource. Not applicable for SDK.",
-    )
-    name: str | None = Field(None, description="The name of a compute resource.", min_length=1)
-    type: Literal["KUBERNETES"] | None = Field(None, description="The type of compute.")
-    config: dict[str, Any] | None = None
-    secrets: Annotated[dict[str, Any] | None, Field(repr=False)] = None
-    resources: ComputeResources | None = None
-    order_index: int | None = Field(
-        None,
-        alias="orderIndex",
-        description="The index for determining the sort order when listing computes",
-    )
-
-
-class ComputeConfig(CustomBaseModel):
-    """
-    The configuration for creating a new compute resource.
-    """
-
-    name: str | None = Field(None, description="The name of a compute resource.", min_length=1)
-    type: Literal["KUBERNETES"] | None = Field(None, description="The type of compute.")
-    resources: ComputeResources | None = None
-    config: dict[str, Any] | None = None
-    secrets: Annotated[dict[str, Any] | None, Field(repr=False)] = None
-    order_index: int | None = Field(
-        None,
-        alias="orderIndex",
-        description="The index for determining the sort order when listing computes",
-    )
-
-
-class ComputePatchConfig(CustomBaseModel):
-    """
-    The configuration for updating a compute resource.
-    """
-
-    name: str | None = Field(None, description="The name of a compute resource.", min_length=1)
-    type: Literal["KUBERNETES"] | None = Field(None, description="The type of compute.")
-    resources: ComputeResources | None = None
-    config: dict[str, Any] | None = None
-    secrets: Annotated[dict[str, Any] | None, Field(repr=False)] = None
-    order_index: int | None = Field(
-        None,
-        alias="orderIndex",
-        description="The index for determining the sort order when listing computes",
-    )
-
-
-class MemberRole(str, Enum):
-    """
-    The role of the user in the organization
-
-    - `VIEWER`: The user can view and use all resources of the organization
-    - `CONTRIBUTOR`: The user can create new resources for an organization, and becomes resource ADMIN
-    - `ADMIN`: The user can manage members and all resources of an organization
-
-    """
-
-    viewer = "VIEWER"
-    contributor = "CONTRIBUTOR"
-    admin = "ADMIN"
 
 
 class Visibility(str, Enum):
@@ -1390,78 +672,6 @@ class Visibility(str, Enum):
     unlisted = "UNLISTED"
 
 
-class OrganizationInvite(CustomBaseModel):
-    """
-    A non-personalized time-boxed invite to join an organization.
-    """
-
-    token: str | None = Field(
-        None,
-        description="The generated token, encrypting organization, expiration timestamp, and role (VIEW).",
-    )
-    link: str | None = Field(None, description="The generated invite link.")
-    expiration_date: AwareDatetime | None = Field(
-        None,
-        alias="expirationDate",
-        description="The expiration date of the invite link. 72 hours after creation.",
-    )
-    organization_id: str | None = Field(
-        None,
-        alias="organizationId",
-        description="The unique identifier of an organization.",
-    )
-
-
-class OrganizationConfig(CustomBaseModel):
-    """
-    The configuration for creating a new organization.
-    """
-
-    name: str = Field(
-        ...,
-        description="The name of an organization.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique.\n",
-        max_length=64,
-    )
-    display_name: str = Field(..., alias="displayName", description="The display name of an organization.")
-    description: str | None = Field(None, description="The description of an organization. Supports markdown.")
-    logo_base64: str | None = Field(
-        None,
-        alias="logoBase64",
-        description="The base64-encoded image of the organization's logo.",
-    )
-    email: str | None = Field(None, description="The email address of the organization.")
-    website: str | None = Field(None, description="The URL of the organization's website.")
-
-
-class OrganizationPatchConfig(CustomBaseModel):
-    """
-    The configuration for updating an organization.
-    """
-
-    name: str | None = Field(
-        None,
-        description="The name of an organization.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique.\n",
-        max_length=64,
-    )
-    display_name: str | None = Field(None, alias="displayName", description="The display name of an organization.")
-    description: str | None = Field(None, description="The description of an organization. Supports markdown.")
-    logo_base64: str | None = Field(
-        None,
-        alias="logoBase64",
-        description="The base64-encoded image of the organization's logo.",
-    )
-    email: str | None = Field(None, description="The email address of the organization.")
-    website: str | None = Field(None, description="The URL of the organization's website.")
-
-
-class MemberRolePatchConfig(CustomBaseModel):
-    """
-    The configuration for updating a member's role.
-    """
-
-    role: MemberRole
-
-
 class AccountType(str, Enum):
     """
     The type of account, either a user or an organization.
@@ -1469,134 +679,6 @@ class AccountType(str, Enum):
 
     user = "USER"
     organization = "ORGANIZATION"
-
-
-class BillingCycle(CustomBaseModel):
-    """
-    The billing cycle of the subscription.
-    """
-
-    start_date: AwareDatetime | None = Field(
-        None,
-        alias="startDate",
-        description="The UTC date and time when the billing cycle started.",
-    )
-    end_date: AwareDatetime | None = Field(
-        None,
-        alias="endDate",
-        description="The UTC date and time when the billing cycle ended.",
-    )
-
-
-class BillingInterval(str, Enum):
-    """
-    The billing cycle for a plan.
-    """
-
-    monthly = "MONTHLY"
-    yearly = "YEARLY"
-
-
-class Price(CustomBaseModel):
-    """
-    The price information for a plan.
-    """
-
-    id: str | None = Field(None, description="The unique identifier of the price.")
-    value: float = Field(..., description="The price value.")
-    currency: str = Field(..., description="The currency code for the price.", examples=["USD"])
-    metadata: dict[str, str] = Field(..., description="The metadata of the price.")
-
-
-class Plan(CustomBaseModel):
-    """
-    A billing plan available for purchase.
-    """
-
-    id: str = Field(..., description="The identifier of a plan.")
-    name: str = Field(..., description="The name of the plan.")
-    billing_interval: BillingInterval | None = Field(None, alias="billingInterval")
-    price: Price
-    description: str | None = Field(None, description="The description of the plan.")
-    features: list[str] | None = None
-    metadata: dict[str, str] | None = Field(None, description="The metadata of the plan.")
-
-
-class PaymentUrl(CustomBaseModel):
-    """
-    The URL for purchasing a plan.
-    """
-
-    value: AnyUrl | None = None
-
-
-class PlanUpdateConfig(CustomBaseModel):
-    """
-    Request to upgrade or downgrade the user's plan.
-    """
-
-    id: str | None = Field(None, description="The identifier of a plan.")
-    billing_interval: BillingInterval | None = Field(None, alias="billingInterval")
-
-
-class UsageReportPeriod(CustomBaseModel):
-    """
-    The usage report for a specific month
-    """
-
-    period_start: AwareDatetime | None = Field(
-        None,
-        alias="periodStart",
-        description="The UTC date and time when the reported time period started",
-    )
-    period_end: AwareDatetime | None = Field(
-        None,
-        alias="periodEnd",
-        description="The UTC date and time when the reported time period started",
-    )
-    total_credits: float | None = Field(
-        None,
-        alias="totalCredits",
-        description="The amount of credits used during the reported period",
-    )
-    total_virtual_cpu_time: float | None = Field(
-        None,
-        alias="totalVirtualCPUTime",
-        description="The total virtual CPU time in seconds used during the reported period",
-    )
-    total_virtual_gpu_time: float | None = Field(
-        None,
-        alias="totalVirtualGPUTime",
-        description="The total virtual GPU time in seconds used during the reported period",
-    )
-    tokens: int | None = Field(
-        None,
-        description="The total number of tokens consumed by chats during the reported period",
-    )
-
-
-class FilterByUser(str, Enum):
-    """
-    Determines whether to filter usage reports for all users or only the current user.
-    - `ALL`: Filter usage reports for all users. Only accessible for SuperAdmins.
-    - `ME`: Filter usage reports for the current user.
-
-    """
-
-    all = "ALL"
-    me = "ME"
-
-
-class CreditType(str, Enum):
-    """
-    Determines which type of credits to include in the usage report.
-    - `FREE`: Filter usage reports for free credits (natural month cycle).
-    - `PAID`: Filter usage reports for paid credits (billing cycle).
-
-    """
-
-    free = "FREE"
-    paid = "PAID"
 
 
 class ModelType(str, Enum):
@@ -1693,12 +775,7 @@ class FairnessConfig(CustomBaseModel):
 
     """
 
-    target_column: str = Field(
-        ...,
-        alias="targetColumn",
-        description="The name of the target column.",
-        min_length=1,
-    )
+    target_column: str = Field(..., alias="targetColumn", description="The name of the target column.", min_length=1)
     sensitive_columns: list[str] = Field(
         ..., alias="sensitiveColumns", description="The names of the sensitive columns."
     )
@@ -1779,22 +856,13 @@ class Accuracy(CustomBaseModel):
         le=1.0,
     )
     univariate: float | None = Field(
-        None,
-        description="Average accuracy of discretized univariate distributions.\n",
-        ge=0.0,
-        le=1.0,
+        None, description="Average accuracy of discretized univariate distributions.\n", ge=0.0, le=1.0
     )
     bivariate: float | None = Field(
-        None,
-        description="Average accuracy of discretized bivariate distributions.\n",
-        ge=0.0,
-        le=1.0,
+        None, description="Average accuracy of discretized bivariate distributions.\n", ge=0.0, le=1.0
     )
     trivariate: float | None = Field(
-        None,
-        description="Average accuracy of discretized trivariate distributions.\n",
-        ge=0.0,
-        le=1.0,
+        None, description="Average accuracy of discretized trivariate distributions.\n", ge=0.0, le=1.0
     )
     coherence: float | None = Field(
         None,
@@ -1978,166 +1046,6 @@ class Distances(CustomBaseModel):
     )
 
 
-class UserListItem(CustomBaseModel):
-    """
-    Essential information about a user for public listings.
-    """
-
-    id: str | None = Field(None, description="The unique identifier of a user.")
-    name: str | None = Field(
-        None,
-        description="The name of a user.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique considering organizations and users.\n",
-    )
-    first_name: str | None = Field(None, alias="firstName", description="First name of a user", max_length=30)
-    last_name: str | None = Field(None, alias="lastName", description="Last name of a user", max_length=30)
-    avatar: str | None = Field(None, description="The URL of the user's avatar")
-
-
-class UserSettingsUpdateConfig(CustomBaseModel):
-    """
-    The configuration for updating user settings.
-    """
-
-    profile: UserSettingsProfileUpdateConfig | None = None
-    assistant: UserSettingsAssistantUpdateConfig | None = None
-
-
-class TransferOwnershipConfig(CustomBaseModel):
-    """
-    The configuration for transferring ownership of a resource to an account.
-    """
-
-    account_id: str | None = Field(
-        None,
-        alias="accountId",
-        description="The unique identifier of an account (either a user or an organization).",
-    )
-
-
-class SetVisibilityConfig(CustomBaseModel):
-    """
-    Configuration for setting the visibility of a resource.
-    """
-
-    visibility: Visibility
-
-
-class Notification(CustomBaseModel):
-    """
-    A notification for a user.
-    """
-
-    id: str = Field(..., description="The unique identifier of the notification.")
-    type: NotificationType
-    message: str = Field(..., description="The message of the notification.")
-    status: NotificationStatus
-    created_at: AwareDatetime = Field(
-        ...,
-        alias="createdAt",
-        description="The UTC date and time when the notification has been created.",
-    )
-    resource_uri: str | None = Field(
-        None,
-        alias="resourceUri",
-        description="The service URI of the entity",
-        examples=["/generators/94c77249-42bf-443a-8e17-6e18a19d60b8"],
-    )
-
-
-class Integration(CustomBaseModel):
-    """
-    An OAuth2 integration provider with connection status. If connected, includes integration details. If not connected, shows NOT_CONNECTED status.
-    """
-
-    provider_id: str = Field(
-        ...,
-        alias="providerId",
-        description="The provider identifier",
-        examples=["google"],
-    )
-    provider_name: str = Field(
-        ...,
-        alias="providerName",
-        description="Display name of the provider",
-        examples=["Google"],
-    )
-    icon: str | None = Field(None, description="svg image", repr=False, exclude=True)
-    is_promoted: bool | None = Field(
-        None,
-        alias="isPromoted",
-        description="Whether this provider is promoted in the UI",
-        examples=[True],
-    )
-    scope_ids: list[str] | None = Field(
-        None,
-        alias="scopeIds",
-        description="List of IDs of the currently connected scopes (empty if not connected)",
-        examples=[["550e8400-e29b-41d4-a716-446655440000"]],
-    )
-    available_scopes: list[IntegrationScope] = Field(
-        ...,
-        alias="availableScopes",
-        description="List of all available scopes for this provider",
-    )
-    status: IntegrationStatus
-
-
-class IntegrationProvidersConfig(CustomBaseModel):
-    """
-    Configuration for a single integration provider
-    """
-
-    id: str = Field(..., description="Unique identifier for the provider", examples=["google"])
-    name: str = Field(..., description="Display name of the provider", examples=["Google"])
-    description: str | None = Field(
-        None,
-        description="Description of the provider",
-        examples=["Connect to Google services"],
-    )
-    icon: str | None = Field(None, description="svg image", repr=False, exclude=True)
-    is_promoted: bool | None = Field(
-        None,
-        alias="isPromoted",
-        description="Whether this provider is promoted in the UI",
-    )
-    authorization_url: str = Field(
-        ...,
-        alias="authorizationUrl",
-        description="OAuth authorization endpoint URL",
-        examples=["https://accounts.google.com/o/oauth2/v2/auth"],
-    )
-    access_token_url: str = Field(
-        ...,
-        alias="accessTokenUrl",
-        description="OAuth token endpoint URL",
-        examples=["https://oauth2.googleapis.com/token"],
-    )
-    scopes: list[ProviderScopeConfig] | None = Field(None, description="Available OAuth scopes for this provider")
-    additional_params: dict[str, str] | None = Field(
-        None,
-        alias="additionalParams",
-        description="Additional parameters to include in OAuth requests",
-    )
-    client_id: str = Field(
-        ...,
-        alias="clientId",
-        description="OAuth client ID",
-        examples=["your-client-id"],
-    )
-    client_secret: str = Field(
-        ...,
-        alias="clientSecret",
-        description="OAuth client secret",
-        examples=["your-client-secret"],
-    )
-    scope_delimiter: str | None = Field(
-        " ",
-        alias="scopeDelimiter",
-        description="Delimiter used to join multiple scope values (e.g., space for GitHub, comma for others)",
-        examples=[" "],
-    )
-
-
 class Metadata(CustomBaseModel):
     """
     The metadata of a resource.
@@ -2156,14 +1064,10 @@ class Metadata(CustomBaseModel):
         examples=["2023‐09‐07T18:40:39Z"],
     )
     owner_id: str | None = Field(
-        None,
-        alias="ownerId",
-        description="The unique identifier of an account (either a user or an organization).",
+        None, alias="ownerId", description="The unique identifier of an account (either a user or an organization)."
     )
     owner_name: str | None = Field(
-        None,
-        alias="ownerName",
-        description="The name of an account (either a user or an organization).",
+        None, alias="ownerName", description="The name of an account (either a user or an organization)."
     )
     owner_type: AccountType | None = Field(None, alias="ownerType")
     owner_image: str | None = Field(None, alias="ownerImage", description="The URL of the account's image.")
@@ -2264,18 +1168,9 @@ class Connector(CustomBaseModel):
             test_connection (bool | None): If true, validates the connection before saving.
         """
         patch_config = ConnectorPatchConfig(
-            name=name,
-            description=description,
-            access_type=access_type,
-            config=config,
-            secrets=secrets,
-            ssl=ssl,
+            name=name, description=description, access_type=access_type, config=config, secrets=secrets, ssl=ssl
         )
-        self.client._update(
-            connector_id=self.id,
-            config=patch_config,
-            test_connection=test_connection,
-        )
+        self.client._update(connector_id=self.id, config=patch_config, test_connection=test_connection)
         self.reload()
 
     def delete(self) -> None:
@@ -2367,10 +1262,7 @@ class Connector(CustomBaseModel):
         return self.client._read_data(connector_id=self.id, location=location, limit=limit, shuffle=shuffle)
 
     def write_data(
-        self,
-        data: pd.DataFrame | None,
-        location: str,
-        if_exists: Literal["append", "replace", "fail"] = "fail",
+        self, data: pd.DataFrame | None, location: str, if_exists: Literal["append", "replace", "fail"] = "fail"
     ) -> None:
         """
         Write data to the specified location within the connector.
@@ -2387,12 +1279,7 @@ class Connector(CustomBaseModel):
             c.write_data(df, 's3://my_bucket/path/to/file.csv')  # write data to 'file.csv' in 'my_bucket' for a S3 storage connector
             ```
         """
-        self.client._write_data(
-            connector_id=self.id,
-            data=data,
-            location=location,
-            if_exists=if_exists.upper(),
-        )
+        self.client._write_data(connector_id=self.id, data=data, location=location, if_exists=if_exists.upper())
 
     def delete_data(self, location: str) -> None:
         """
@@ -2444,9 +1331,7 @@ class GeneratorListItem(CustomBaseModel):
     description: str | None = Field(None, description="The description of a generator.")
     training_status: ProgressStatus = Field(..., alias="trainingStatus")
     training_time: AwareDatetime | None = Field(
-        None,
-        alias="trainingTime",
-        description="The UTC date and time when the training has finished.",
+        None, alias="trainingTime", description="The UTC date and time when the training has finished."
     )
     usage: GeneratorUsage | None = None
     metadata: Metadata | None = None
@@ -2562,18 +1447,6 @@ class SourceColumnConfig(CustomBaseModel):
     model_encoding_type: ModelEncodingType | None = Field(ModelEncodingType.auto, alias="modelEncodingType")
 
 
-class SourceColumnPatchConfig(CustomBaseModel):
-    """
-    The configuration for updating a source column.
-    """
-
-    included: bool | None = Field(
-        True,
-        description="If true, the column will be included in the training.\nIf false, the column will be excluded from the training.\n",
-    )
-    model_encoding_type: ModelEncodingType | None = Field(ModelEncodingType.auto, alias="modelEncodingType")
-
-
 class ModelConfiguration(CustomBaseModel):
     """
     The training configuration for the model
@@ -2611,16 +1484,10 @@ class ModelConfiguration(CustomBaseModel):
         ge=1,
     )
     max_training_time: float | None = Field(
-        14400,
-        alias="maxTrainingTime",
-        description="The maximum number of minutes to train the model.",
-        ge=0.0,
+        14400, alias="maxTrainingTime", description="The maximum number of minutes to train the model.", ge=0.0
     )
     max_epochs: float | None = Field(
-        100,
-        alias="maxEpochs",
-        description="The maximum number of epochs to train the model.",
-        ge=0.0,
+        100, alias="maxEpochs", description="The maximum number of epochs to train the model.", ge=0.0
     )
     max_sequence_window: int | None = Field(
         100,
@@ -2645,13 +1512,10 @@ class ModelConfiguration(CustomBaseModel):
     )
     differential_privacy: DifferentialPrivacyConfig | None = Field(None, alias="differentialPrivacy")
     compute: str | None = Field(
-        None,
-        description="The unique identifier of a compute resource. Not applicable for SDK.",
+        None, description="The unique identifier of a compute resource. Not applicable for SDK."
     )
     enable_model_report: bool | None = Field(
-        True,
-        alias="enableModelReport",
-        description="If false, then the Model report is not generated.\n",
+        True, alias="enableModelReport", description="If false, then the Model report is not generated.\n"
     )
 
     @model_validator(mode="after")
@@ -2659,9 +1523,8 @@ class ModelConfiguration(CustomBaseModel):
         if self.differential_privacy:
             if not self.value_protection:
                 self.differential_privacy.value_protection_epsilon = None
-            else:
-                if self.differential_privacy.value_protection_epsilon is None:
-                    self.differential_privacy.value_protection_epsilon = 1.0
+            elif self.differential_privacy.value_protection_epsilon is None:
+                self.differential_privacy.value_protection_epsilon = 1.0
         return self
 
 
@@ -2678,10 +1541,7 @@ class ProgressStep(CustomBaseModel):
         examples=[["census:tabular", "census:language"]],
     )
     compute_name: str | None = Field(
-        None,
-        alias="computeName",
-        description="The name of a compute resource.",
-        min_length=1,
+        None, alias="computeName", description="The name of a compute resource.", min_length=1
     )
     restarts: int | None = Field(0, description="The number of previous restarts for the corresponding task.")
     task_type: TaskType | None = Field(None, alias="taskType")
@@ -2726,9 +1586,7 @@ class SyntheticDatasetListItem(CustomBaseModel):
     description: str | None = Field(None, description="The description of a synthetic dataset.")
     generation_status: ProgressStatus = Field(..., alias="generationStatus")
     generation_time: AwareDatetime | None = Field(
-        None,
-        alias="generationTime",
-        description="The UTC date and time when the generation has finished.",
+        None, alias="generationTime", description="The UTC date and time when the generation has finished."
     )
     usage: SyntheticDatasetUsage | None = None
     OPEN_URL_PARTS: ClassVar[list] = ["d", "synthetic-datasets"]
@@ -2759,9 +1617,7 @@ class SyntheticTableConfiguration(CustomBaseModel):
         ge=1,
     )
     sample_seed_connector_id: str | None = Field(
-        None,
-        alias="sampleSeedConnectorId",
-        description="The connector id of the seed data for conditional simulation",
+        None, alias="sampleSeedConnectorId", description="The connector id of the seed data for conditional simulation"
     )
     sample_seed_dict: str | None = Field(
         None,
@@ -2774,11 +1630,7 @@ class SyntheticTableConfiguration(CustomBaseModel):
         description="The base64-encoded string derived from a Parquet file containing the specified sample seed data.\nThis allows conditional simulation as well as live probing via python clients.\n",
     )
     sampling_temperature: float | None = Field(
-        1.0,
-        alias="samplingTemperature",
-        description="temperature for sampling",
-        ge=0.0,
-        le=2.0,
+        1.0, alias="samplingTemperature", description="temperature for sampling", ge=0.0, le=2.0
     )
     sampling_top_p: float | None = Field(1.0, alias="samplingTopP", description="topP for sampling", ge=0.9, le=1.0)
     rebalancing: RebalancingConfig | None = None
@@ -2823,8 +1675,7 @@ class SyntheticDatasetPatchConfig(CustomBaseModel):
     description: str | None = Field(None, description="The description of a synthetic dataset.")
     delivery: SyntheticDatasetDelivery | None = None
     compute: str | None = Field(
-        None,
-        description="The unique identifier of a compute resource. Not applicable for SDK.",
+        None, description="The unique identifier of a compute resource. Not applicable for SDK."
     )
     random_state: int | None = Field(
         None,
@@ -2833,22 +1684,13 @@ class SyntheticDatasetPatchConfig(CustomBaseModel):
     )
 
 
-class SyntheticTablePatchConfig(CustomBaseModel):
-    """
-    The configuration for updating a synthetic table.
-    """
-
-    configuration: SyntheticTableConfiguration | None = None
-
-
 class SyntheticTableConfig(CustomBaseModel):
     """
     The configuration for a synthetic table when creating a new synthetic dataset.
     """
 
     name: str = Field(
-        ...,
-        description="The name of a synthetic table. This matches the name of a corresponding SourceTable.",
+        ..., description="The name of a synthetic table. This matches the name of a corresponding SourceTable."
     )
     configuration: SyntheticTableConfiguration | None = None
 
@@ -2868,181 +1710,11 @@ class SyntheticTableConfig(CustomBaseModel):
         if (
             not config.sample_size
             and is_subject
-            and not (config.sample_seed_connector_id or config.sample_seed_dict or config.sample_seed_data)
+            and (not (config.sample_seed_connector_id or config.sample_seed_dict or config.sample_seed_data))
         ):
             config.sample_size = 1 if is_probe else source_table.total_rows
         elif not is_subject:
             config.sample_size = None
-
-
-class AssistantThreadListItem(CustomBaseModel):
-    """
-    Essential details of an assistant thread for listings.
-    """
-
-    id: str = Field(..., description="The unique identifier of a assistant thread.")
-    metadata: Metadata | None = None
-    name: str = Field(..., description="The name of a assistant thread.")
-    session_status: AssistantThreadSessionStatus = Field(..., alias="sessionStatus")
-    usage: AssistantThreadUsage | None = None
-
-
-class AssistantThread(CustomBaseModel):
-    """
-    A assistant thread.
-    """
-
-    id: str = Field(..., description="The unique identifier of a assistant thread.")
-    metadata: Metadata | None = None
-    name: str = Field(..., description="The name of a assistant thread.")
-    session_status: AssistantThreadSessionStatus | None = Field(None, alias="sessionStatus")
-    files: list[AssistantThreadFile] | None = Field(None, description="Files associated with an assistant thread.")
-    messages: list[AssistantMessage] | None = Field(
-        None,
-        description="List of all existing messages, excluding any system message.\nExample:\n  content                                result           role              contentType\n  What's the square root of 9?                            user              text | files\n  ok, I will write some python                            assistant         text\n  r = math.sqrt(9); r                    3                assistant         python\n  The answer is 3!                                        assistant         text\n  Plot me 2 barplots                                      user              text\n  ... plt.savefig(fn); fn ...            '/mnt/...'       assistant         python\n  /mnt/data/barplot1.png                                  assistant         artifact/image      NEW\n  /mnt/data/barplot2.png                                  assistant         artifact/image      NEW\n  Here you go.                                            assistant         text\n  Write me a random CSV file                              user              text\n  ... .to_csv(fn); fn ...                '/mnt/...'       assistant         python\n  /mnt/data/x/data.csv                                    assistant         artifact/data       NEW\n  Here you go.                                            assistant         text\n  Write me a some PDF file                                user              text\n  ... .to_pdf(fn); fn ...                '/mnt/...'       assistant         python\n  /mnt/data/some.pdf                                      assistant         artifact/file       NEW\n  Here you go.                                            assistant         text\n  Create an interactvie plot                              user              text\n  ... .to_html(fn); fn ...               '/mnt/...'       assistant         python\n  /mnt/data/interactive_plot.html                         assistant         artifact/html       NEW\n  Here you go.                                            assistant         text\n  pd.__version__                         2.2.5            user              python\n  It's pandas version 2.2.5.                              assistant         text\n  Fetch me the census generator                           user              text\n  g = ...; g                             '348...'         assistant         python\n  348ce156-7f81-4296-a2a3-5a4b0ec7c08e                    assistant         artifact/generator  NEW\n",
-    )
-    usage: AssistantThreadUsage | None = None
-
-
-class MessageEvent(CustomBaseModel):
-    """
-    A message event containing an assistant message delta
-    """
-
-    event: Literal["message"] | None = None
-    data: AssistantMessageDelta | None = None
-
-
-class Artifact(CustomBaseModel):
-    """
-    A shareable artifact generated from an assistant conversation.
-    """
-
-    id: str = Field(..., description="The unique identifier of an artifact.")
-    name: str = Field(..., description="The name/title of an artifact.", max_length=256, min_length=1)
-    file_name: str = Field(..., alias="fileName", description="The filename of an artifact.")
-    description: str = Field(
-        ...,
-        description="The description/prompt of an artifact that explains how to recreate it.",
-    )
-    type: ArtifactType | None = None
-    preview: ArtifactPreview | None = None
-    download_url: str = Field(..., alias="downloadUrl", description="URL to download the artifact.")
-    shareable_url: str = Field(
-        ...,
-        alias="shareableUrl",
-        description="Public URL where the artifact can be viewed and shared.",
-    )
-    usage: ArtifactUsage | None = None
-    metadata: Metadata | None = None
-    OPEN_URL_PARTS: ClassVar[list] = ["d", "artifacts"]
-
-    @model_validator(mode="before")
-    @classmethod
-    def add_required_fields(cls, values):
-        if isinstance(values, dict):
-            if "id" not in values:
-                values["id"] = str(uuid.uuid4())
-        return values
-
-    def update(
-        self,
-        name: str | None = None,
-        description: str | None = None,
-    ) -> None:
-        """
-        Update the artifact.
-
-        Args:
-            name (str | None): The name of the artifact.
-            description (str | None): The description of the artifact.
-        """
-        patch_config = ArtifactPatchConfig(
-            name=name,
-            description=description,
-        )
-        self.client._update(artifact_id=self.id, config=patch_config)
-        self.reload()
-
-
-class ArtifactListItem(CustomBaseModel):
-    """
-    Essential artifact details for listings.
-    """
-
-    id: str = Field(..., description="The unique identifier of an artifact.")
-    name: str = Field(..., description="The name/title of an artifact.", max_length=256, min_length=1)
-    file_name: str = Field(..., alias="fileName", description="The filename of an artifact.")
-    description: str = Field(
-        ...,
-        description="The description/prompt of an artifact that explains how to recreate it.",
-    )
-    type: ArtifactType | None = None
-    preview: ArtifactPreview | None = None
-    download_url: str = Field(..., alias="downloadUrl", description="URL to download the artifact.")
-    shareable_url: str = Field(
-        ...,
-        alias="shareableUrl",
-        description="Public URL where the artifact can be viewed and shared.",
-    )
-    usage: ArtifactUsage | None = None
-    metadata: Metadata | None = None
-
-
-class OrganizationMetadata(CustomBaseModel):
-    """
-    The metadata of an organization.
-    """
-
-    current_user_member_role: MemberRole | None = Field(None, alias="currentUserMemberRole")
-
-
-class Organization(CustomBaseModel):
-    """
-    An organization that owns resources.
-    """
-
-    id: str = Field(..., description="The unique identifier of an organization.")
-    name: str = Field(
-        ...,
-        description="The name of an organization.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique.\n",
-        max_length=64,
-    )
-    display_name: str = Field(..., alias="displayName", description="The display name of an organization.")
-    description: str | None = Field(None, description="The description of an organization. Supports markdown.")
-    logo: str | None = Field(None, description="The URL of the organization's logo.")
-    email: str | None = Field(None, description="The email address of the organization.")
-    website: str | None = Field(None, description="The URL of the organization's website.")
-    members: list[UserListItem] | None = None
-    metadata: OrganizationMetadata | None = None
-
-
-class OrganizationMember(CustomBaseModel):
-    """
-    A member of an organization with their associated role.
-    """
-
-    user: UserListItem | None = None
-    role: MemberRole | None = None
-
-
-class BillingInfo(CustomBaseModel):
-    """
-    Billing information for an account.
-    """
-
-    customer_portal_uri: AnyUrl = Field(
-        ...,
-        alias="customerPortalUri",
-        description="The URL of the customer portal for managing billing and subscriptions.",
-    )
-    billing_cycle: BillingCycle = Field(..., alias="billingCycle")
-    cancels_at: AwareDatetime | None = Field(
-        None,
-        alias="cancelsAt",
-        description="The UTC date and time when the subscription will be canceled.",
-    )
-    current_plan: Plan = Field(..., alias="currentPlan")
 
 
 class ModelMetrics(CustomBaseModel):
@@ -3067,14 +1739,6 @@ class ModelMetrics(CustomBaseModel):
     similarity: Similarity | None = None
 
 
-class IntegrationProvidersConfigList(CustomBaseModel):
-    """
-    Configuration to create or update multiple integration providers
-    """
-
-    providers: list[IntegrationProvidersConfig]
-
-
 class SourceTable(CustomBaseModel):
     """
     A table as part of a generator.
@@ -3082,9 +1746,7 @@ class SourceTable(CustomBaseModel):
 
     id: str = Field(..., description="The unique identifier of a source table.")
     source_connector_id: str | None = Field(
-        None,
-        alias="sourceConnectorId",
-        description="The unique identifier of a connector.",
+        None, alias="sourceConnectorId", description="The unique identifier of a connector."
     )
     location: str | None = Field(
         None,
@@ -3132,9 +1794,7 @@ class SourceTableConfig(CustomBaseModel):
         min_length=1,
     )
     source_connector_id: str | None = Field(
-        None,
-        alias="sourceConnectorId",
-        description="The unique identifier of a connector.",
+        None, alias="sourceConnectorId", description="The unique identifier of a connector."
     )
     location: str | None = Field(
         None,
@@ -3148,17 +1808,14 @@ class SourceTableConfig(CustomBaseModel):
     language_model_configuration: ModelConfiguration | None = Field(None, alias="languageModelConfiguration")
     primary_key: str | None = Field(None, alias="primaryKey", description="The column name of the primary key.")
     foreign_keys: list[SourceForeignKeyConfig] | None = Field(
-        None,
-        alias="foreignKeys",
-        description="The foreign key configurations of this table.",
+        None, alias="foreignKeys", description="The foreign key configurations of this table."
     )
     columns: list[SourceColumnConfig] | None = Field(None, description="The column configurations of this table.")
 
     @field_validator("data", mode="before")
     @classmethod
     def convert_data_before(cls, value):
-        # an empty (pd.DataFrame()) parquet in base64 is 800 chars. Assuming a shorter str is a URI
-        if isinstance(value, Path) or (isinstance(value, str) and len(value) > 0 and len(value) < 512):
+        if isinstance(value, Path) or (isinstance(value, str) and len(value) > 0 and (len(value) < 512)):
             _, value = read_table_from_path(value)
         return (
             convert_to_base64(value)
@@ -3187,17 +1844,14 @@ class SourceTableConfig(CustomBaseModel):
 
     @model_validator(mode="after")
     def add_model_configuration(self):
-        # Check if the table has a tabular and/or a language model
         keys = [fk.column for fk in self.foreign_keys or []]
         if self.primary_key:
             keys.append(self.primary_key)
         model_columns = [c for c in self.columns if c.name not in keys] if self.columns is not None else None
         if model_columns is None:
-            # auto detection haven't been run yet, so we assume both models are present to retain model configurations given by the user
             has_tabular_model = True
             has_language_model = True
         elif len(model_columns) == 0:
-            # this table doesn't have any columns other than PK/FKs
             has_tabular_model = True
             has_language_model = False
         else:
@@ -3208,15 +1862,12 @@ class SourceTableConfig(CustomBaseModel):
             has_language_model = any(
                 enc_type.startswith(ModelType.language) or enc_type == ModelEncodingType.auto for enc_type in enc_types
             )
-        # Always train tabular model for tables with a primary key or linked tables to model sequences
         if self.primary_key or (self.foreign_keys and any(fk.is_context for fk in self.foreign_keys)):
             has_tabular_model = True
-        # Remove model configurations that are not applicable for the model type
-        if self.tabular_model_configuration and not has_tabular_model:
+        if self.tabular_model_configuration and (not has_tabular_model):
             self.tabular_model_configuration = None
-        if self.language_model_configuration and not has_language_model:
+        if self.language_model_configuration and (not has_language_model):
             self.language_model_configuration = None
-        # Add default model configurations if none were provided
         if has_tabular_model:
             default_model = "MOSTLY_AI/Medium"
             if not self.tabular_model_configuration:
@@ -3229,15 +1880,13 @@ class SourceTableConfig(CustomBaseModel):
                 self.language_model_configuration = ModelConfiguration(model=default_model, max_sequence_window=None)
             elif not self.language_model_configuration.model:
                 self.language_model_configuration.model = default_model
-            # language models atm do not support max_sequence_window; thus set configuration to None
             self.language_model_configuration.max_sequence_window = None
         return self
 
     @model_validator(mode="after")
     def extract_columns_from_data_if_missing(self):
         """extract column names from base64 data if columns are not provided."""
-        if self.columns is None and self.data is not None and len(self.data) >= 512:
-            # assume base64-encoded parquet if data is long enough
+        if self.columns is None and self.data is not None and (len(self.data) >= 512):
             try:
                 df = convert_to_df(self.data, format="parquet")
                 self.columns = [
@@ -3245,7 +1894,6 @@ class SourceTableConfig(CustomBaseModel):
                     for col_name in df.columns
                 ]
             except Exception:
-                # if conversion fails, leave columns as None
                 pass
         return self
 
@@ -3296,51 +1944,6 @@ class SourceTableConfig(CustomBaseModel):
         if primary_key and primary_key in foreign_keys:
             raise ValueError(f"Column '{primary_key}' is both a primary key and a foreign key.")
         return self
-
-
-class SourceTablePatchConfig(CustomBaseModel):
-    """
-    The configuration for updating a source table.
-    """
-
-    name: str | None = Field(
-        None,
-        description="The name of a source table. It must be unique within a generator.",
-        max_length=256,
-        min_length=1,
-    )
-    primary_key: str | None = Field(None, alias="primaryKey", description="The column name of the primary key.")
-    tabular_model_configuration: ModelConfiguration | None = Field(None, alias="tabularModelConfiguration")
-    language_model_configuration: ModelConfiguration | None = Field(None, alias="languageModelConfiguration")
-
-
-class SourceTableAddConfig(CustomBaseModel):
-    """
-    Configuration for adding a new source table to a generator.
-    """
-
-    source_connector_id: str = Field(
-        ...,
-        alias="sourceConnectorId",
-        description="The unique identifier of a connector.",
-    )
-    location: str = Field(
-        ...,
-        description="The location of a source table. Together with the source connector it uniquely\nidentifies a source, and samples data from there.\n",
-    )
-    name: str | None = Field(
-        None,
-        description="The name of a source table. It must be unique within a generator.",
-        max_length=256,
-        min_length=1,
-    )
-    include_children: bool | None = Field(
-        False,
-        alias="includeChildren",
-        description="If true, all tables that are referenced by foreign keys will\nbe included. If false, only the selected table will be included.\n",
-    )
-    tabular_model_configuration: ModelConfiguration | None = Field(None, alias="tabularModelConfiguration")
-    language_model_configuration: ModelConfiguration | None = Field(None, alias="languageModelConfiguration")
 
 
 class JobProgress(CustomBaseModel):
@@ -3426,8 +2029,7 @@ class SyntheticDatasetConfig(CustomBaseModel):
     tables: list[SyntheticTableConfig] | None = None
     delivery: SyntheticDatasetDelivery | None = None
     compute: str | None = Field(
-        None,
-        description="The unique identifier of a compute resource. Not applicable for SDK.",
+        None, description="The unique identifier of a compute resource. Not applicable for SDK."
     )
 
     @field_validator("tables", mode="after")
@@ -3471,45 +2073,6 @@ class SyntheticProbeConfig(CustomBaseModel):
         _SyntheticDataConfigValidation(synthetic_config=self, generator=generator)
 
 
-class MessageStreamEvent(RootModel[MessageEvent | HeartbeatEvent | ErrorEvent]):
-    root: MessageEvent | HeartbeatEvent | ErrorEvent = Field(
-        ..., description="An event in the server-sent event stream"
-    )
-
-
-class OrganizationListItem(CustomBaseModel):
-    """
-    Essential organization details for listings.
-    """
-
-    id: str = Field(..., description="The unique identifier of an organization.")
-    name: str | None = Field(
-        None,
-        description="The name of an organization.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique.\n",
-        max_length=64,
-    )
-    display_name: str = Field(..., alias="displayName", description="The display name of an organization.")
-    description: str | None = Field(None, description="The description of an organization. Supports markdown.")
-    logo: str | None = Field(None, description="The URL of the organization's logo.")
-    metadata: OrganizationMetadata | None = None
-
-
-class User(CustomBaseModel):
-    """
-    The public attributes of a user of the service.
-    """
-
-    id: str | None = Field(None, description="The unique identifier of a user.")
-    name: str | None = Field(
-        None,
-        description="The name of a user.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique considering organizations and users.\n",
-    )
-    first_name: str | None = Field(None, alias="firstName", description="First name of a user", max_length=30)
-    last_name: str | None = Field(None, alias="lastName", description="Last name of a user", max_length=30)
-    avatar: str | None = Field(None, description="The URL of the user's avatar")
-    organizations: list[OrganizationListItem] | None = Field(None, description="The organizations the user belongs to")
-
-
 class Generator(CustomBaseModel):
     """
     A generator is a set models that can generate synthetic data.
@@ -3523,9 +2086,7 @@ class Generator(CustomBaseModel):
     description: str | None = Field(None, description="The description of a generator.")
     training_status: ProgressStatus = Field(..., alias="trainingStatus")
     training_time: AwareDatetime | None = Field(
-        None,
-        alias="trainingTime",
-        description="The UTC date and time when the training has finished.",
+        None, alias="trainingTime", description="The UTC date and time when the training has finished."
     )
     usage: GeneratorUsage | None = None
     metadata: Metadata | None = None
@@ -3559,11 +2120,7 @@ class Generator(CustomBaseModel):
         super().__init__(*args, **kwargs)
         self.training = self.Training(self)
 
-    def update(
-        self,
-        name: str | None = None,
-        description: str | None = None,
-    ) -> None:
+    def update(self, name: str | None = None, description: str | None = None) -> None:
         """
         Update a generator with specific parameters.
 
@@ -3571,10 +2128,7 @@ class Generator(CustomBaseModel):
             name (str | None): The name of the generator.
             description (str | None): The description of the generator.
         """
-        patch_config = GeneratorPatchConfig(
-            name=name,
-            description=description,
-        )
+        patch_config = GeneratorPatchConfig(name=name, description=description)
         self.client._update(generator_id=self.id, config=patch_config)
         self.reload()
 
@@ -3593,10 +2147,7 @@ class Generator(CustomBaseModel):
         """
         return self.client._config(generator_id=self.id)
 
-    def export_to_file(
-        self,
-        file_path: str | Path | None = None,
-    ) -> Path:
+    def export_to_file(self, file_path: str | Path | None = None) -> Path:
         """
         Export generator and save to file.
 
@@ -3656,26 +2207,24 @@ class Generator(CustomBaseModel):
                     generator_id=self.id,
                     source_table_id=table.id,
                     model_type="TABULAR",
-                    short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
+                    short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
                 )
             if table.language_model_metrics:
                 reports[f"{table.name}-language.html"] = self.client._report(
                     generator_id=self.id,
                     source_table_id=table.id,
                     model_type="LANGUAGE",
-                    short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
+                    short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
                 )
-
         if display and rich.console._is_jupyter():
-            import html  # noqa
+            import html
 
-            from IPython.display import HTML, display  # noqa
+            from IPython.display import HTML, display
 
             iframes = ""
             for content in reports.values():
                 content = html.escape(content, quote=True)
                 iframes += f'<p><iframe srcdoc="{content}" width="100%" height="600"></iframe></p> '
-
             display(HTML(iframes))
             return None
         else:
@@ -3730,9 +2279,7 @@ class Generator(CustomBaseModel):
             self.generator.reload()
             if self.generator.training_status == ProgressStatus.done:
                 rich.print(
-                    ":tada: [bold green]Your generator is ready![/] "
-                    "Use it to create synthetic data. "
-                    "Publish it so others can do the same."
+                    ":tada: [bold green]Your generator is ready![/] Use it to create synthetic data. Publish it so others can do the same."
                 )
 
         def logs(self, file_path: str | Path | None = None) -> Path:
@@ -3747,9 +2294,9 @@ class Generator(CustomBaseModel):
             """
             bytes, filename = self.generator.client._training_logs(
                 generator_id=self.generator.id,
-                short_lived_file_token=(
-                    self.generator.metadata.short_lived_file_token if self.generator.metadata else None
-                ),
+                short_lived_file_token=self.generator.metadata.short_lived_file_token
+                if self.generator.metadata
+                else None,
             )
             file_path = Path(file_path or ".")
             if file_path.is_dir():
@@ -3812,10 +2359,7 @@ class GeneratorConfig(CustomBaseModel):
                 if current_table.name in seen_tables:
                     raise ValueError(f"Circular reference detected in tables: {', '.join(seen_tables)}")
                 seen_tables.add(current_table.name)
-                context_fk = next(
-                    (fk for fk in (current_table.foreign_keys or []) if fk.is_context),
-                    None,
-                )
+                context_fk = next((fk for fk in current_table.foreign_keys or [] if fk.is_context), None)
                 if not context_fk or not context_fk.referenced_table:
                     break
                 current_table = table_map.get(context_fk.referenced_table)
@@ -3827,36 +2371,25 @@ class GeneratorConfig(CustomBaseModel):
         """validate that constraints reference existing tables and columns."""
         if not self.constraints or not self.tables:
             return self
-
         table_map = {table.name: table for table in self.tables}
-        column_usage: dict[str, dict[str, int]] = {}  # table_name -> column_name -> constraint_index
-
+        column_usage: dict[str, dict[str, int]] = {}
         for idx, constraint_config in enumerate(self.constraints):
-            # convert ConstraintConfig to typed constraint object
             typed_constraint = convert_constraint_config_to_typed(constraint_config)
-
             if typed_constraint.table_name not in table_map:
                 raise ValueError(f"table '{typed_constraint.table_name}' referenced by constraint not found")
-
             table = table_map[typed_constraint.table_name]
-            table_columns = {col.name: col for col in (table.columns or [])}
-
+            table_columns = {col.name: col for col in table.columns or []}
             if not table_columns:
-                # presumably not initialized yet, so we skip this validation
                 continue
-
             typed_constraint.validate(table_columns, column_usage, idx)
-
         return self
 
     def _track_column_usage(self, table_name, col_name, constraint_idx, column_usage):
         """track column usage and detect overlaps."""
         if table_name not in column_usage:
             column_usage[table_name] = {}
-
         if col_name in column_usage[table_name]:
             raise ValueError(f"column '{col_name}' in table '{table_name}' is referenced by multiple constraints")
-
         column_usage[table_name][col_name] = constraint_idx
 
 
@@ -3875,9 +2408,7 @@ class SyntheticDataset(CustomBaseModel):
     description: str | None = Field(None, description="The description of a synthetic dataset.")
     generation_status: ProgressStatus = Field(..., alias="generationStatus")
     generation_time: AwareDatetime | None = Field(
-        None,
-        alias="generationTime",
-        description="The UTC date and time when the generation has finished.",
+        None, alias="generationTime", description="The UTC date and time when the generation has finished."
     )
     tables: list[SyntheticTable] | None = Field(None, description="The tables of this synthetic dataset.")
     delivery: SyntheticDatasetDelivery | None = None
@@ -3887,8 +2418,7 @@ class SyntheticDataset(CustomBaseModel):
     )
     usage: SyntheticDatasetUsage | None = None
     compute: str | None = Field(
-        None,
-        description="The unique identifier of a compute resource. Not applicable for SDK.",
+        None, description="The unique identifier of a compute resource. Not applicable for SDK."
     )
     random_state: int | None = Field(
         None,
@@ -3915,10 +2445,7 @@ class SyntheticDataset(CustomBaseModel):
         self.generation = self.Generation(self)
 
     def update(
-        self,
-        name: str | None = None,
-        description: str | None = None,
-        delivery: SyntheticDatasetDelivery | None = None,
+        self, name: str | None = None, description: str | None = None, delivery: SyntheticDatasetDelivery | None = None
     ) -> None:
         """
         Update a synthetic dataset with specific parameters.
@@ -3928,15 +2455,8 @@ class SyntheticDataset(CustomBaseModel):
             description (str | None): The description of the synthetic dataset.
             delivery (SyntheticDatasetDelivery | None): The delivery configuration for the synthetic dataset.
         """
-        patch_config = SyntheticDatasetPatchConfig(
-            name=name,
-            description=description,
-            delivery=delivery,
-        )
-        self.client._update(
-            synthetic_dataset_id=self.id,
-            config=patch_config,
-        )
+        patch_config = SyntheticDatasetPatchConfig(name=name, description=description, delivery=delivery)
+        self.client._update(synthetic_dataset_id=self.id, config=patch_config)
         self.reload()
 
     def delete(self) -> None:
@@ -3955,9 +2475,7 @@ class SyntheticDataset(CustomBaseModel):
         return self.client._config(synthetic_dataset_id=self.id)
 
     def download(
-        self,
-        file_path: str | Path | None = None,
-        format: Literal["parquet", "csv", "json"] = "parquet",
+        self, file_path: str | Path | None = None, format: Literal["parquet", "csv", "json"] = "parquet"
     ) -> Path:
         """
         Download synthetic dataset and save to file.
@@ -3972,7 +2490,7 @@ class SyntheticDataset(CustomBaseModel):
         bytes, filename = self.client._download(
             synthetic_dataset_id=self.id,
             ds_format=format.upper(),
-            short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
+            short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
         )
         file_path = Path(file_path or ".")
         if file_path.is_dir():
@@ -3992,7 +2510,7 @@ class SyntheticDataset(CustomBaseModel):
         """
         dfs = self.client._data(
             synthetic_dataset_id=self.id,
-            short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
+            short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
         )
         if return_type == "auto" and len(dfs) == 1:
             return list(dfs.values())[0]
@@ -4016,10 +2534,7 @@ class SyntheticDataset(CustomBaseModel):
             Path | None: The path to the saved file if downloading, or None if display=True.
         """
         reports = {}
-        for report_type in [
-            SyntheticDatasetReportType.model,
-            SyntheticDatasetReportType.data,
-        ]:
+        for report_type in [SyntheticDatasetReportType.model, SyntheticDatasetReportType.data]:
             report_infix = "" if report_type == SyntheticDatasetReportType.model else "-data"
             for table in self.tables:
                 if table.tabular_model_metrics:
@@ -4028,7 +2543,7 @@ class SyntheticDataset(CustomBaseModel):
                         synthetic_table_id=table.id,
                         model_type="TABULAR",
                         report_type=report_type,
-                        short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
+                        short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
                     )
                 if table.language_model_metrics:
                     reports[f"{table.name}-language{report_infix}.html"] = self.client._report(
@@ -4036,19 +2551,17 @@ class SyntheticDataset(CustomBaseModel):
                         synthetic_table_id=table.id,
                         model_type="LANGUAGE",
                         report_type=report_type,
-                        short_lived_file_token=(self.metadata.short_lived_file_token if self.metadata else None),
+                        short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
                     )
-
         if display and rich.console._is_jupyter():
-            import html  # noqa
+            import html
 
-            from IPython.display import HTML, display  # noqa
+            from IPython.display import HTML, display
 
             iframes = ""
             for content in reports.values():
                 content = html.escape(content, quote=True)
                 iframes += f'<p><iframe srcdoc="{content}" width="100%" height="600"></iframe></p> '
-
             display(HTML(iframes))
             return None
         else:
@@ -4105,9 +2618,7 @@ class SyntheticDataset(CustomBaseModel):
             self.synthetic_dataset.reload()
             if self.synthetic_dataset.generation_status == ProgressStatus.done:
                 rich.print(
-                    ":tada: [bold green]Your synthetic dataset is ready![/] "
-                    "Use it to consume the generated data. "
-                    "Publish it so others can do the same."
+                    ":tada: [bold green]Your synthetic dataset is ready![/] Use it to consume the generated data. Publish it so others can do the same."
                 )
 
         def logs(self, file_path: str | Path | None = None) -> Path:
@@ -4122,9 +2633,9 @@ class SyntheticDataset(CustomBaseModel):
             """
             bytes, filename = self.synthetic_dataset.client._generation_logs(
                 synthetic_dataset_id=self.synthetic_dataset.id,
-                short_lived_file_token=(
-                    self.synthetic_dataset.metadata.short_lived_file_token if self.synthetic_dataset.metadata else None
-                ),
+                short_lived_file_token=self.synthetic_dataset.metadata.short_lived_file_token
+                if self.synthetic_dataset.metadata
+                else None,
             )
             file_path = Path(file_path or ".")
             if file_path.is_dir():
@@ -4251,39 +2762,3 @@ class _SyntheticDataConfigValidation(CustomBaseModel):
                 generator_table, is_probe=isinstance(self.synthetic_config, SyntheticProbeConfig)
             )
         return self
-
-
-def _add_fields_to_docstring(cls):
-    lines = [f"{cls.__doc__.strip()}\n"] if cls.__doc__ else []
-    lines += ["Attributes:"]
-    for name, field in cls.model_fields.items():
-        if name in CustomBaseModel.model_fields:
-            continue
-        field_str = f"  {name}"
-        if field.annotation:
-            if isinstance(field.annotation, type):
-                annotation_str = field.annotation.__name__
-            else:
-                annotation_str = (
-                    str(field.annotation)
-                    .replace("mostlyai.sdk.domain.", "")
-                    .replace("typing.", "")
-                    .replace("datetime.", "")
-                )
-        else:
-            annotation_str = ""
-        field_str += f" ({annotation_str})" if field.annotation else ""
-        desc_str = f" {field.description.strip()}" if field.description else ""
-        examples = getattr(field, "examples", None)
-        examples_str = f" Examples: {examples[0]}" if examples else ""
-        if desc_str or examples_str:
-            field_str += f":{desc_str}{examples_str}"
-        lines.append(field_str)
-    cls.__doc__ = "\n".join(lines)
-    return cls
-
-
-# add fields to docstring for all the subclasses of CustomBaseModel
-for _, _obj in inspect.getmembers(sys.modules[__name__]):
-    if inspect.isclass(_obj) and issubclass(_obj, CustomBaseModel) and _obj is not CustomBaseModel:
-        _add_fields_to_docstring(_obj)
