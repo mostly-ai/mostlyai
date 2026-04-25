@@ -40,16 +40,6 @@ class AboutService(CustomBaseModel):
     assistant: bool | None = Field(None, description="A flag indicating if the assistant is enabled.")
 
 
-class UserPlan(str, Enum):
-    """
-    The type of the user subscription plan.
-    """
-
-    free = "FREE"
-    pro = "PRO"
-    unlimited = "UNLIMITED"
-
-
 class UserSettingsProfileUpdateConfig(CustomBaseModel):
     """
     Configuration for updating a user's profile settings.
@@ -3518,45 +3508,6 @@ class User(CustomBaseModel):
     last_name: str | None = Field(None, alias="lastName", description="Last name of a user", max_length=30)
     avatar: str | None = Field(None, description="The URL of the user's avatar")
     organizations: list[OrganizationListItem] | None = Field(None, description="The organizations the user belongs to")
-
-
-class CurrentUser(CustomBaseModel):
-    """
-    Information on the current user.
-    """
-
-    id: str | None = Field(None, description="The unique identifier of a user.")
-    name: str | None = Field(
-        None,
-        description="The name of a user.\nContains only alphanumeric characters, hyphens, and underscores. Must start or end with alphanumeric.\nIt must be globally case-insensitive unique considering organizations and users.\n",
-    )
-    first_name: str | None = Field(None, alias="firstName", description="First name of a user", max_length=30)
-    last_name: str | None = Field(None, alias="lastName", description="Last name of a user", max_length=30)
-    email: str | None = Field(None, description="The email of a user")
-    avatar: str | None = Field(None, description="The URL of the user's avatar")
-    settings: dict[str, Any] | None = None
-    usage: UserUsage | None = None
-    unread_notifications: int | None = Field(
-        None,
-        alias="unreadNotifications",
-        description="Number of unread notifications for the user",
-    )
-    plan: UserPlan | None = None
-    organizations: list[OrganizationListItem] | None = Field(None, description="The organizations the user belongs to")
-    secrets: Annotated[list[UserSecretKey] | None, Field(repr=False)] = Field(
-        None,
-        description="The list of secret key names for this user (secret values are never exposed via API)",
-    )
-    created_at: AwareDatetime | None = Field(
-        None,
-        alias="createdAt",
-        description="The UTC date and time when the user has been created.",
-    )
-    last_activity_at: AwareDatetime | None = Field(
-        None,
-        alias="lastActivityAt",
-        description="The UTC date and time of users last activity",
-    )
 
 
 class Generator(CustomBaseModel):

@@ -2,5 +2,5 @@
 
 ## model extension
 
-Historically, `datamodel-codegen` and custom templates were used to create `mostlyai/sdk/domain.py`.
-The SDK model layer is now maintained manually as a runtime-focused subset, and this directory is kept only for historical context.
+`mostlyai/sdk/domain.py` is maintained manually as an SDK runtime-focused model layer.
+This directory is kept only as reference context for prior generation tooling.

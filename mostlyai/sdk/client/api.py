@@ -41,7 +41,6 @@ from mostlyai.sdk.domain import (
     AboutService,
     Connector,
     ConnectorConfig,
-    CurrentUser,
     Generator,
     GeneratorConfig,
     ModelType,
@@ -223,11 +222,9 @@ class MostlyAI(_MostlyBaseClient):
             if test_connection:
                 try:
                     server_version = self.about().version
-                    email = self.me().email
                     msg = (
                         f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/] {server_version}"
                     )
-                    msg += f" as [bold]{email}[/bold]" if email else ""
                     rich.print(msg)
                 except Exception as e:
                     rich.print(f"Failed to connect to {self.base_url} : {e}")
@@ -876,23 +873,6 @@ class MostlyAI(_MostlyBaseClient):
             return list(dfs.values())[0]
         else:
             return dfs
-
-    def me(self) -> CurrentUser:
-        """
-        Retrieve information about the current user.
-
-        Returns:
-            CurrentUser: Information about the current user.
-
-        Example for retrieving information about the current user:
-            ```python
-            from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI()
-            mostly.me()
-            # {'id': '488f2f26-...', 'first_name': 'Tom', ...}
-            ```
-        """
-        return self.request(verb=GET, path=["users", "me"], response_type=CurrentUser)
 
     def about(self) -> AboutService:
         """

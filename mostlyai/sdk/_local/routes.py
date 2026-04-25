@@ -54,7 +54,6 @@ from mostlyai.sdk.domain import (
     ConnectorReadDataConfig,
     ConnectorType,
     ConnectorWriteDataConfig,
-    CurrentUser,
     Generator,
     GeneratorCloneConfig,
     GeneratorCloneTrainingStatus,
@@ -119,10 +118,6 @@ class Routes:
         @self.router.get("/about", response_model=AboutService)
         async def get_about_service() -> AboutService:
             return AboutService(version=sdk.__version__, assistant=False)
-
-        @self.router.get("/users/me", response_model=CurrentUser)
-        async def get_current_user_info() -> CurrentUser:
-            return CurrentUser()
 
         @self.router.get("/computes", response_model=list[ComputeListItem])
         async def list_computes() -> JSONResponse:
