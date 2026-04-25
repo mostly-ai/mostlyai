@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from pathlib import Path
 from typing import Any, Literal
 
@@ -110,8 +109,6 @@ class MostlyAI(_MostlyBaseClient):
             mode = "CLIENT"
         elif local is not None:
             mode = "LOCAL" if bool(local) else "CLIENT"
-        elif os.getenv("MOSTLY_LOCAL"):
-            mode = "LOCAL" if os.getenv("MOSTLY_LOCAL").lower()[:1] in ["1", "t", "y"] else "CLIENT"
         else:
             mode = "LOCAL"
 
