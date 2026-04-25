@@ -15,7 +15,7 @@ mostly = MostlyAI(local_dir='~/mostlyai')
 
 # client mode (explicit remote endpoint)
 mostly = MostlyAI(
-    base_url='https://remote-sdk.example.com', # or set env var `MOSTLY_BASE_URL`
+    base_url='https://remote-sdk.example.com',
 )
 ```
 
