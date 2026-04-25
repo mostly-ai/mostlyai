@@ -13,17 +13,13 @@
 # limitations under the License.
 
 import abc
-import base64
 import decimal
 import enum
 import functools
-import hashlib
 import logging
-import os
 import re
 import shutil
 import socket
-import subprocess
 import tempfile
 import time
 import uuid
@@ -66,24 +62,11 @@ from mostlyai.sdk._data.dtype import (
 )
 from mostlyai.sdk._data.exceptions import MostlyDataException
 from mostlyai.sdk._data.util.common import ColumnSort, OrderBy, assert_read_only_sql, prepare_ssl_path
-from mostlyai.sdk._data.util.kerberos import is_kerberos_ticket_alive
 
 _LOG = logging.getLogger(__name__)
 
 ConnectionMode = Literal["read_data", "write_data", "access_check", "db_exist_check"]
 
-KRB5_CONF_TEMPLATE = """
-[libdefaults]
-    default_realm = {kerberos_realm}
-    dns_lookup_realm = false
-    dns_lookup_kdc = false
-    forwardable = true
-    rdns = false
-[realms]
-    {kerberos_realm} = {{
-        kdc = {kerberos_kdc_host}
-    }}
-"""
 SSL_ATTRIBUTES = [
     "root_certificate",
     "ssl_certificate",
@@ -254,12 +237,6 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
         ssh_username: str | None = None,
         ssh_password: str | None = None,
         ssh_private_key_path: str | None = None,
-        kerberos_enabled: bool = False,
-        kerberos_kdc_host: str | None = None,
-        kerberos_krb5_conf: str | None = None,
-        kerberos_service_principal: str | None = None,
-        kerberos_client_principal: str | None = None,
-        kerberos_keytab: str | None = None,
         **kwargs,
     ):
         self.username = username
@@ -285,14 +262,6 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
         self.ssh_password = ssh_password
         self.ssh_private_key_path = ssh_private_key_path
 
-        # Kerberos
-        self.kerberos_enabled = kerberos_enabled
-        self.kerberos_kdc_host = kerberos_kdc_host
-        self.kerberos_krb5_conf = kerberos_krb5_conf
-        self.kerberos_service_principal = kerberos_service_principal
-        self.kerberos_client_principal = kerberos_client_principal
-        self.kerberos_keytab = kerberos_keytab
-
         self.props = kwargs
         self.sa_metadata = sa.MetaData(schema=self.dbschema)
         self.filtered_tables = kwargs.get("filtered_tables")
@@ -305,10 +274,8 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
         # secure connection flags
         # - SSH tunnel should be reused if already exist
         # - SSL should reuse keys if they are present
-        # - Kerberos should reuse tickets if they are present
         self._is_ssl_active = False
         self._is_ssh_active = False
-        self._is_kerberos_active = False
 
     def __repr__(self):
         # password field will be masked for security reasons
@@ -368,116 +335,11 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
         mode: ConnectionMode = "read_data",
         dispose: bool = True,
     ) -> Generator[sa.engine.Engine, None, None]:
-        with self.kerberized(), self.use_ssh_tunnel(), self.use_ssl_connection():
+        with self.use_ssh_tunnel(), self.use_ssl_connection():
             sa_engine = self.get_sa_engine(mode=mode)
             yield sa_engine
             if dispose:
                 sa_engine.dispose()
-
-    @contextmanager
-    def kerberized(self):
-        if not self.kerberos_enabled or self._is_kerberos_active:
-            yield
-            return
-
-        self._is_kerberos_active = True
-
-        def is_ticket_alive(service_principal: str) -> bool:
-            try:
-                p_result = subprocess.run(
-                    ["klist", "-c", krb5_cache_path],
-                    capture_output=True,
-                    check=True,
-                )
-                result = p_result.stdout.decode("utf-8")
-                is_alive = is_kerberos_ticket_alive(result, service_principal)
-                _LOG.info(f"Kerberos ticket for `{service_principal}` is_alive={is_alive}")
-                return is_alive
-            except subprocess.CalledProcessError:
-                return False
-            except Exception as e:
-                _LOG.info(f"Error occurred while checking a Kerberos ticket state {e}; Assuming is_alive=False")
-                return False
-
-        def kinit():
-            # create temporary keytab file for kinit
-            with tempfile.NamedTemporaryFile("wb") as keytab_file:
-                # decrypt keytab and store it to the temporary file
-                kerberos_keytab = base64.b64decode(self.decrypt(self.kerberos_keytab))
-                keytab_file.write(kerberos_keytab)
-                keytab_file.flush()
-                keytab_path = keytab_file.name
-                try:
-                    # if client principal exists, use it to request the ticket
-                    # otherwise, use service principal instead
-                    principal = self.kerberos_client_principal or self.kerberos_service_principal
-                    subprocess.run(
-                        [
-                            "kinit",
-                            "-c",
-                            krb5_cache_path,
-                            "-kt",
-                            keytab_path,
-                            principal,
-                        ],
-                        capture_output=True,
-                        check=True,
-                    )
-                    _LOG.info("Kerberos `kinit` succeeded")
-                except subprocess.CalledProcessError as e:
-                    _LOG.error("Kerberos `kinit` failed")
-                    _LOG.error(f"stdout: {e.stdout.decode()}")
-                    _LOG.error(f"stderr: {e.stderr.decode()}")
-                    raise MostlyDataException("Kerberos initialization failed.")
-
-        # resolve kerberos ticket cache for provided principal
-        hashing = hashlib.sha256()
-        hash_input = f"{self.kerberos_service_principal}{self.kerberos_keytab}"
-        hashing.update(hash_input.encode())
-        cache_name = hashing.hexdigest()
-        krb5_cache_path = f"{tempfile.gettempdir()}/{cache_name}"
-
-        # create temporary krb5.conf file
-        parsed = self._parse_kerberos_service_principal()
-        if self.kerberos_krb5_conf is not None:
-            krb5_conf = self.kerberos_krb5_conf
-        else:
-            krb5_conf = KRB5_CONF_TEMPLATE.format(
-                kerberos_kdc_host=self.kerberos_kdc_host, kerberos_realm=parsed["realm"]
-            )
-        with tempfile.NamedTemporaryFile("w") as krb5_conf_file:
-            krb5_conf_file.write(krb5_conf)
-            krb5_conf_file.flush()
-            # set KRB5_CONFIG for kerberos configuration file
-            # set KRB5CCNAME for isolated kerberos ticket cache
-            os.environ["KRB5_CONFIG"] = krb5_conf_file.name
-            os.environ["KRB5CCNAME"] = krb5_cache_path
-            if not is_ticket_alive(service_principal=self.kerberos_service_principal):
-                # if cache does not present valid ticket, kinit a new one
-                kinit()
-            try:
-                yield
-            finally:
-                # clean up environment
-                del os.environ["KRB5_CONFIG"]
-                del os.environ["KRB5CCNAME"]
-        self._is_kerberos_active = False
-
-    def _parse_kerberos_service_principal(self):
-        # should match 'primary@REALM' or 'primary/instance@REALM'
-        pattern = r"^(?P<primary>[^/@]+)(/(?P<instance>[^/@]+))?@(?P<realm>[^/@]+)$"
-        match = re.match(pattern, self.kerberos_service_principal)
-        if not match:
-            raise MostlyDataException("Invalid Kerberos principal format. Expected format 'primary[/instance]@REALM'")
-        components = match.groupdict()
-        components["instance"] = components.get("instance")
-        return components
-
-    @property
-    def kerberos_service_name(self) -> str:
-        if self.kerberos_service_principal and isinstance(self.kerberos_service_principal, str):
-            return self.kerberos_service_principal.split("/")[0]  # e.g. hive/... -> hive
-        return ""
 
     @contextmanager
     def use_ssh_tunnel(self):

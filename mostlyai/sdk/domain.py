@@ -61,9 +61,6 @@ class ConnectorType(str, Enum):
     - `MARIADB`: MariaDB database
     - `SNOWFLAKE`: Snowflake cloud data platform
     - `BIGQUERY`: Google BigQuery cloud data warehouse
-    - `HIVE`: Apache Hive database
-    - `DATABRICKS`: Databricks cloud data platform
-    - `REDSHIFT`: Amazon Redshift cloud data warehouse
     - `SQLITE`: SQLite database
     - `AZURE_STORAGE`: Azure Blob Storage
     - `GOOGLE_CLOUD_STORAGE`: Google Cloud Storage
@@ -79,9 +76,6 @@ class ConnectorType(str, Enum):
     mariadb = "MARIADB"
     snowflake = "SNOWFLAKE"
     bigquery = "BIGQUERY"
-    hive = "HIVE"
-    databricks = "DATABRICKS"
-    redshift = "REDSHIFT"
     sqlite = "SQLITE"
     azure_storage = "AZURE_STORAGE"
     google_cloud_storage = "GOOGLE_CLOUD_STORAGE"
@@ -125,33 +119,6 @@ class ConnectorConfig(CustomBaseModel):
         config:
         secrets:
           keyFile: string
-
-      - type: DATABRICKS
-        config:
-          host: string
-          httpPath: string
-          catalog: string
-          clientId: string (required for auth via service principal)
-          tenantId: string (required for auth via service principal)
-        secrets:
-          accessToken: string (required for regular auth)
-          clientSecret: string (required for auth via service principal)
-
-      - type: HIVE
-        config:
-          host: string
-          port: integer, default: 10000
-          username: string (required for regular auth)
-          kerberosEnabled: boolean, default: false
-          kerberosServicePrincipal: string (required if kerberosEnabled)
-          kerberosClientPrincipal: string (optional if kerberosEnabled)
-          kerberosKrb5Conf: string (required if kerberosEnabled)
-          sslEnabled: boolean, default: false
-        secrets:
-          password: string (required for regular auth)
-          kerberosKeytab: base64-encoded string (required if kerberosEnabled)
-        ssl:
-          caCertificate: base64-encoded string
 
       - type: MARIADB
         config:
@@ -207,15 +174,6 @@ class ConnectorConfig(CustomBaseModel):
           account: string
           username: string
           warehouse: string, default: COMPUTE_WH
-          database: string
-        secrets:
-          password: string
-
-      - type: REDSHIFT
-        config:
-          host: string
-          port: integer, default: 5439
-          username: string
           database: string
         secrets:
           password: string
@@ -1028,8 +986,6 @@ class Connector(CustomBaseModel):
             - `S3_STORAGE`: `bucket/path`
         - Database:
             - `BIGQUERY`: `dataset.table`
-            - `DATABRICKS`: `schema.table`
-            - `HIVE`: `database.table`
             - `MARIADB`: `database.table`
             - `MSSQL`: `schema.table`
             - `MYSQL`: `database.table`

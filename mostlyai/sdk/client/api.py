@@ -251,32 +251,6 @@ class MostlyAI(_MostlyBaseClient):
             secrets:
               keyFile: string
 
-          - type: DATABRICKS
-            config:
-              host: string
-              httpPath: string
-              catalog: string
-              clientId: string (required for auth via service principal)
-              tenantId: string (required for auth via service principal)
-            secrets:
-              accessToken: string (required for regular auth)
-              clientSecret: string (required for auth via service principal)
-
-          - type: HIVE
-            config:
-              host: string
-              port: integer, default: 10000
-              username: string (required for regular auth)
-              kerberosEnabled: boolean, default: false
-              kerberosPrincipal: string (required if kerberosEnabled)
-              kerberosKrb5Conf: string (required if kerberosEnabled)
-              sslEnabled: boolean, default: false
-            secrets:
-              password: string (required for regular auth)
-              kerberosKeytab: base64-encoded string (required if kerberosEnabled)
-            ssl:
-              caCertificate: base64-encoded string
-
           - type: MARIADB
             config:
               host: string
@@ -331,15 +305,6 @@ class MostlyAI(_MostlyBaseClient):
               account: string
               username: string
               warehouse: string, default: COMPUTE_WH
-              database: string
-            secrets:
-              password: string
-
-          - type: REDSHIFT
-            config:
-              host: string
-              port: integer, default: 5439
-              username: string
               database: string
             secrets:
               password: string

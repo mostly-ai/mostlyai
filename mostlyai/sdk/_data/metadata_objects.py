@@ -32,9 +32,6 @@ class SslCertificates(CustomBaseModel):
     root_certificate: Nullable[str] = Field(None, description="Encrypted root certificate.")
     ssl_certificate: Nullable[str] = Field(None, description="Encrypted client certificate.")
     ssl_certificate_key: Nullable[str] = Field(None, description="Encrypted client key.")
-    # SSL for Hive
-    keystore: Nullable[str] = Field(None, description="Encrypted keystore.")
-    keystore_password: Nullable[str] = Field(None, description="Encrypted keystore password.")
     ca_certificate: Nullable[str] = Field(None, description="Encrypted CA certificate.")
 
 
@@ -82,19 +79,7 @@ class SqlAlchemyContainerParameters(CustomBaseModel):
     root_certificate: Nullable[str] = Field(None, description="Encrypted root certificate.")
     ssl_certificate: Nullable[str] = Field(None, description="Encrypted client certificate.")
     ssl_certificate_key: Nullable[str] = Field(None, description="Encrypted client key.")
-    keystore: Nullable[str] = Field(None, description="Encrypted keystore.")
-    keystore_password: Nullable[str] = Field(None, description="Encrypted keystore password.")
     ca_certificate: Nullable[str] = Field(None, description="Encrypted CA certificate.")
-    # Kerberos
-    kerberos_enabled: Nullable[bool] = Field(False)
-    kerberos_kdc_host: Nullable[str] = Field(None)
-    kerberos_krb5_conf: Nullable[str] = Field(None)
-    kerberos_service_principal: Nullable[str] = Field(None)
-    kerberos_client_principal: Nullable[str] = Field(None)
-    kerberos_keytab: Nullable[str] = Field(
-        None,
-        description="Encrypted content of keytab file of client principal if it is defined. Otherwise, it is the one for service principal.",
-    )
 
     # Uncomment these if we want to enable the SSH connection feature
     # enable_ssh: Nullable[bool] = Field(False, alias="enableSsh")
@@ -120,15 +105,6 @@ class SnowflakeContainerParameters(SqlAlchemyContainerParameters):
 
 class BigQueryContainerParameters(SqlAlchemyContainerParameters):
     password: Nullable[str] = Field(None, validation_alias=AliasChoices("keyFile", "key_file"))
-
-
-class DatabricksContainerParameters(SqlAlchemyContainerParameters):
-    password: Nullable[str] = Field(None, validation_alias=AliasChoices("accessToken", "access_token"))
-    dbname: Nullable[str] = Field(None, alias="catalog")
-    http_path: Nullable[str] = Field(None)
-    client_id: Nullable[str] = Field(None)
-    client_secret: Nullable[str] = Field(None)
-    tenant_id: Nullable[str] = Field(None)
 
 
 class ConnectionResponse(CustomBaseModel):
