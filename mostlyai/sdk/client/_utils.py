@@ -59,7 +59,7 @@ def check_local_mode_available() -> None:
         return
     except ImportError:
         raise APIError(
-            "LOCAL mode requires additional packages to be installed. Run `pip install -U 'mostlyai[local]'`."
+            "LOCAL mode requires additional packages to be installed. Run `uv pip install -U 'mostlyai[local]'`."
         )
 
 

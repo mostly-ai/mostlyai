@@ -45,7 +45,7 @@ PATCH = "PATCH"
 DELETE = "DELETE"
 HttpVerb = Literal[GET, POST, PATCH, DELETE]
 
-DEFAULT_BASE_URL = "https://app.mostly.ai"
+DEFAULT_BASE_URL = "http://127.0.0.1:8080"
 MAX_REQUEST_SIZE = 250_000_000
 
 T = TypeVar("T")

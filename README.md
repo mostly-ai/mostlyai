@@ -7,12 +7,12 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mostlyai)](https://pypi.org/project/mostlyai/)
 [![GitHub stars](https://img.shields.io/github/stars/mostly-ai/mostlyai?style=social)](https://github.com/mostly-ai/mostlyai/stargazers)
 
-[Documentation](https://mostly-ai.github.io/mostlyai/) | [Technical White Paper](https://arxiv.org/abs/2508.00718) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/) | [Free Cloud Service](https://app.mostly.ai/)
+[Documentation](https://mostly-ai.github.io/mostlyai/) | [Technical White Paper](https://arxiv.org/abs/2508.00718) | [Usage Examples](https://mostly-ai.github.io/mostlyai/usage/)
 
 The **Synthetic Data SDK** is a Python toolkit for high-fidelity, privacy-safe **Synthetic Data**.
 
-- **LOCAL** mode trains and generates synthetic data locally on your own compute resources.
-- **CLIENT** mode connects to a remote MOSTLY AI platform for training & generating synthetic data there.
+- **LOCAL** mode trains and generates synthetic data locally on your own compute resources (default).
+- **CLIENT** mode connects to a remote SDK endpoint for training & generating synthetic data there.
 - Generators, that were trained locally, can be easily imported to a platform for further sharing.
 
 ## Overview
@@ -193,7 +193,7 @@ uv run --with jupyter jupyter lab
 
 ### CLIENT mode
 
-This is a light-weight installation for using the SDK in CLIENT mode only. It communicates to a MOSTLY AI platform to perform requested tasks. See e.g. [app.mostly.ai](https://app.mostly.ai/) for a free-to-use hosted version.
+This is a light-weight installation for using the SDK in explicit CLIENT mode only. It communicates to a remote SDK endpoint to perform requested tasks.
 
 ```shell
 uv pip install -U mostlyai
@@ -276,7 +276,7 @@ As an alternative, you can also build a Docker image, which provides you with an
 
   <summary>Connect to the container</summary>
 
-  <p>You can now connect to the SDK running within the container by initializing the SDK in <code>CLIENT</code>> mode on the host machine.</p>
+  <p>You can now connect to the SDK running within the container from the host machine via an explicit <code>base_url</code>.</p>
 
   ```python
   from mostlyai.sdk import MostlyAI

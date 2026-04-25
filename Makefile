@@ -1,41 +1,7 @@
-# Internal Variables
-PUBLIC_API_FULL_URL = https://raw.githubusercontent.com/mostly-ai/mostly-openapi/refs/heads/main/public-api.yaml
-PUBLIC_API_OUTPUT_PATH = mostlyai/sdk/domain.py
-
 # Targets
 .PHONY: help
 help: ## show definition of each function
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-25s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
-
-.PHONY: gen-public-model
-gen-public-model: ## build pydantic models for public api
-	@echo "Updating custom Jinja2 templates"
-	python tools/extend_model.py
-	@echo "Generating Pydantic models from $(PUBLIC_API_FULL_URL)"
-	datamodel-codegen --url $(PUBLIC_API_FULL_URL) $(COMMON_OPTIONS)
-	#datamodel-codegen --input ../mostly-app-v2/public-api/public-api.yaml $(COMMON_OPTIONS)
-	python tools/postproc_domain.py
-	# run pre-commit hooks to add license and lint the generated code; ignore the exit code to avoid confusion
-	uv run --no-sync pre-commit run --all-files > /dev/null 2>&1 || true
-
-# Common options for both targets
-COMMON_OPTIONS = \
-	--input-file-type openapi \
-	--output $(PUBLIC_API_OUTPUT_PATH) \
-	--snake-case-field \
-	--target-python-version 3.11 \
-	--use-schema-description \
-	--use-union-operator \
-	--use-standard-collections \
-	--field-constraints \
-	--collapse-root-models \
-	--use-one-literal-as-default \
-	--enum-field-as-literal one \
-	--use-subclass-enum \
-	--set-default-enum-member \
-	--output-model-type pydantic_v2.BaseModel \
-	--base-class mostlyai.sdk.client.base.CustomBaseModel \
-	--custom-template-dir tools/custom_template
 
 .PHONY: clean
 clean: ## Remove .gitignore files

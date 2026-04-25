@@ -18,7 +18,6 @@ from typing import Any, Literal
 
 import pandas as pd
 import rich
-from rich.prompt import Prompt
 
 from mostlyai import sdk
 from mostlyai.sdk.client._base_utils import convert_to_base64, read_table_from_path
@@ -31,7 +30,6 @@ from mostlyai.sdk.client._utils import (
 from mostlyai.sdk.client.artifacts import _MostlyArtifactsClient
 from mostlyai.sdk.client.base import DEFAULT_BASE_URL, GET, _MostlyBaseClient
 from mostlyai.sdk.client.connectors import _MostlyConnectorsClient
-from mostlyai.sdk.client.datasets import _MostlyDatasetsClient
 from mostlyai.sdk.client.exceptions import APIError
 from mostlyai.sdk.client.generators import _MostlyGeneratorsClient
 from mostlyai.sdk.client.integrations import _MostlyIntegrationsClient
@@ -56,13 +54,13 @@ from mostlyai.sdk.domain import (
 
 class MostlyAI(_MostlyBaseClient):
     """
-    Instantiate an SDK instance, either in CLIENT or in LOCAL mode.
+    Instantiate an SDK instance in LOCAL mode by default, or in explicit CLIENT mode.
 
     Args:
-        base_url (str | None): The base URL. If not provided, env var `MOSTLY_BASE_URL` is used if available, otherwise `https://app.mostly.ai`.
+        base_url (str | None): Base URL for a remote endpoint. Providing this switches to CLIENT mode.
         api_key (str | None): The API key for authenticating. If not provided, env var `MOSTLY_API_KEY` is used if available.
         bearer_token (str | None): The bearer token for authenticating. If not provided, env var `MOSTLY_BEARER_TOKEN` is used if available. Takes precedence over api_key.
-        local (bool | None): Whether to run in local mode or not. If not provided, user is prompted to choose between CLIENT and LOCAL mode.
+        local (bool | None): Explicit mode selector. `False` enforces CLIENT mode. `True` enforces LOCAL mode.
         local_dir (str | Path | None): The directory to use for local mode. If not provided, `~/mostlyai` is used.
         local_port (int | None): The port to use for local mode with TCP transport. If not provided, UDS transport is used.
         timeout (float): Timeout for HTTPS requests in seconds. Default is 60 seconds.
@@ -75,10 +73,10 @@ class MostlyAI(_MostlyBaseClient):
         from mostlyai.sdk import MostlyAI
         mostly = MostlyAI(
             api_key='INSERT_YOUR_API_KEY',
-            base_url='https://app.mostly.ai',
+            base_url='https://remote-sdk.example.com',
         )
         mostly
-        # MostlyAI(base_url='https://app.mostly.ai', api_key='***')
+        # MostlyAI(base_url='https://remote-sdk.example.com', api_key='***')
         ```
 
     Example for SDK in CLIENT mode with bearer token:
@@ -86,10 +84,10 @@ class MostlyAI(_MostlyBaseClient):
         from mostlyai.sdk import MostlyAI
         mostly = MostlyAI(
             bearer_token='INSERT_YOUR_BEARER_TOKEN',
-            base_url='https://app.mostly.ai',
+            base_url='https://remote-sdk.example.com',
         )
         mostly
-        # MostlyAI(base_url='https://app.mostly.ai', bearer_token='***')
+        # MostlyAI(base_url='https://remote-sdk.example.com', bearer_token='***')
         ```
 
     Example for SDK in CLIENT mode with environment variables:
@@ -97,10 +95,10 @@ class MostlyAI(_MostlyBaseClient):
         import os
         from mostlyai.sdk import MostlyAI
         os.environ["MOSTLY_API_KEY"] = "INSERT_YOUR_API_KEY"
-        os.environ["MOSTLY_BASE_URL"] = "https://app.mostly.ai"
+        os.environ["MOSTLY_BASE_URL"] = "https://remote-sdk.example.com"
         mostly = MostlyAI()
         mostly
-        # MostlyAI(base_url='https://app.mostly.ai', api_key='***')
+        # MostlyAI(base_url='https://remote-sdk.example.com', api_key='***')
         ```
 
     Example for SDK in CLIENT mode with bearer token environment variable:
@@ -108,10 +106,10 @@ class MostlyAI(_MostlyBaseClient):
         import os
         from mostlyai.sdk import MostlyAI
         os.environ["MOSTLY_BEARER_TOKEN"] = "INSERT_YOUR_BEARER_TOKEN"
-        os.environ["MOSTLY_BASE_URL"] = "https://app.mostly.ai"
+        os.environ["MOSTLY_BASE_URL"] = "https://remote-sdk.example.com"
         mostly = MostlyAI()
         mostly
-        # MostlyAI(base_url='https://app.mostly.ai', bearer_token='***')
+        # MostlyAI(base_url='https://remote-sdk.example.com', bearer_token='***')
         ```
 
     Example for SDK in LOCAL mode connecting via UDS:
@@ -149,7 +147,7 @@ class MostlyAI(_MostlyBaseClient):
         # suppress deprecation warnings, also those stemming from external libs
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # determine SDK mode: either CLIENT or LOCAL mode
+        # determine SDK mode: LOCAL by default, CLIENT when explicit remote details are provided
         mode: Literal["CLIENT", "LOCAL", None] = None
         if base_url is not None or api_key is not None or bearer_token is not None:
             mode = "CLIENT"
@@ -160,35 +158,7 @@ class MostlyAI(_MostlyBaseClient):
         elif os.getenv("MOSTLY_API_KEY") or os.getenv("MOSTLY_BEARER_TOKEN"):
             mode = "CLIENT"
         else:
-            # prompt for CLIENT or LOCAL setup, if not yet determined
-            choice = Prompt.ask(
-                "Select your desired SDK mode:\n\n"
-                "1) Run in [bold]CLIENT mode[/bold] 📡, connecting to a remote MOSTLY AI platform\n\n"
-                "2) Run in [bold]LOCAL mode[/bold] 🏠, operating offline using your own compute\n\n"
-                "Enter your choice",
-                choices=["1", "2"],
-                default="1",
-            )
-            if choice == "1":
-                mode = "CLIENT"
-                base_url = os.getenv("MOSTLY_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
-                base_url = Prompt.ask("Enter the [bold]Base URL[/bold] 🌐 of the MOSTLY AI platform", default=base_url)
-                api_key_url = f"{base_url}/settings/api-keys"
-                api_key = Prompt.ask(
-                    f"Enter your [bold]API key[/bold] 🔑 for {base_url} (obtain [link={api_key_url} dodger_blue2 underline]here[/link])",
-                    default="mostly-xxx",
-                    password=True,
-                )
-                rich.print(
-                    "[dim][bold]Note[/bold]: To skip this prompt in the future, instantiate via [bold]MostlyAI(base_url=..., api_key=...)[/bold].\n\n"
-                    "Alternatively set [bold]MOSTLY_BASE_URL[/bold] and [bold]MOSTLY_API_KEY[/bold] as environment variables.[/dim]"
-                )
-            else:
-                mode = "LOCAL"
-                rich.print(
-                    "[dim][bold]Note[/bold]: To skip this prompt in the future, instantiate via [bold]MostlyAI(local=True)[/bold].\n\n"
-                    "Alternatively set [bold]MOSTLY_LOCAL=1[/bold] as an environment variable.[/dim]"
-                )
+            mode = "LOCAL"
 
         if mode == "LOCAL":
             check_local_mode_available()
@@ -227,7 +197,6 @@ class MostlyAI(_MostlyBaseClient):
         super().__init__(**client_kwargs)
         self.connectors = _MostlyConnectorsClient(**client_kwargs)
         self.generators = _MostlyGeneratorsClient(**client_kwargs)
-        self.datasets = _MostlyDatasetsClient(**client_kwargs)
         self.artifacts = _MostlyArtifactsClient(**client_kwargs)
         self.integrations = _MostlyIntegrationsClient(**client_kwargs)
         self.synthetic_datasets = _MostlySyntheticDatasetsClient(**client_kwargs)

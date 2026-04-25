@@ -16,17 +16,15 @@
 
 The SDK supports two operating modes:
 - LOCAL mode: Train and generate synthetic data locally on your own compute resources
-- CLIENT mode: Connect to a remote MOSTLY AI platform for training & generation
+- CLIENT mode: Connect to a remote SDK endpoint for training & generation
 
 Key Resources
 -------------
-The SDK manages four core resources:
+The SDK manages three core resources:
 
 1. **Generators** - Train synthetic data generators on tabular or language data
 2. **Synthetic Datasets** - Create synthetic samples from trained generators
 3. **Connectors** - Connect to data sources (databases, cloud storage)
-4. **Datasets** - Create datasets with instructions (CLIENT mode only)
-
 Core Operations
 ---------------
 - `mostly.train(config)` - Train a generator on tabular or language data
