@@ -62,13 +62,7 @@ The SDK allows you to programmatically create, browse and manage 3 key resources
 Install the SDK for LOCAL mode first (see [Installation](#installation) for further details):
 
 ```shell
-pip install -U 'mostlyai[local]'
-```
-
-For CLIENT-only usage against a remote endpoint, use:
-
-```shell
-pip install -U mostlyai
+uv pip install -U 'mostlyai[local]'
 ```
 
 Generate synthetic samples using a pre-trained generator:
