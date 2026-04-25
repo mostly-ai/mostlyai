@@ -14,9 +14,8 @@
 
 
 from mostlyai.sdk import MostlyAI
-from mostlyai.sdk.domain import AboutService
 
 
 def test_server(tmp_path):
     mostly = MostlyAI(local=True, local_dir=str(tmp_path), quiet=True)
-    assert isinstance(mostly.about(), AboutService)
+    assert mostly.local is True

@@ -162,9 +162,4 @@ c.delete()
 ## Miscellaneous
 
 ```python
-# fetch info about the SDK endpoint
-mostly.about()
-
-# list all available models
-mostly.models()
 ```

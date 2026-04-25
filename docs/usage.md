@@ -294,9 +294,6 @@ trn_df = pd.read_parquet(f'{repo_url}/raw/refs/heads/dev/headlines/headlines.par
 # instantiate SDK
 mostly = MostlyAI()
 
-# print out available LANGUAGE models
-print(mostly.models()["LANGUAGE"])
-
 # train a generator; increase max_training_time to improve quality
 g = mostly.train(config={
     'name': 'Headlines',                   # name of the generator

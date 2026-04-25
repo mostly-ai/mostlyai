@@ -26,7 +26,6 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from starlette.background import BackgroundTask
 
-from mostlyai import sdk
 from mostlyai.sdk._data.conversions import create_container_from_connector
 from mostlyai.sdk._local import connectors, generators, synthetic_datasets
 from mostlyai.sdk._local.execution.jobs import execute_probing_job
@@ -44,7 +43,6 @@ from mostlyai.sdk._local.storage import (
     write_synthetic_dataset_to_json,
 )
 from mostlyai.sdk.domain import (
-    AboutService,
     Connector,
     ConnectorConfig,
     ConnectorDeleteDataConfig,
@@ -61,7 +59,6 @@ from mostlyai.sdk.domain import (
     GeneratorPatchConfig,
     IfExists,
     JobProgress,
-    ModelType,
     Probe,
     ProgressStatus,
     SyntheticDataset,
@@ -113,20 +110,6 @@ class Routes:
             return RedirectResponse(url="/docs")
 
         ## GENERAL
-
-        @self.router.get("/about", response_model=AboutService)
-        async def get_about_service() -> AboutService:
-            return AboutService(version=sdk.__version__)
-
-        @self.router.get("/models/{model_type}")
-        async def list_models(model_type: str) -> JSONResponse:
-            if model_type == ModelType.tabular:
-                models = ["MOSTLY_AI/Small", "MOSTLY_AI/Medium", "MOSTLY_AI/Large"]
-            elif model_type == ModelType.language:
-                models = ["MOSTLY_AI/LSTMFromScratch-3m", "microsoft/phi-1_5", "(HuggingFace-hosted models)"]
-            else:
-                models = []
-            return JSONResponse(content=models)
 
         ## CONNECTORS
 

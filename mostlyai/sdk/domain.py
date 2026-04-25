@@ -29,14 +29,6 @@ from mostlyai.sdk.client._constraint_types import convert_constraint_config_to_t
 from mostlyai.sdk.client.base import CustomBaseModel
 
 
-class AboutService(CustomBaseModel):
-    """
-    General information about the service.
-    """
-
-    version: str | None = Field(None, description="The version number of the service.", examples=["4.0.0"])
-
-
 class ConnectorAccessType(str, Enum):
     """
     The access permissions of a connector.

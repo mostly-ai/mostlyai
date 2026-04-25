@@ -27,7 +27,7 @@ from mostlyai.sdk.client._utils import (
     harmonize_sd_config,
     validate_base_url,
 )
-from mostlyai.sdk.client.base import DEFAULT_BASE_URL, GET, _MostlyBaseClient
+from mostlyai.sdk.client.base import DEFAULT_BASE_URL, _MostlyBaseClient
 from mostlyai.sdk.client.connectors import _MostlyConnectorsClient
 from mostlyai.sdk.client.exceptions import APIError
 from mostlyai.sdk.client.generators import _MostlyGeneratorsClient
@@ -36,12 +36,10 @@ from mostlyai.sdk.client.synthetic_datasets import (
     _MostlySyntheticProbesClient,
 )
 from mostlyai.sdk.domain import (
-    AboutService,
     Connector,
     ConnectorConfig,
     Generator,
     GeneratorConfig,
-    ModelType,
     SourceTableConfig,
     SyntheticDataset,
     SyntheticDatasetConfig,
@@ -170,10 +168,8 @@ class MostlyAI(_MostlyBaseClient):
             rich.print(f"Initializing [bold]Synthetic Data SDK[/bold] {sdk.__version__} in [bold]CLIENT mode[/bold] 📡")
             if test_connection:
                 try:
-                    server_version = self.about().version
-                    msg = (
-                        f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/] {server_version}"
-                    )
+                    _ = next(self.generators.list(limit=1), None)
+                    msg = f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
                     rich.print(msg)
                 except Exception as e:
                     rich.print(f"Failed to connect to {self.base_url} : {e}")
@@ -417,7 +413,7 @@ class MostlyAI(_MostlyBaseClient):
                             'location': None,                        # - together with a table location
                             'primary_key': 'id',                     # specify the primary key column, if one is present
                             'tabular_model_configuration': {         # see `mostlyai.sdk.domain.ModelConfiguration`; all settings are optional!
-                                'model': 'MOSTLY_AI/Medium',         # check `mostly.models()` for available models
+                                'model': 'MOSTLY_AI/Medium',
                                 'batch_size': None,                  # set a custom physical training batch size
                                 'max_sample_size': 100_000,          # cap sample size to 100k; set to None for max accuracy
                                 'max_epochs': 50,                    # cap training to 50 epochs; set to None for max accuracy
@@ -532,9 +528,6 @@ class MostlyAI(_MostlyBaseClient):
             # instantiate SDK
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
-
-            # print out available LANGUAGE models
-            print(mostly.models()["LANGUAGE"])
 
             # train a generator
             g = mostly.train(config={
@@ -820,40 +813,3 @@ class MostlyAI(_MostlyBaseClient):
             return list(dfs.values())[0]
         else:
             return dfs
-
-    def about(self) -> AboutService:
-        """
-        Retrieve information about the SDK endpoint.
-
-        Returns:
-            AboutService: Information about the platform.
-
-        Example for retrieving information about the platform:
-            ```python
-            from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI()
-            mostly.about()
-            # {'version': 'v316'}
-            ```
-        """
-        return self.request(verb=GET, path=["about"], response_type=AboutService)
-
-    def models(self) -> dict[str : list[str]]:
-        """
-        Retrieve a list of available models of a specific type.
-
-        Returns:
-            dict[str, list[str]]: A dictionary with list of available models for each ModelType.
-
-        Example for retrieving available models:
-            ```python
-            from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI()
-            mostly.models()
-            # {
-            #    'TABULAR": ['MOSTLY_AI/Small', 'MOSTLY_AI/Medium', 'MOSTLY_AI/Large'],
-            #    'LANGUAGE": ['MOSTLY_AI/LSTMFromScratch-3m', 'microsoft/phi-1_5', ..],
-            # }
-            ```
-        """
-        return {model_type.value: self.request(verb=GET, path=["models", model_type.value]) for model_type in ModelType}
