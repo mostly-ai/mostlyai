@@ -55,7 +55,6 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         access_type: str | None = None,
         created_from: str | None = None,
         created_to: str | None = None,
-        sort_by: str | list[str] | None = None,
     ) -> Iterator[ConnectorListItem]:
         """
         List connectors.
@@ -77,7 +76,6 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             access_type: Filter by access type (e.g., READ_PROTECTED, READ_DATA or WRITE_DATA).
             created_from: Filter by creation date, not older than this date. Format: YYYY-MM-DD.
             created_to: Filter by creation date, not younger than this date. Format: YYYY-MM-DD.
-            sort_by: Sort by field (for example `RECENCY`).
 
         Returns:
             Iterator[ConnectorListItem]: An iterator over connector list items.
@@ -91,7 +89,6 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             access_type=access_type,
             created_from=created_from,
             created_to=created_to,
-            sort_by=sort_by,
         ) as paginator:
             yield from paginator
 

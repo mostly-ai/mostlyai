@@ -57,7 +57,6 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         search_term: str | None = None,
         created_from: str | None = None,
         created_to: str | None = None,
-        sort_by: str | list[str] | None = None,
     ) -> Iterator[GeneratorListItem]:
         """
         List generators.
@@ -71,7 +70,6 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             search_term: Filter by name or description.
             created_from: Filter by creation date, not older than this date. Format: YYYY-MM-DD.
             created_to: Filter by creation date, not younger than this date. Format: YYYY-MM-DD.
-            sort_by: Sort by field (for example `RECENCY`).
 
         Returns:
             Iterator[GeneratorListItem]: An iterator over generator list items.
@@ -102,7 +100,6 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             search_term=search_term,
             created_from=created_from,
             created_to=created_to,
-            sort_by=sort_by,
         ) as paginator:
             yield from paginator
 
