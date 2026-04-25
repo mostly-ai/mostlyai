@@ -10,17 +10,12 @@ hide:
 ```python
 from mostlyai.sdk import MostlyAI
 
-# local mode (with TCP port)
-mostly = MostlyAI(
-    local=True,
-    local_dir='~/mostlyai',
-    local_port=8080,
-)
+# local mode (default)
+mostly = MostlyAI(local_dir='~/mostlyai')
 
-# client mode
+# client mode (explicit remote endpoint)
 mostly = MostlyAI(
     base_url='https://remote-sdk.example.com', # or set env var `MOSTLY_BASE_URL`
-    api_key='INSERT_YOUR_API_KEY',    # or set env var `MOSTLY_API_KEY`
 )
 ```
 
@@ -167,10 +162,7 @@ c.delete()
 ## Miscellaneous
 
 ```python
-# fetch info on your user account
-mostly.me()
-
-# fetch info about the platform
+# fetch info about the SDK endpoint
 mostly.about()
 
 # list all available models

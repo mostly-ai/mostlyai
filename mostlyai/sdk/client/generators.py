@@ -55,8 +55,6 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         limit: int | None = None,
         status: str | list[str] | None = None,
         search_term: str | None = None,
-        owner_id: str | list[str] | None = None,
-        visibility: str | list[str] | None = None,
         created_from: str | None = None,
         created_to: str | None = None,
         sort_by: str | list[str] | None = None,
@@ -71,8 +69,6 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             limit: Limit for the number of entities in the response.
             status: Filter by training status.
             search_term: Filter by name or description.
-            owner_id: Filter by owner ID.
-            visibility: Filter by visibility (e.g., PUBLIC, PRIVATE or UNLISTED).
             created_from: Filter by creation date, not older than this date. Format: YYYY-MM-DD.
             created_to: Filter by creation date, not younger than this date. Format: YYYY-MM-DD.
             sort_by: Sort by field. Either NO_OF_THREADS, NO_OF_LIKES, RECENCY, or NO_OF_SYNTHETIC_DATASETS.
@@ -104,8 +100,6 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
             limit=limit,
             status=status,
             search_term=search_term,
-            owner_id=owner_id,
-            visibility=visibility,
             created_from=created_from,
             created_to=created_to,
             sort_by=sort_by,
@@ -319,14 +313,12 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         generator_id: str,
         source_table_id: str,
         model_type: ModelType = ModelType.tabular,
-        short_lived_file_token: str | None = None,
     ) -> tuple[str, str | None]:
         response = self.request(
             verb=GET,
             path=[generator_id, "tables", source_table_id, "report"],
             params={
                 "modelType": model_type.upper() if isinstance(model_type, str) else model_type.value,
-                "slft": short_lived_file_token,
             },
             headers={
                 "Accept": "text/html, text/plain, */*",
@@ -350,13 +342,10 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
         generator = self.get(generator_id)
         return generator
 
-    def _training_logs(self, generator_id: str, short_lived_file_token: str | None = None) -> tuple[bytes, str]:
+    def _training_logs(self, generator_id: str) -> tuple[bytes, str]:
         response = self.request(
             verb=GET,
             path=[generator_id, "training", "logs"],
-            params={
-                "slft": short_lived_file_token,
-            },
             headers={
                 "Content-Type": "application/zip",
                 "Accept": "application/json, text/plain, */*",

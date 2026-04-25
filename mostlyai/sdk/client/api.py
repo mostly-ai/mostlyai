@@ -55,8 +55,6 @@ class MostlyAI(_MostlyBaseClient):
 
     Args:
         base_url (str | None): Base URL for a remote endpoint. Providing this switches to CLIENT mode.
-        api_key (str | None): The API key for authenticating. If not provided, env var `MOSTLY_API_KEY` is used if available.
-        bearer_token (str | None): The bearer token for authenticating. If not provided, env var `MOSTLY_BEARER_TOKEN` is used if available. Takes precedence over api_key.
         local (bool | None): Explicit mode selector. `False` enforces CLIENT mode. `True` enforces LOCAL mode.
         local_dir (str | Path | None): The directory to use for local mode. If not provided, `~/mostlyai` is used.
         local_port (int | None): The port to use for local mode with TCP transport. If not provided, UDS transport is used.
@@ -69,44 +67,10 @@ class MostlyAI(_MostlyBaseClient):
         ```python
         from mostlyai.sdk import MostlyAI
         mostly = MostlyAI(
-            api_key='INSERT_YOUR_API_KEY',
             base_url='https://remote-sdk.example.com',
         )
         mostly
-        # MostlyAI(base_url='https://remote-sdk.example.com', api_key='***')
-        ```
-
-    Example for SDK in CLIENT mode with bearer token:
-        ```python
-        from mostlyai.sdk import MostlyAI
-        mostly = MostlyAI(
-            bearer_token='INSERT_YOUR_BEARER_TOKEN',
-            base_url='https://remote-sdk.example.com',
-        )
-        mostly
-        # MostlyAI(base_url='https://remote-sdk.example.com', bearer_token='***')
-        ```
-
-    Example for SDK in CLIENT mode with environment variables:
-        ```python
-        import os
-        from mostlyai.sdk import MostlyAI
-        os.environ["MOSTLY_API_KEY"] = "INSERT_YOUR_API_KEY"
-        os.environ["MOSTLY_BASE_URL"] = "https://remote-sdk.example.com"
-        mostly = MostlyAI()
-        mostly
-        # MostlyAI(base_url='https://remote-sdk.example.com', api_key='***')
-        ```
-
-    Example for SDK in CLIENT mode with bearer token environment variable:
-        ```python
-        import os
-        from mostlyai.sdk import MostlyAI
-        os.environ["MOSTLY_BEARER_TOKEN"] = "INSERT_YOUR_BEARER_TOKEN"
-        os.environ["MOSTLY_BASE_URL"] = "https://remote-sdk.example.com"
-        mostly = MostlyAI()
-        mostly
-        # MostlyAI(base_url='https://remote-sdk.example.com', bearer_token='***')
+        # MostlyAI(base_url='https://remote-sdk.example.com')
         ```
 
     Example for SDK in LOCAL mode connecting via UDS:
@@ -129,8 +93,6 @@ class MostlyAI(_MostlyBaseClient):
     def __init__(
         self,
         base_url: str | None = None,
-        api_key: str | None = None,
-        bearer_token: str | None = None,
         local: bool | None = None,
         local_dir: str | Path | None = None,
         local_port: int | None = None,
@@ -146,14 +108,12 @@ class MostlyAI(_MostlyBaseClient):
 
         # determine SDK mode: LOCAL by default, CLIENT when explicit remote details are provided
         mode: Literal["CLIENT", "LOCAL", None] = None
-        if base_url is not None or api_key is not None or bearer_token is not None:
+        if base_url is not None:
             mode = "CLIENT"
         elif local is not None:
             mode = "LOCAL" if bool(local) else "CLIENT"
         elif os.getenv("MOSTLY_LOCAL"):
             mode = "LOCAL" if os.getenv("MOSTLY_LOCAL").lower()[:1] in ["1", "t", "y"] else "CLIENT"
-        elif os.getenv("MOSTLY_API_KEY") or os.getenv("MOSTLY_BEARER_TOKEN"):
-            mode = "CLIENT"
         else:
             mode = "LOCAL"
 
@@ -164,16 +124,11 @@ class MostlyAI(_MostlyBaseClient):
             self.local_server = LocalServer(home_dir=local_dir, port=local_port)
             home_dir = self.local_server.home_dir
             base_url = self.local_server.base_url
-            api_key = "local"
             uds = self.local_server.uds
         elif mode == "CLIENT":
             if base_url is None:
-                base_url = os.getenv("MOSTLY_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
+                base_url = DEFAULT_BASE_URL
             validate_base_url(base_url)
-            if api_key is None:
-                api_key = os.getenv("MOSTLY_API_KEY", "")
-            if bearer_token is None:
-                bearer_token = os.getenv("MOSTLY_BEARER_TOKEN", "")
             home_dir = None
             uds = None
         else:
@@ -185,8 +140,6 @@ class MostlyAI(_MostlyBaseClient):
 
         client_kwargs = {
             "base_url": base_url,
-            "api_key": api_key,
-            "bearer_token": bearer_token,
             "uds": uds,
             "timeout": timeout,
             "ssl_verify": ssl_verify,
@@ -232,9 +185,7 @@ class MostlyAI(_MostlyBaseClient):
             if self.local_server.uds:
                 return "MostlyAI(local=True)"
             return f"MostlyAI(local=True, local_port={self.local_server.port})"
-        if self.bearer_token:
-            return f"MostlyAI(base_url='{self.base_url}', bearer_token=***)"
-        return f"MostlyAI(base_url='{self.base_url}', api_key=***)"
+        return f"MostlyAI(base_url='{self.base_url}')"
 
     def connect(
         self,
@@ -872,7 +823,7 @@ class MostlyAI(_MostlyBaseClient):
 
     def about(self) -> AboutService:
         """
-        Retrieve information about the platform.
+        Retrieve information about the SDK endpoint.
 
         Returns:
             AboutService: Information about the platform.
@@ -882,7 +833,7 @@ class MostlyAI(_MostlyBaseClient):
             from mostlyai.sdk import MostlyAI
             mostly = MostlyAI()
             mostly.about()
-            # {'version': 'v316', 'assistant': True}
+            # {'version': 'v316'}
             ```
         """
         return self.request(verb=GET, path=["about"], response_type=AboutService)

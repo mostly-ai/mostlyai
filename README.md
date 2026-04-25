@@ -13,7 +13,6 @@ The **Synthetic Data SDK** is a Python toolkit for high-fidelity, privacy-safe *
 
 - **LOCAL** mode trains and generates synthetic data locally on your own compute resources (default).
 - **CLIENT** mode connects to a remote SDK endpoint for training & generating synthetic data there.
-- Generators, that were trained locally, can be easily imported to a platform for further sharing.
 
 ## Overview
 
@@ -29,8 +28,6 @@ The SDK allows you to programmatically create, browse and manage 3 key resources
 | Generate any number of synthetic data records | `sd = mostly.generate(g, config)` | [mostly.generate](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.generate) |
 | Live probe the generator on demand            | `df = mostly.probe(g, config)`    | [mostly.probe](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.probe)       |
 | Connect to any data source within your org    | `c = mostly.connect(config)`      | [mostly.connect](https://mostly-ai.github.io/mostlyai/api_client/#mostlyai.sdk.client.api.MostlyAI.connect)   |
-
-https://github.com/user-attachments/assets/9e233213-a259-455c-b8ed-d1f1548b492f
 
 ## Key Features
 

@@ -53,8 +53,6 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
         limit: int | None = None,
         search_term: str | None = None,
         access_type: str | None = None,
-        owner_id: str | list[str] | None = None,
-        visibility: str | list[str] | None = None,
         created_from: str | None = None,
         created_to: str | None = None,
         sort_by: str | list[str] | None = None,
@@ -77,8 +75,6 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             limit: Limit for the number of entities in the response.
             search_term: Filter by search term in the name and description.
             access_type: Filter by access type (e.g., READ_PROTECTED, READ_DATA or WRITE_DATA).
-            owner_id: Filter by owner ID.
-            visibility: Filter by visibility (e.g., PUBLIC, PRIVATE or UNLISTED).
             created_from: Filter by creation date, not older than this date. Format: YYYY-MM-DD.
             created_to: Filter by creation date, not younger than this date. Format: YYYY-MM-DD.
             sort_by: Sort by field. Either NO_OF_THREADS, NO_OF_LIKES, RECENCY or NO_OF_GENERATORS.
@@ -93,8 +89,6 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             limit=limit,
             search_term=search_term,
             access_type=access_type,
-            owner_id=owner_id,
-            visibility=visibility,
             created_from=created_from,
             created_to=created_to,
             sort_by=sort_by,

@@ -116,7 +116,7 @@ class Routes:
 
         @self.router.get("/about", response_model=AboutService)
         async def get_about_service() -> AboutService:
-            return AboutService(version=sdk.__version__, assistant=False)
+            return AboutService(version=sdk.__version__)
 
         @self.router.get("/models/{model_type}")
         async def list_models(model_type: str) -> JSONResponse:

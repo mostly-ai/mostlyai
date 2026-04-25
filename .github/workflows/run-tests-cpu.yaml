@@ -67,7 +67,6 @@ jobs:
 
       - name: Test | End-to-End (Client mode only)
         env:
-          MOSTLY_API_KEY: ${{ secrets.E2E_CLIENT_MOSTLY_API_KEY }}
           MOSTLY_BASE_URL: ${{ secrets.E2E_CLIENT_MOSTLY_BASE_URL }}
           E2E_CLIENT_S3_ACCESS_KEY: ${{ secrets.E2E_CLIENT_S3_ACCESS_KEY }}
           E2E_CLIENT_S3_SECRET_KEY: ${{ secrets.E2E_CLIENT_S3_SECRET_KEY }}

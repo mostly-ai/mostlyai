@@ -26,7 +26,7 @@ from mostlyai.sdk.client.exceptions import APIError, APIStatusError
 @pytest.fixture
 def mostly_base_client():
     """Fixture to provide a _MostlyBaseClient instance."""
-    return _MostlyBaseClient(api_key="test_api_key")
+    return _MostlyBaseClient()
 
 
 @pytest.fixture
@@ -34,20 +34,18 @@ def more_specific_client():
     class MoreSpecificClient(_MostlyBaseClient):
         SECTION = ["more", "specific"]
 
-    return MoreSpecificClient(api_key="test_api_key")
+    return MoreSpecificClient()
 
 
 class TestMostlyBaseClient:
     def test_initialization(self):
-        # Test with all parameters provided
-        client = _MostlyBaseClient(base_url="https://custom.url", api_key="12345")
+        # Test with custom base_url
+        client = _MostlyBaseClient(base_url="https://custom.url")
         assert client.base_url == "https://custom.url"
-        assert client.api_key == "12345"
 
-        # Test with all required parameters provided
-        client = _MostlyBaseClient(api_key="12345")
+        # Test with default parameters
+        client = _MostlyBaseClient()
         assert client.base_url == DEFAULT_BASE_URL
-        assert client.api_key == "12345"
 
     @respx.mock
     def test_request_success(self, mostly_base_client):

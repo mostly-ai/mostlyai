@@ -54,8 +54,6 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         limit: int | None = None,
         status: str | list[str] | None = None,
         search_term: str | None = None,
-        owner_id: str | list[str] | None = None,
-        visibility: str | list[str] | None = None,
         created_from: str | None = None,
         created_to: str | None = None,
         sort_by: str | list[str] | None = None,
@@ -70,8 +68,6 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             limit: Limit for the number of entities in the response.
             status: Filter by generation status.
             search_term: Filter by name or description.
-            owner_id: Filter by owner ID.
-            visibility: Filter by visibility (e.g., PUBLIC, PRIVATE or UNLISTED).
             created_from: Filter by creation date, not older than this date. Format: YYYY-MM-DD.
             created_to: Filter by creation date, not younger than this date. Format: YYYY-MM-DD.
             sort_by: Sort by field. Either NO_OF_THREADS, NO_OF_LIKES, RECENCY, or NO_OF_DOWNLOADS.
@@ -103,8 +99,6 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             limit=limit,
             status=status,
             search_term=search_term,
-            owner_id=owner_id,
-            visibility=visibility,
             created_from=created_from,
             created_to=created_to,
             sort_by=sort_by,
@@ -214,14 +208,12 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         self,
         synthetic_dataset_id: str,
         ds_format: SyntheticDatasetFormat = SyntheticDatasetFormat.parquet,
-        short_lived_file_token: str | None = None,
     ) -> tuple[bytes, str | None]:
         response = self.request(
             verb=GET,
             path=[synthetic_dataset_id, "download"],
             params={
                 "format": ds_format.upper() if isinstance(ds_format, str) else ds_format.value,
-                "slft": short_lived_file_token,
             },
             headers={
                 "Content-Type": "application/zip",
@@ -238,12 +230,11 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             filename = f"synthetic-dataset-{synthetic_dataset_id[:8]}.zip"
         return content_bytes, filename
 
-    def _data(self, synthetic_dataset_id: str, short_lived_file_token: str | None) -> dict[str, pd.DataFrame]:
+    def _data(self, synthetic_dataset_id: str) -> dict[str, pd.DataFrame]:
         # download pqt
         pqt_zip_bytes, filename = self._download(
             synthetic_dataset_id=synthetic_dataset_id,
             ds_format=SyntheticDatasetFormat.parquet,
-            short_lived_file_token=short_lived_file_token,
         )
         # read each parquet file into a pandas dataframe
         with zipfile.ZipFile(io.BytesIO(pqt_zip_bytes), "r") as z:
@@ -262,7 +253,6 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         synthetic_table_id: str,
         model_type: ModelType = ModelType.tabular,
         report_type: SyntheticDatasetReportType = SyntheticDatasetReportType.model,
-        short_lived_file_token: str | None = None,
     ) -> tuple[str, str | None]:
         response = self.request(
             verb=GET,
@@ -270,7 +260,6 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             params={
                 "modelType": model_type.upper() if isinstance(model_type, str) else model_type.value,
                 "reportType": report_type.upper() if isinstance(report_type, str) else report_type.value,
-                "slft": short_lived_file_token,
             },
             headers={
                 "Accept": "text/html, text/plain, */*",
@@ -302,15 +291,10 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
         synthetic_dataset = self.get(synthetic_dataset_id)
         return synthetic_dataset
 
-    def _generation_logs(
-        self, synthetic_dataset_id: str, short_lived_file_token: str | None = None
-    ) -> tuple[bytes, str]:
+    def _generation_logs(self, synthetic_dataset_id: str) -> tuple[bytes, str]:
         response = self.request(
             verb=GET,
             path=[synthetic_dataset_id, "generation", "logs"],
-            params={
-                "slft": short_lived_file_token,
-            },
             headers={
                 "Content-Type": "application/zip",
                 "Accept": "application/json, text/plain, */*",

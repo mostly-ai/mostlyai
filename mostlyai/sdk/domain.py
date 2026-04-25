@@ -35,7 +35,6 @@ class AboutService(CustomBaseModel):
     """
 
     version: str | None = Field(None, description="The version number of the service.", examples=["4.0.0"])
-    assistant: bool | None = Field(None, description="A flag indicating if the assistant is enabled.")
 
 
 class ConnectorAccessType(str, Enum):
@@ -108,7 +107,7 @@ class ConnectorUsage(CustomBaseModel):
     )
     no_of_likes: int | None = Field(None, alias="noOfLikes", description="Number of likes of this connector.")
     no_of_threads: int | None = Field(
-        None, alias="noOfThreads", description="Number of assistant threads using this connector."
+        None, alias="noOfThreads", description="Number of thread sessions associated with this connector."
     )
 
 
@@ -369,7 +368,7 @@ class GeneratorUsage(CustomBaseModel):
     )
     no_of_likes: int | None = Field(None, alias="noOfLikes", description="Number of likes of this generator.")
     no_of_threads: int | None = Field(
-        None, alias="noOfThreads", description="Number of assistant threads using this generator."
+        None, alias="noOfThreads", description="Number of thread sessions associated with this generator."
     )
 
 
@@ -603,7 +602,7 @@ class SyntheticDatasetUsage(CustomBaseModel):
         None, alias="noOfDownloads", description="Number of downloads of this synthetic dataset."
     )
     no_of_threads: int | None = Field(
-        None, alias="noOfThreads", description="Number of assistant threads using this synthetic dataset."
+        None, alias="noOfThreads", description="Number of thread sessions associated with this synthetic dataset."
     )
 
 
@@ -632,42 +631,6 @@ class SyntheticDatasetDelivery(CustomBaseModel):
         ..., alias="destinationConnectorId", description="The unique identifier of a connector."
     )
     location: str = Field(..., description="The location for the destination connector.")
-
-
-class ComputeResources(CustomBaseModel):
-    """
-    A set of available hardware resources for a compute resource.
-    """
-
-    cpus: int | None = Field(None, description="The number of CPU cores")
-    memory: float | None = Field(None, description="The amount of memory in GB")
-    gpus: int | None = Field(0, description="The number of GPUs")
-    gpu_memory: float | None = Field(0, alias="gpuMemory", description="The amount of GPU memory in GB")
-    storage: float | None = Field(4, description="Ephemeral storage in GiB (Kubernetes only)")
-
-
-class Visibility(str, Enum):
-    """
-    Indicates the visibility of the resource.
-
-    - `PUBLIC` - Everyone can access the resource.
-    - `UNLISTED`- Anyone with the direct link can access the resource. No public listings.
-    - `PRIVATE` - Accessible only by the owner. For organizations, all members can access.
-
-    """
-
-    public = "PUBLIC"
-    private = "PRIVATE"
-    unlisted = "UNLISTED"
-
-
-class AccountType(str, Enum):
-    """
-    The type of account, either a user or an organization.
-    """
-
-    user = "USER"
-    organization = "ORGANIZATION"
 
 
 class ModelType(str, Enum):
@@ -1051,25 +1014,6 @@ class Metadata(CustomBaseModel):
         alias="createdAt",
         description="The UTC date and time when the resource has been created.",
         examples=["2023‐09‐07T18:40:39Z"],
-    )
-    owner_id: str | None = Field(
-        None, alias="ownerId", description="The unique identifier of an account (either a user or an organization)."
-    )
-    owner_name: str | None = Field(
-        None, alias="ownerName", description="The name of an account (either a user or an organization)."
-    )
-    owner_type: AccountType | None = Field(None, alias="ownerType")
-    owner_image: str | None = Field(None, alias="ownerImage", description="The URL of the account's image.")
-    visibility: Visibility | None = None
-    current_user_like_status: bool | None = Field(
-        None,
-        alias="currentUserLikeStatus",
-        description="A boolean indicating whether the user has liked the entity or not",
-    )
-    short_lived_file_token: str | None = Field(
-        None,
-        alias="shortLivedFileToken",
-        description="An auto-generated short-lived file token (`slft`) for accessing resource artifacts.\nThe token is always restricted to a single resource, only valid for 60 minutes, and\nonly accepted by API endpoints that allow to download single files.\n",
     )
 
 
@@ -1547,7 +1491,6 @@ class ProgressStep(CustomBaseModel):
         description="The UTC date and time when the job has ended.\nIf the job is still, then this is None.\n",
         examples=["2024-01-25T12:34:56Z"],
     )
-    compute_resources: ComputeResources | None = Field(None, alias="computeResources")
     messages: list[dict[str, Any]] | None = None
     error_message: str | None = Field(None, alias="errorMessage")
     progress: ProgressValue | None = None
@@ -2193,17 +2136,11 @@ class Generator(CustomBaseModel):
         for table in self.tables:
             if table.tabular_model_metrics:
                 reports[f"{table.name}-tabular.html"] = self.client._report(
-                    generator_id=self.id,
-                    source_table_id=table.id,
-                    model_type="TABULAR",
-                    short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
+                    generator_id=self.id, source_table_id=table.id, model_type="TABULAR"
                 )
             if table.language_model_metrics:
                 reports[f"{table.name}-language.html"] = self.client._report(
-                    generator_id=self.id,
-                    source_table_id=table.id,
-                    model_type="LANGUAGE",
-                    short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
+                    generator_id=self.id, source_table_id=table.id, model_type="LANGUAGE"
                 )
         if display and rich.console._is_jupyter():
             import html
@@ -2281,12 +2218,7 @@ class Generator(CustomBaseModel):
             Returns:
                 Path: The path to the saved file.
             """
-            bytes, filename = self.generator.client._training_logs(
-                generator_id=self.generator.id,
-                short_lived_file_token=self.generator.metadata.short_lived_file_token
-                if self.generator.metadata
-                else None,
-            )
+            bytes, filename = self.generator.client._training_logs(generator_id=self.generator.id)
             file_path = Path(file_path or ".")
             if file_path.is_dir():
                 file_path = file_path / filename
@@ -2476,11 +2408,7 @@ class SyntheticDataset(CustomBaseModel):
         Returns:
             Path: The path to the saved file.
         """
-        bytes, filename = self.client._download(
-            synthetic_dataset_id=self.id,
-            ds_format=format.upper(),
-            short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
-        )
+        bytes, filename = self.client._download(synthetic_dataset_id=self.id, ds_format=format.upper())
         file_path = Path(file_path or ".")
         if file_path.is_dir():
             file_path = file_path / filename
@@ -2497,10 +2425,7 @@ class SyntheticDataset(CustomBaseModel):
         Returns:
             Union[pd.DataFrame, dict[str, pd.DataFrame]]: The synthetic dataset. See return_type for the format of the return value.
         """
-        dfs = self.client._data(
-            synthetic_dataset_id=self.id,
-            short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
-        )
+        dfs = self.client._data(synthetic_dataset_id=self.id)
         if return_type == "auto" and len(dfs) == 1:
             return list(dfs.values())[0]
         else:
@@ -2532,7 +2457,6 @@ class SyntheticDataset(CustomBaseModel):
                         synthetic_table_id=table.id,
                         model_type="TABULAR",
                         report_type=report_type,
-                        short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
                     )
                 if table.language_model_metrics:
                     reports[f"{table.name}-language{report_infix}.html"] = self.client._report(
@@ -2540,7 +2464,6 @@ class SyntheticDataset(CustomBaseModel):
                         synthetic_table_id=table.id,
                         model_type="LANGUAGE",
                         report_type=report_type,
-                        short_lived_file_token=self.metadata.short_lived_file_token if self.metadata else None,
                     )
         if display and rich.console._is_jupyter():
             import html
@@ -2621,10 +2544,7 @@ class SyntheticDataset(CustomBaseModel):
                 Path: The path to the saved file.
             """
             bytes, filename = self.synthetic_dataset.client._generation_logs(
-                synthetic_dataset_id=self.synthetic_dataset.id,
-                short_lived_file_token=self.synthetic_dataset.metadata.short_lived_file_token
-                if self.synthetic_dataset.metadata
-                else None,
+                synthetic_dataset_id=self.synthetic_dataset.id
             )
             file_path = Path(file_path or ".")
             if file_path.is_dir():
