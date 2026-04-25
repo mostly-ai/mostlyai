@@ -154,7 +154,7 @@ docs = [
 ]
 
 [project.urls]
-homepage = "https://app.mostly.ai/"
+homepage = "https://mostly.ai/"
 repository = "https://github.com/mostly-ai/mostlyai"
 documentation = "https://mostly-ai.github.io/mostlyai/"
 
@@ -163,17 +163,9 @@ default-groups = ["dev", "docs"]
 
 [tool.hatch.build.targets.sdist]
 include = ["mostlyai/sdk"]
-exclude = [
-    "tools/",
-    "tools/**/*",
-]
 
 [tool.hatch.build.targets.wheel]
 include = ["mostlyai/sdk"]
-exclude = [
-    "tools/",
-    "tools/**/*",
-]
 
 [tool.hatch.metadata]
 allow-direct-references = true

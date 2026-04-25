@@ -66,10 +66,9 @@ RUN uv pip install torch==2.9.1 torchvision==0.24.1 --torch-backend=cpu
 COPY mostlyai ./mostlyai
 COPY README.md ./
 RUN uv pip install -e .
-COPY ./tools/docker_entrypoint.py /app/entrypoint.py
 
 USER nonroot
 
 EXPOSE 8080
 ENTRYPOINT [ "uv", "run", "--no-sync", "--project", "/app", "--"]
-CMD ["/app/entrypoint.py"]
+CMD ["python", "-m", "mostlyai.sdk._local.docker_entrypoint"]

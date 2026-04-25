@@ -60,10 +60,8 @@ class LocalServer:
         self._app = FastAPI(
             root_path="/api/v2",
             title="Synthetic Data SDK ✨",
-            description="Welcome! This is your Local Server instance of the Synthetic Data SDK. "
-            "Connect via the MOSTLY AI client to train models and generate synthetic data locally. "
-            "Share the knowledge of your synthetic data generators with your team or the world by "
-            "deploying these then to a MOSTLY AI platform. Enjoy!",
+            description="Welcome! This is your local Synthetic Data SDK server instance. "
+            "Connect via the MOSTLY AI SDK client to train models and generate synthetic data.",
             version="1.0.0",
         )
         routes = Routes(self.home_dir)
