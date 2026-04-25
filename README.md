@@ -59,7 +59,7 @@ The SDK allows you to programmatically create, browse and manage 3 key resources
 
 ## Quick Start <a href="https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb" target="_blank"><img src="https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab" alt="Run on Colab"></a>
 
-Install the SDK for LOCAL mode first (see [Installation](#installation) for further details):
+Install the SDK for LOCAL mode (see [Installation](#installation) for further details):
 
 ```shell
 uv pip install -U 'mostlyai[local]'
