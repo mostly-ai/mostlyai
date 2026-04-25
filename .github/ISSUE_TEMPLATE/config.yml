@@ -1,6 +1,1 @@
 blank_issues_enabled: false  # Disables the option to create blank issues
-
-contact_links:
-  - name: Contact Support
-    url: mailto:support@mostly.ai
-    about: For any support-related queries, please email us directly at support@mostly.ai.

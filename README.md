@@ -59,10 +59,16 @@ The SDK allows you to programmatically create, browse and manage 3 key resources
 
 ## Quick Start <a href="https://colab.research.google.com/github/mostly-ai/mostlyai/blob/main/docs/tutorials/getting-started/getting-started.ipynb" target="_blank"><img src="https://img.shields.io/badge/Open%20in-Colab-blue?logo=google-colab" alt="Run on Colab"></a>
 
-Install the SDK via `pip` (see [Installation](#installation) for further details):
+Install the SDK for LOCAL mode first (see [Installation](#installation) for further details):
 
 ```shell
-pip install -U mostlyai  # or 'mostlyai[local]' for LOCAL mode
+pip install -U 'mostlyai[local]'
+```
+
+For CLIENT-only usage against a remote endpoint, use:
+
+```shell
+pip install -U mostlyai
 ```
 
 Generate synthetic samples using a pre-trained generator:
@@ -188,17 +194,9 @@ uv run --with jupyter jupyter lab
 
 </details>
 
-### CLIENT mode
+### LOCAL mode (default)
 
-This is a light-weight installation for using the SDK in explicit CLIENT mode only. It communicates to a remote SDK endpoint to perform requested tasks.
-
-```shell
-uv pip install -U mostlyai
-```
-
-### CLIENT + LOCAL mode
-
-This is a full installation for using the SDK in both CLIENT and LOCAL mode. It includes all dependencies, incl. PyTorch, for training and generating synthetic data locally.
+This is the recommended installation for running the SDK in LOCAL mode (and optionally CLIENT mode as well). It includes all dependencies, incl. PyTorch, for training and generating synthetic data locally.
 
 ```shell
 uv pip install -U 'mostlyai[local]'
@@ -220,6 +218,14 @@ uv pip install --index-strategy unsafe-first-match -U torch==2.9.1+cpu torchvisi
 ```shell
 # standard pip install
 pip install -U torch==2.9.1+cpu torchvision==0.24.1+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
+```
+
+### CLIENT mode
+
+This is a light-weight installation for explicit CLIENT-only usage against a remote SDK endpoint.
+
+```shell
+uv pip install -U mostlyai
 ```
 
 
