@@ -175,7 +175,4 @@ mostly.about()
 
 # list all available models
 mostly.models()
-
-# list all available computes
-mostly.computes()
 ```

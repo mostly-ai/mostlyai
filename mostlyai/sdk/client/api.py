@@ -906,19 +906,3 @@ class MostlyAI(_MostlyBaseClient):
             ```
         """
         return {model_type.value: self.request(verb=GET, path=["models", model_type.value]) for model_type in ModelType}
-
-    def computes(self) -> list[dict[str, Any]]:
-        """
-        Retrieve a list of available compute resources, that can be used for executing tasks.
-        Returns:
-            list[dict[str, Any]]: A list of available compute resources.
-
-        Example for retrieving available compute resources:
-            ```python
-            from mostlyai.sdk import MostlyAI
-            mostly = MostlyAI()
-            mostly.computes()
-            # [{'id': '...', 'name': 'CPU Large',...]
-            ```
-        """
-        return self.request(verb=GET, path=["computes"])

@@ -646,17 +646,6 @@ class ComputeResources(CustomBaseModel):
     storage: float | None = Field(4, description="Ephemeral storage in GiB (Kubernetes only)")
 
 
-class ComputeListItem(CustomBaseModel):
-    """
-    Essential compute details for listings.
-    """
-
-    id: str | None = Field(None, description="The unique identifier of a compute resource. Not applicable for SDK.")
-    type: Literal["KUBERNETES"] | None = Field(None, description="The type of compute.")
-    name: str | None = Field(None, description="The name of a compute resource.", min_length=1)
-    resources: ComputeResources | None = None
-
-
 class Visibility(str, Enum):
     """
     Indicates the visibility of the resource.
