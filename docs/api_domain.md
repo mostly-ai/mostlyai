@@ -13,11 +13,3 @@ This module is maintained manually to represent the SDK-supported `pydantic` dom
       show_root_full_path: true
       show_object_full_path: false
       show_root_toc_entry: false
-      filters:
-        - "!^Share.*"
-        - "!^ResourceShares"
-        - "!^LiteLlm.*"
-        - "!^DataLlm.*"
-        - "!.*PatchConfig.*"
-        - "!.*CloneConfig.*"
-        - "!^UsageReport.*"

@@ -40,36 +40,3 @@ jobs:
           uv run --no-sync pytest -vv tests/_data/unit
           uv run --no-sync pytest -vv tests/_local/unit
           uv run --no-sync pytest -vv tests/test_domain.py
-
-  run-test-cpu-client:
-    if: false
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Setup | Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          fetch-depth: 1
-          submodules: 'true'
-
-      - name: Setup | uv
-        uses: astral-sh/setup-uv@ed21f2f24f8dd64503750218de024bcf64c7250a # v7.1.5
-        with:
-          enable-cache: false
-          python-version: '3.11'
-
-      - name: Setup | Dependencies
-        run: |
-          uv sync --frozen --only-group dev
-          uv pip install --index-strategy unsafe-first-match torch==2.9.1+cpu torchvision==0.24.1+cpu ".[local]" --extra-index-url https://download.pytorch.org/whl/cpu
-
-      - name: Test | End-to-End (Client mode only)
-        env:
-          MOSTLY_BASE_URL: ${{ secrets.E2E_CLIENT_MOSTLY_BASE_URL }}
-          E2E_CLIENT_S3_ACCESS_KEY: ${{ secrets.E2E_CLIENT_S3_ACCESS_KEY }}
-          E2E_CLIENT_S3_SECRET_KEY: ${{ secrets.E2E_CLIENT_S3_SECRET_KEY }}
-          E2E_CLIENT_S3_BUCKET: ${{ secrets.E2E_CLIENT_S3_BUCKET }}
-        run: |
-          uv run --no-sync pytest -vv tests/_local/end_to_end -k 'client and mode'
