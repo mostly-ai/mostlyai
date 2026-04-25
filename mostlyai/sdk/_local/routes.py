@@ -364,8 +364,7 @@ class Routes:
             subprocess.Popen(cmd)
 
         @self.router.get("/generators/{id}/training/logs", response_class=StreamingResponse)
-        async def download_training_logs(id: str, slft: str) -> StreamingResponse:
-            _ = slft  # ignore parameter
+        async def download_training_logs(id: str) -> StreamingResponse:
             generator_dir = self.home_dir / "generators" / id
             zip_buffer = create_zip_in_memory(generator_dir, "*.log")
             return StreamingResponse(
@@ -511,8 +510,7 @@ class Routes:
             subprocess.Popen(cmd)
 
         @self.router.get("/synthetic-datasets/{id}/generation/logs", response_class=StreamingResponse)
-        async def download_generation_logs(id: str, slft: str) -> StreamingResponse:
-            _ = slft  # ignore parameter
+        async def download_generation_logs(id: str) -> StreamingResponse:
             synthetic_dataset_dir = self.home_dir / "synthetic-datasets" / id
             zip_buffer = create_zip_in_memory(synthetic_dataset_dir, "*.log")
             return StreamingResponse(
@@ -526,8 +524,7 @@ class Routes:
             return synthetic_datasets.get_synthetic_dataset_config(self.home_dir, id)
 
         @self.router.get("/synthetic-datasets/{id}/download", response_class=FileResponse)
-        async def download_synthetic_dataset(id: str, slft: str, format: str) -> FileResponse:
-            _ = slft  # ignore parameter
+        async def download_synthetic_dataset(id: str, format: str) -> FileResponse:
             synthetic_dataset_dir = self.home_dir / "synthetic-datasets" / id
             if format == SyntheticDatasetFormat.parquet:
                 filename = "synthetic-parquet-data.zip"
