@@ -70,7 +70,7 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
             search_term: Filter by name or description.
             created_from: Filter by creation date, not older than this date. Format: YYYY-MM-DD.
             created_to: Filter by creation date, not younger than this date. Format: YYYY-MM-DD.
-            sort_by: Sort by field. Either NO_OF_THREADS, NO_OF_LIKES, RECENCY, or NO_OF_DOWNLOADS.
+            sort_by: Sort by field (for example `RECENCY`).
 
         Returns:
             An iterator over synthetic datasets.

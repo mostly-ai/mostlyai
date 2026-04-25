@@ -77,7 +77,7 @@ class _MostlyConnectorsClient(_MostlyBaseClient):
             access_type: Filter by access type (e.g., READ_PROTECTED, READ_DATA or WRITE_DATA).
             created_from: Filter by creation date, not older than this date. Format: YYYY-MM-DD.
             created_to: Filter by creation date, not younger than this date. Format: YYYY-MM-DD.
-            sort_by: Sort by field. Either NO_OF_THREADS, NO_OF_LIKES, RECENCY or NO_OF_GENERATORS.
+            sort_by: Sort by field (for example `RECENCY`).
 
         Returns:
             Iterator[ConnectorListItem]: An iterator over connector list items.
