@@ -10,13 +10,13 @@ jobs:
     if: |
       github.event_name == 'push' ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
-    uses: ./.github/workflows/pre-commit-check.yaml
+    uses: ./.github/workflows/ci-reusable-pre-commit.yaml
     secrets: inherit
   run-tests-cpu:
     if: |
       github.event_name == 'push' ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
-    uses: ./.github/workflows/run-tests-cpu.yaml
+    uses: ./.github/workflows/ci-reusable-tests-cpu.yaml
     secrets: inherit
   build-docker-image:
     if: |
@@ -30,4 +30,4 @@ jobs:
       )
     needs: [pre-commit-check, run-tests-cpu]
     secrets: inherit
-    uses: ./.github/workflows/build-docker-image.yaml
+    uses: ./.github/workflows/ci-reusable-build-docker-image.yaml

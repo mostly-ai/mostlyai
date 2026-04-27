@@ -5,5 +5,5 @@ on:
 
 jobs:
   run-tests-gpu:
-    uses: ./.github/workflows/run-tests-gpu.yaml
+    uses: ./.github/workflows/ci-reusable-tests-gpu.yaml
     secrets: inherit
