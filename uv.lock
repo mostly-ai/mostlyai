@@ -3319,7 +3319,7 @@ provides-extras = ["local", "local-gpu", "googlebigquery", "mssql", "mysql", "or
 dev = [
     { name = "datamodel-code-generator", extras = ["http"], specifier = ">=0.26.3" },
     { name = "httpx", specifier = ">=0.27" },
-    { name = "ipykernel", specifier = ">=6.25,<7" },
+    { name = "ipykernel", specifier = ">=6.25" },
     { name = "poetry-bumpversion", specifier = ">=0.3.2" },
     { name = "pre-commit", specifier = ">=4.0" },
     { name = "pytest", specifier = ">=8.0" },
