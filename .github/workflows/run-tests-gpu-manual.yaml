@@ -1,0 +1,9 @@
+name: '[GPU] mostlyai Tests (Manual)'
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-tests-gpu:
+    uses: ./.github/workflows/run-tests-gpu.yaml
+    secrets: inherit
