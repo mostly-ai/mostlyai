@@ -206,12 +206,12 @@ On Linux, one can explicitly install the CPU-only variant of torch together with
 
 ```shell
 # uv pip install
-uv pip install --index-strategy unsafe-first-match -U torch==2.9.1+cpu torchvision==0.24.1+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
+uv pip install --index-strategy unsafe-first-match -U torch==2.11.0+cpu torchvision==0.26.0+cpu torchaudio==2.11.0+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
 ```
 
 ```shell
 # standard pip install
-pip install -U torch==2.9.1+cpu torchvision==0.24.1+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
+pip install -U torch==2.11.0+cpu torchvision==0.26.0+cpu torchaudio==2.11.0+cpu 'mostlyai[local]' --extra-index-url https://download.pytorch.org/whl/cpu
 ```
 
 ### CLIENT mode
