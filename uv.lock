@@ -3372,8 +3372,8 @@ requires-dist = [
     { name = "joblib", marker = "extra == 'local-gpu'", specifier = ">=1.4.2" },
     { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==2.6.0" },
     { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==2.6.0" },
-    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.10.4" },
-    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.10.4" },
+    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.10.5" },
+    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.10.5" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
     { name = "networkx", marker = "extra == 'local'", specifier = ">=3.0,<4" },
     { name = "networkx", marker = "extra == 'local-gpu'", specifier = ">=3.0,<4" },
@@ -3484,7 +3484,7 @@ gpu = [
 
 [[package]]
 name = "mostlyai-qa"
-version = "1.10.4"
+version = "1.10.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
@@ -3503,9 +3503,9 @@ dependencies = [
     { name = "transformers" },
     { name = "xxhash" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/95/13/ab5c06464b3b4ca4ad074ff65da167e9fbc90ffab80a6da58e1d01505541/mostlyai_qa-1.10.4.tar.gz", hash = "sha256:d50cdc581af5504cefbc0c08db497ad061fec6420f4736f515bd170bda04ed58", size = 30647984, upload-time = "2026-04-23T17:34:32.271Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/12/ea8d9f231a9fd7e35f3171f5369e8f12111e791be34d97f712b822ec3d9d/mostlyai_qa-1.10.5.tar.gz", hash = "sha256:9db9c68262f572ad776212b72015ecb2c7618a98e3ce1a26d2625b88a7409677", size = 30647924, upload-time = "2026-04-27T09:50:09.263Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dc/2e/8f006872e0dc45916eaa2efafee8ee9c2448b01bea4592a72952c0a4d25e/mostlyai_qa-1.10.4-py3-none-any.whl", hash = "sha256:1a2d182205319522b9182c473014445967f64a3324d78181879df1df8f8cb6c5", size = 30671909, upload-time = "2026-04-23T17:34:29.147Z" },
+    { url = "https://files.pythonhosted.org/packages/72/b0/6df33fc1f82209f35b08e954454dd2714e0721898e3262ed5969ec970127/mostlyai_qa-1.10.5-py3-none-any.whl", hash = "sha256:60b48ece68f4713cb6ab677a1576807136172d8fe0a71679191b07024321c817", size = 30671905, upload-time = "2026-04-27T09:50:06.268Z" },
 ]
 
 [[package]]
