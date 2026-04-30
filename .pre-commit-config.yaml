@@ -48,8 +48,8 @@ repos:
     -   id: pyupgrade
         args: [--py311-plus]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.11.6
+  rev: v0.15.12
   hooks:
-    - id: ruff
+    - id: ruff-check
       args: [--fix]
     - id: ruff-format

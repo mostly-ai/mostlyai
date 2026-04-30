@@ -3582,7 +3582,7 @@ dev = [
     { name = "pytest", specifier = ">=8.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "respx", specifier = ">=0.20" },
-    { name = "ruff", specifier = ">=0.11" },
+    { name = "ruff", specifier = ">=0.15.12" },
     { name = "twine", specifier = ">=6.1" },
 ]
 docs = [
