@@ -19,9 +19,9 @@ import time
 import traceback
 from pathlib import Path
 
+import mostlyai.engine as engine
 import pandas as pd
 
-import mostlyai.engine as engine
 from mostlyai.sdk._data.base import NonContextRelation, Schema
 from mostlyai.sdk._data.non_context import (
     CHILDREN_COUNT_COLUMN_NAME,

@@ -31,8 +31,9 @@ def execute_step_train_model(
     upload_model_data_callback: Callable | None,
 ):
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
-    from mostlyai import engine
     from mostlyai.engine.domain import DifferentialPrivacyConfig, ModelStateStrategy
+
+    from mostlyai import engine
 
     _LOG.info(f"mostlyai-engine: {engine.__version__}")
 

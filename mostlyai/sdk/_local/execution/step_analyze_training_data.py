@@ -18,6 +18,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from mostlyai.engine.domain import DifferentialPrivacyConfig
+
 from mostlyai.sdk.domain import Generator, ModelEncodingType, ModelType, SourceColumnValueRange
 
 
@@ -30,8 +31,9 @@ def execute_step_analyze_training_data(
     update_progress: Callable,
 ) -> tuple[dict[str, ModelEncodingType], dict[str, SourceColumnValueRange]]:
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
-    from mostlyai import engine
     from mostlyai.engine._workspace import Workspace
+
+    from mostlyai import engine
 
     # fetch model_config
     tgt_table = next(t for t in generator.tables if t.name == target_table_name)

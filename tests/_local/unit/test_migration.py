@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import pytest
-
 from mostlyai.engine._workspace import Workspace
+
 from mostlyai.sdk._local.execution.migration import migrate_workspace
 
 

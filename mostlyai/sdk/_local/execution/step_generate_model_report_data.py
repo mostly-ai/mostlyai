@@ -29,8 +29,9 @@ def execute_step_generate_model_report_data(
     update_progress: Callable,
 ):
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
-    from mostlyai import engine
     from mostlyai.engine._workspace import Workspace
+
+    from mostlyai import engine
 
     # determine max sample size for generated report samples
     workspace = Workspace(workspace_dir)

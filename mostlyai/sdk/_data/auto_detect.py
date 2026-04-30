@@ -17,8 +17,8 @@ import re
 import time
 
 import pandas as pd
-
 from mostlyai.engine._common import safe_convert_datetime
+
 from mostlyai.sdk._data.base import DataTable
 from mostlyai.sdk._data.dtype import VirtualDType, VirtualInteger, VirtualVarchar
 from mostlyai.sdk._data.util.common import absorb_errors, run_with_timeout_unsafe

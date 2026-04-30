@@ -23,9 +23,9 @@ from pathlib import Path
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as papqt
+from mostlyai.engine._workspace import Workspace
 
 from mostlyai import qa
-from mostlyai.engine._workspace import Workspace
 from mostlyai.sdk._data.util.common import TABLE_COLUMN_INFIX, TEMPORARY_PRIMARY_KEY, strip_column_prefix
 from mostlyai.sdk._local.execution.step_generate_model_report_data import qa_sample_size_heuristic
 from mostlyai.sdk._local.storage import get_model_label

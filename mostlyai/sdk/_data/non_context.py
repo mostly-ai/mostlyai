@@ -31,15 +31,11 @@ from copy import copy as shallow_copy
 from copy import deepcopy
 from pathlib import Path
 
+import mostlyai.engine as engine
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
-from pathvalidate import sanitize_filename
-from torch import nn
-from torch.utils.data import DataLoader, TensorDataset, random_split
-
-import mostlyai.engine as engine
 from mostlyai.engine._common import read_json, write_json
 from mostlyai.engine._encoding_types.tabular.categorical import (
     analyze_categorical,
@@ -49,6 +45,10 @@ from mostlyai.engine._encoding_types.tabular.categorical import (
 from mostlyai.engine._encoding_types.tabular.datetime import analyze_datetime, analyze_reduce_datetime, encode_datetime
 from mostlyai.engine._encoding_types.tabular.numeric import analyze_numeric, analyze_reduce_numeric, encode_numeric
 from mostlyai.engine.domain import ModelEncodingType
+from pathvalidate import sanitize_filename
+from torch import nn
+from torch.utils.data import DataLoader, TensorDataset, random_split
+
 from mostlyai.sdk._data.base import DataIdentifier, DataTable, NonContextRelation, Schema
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
