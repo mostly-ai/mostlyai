@@ -3521,10 +3521,10 @@ requires-dist = [
     { name = "ipywidgets", specifier = ">=8.1.0" },
     { name = "joblib", marker = "extra == 'local'", specifier = ">=1.4.2" },
     { name = "joblib", marker = "extra == 'local-gpu'", specifier = ">=1.4.2" },
-    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==2.6.1" },
-    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==2.6.1" },
-    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.10.6" },
-    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.10.6" },
+    { name = "mostlyai-engine", marker = "extra == 'local'", specifier = "==2.6.2" },
+    { name = "mostlyai-engine", extras = ["gpu"], marker = "extra == 'local-gpu'", specifier = "==2.6.2" },
+    { name = "mostlyai-qa", marker = "extra == 'local'", specifier = "==1.10.7" },
+    { name = "mostlyai-qa", marker = "extra == 'local-gpu'", specifier = "==1.10.7" },
     { name = "mysql-connector-python", marker = "extra == 'mysql'", specifier = ">=9.1.0,<10" },
     { name = "networkx", marker = "extra == 'local'", specifier = ">=3.0,<4" },
     { name = "networkx", marker = "extra == 'local-gpu'", specifier = ">=3.0,<4" },
@@ -3598,7 +3598,7 @@ docs = [
 
 [[package]]
 name = "mostlyai-engine"
-version = "2.6.1"
+version = "2.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
@@ -3622,9 +3622,9 @@ dependencies = [
     { name = "transformers" },
     { name = "xgrammar" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b0/bf/c0034fc622d3c829f53fcbe6e513ab0cd1d59105245939d51d8b0621933d/mostlyai_engine-2.6.1.tar.gz", hash = "sha256:f365f5712ae8198cd33e4cf204f08a702a24d9ef87b5ccc69c994f2313b7ac61", size = 140826, upload-time = "2026-04-30T08:53:14.026Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d9/60/63bf33bd8a04e75a9f398d7cde74b6ca08cde2e8a2108d558166ad099d4e/mostlyai_engine-2.6.2.tar.gz", hash = "sha256:a75ce62fc4e91adf1f5fae7166431aec8e1505f26ef260d078e1607fcfb44d82", size = 141097, upload-time = "2026-05-08T12:13:33.198Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d2/04/cb5f72b04842e971691a4686dc0a29fe3aeb917141e75b0864a42c69838c/mostlyai_engine-2.6.1-py3-none-any.whl", hash = "sha256:63147a5c93e7d96c2b73513b4cc272ad55257106c83c0670bae47bc035572df0", size = 184779, upload-time = "2026-04-30T08:53:12.229Z" },
+    { url = "https://files.pythonhosted.org/packages/52/c3/043b7b76afc5f21bcff13b018c269a607226be79cfd133769be159508933/mostlyai_engine-2.6.2-py3-none-any.whl", hash = "sha256:3ead3770c936919f8fce4e1f9fffd271ffdd490f0292c2ab9a42cb4bafe3caea", size = 185077, upload-time = "2026-05-08T12:13:31.234Z" },
 ]
 
 [package.optional-dependencies]
@@ -3636,7 +3636,7 @@ gpu = [
 
 [[package]]
 name = "mostlyai-qa"
-version = "1.10.6"
+version = "1.10.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "accelerate" },
@@ -3656,9 +3656,9 @@ dependencies = [
     { name = "transformers" },
     { name = "xxhash" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ad/da/86197df8c4018b591e7059307f56f90cf705fdd8b6580e5faed7c39f54f7/mostlyai_qa-1.10.6.tar.gz", hash = "sha256:ea6bbc4a368c5a67b674bbebca456447be437ce19f3be4e50333280bd859a853", size = 30647927, upload-time = "2026-04-30T08:41:33.981Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/9c/ab1c785ec845c4005a2e6d44c293de0d212ccfec1709c47bab0f99d61c12/mostlyai_qa-1.10.7.tar.gz", hash = "sha256:f9d3e0f306aa6ed7a98e2dba921366db3fa5490a698bc86dee482be01c83dcad", size = 30647921, upload-time = "2026-05-08T12:10:37.165Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/46/21/1a3eccf3e1eef32a34ebb9be078bf9855a502d060b8bf2809c59915ad6fc/mostlyai_qa-1.10.6-py3-none-any.whl", hash = "sha256:e1cccb27f9a14a0bb3be8a99768fa820619bb803da0434175b148579e9396fea", size = 30671905, upload-time = "2026-04-30T08:41:30.66Z" },
+    { url = "https://files.pythonhosted.org/packages/08/4f/0237325b0162f58d3269f2a5cf0305d6fcbc90ab2bee17ef0fb831d0a8a2/mostlyai_qa-1.10.7-py3-none-any.whl", hash = "sha256:da76f7db04ca471b03b92f645bbec80ea94877390b23bf087f274bf021d00b27", size = 30671886, upload-time = "2026-05-08T12:10:33.906Z" },
 ]
 
 [[package]]
@@ -4329,7 +4329,7 @@ wheels = [
 
 [[package]]
 name = "opacus"
-version = "1.5.4"
+version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and sys_platform == 'darwin') or (python_full_version < '3.13' and sys_platform == 'linux')" },
@@ -4338,9 +4338,9 @@ dependencies = [
     { name = "scipy" },
     { name = "torch" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/df/de/25e455b62c73f10bf41d3e029016881e414de0c6f3f5af82b42dc10f7ca1/opacus-1.5.4.tar.gz", hash = "sha256:ea700808c0a8c3fb7e565ed55b77b3170d6a54cb30e295b255e3877170edc5ca", size = 151407, upload-time = "2025-05-27T16:23:57.514Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/39/a92b485f5a9c65bdd18c574d24c3b17800e39f02d66e665ab9bfbde77c52/opacus-1.6.0.tar.gz", hash = "sha256:20d77252c1e8528cd5826fbaba345cd39ed5c3edb841707eafb6403fe276140a", size = 184592, upload-time = "2026-05-05T18:15:26.103Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a7/7e/8c9e798b1789861beec036b456b71a079f83963c7e2814814f1370dea667/opacus-1.5.4-py3-none-any.whl", hash = "sha256:a0ca27974e825d86635c82f08ebb380a373613c121066bc0b8e29e42d9f961a5", size = 254361, upload-time = "2025-05-27T16:23:55.827Z" },
+    { url = "https://files.pythonhosted.org/packages/45/2d/cb1b04cc674f3e06dbe1afc02ed977f066f39c7a4a313372353f82c26117/opacus-1.6.0-py3-none-any.whl", hash = "sha256:342123624c56c09d47eaba44010ed216d51c63132b543d67cba53a49ed6dc41e", size = 308911, upload-time = "2026-05-05T18:15:24.479Z" },
 ]
 
 [[package]]

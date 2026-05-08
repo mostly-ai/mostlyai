@@ -2,7 +2,6 @@
 name = "mostlyai"
 version = "6.1.0"
 description = "Synthetic Data SDK"
-authors = [{ name = "MOSTLY AI", email = "dev@mostly.ai" }]
 requires-python = ">=3.11,<3.14"
 readme = "README.md"
 license = "Apache-2.0"
@@ -49,8 +48,8 @@ dependencies = [
 local = [
     # "mostlyai-engine @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
-    "mostlyai-engine==2.6.1",  # for release (PyPI)
-    "mostlyai-qa==1.10.6",  # for release (PyPI)
+    "mostlyai-engine==2.6.2",  # for release (PyPI)
+    "mostlyai-qa==1.10.7",  # for release (PyPI)
     "fastapi>=0.116.0",
     "uvicorn>=0.34.0",
     "python-multipart>=0.0.20",
@@ -75,8 +74,8 @@ local = [
 local-gpu = [
     # "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
-    "mostlyai-engine[gpu]==2.6.1",  # for release (PyPI)
-    "mostlyai-qa==1.10.6",  # for release (PyPI)
+    "mostlyai-engine[gpu]==2.6.2",  # for release (PyPI)
+    "mostlyai-qa==1.10.7",  # for release (PyPI)
     "fastapi>=0.116.0",
     "uvicorn>=0.34.0",
     "python-multipart>=0.0.20",
@@ -146,6 +145,7 @@ docs = [
 homepage = "https://mostly.ai/"
 repository = "https://github.com/mostly-ai/mostlyai"
 documentation = "https://mostly-ai.github.io/mostlyai/"
+issues = "https://github.com/mostly-ai/mostlyai/issues"
 
 [tool.uv]
 default-groups = ["dev", "docs"]
