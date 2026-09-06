@@ -120,7 +120,7 @@ snowflake = [
 [dependency-groups]
 dev = [
     "pytest>=8.0",
-    "ruff>=0.15.12",  # sync'ed with .pre-commit-config (ruff-pre-commit rev)
+    "ruff>=0.15.22,<0.16",  # sync'ed with .pre-commit-config (ruff-pre-commit rev)
     "pre-commit>=4.0",
     "twine>=6.1",
     "ipykernel>=6.25",
