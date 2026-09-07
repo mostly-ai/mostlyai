@@ -660,7 +660,7 @@ def export_chunk(
     data_dir.mkdir(exist_ok=True, parents=True)
 
     def _hash_partitioner(x: pd.Series, n_partitions: int) -> np.array:
-        hasher = np.vectorize(lambda s: xxhash.xxh32_intdigest(str(s)) % n_partitions, otypes=[int])
+        hasher = np.vectorize(lambda s: xxhash.xxh32_intdigest(str(s).encode("utf-8")) % n_partitions, otypes=[int])
         return hasher(x)
 
     def _store_partition_chunk(partition_idx: str, partition_chunk: pd.DataFrame):
