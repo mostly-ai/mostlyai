@@ -98,11 +98,6 @@ class OracleContainerParameters(SqlAlchemyContainerParameters):
     connection_type: Nullable[str] = Field("SID")
 
 
-class SnowflakeContainerParameters(SqlAlchemyContainerParameters):
-    host: Nullable[str] = Field(None, alias="warehouse")
-    account: Nullable[str] = None
-
-
 class BigQueryContainerParameters(SqlAlchemyContainerParameters):
     password: Nullable[str] = Field(None, validation_alias=AliasChoices("keyFile", "key_file"))
 

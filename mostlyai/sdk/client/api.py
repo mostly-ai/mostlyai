@@ -299,15 +299,6 @@ class MostlyAI(_MostlyBaseClient):
               rootCertificate: base64-encoded string
               sslCertificate: base64-encoded string
               sslCertificateKey: base64-encoded string
-
-          - type: SNOWFLAKE
-            config:
-              account: string
-              username: string
-              warehouse: string, default: COMPUTE_WH
-              database: string
-            secrets:
-              password: string
           ```
         """
         c = self.connectors.create(config=config, test_connection=test_connection)
