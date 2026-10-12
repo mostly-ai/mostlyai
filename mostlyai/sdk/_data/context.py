@@ -105,9 +105,16 @@ def add_ns_context(
 
             # create list of the previous values and insert that column adjacent to the current column
             _LOG.info(f"max_ns_prev_len: {MAX_NS_PREV_LEN}")
-            prev_ser = (
-                ctx_data[[root_key, cur_name]].groupby(root_key).apply(add_previous_values_ctx)[prev_name].droplevel(0)
-            ).apply(lambda x: x[:-MAX_NS_PREV_LEN])
+            if ctx_data.empty:
+                # Preserve the context schema even when this chunk has no parent rows.
+                prev_ser = pd.Series(index=ctx_data.index, dtype=object)
+            else:
+                prev_ser = (
+                    ctx_data[[root_key, cur_name]]
+                    .groupby(root_key)
+                    .apply(add_previous_values_ctx)[prev_name]
+                    .droplevel(0)
+                ).apply(lambda x: x[:-MAX_NS_PREV_LEN])
             ctx_data.insert(loc=ctx_data.columns.get_loc(cur_name), column=prev_name, value=prev_ser)
             ns_columns.append(prev_name)
     _LOG.info(f"NS was applied, adding the following columns: {ns_columns}")

@@ -212,6 +212,10 @@ class FileDataTable(DataTable, abc.ABC):
                 if field_type == pa.null():
                     # handle empty or null-only columns
                     values = [None] if None in values else []
+                if not values:
+                    # Keep the field type: Arrow otherwise infers an empty IN-list as null.
+                    filters.append(ds.field(c).isin(pa.array([], type=field_type)))
+                    continue
                 if are_types_compatible(field_type, values):
                     field_c = ds.field(c)
                 else:
