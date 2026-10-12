@@ -2,6 +2,12 @@
 
 Thanks for your interest in contributing to Synthetic Data SDK! Follow these guidelines to set up your environment and streamline your contributions.
 
+## Issues and Bug Reports
+
+Contributions are most welcome through [opening issues](https://github.com/mostly-ai/mostlyai/issues/new/choose). Bug reports, feature requests, questions, and suggestions help us improve the SDK; you do not need to submit code to contribute.
+
+Bug reports must include a minimal reproducible example: runnable code, sample data or code that creates it, the expected behavior, and the actual behavior or full error traceback. Include your Python, SDK, and engine versions, operating system, and whether you use local or remote mode. Use small sample data that can be shared publicly.
+
 ## Setup
 
 1. **Clone the repository**:
@@ -64,7 +70,9 @@ Thanks for your interest in contributing to Synthetic Data SDK! Follow these gui
    git add .
    git commit -m "feat: add a clear description of your feature"
    ```
-   Follow the [Conventional Commits](https://gist.github.com/qoomon/5dfcdf8eec66a051ecd85625518cfd13) format.
+   Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format for commit messages, pull request titles, and squash-merge commit titles: `<type>[optional scope]: <description>`. Use `fix:` for bug fixes, `feat:` for new features, and an appropriate type such as `docs:`, `chore:`, `build:`, or `ci:` for other changes.
+
+   Mark breaking changes with `!` before the colon or a `BREAKING CHANGE:` footer. For example, removing a supported connector is a breaking change: `chore(deps)!: remove a supported connector`.
 
 6. **Push your changes**:
    ```bash
@@ -72,3 +80,4 @@ Thanks for your interest in contributing to Synthetic Data SDK! Follow these gui
    ```
 
 7. **Open a pull request on GitHub.**
+   Use a Conventional Commit title, such as `fix: handle empty generation context`, and link any related issues. Before merging, verify that the final squash-merge commit title preserves the Conventional Commit format and any breaking-change marker or footer.
