@@ -59,7 +59,6 @@ class ConnectorType(str, Enum):
     - `MSSQL`: Microsoft SQL Server database
     - `ORACLE`: Oracle database
     - `MARIADB`: MariaDB database
-    - `SNOWFLAKE`: Snowflake cloud data platform
     - `BIGQUERY`: Google BigQuery cloud data warehouse
     - `SQLITE`: SQLite database
     - `AZURE_STORAGE`: Azure Blob Storage
@@ -74,7 +73,6 @@ class ConnectorType(str, Enum):
     mssql = "MSSQL"
     oracle = "ORACLE"
     mariadb = "MARIADB"
-    snowflake = "SNOWFLAKE"
     bigquery = "BIGQUERY"
     sqlite = "SQLITE"
     azure_storage = "AZURE_STORAGE"
@@ -168,15 +166,6 @@ class ConnectorConfig(CustomBaseModel):
           rootCertificate: base64-encoded string
           sslCertificate: base64-encoded string
           sslCertificateKey: base64-encoded string
-
-      - type: SNOWFLAKE
-        config:
-          account: string
-          username: string
-          warehouse: string, default: COMPUTE_WH
-          database: string
-        secrets:
-          password: string
 
       - type: SQLITE
         config:
@@ -991,7 +980,6 @@ class Connector(CustomBaseModel):
             - `MYSQL`: `database.table`
             - `ORACLE`: `schema.table`
             - `POSTGRES`: `schema.table`
-            - `SNOWFLAKE`: `schema.table`
 
         Args:
             prefix (str): The prefix to filter the results by. Defaults to an empty string.

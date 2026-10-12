@@ -227,10 +227,10 @@ uv pip install -U mostlyai
 
 ### Data Connectors
 
-Add any of the following extras for further data connectors support in LOCAL mode: `googlebigquery`, `mssql`, `mysql`, `oracle`, `postgres`, `snowflake`. E.g.
+Add any of the following extras for further data connectors support in LOCAL mode: `googlebigquery`, `mssql`, `mysql`, `oracle`, `postgres`. E.g.
 
 ```shell
-uv pip install -U 'mostlyai[local, snowflake]'
+uv pip install -U 'mostlyai[local, postgres]'
 ```
 
 ### Using Docker
