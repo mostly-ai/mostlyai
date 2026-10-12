@@ -186,6 +186,16 @@ def test_no_columns(tmp_path):
     assert table.read_data().empty
 
 
+@pytest.mark.parametrize("dtype", ["string", "int64", "datetime64[ns]"])
+def test_empty_filter(tmp_path, dtype):
+    values = {"string": ["a", "b"], "int64": [1, 2], "datetime64[ns]": ["2025-01-01", "2025-01-02"]}
+    pd.DataFrame({"id": pd.Series(values[dtype], dtype=dtype)}).to_parquet(tmp_path / "test.parquet", index=False)
+    table = ParquetDataTable(path=tmp_path / "test.parquet")
+    expected = table.read_data().iloc[:0]
+    result = table.read_data(where={"id": pd.Series([], dtype=dtype)})
+    pd.testing.assert_frame_equal(result, expected)
+
+
 def test_no_records(tmp_path):
     pd.DataFrame({"col_a": [], "col_b": []}).to_parquet(tmp_path / "test.parquet")
     table = ParquetDataTable(path=tmp_path)
