@@ -48,7 +48,7 @@ dependencies = [
 local = [
     # "mostlyai-engine @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
-    "mostlyai-engine==2.7.3",  # for release (PyPI)
+    "mostlyai-engine==2.7.4",  # for release (PyPI)
     "mostlyai-qa==1.10.11",  # for release (PyPI)
     "fastapi>=0.116.0",
     "uvicorn>=0.34.0",
@@ -74,7 +74,7 @@ local = [
 local-gpu = [
     # "mostlyai-engine[gpu] @ git+https://github.com/mostly-ai/mostlyai-engine.git@main",  # for development
     # "mostlyai-qa @ git+https://github.com/mostly-ai/mostlyai-qa.git@main",  # for development
-    "mostlyai-engine[gpu]==2.7.3",  # for release (PyPI)
+    "mostlyai-engine[gpu]==2.7.4",  # for release (PyPI)
     "mostlyai-qa==1.10.11",  # for release (PyPI)
     "fastapi>=0.116.0",
     "uvicorn>=0.34.0",
