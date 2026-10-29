@@ -50,7 +50,11 @@ def execute_step_generate_model_report_data(
             max_sample_size=max_sample_size,
             ctx_primary_key=ctx_primary_key,
         )
-        ctx_data = pd.read_parquet(ctx_input_path)
+        # A sampled split may have an all-null column with a null Arrow type.
+        # Read each file with its own schema before combining the splits.
+        ctx_data = pd.concat(
+            [pd.read_parquet(path) for path in sorted(ctx_input_path.glob("*.parquet"))], ignore_index=True
+        )
     else:
         ctx_data = None
 
