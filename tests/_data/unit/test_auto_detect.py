@@ -91,6 +91,8 @@ class TestAutoDetectEncodingType:
             * 5000,
             ["2023-01-01", "2023-02-01", "abc", None] * 2,
             ["id1", "id2"] + ["cat1", "cat2"] * 49,  # 2 out of 100 are unique < 0.05
+            ["Jan", "Feb", "Mar", "Apr"] * 25,  # month names parse to year 1
+            ["1st", "2nd", "3rd", "4th"] * 25,  # ordinals parse to year 1
         ],
     )
     def test_tabular_categorical(self, values):

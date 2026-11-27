@@ -88,8 +88,10 @@ def auto_detect_encoding_type(x: pd.Series) -> ModelEncodingType:
     if len(x) == 0:
         return ModelEncodingType.tabular_categorical
 
-    # if all non-null values can be converted to datetime -> datetime encoding
-    if safe_convert_datetime(x).notna().all():
+    # if all non-null values can be converted to datetime within the datetime64[ns] range -> datetime encoding;
+    # month names or ordinals like "Jan" or "1st" parse to year 1, which datetime64[ns] cannot hold
+    datetimes = safe_convert_datetime(x)
+    if datetimes.notna().all() and datetimes.between(pd.Timestamp.min, pd.Timestamp.max).all():
         return ModelEncodingType.tabular_datetime
 
     # if all values match lat/long pattern -> lat_long (geo) encoding
