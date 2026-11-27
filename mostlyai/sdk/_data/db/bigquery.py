@@ -147,7 +147,7 @@ class BigQueryContainer(SqlAlchemyContainer):
         try:
             rows = self.client.query(query).result()  # Waits for query to finish
             return [dict(row) for row in rows]
-        except Exception:
+        except Exception:  # noqa: BLE001
             _LOG.debug(f"Error while executing {query=}")
             return []
 
@@ -170,7 +170,7 @@ class BigQueryContainer(SqlAlchemyContainer):
         try:
             rows = self.client.query(query).result()  # Waits for query to finish
             return next((row["COLUMN_NAME"] for row in rows), None)
-        except Exception:
+        except Exception:  # noqa: BLE001
             _LOG.debug(f"Error while executing {query=}")
             return None
 

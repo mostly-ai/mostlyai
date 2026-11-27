@@ -57,7 +57,7 @@ def execute_step_finalize_generation(
     update_progress: ProgressCallback | None = None,
 ) -> dict[str, int]:
     # get synthetic table usage
-    usages = dict()
+    usages = {}
     for table_name, table in schema.tables.items():
         usages.update({table_name: table.row_count})
     # short circuit for probing
@@ -245,7 +245,7 @@ def merge_extra_seed_into_output(
     context_key = next((fk for fk in table.foreign_keys if fk.is_context), None)
     context_key_col = context_key.column if context_key else None
 
-    parquet_files = sorted(list(pqt_path.glob("*.parquet")))
+    parquet_files = sorted(pqt_path.glob("*.parquet"))
     if not parquet_files:
         _LOG.warning(f"no parquet files found for table {table_name} at {pqt_path}")
         return
@@ -576,7 +576,7 @@ def finalize_table_generation(
                 csv_path=csv_path,
                 job_workspace_dir=job_workspace_dir,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             _LOG.error(f"FK model processing failed for table {target_table_name}: {e}")
             _LOG.warning(f"Falling back to random assignment for table {target_table_name}")
             process_table_with_random_fk_assignment(

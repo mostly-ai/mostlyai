@@ -27,22 +27,18 @@ class ConstraintHandler(ABC):
     @abstractmethod
     def get_internal_column_names(self) -> list[str]:
         """return list of internal column names created by this handler."""
-        pass
 
     @abstractmethod
     def to_internal(self, df: pd.DataFrame) -> pd.DataFrame:
         """transform dataframe (in-place) from user schema to internal schema."""
-        pass
 
     @abstractmethod
     def to_original(self, df: pd.DataFrame) -> pd.DataFrame:
         """transform dataframe (in-place) from internal schema back to user schema."""
-        pass
 
     @abstractmethod
     def get_encoding_types(self) -> dict[str, str]:
         """return encoding types for internal columns."""
-        pass
 
     def _validate_columns(self, df: pd.DataFrame, columns: list[str]) -> None:
         """validate that all required columns exist in the dataframe."""

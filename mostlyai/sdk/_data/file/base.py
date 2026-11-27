@@ -358,7 +358,7 @@ class FileDataTable(DataTable, abc.ABC):
             message = "File not found."
             _LOG.error(message)
             raise MostlyDataException(message)
-        except Exception:
+        except Exception:  # noqa: BLE001
             message = "Encountered an unknown error when reading the file."
             _LOG.error(message)
             raise MostlyDataException(message)
@@ -460,7 +460,7 @@ class FileContainer(DataContainer):
         if not self.path or not self.path.exists():
             return []
         elif self.path.is_dir():
-            return sorted(list(self.path.glob("*")))
+            return sorted(self.path.glob("*"))
         else:
             return [self.path]
 
@@ -527,10 +527,10 @@ class FileContainer(DataContainer):
 
             return result
         except duckdb.IOException as e:
-            _LOG.error(f"IO Error executing query: {str(e)}")
+            _LOG.error(f"IO Error executing query: {e!s}")
             raise
         except duckdb.Error as e:
-            _LOG.error(f"DuckDB Error executing query: {str(e)}")
+            _LOG.error(f"DuckDB Error executing query: {e!s}")
             raise
 
 

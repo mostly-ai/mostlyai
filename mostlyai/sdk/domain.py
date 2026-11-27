@@ -303,9 +303,8 @@ class SourceForeignKey(CustomBaseModel):
     @model_validator(mode="before")
     @classmethod
     def add_required_fields(cls, values):
-        if isinstance(values, dict):
-            if "id" not in values:
-                values["id"] = str(uuid.uuid4())
+        if isinstance(values, dict) and "id" not in values:
+            values["id"] = str(uuid.uuid4())
         return values
 
 
@@ -1194,9 +1193,8 @@ class Constraint(CustomBaseModel):
     @model_validator(mode="before")
     @classmethod
     def add_required_fields(cls, values):
-        if isinstance(values, dict):
-            if "id" not in values:
-                values["id"] = str(uuid.uuid4())
+        if isinstance(values, dict) and "id" not in values:
+            values["id"] = str(uuid.uuid4())
         return values
 
 
@@ -1550,9 +1548,8 @@ class SourceTable(CustomBaseModel):
     @model_validator(mode="before")
     @classmethod
     def add_required_fields(cls, values):
-        if isinstance(values, dict):
-            if "id" not in values:
-                values["id"] = str(uuid.uuid4())
+        if isinstance(values, dict) and "id" not in values:
+            values["id"] = str(uuid.uuid4())
         return values
 
 
@@ -1667,7 +1664,7 @@ class SourceTableConfig(CustomBaseModel):
                     SourceColumnConfig(name=col_name, model_encoding_type=ModelEncodingType.auto)
                     for col_name in df.columns
                 ]
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         return self
 
@@ -1781,9 +1778,8 @@ class SyntheticTable(CustomBaseModel):
     @model_validator(mode="before")
     @classmethod
     def add_required_fields(cls, values):
-        if isinstance(values, dict):
-            if "id" not in values:
-                values["id"] = str(uuid.uuid4())
+        if isinstance(values, dict) and "id" not in values:
+            values["id"] = str(uuid.uuid4())
         return values
 
 
@@ -2267,7 +2263,7 @@ class SyntheticDataset(CustomBaseModel):
         """
         dfs = self.client._data(synthetic_dataset_id=self.id)
         if return_type == "auto" and len(dfs) == 1:
-            return list(dfs.values())[0]
+            return next(iter(dfs.values()))
         else:
             return dfs
 
@@ -2421,7 +2417,7 @@ class _SyntheticTableConfigValidation(CustomBaseModel):
                 raise ValueError(
                     f"Rebalancing column '{rebalancing_column}' in table '{self.source_table.name}' must have `included=True`"
                 )
-            for value in config.rebalancing.probabilities.keys():
+            for value in config.rebalancing.probabilities:
                 if value not in rebalancing_col.value_range.values:
                     raise ValueError(
                         f"Rebalancing value '{value}' not found in table '{self.source_table.name}' column '{rebalancing_column}'"
@@ -2464,7 +2460,7 @@ class _SyntheticTableConfigValidation(CustomBaseModel):
             for cfg in [self.source_table.tabular_model_configuration, self.source_table.language_model_configuration]
             if cfg
         ]
-        if all(cfg.enable_model_report is False for cfg in configs):
+        if all(cfg.enable_model_report is False for cfg in configs):  # noqa: SIM102
             if self.synthetic_table.configuration is not None:
                 self.synthetic_table.configuration.enable_data_report = False
         return self

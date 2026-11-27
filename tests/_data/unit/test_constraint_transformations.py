@@ -81,7 +81,7 @@ class TestFixedCombinationsHandler:
 
         enc = handler.get_encoding_types()
         assert len(enc) == 1
-        assert list(enc.values())[0] == "TABULAR_CATEGORICAL"
+        assert next(iter(enc.values())) == "TABULAR_CATEGORICAL"
 
     @pytest.mark.parametrize(
         "a_val,b_val",
@@ -213,7 +213,7 @@ class TestInequalityHandler:
 
         enc = handler.get_encoding_types()
         assert len(enc) == 1
-        assert list(enc.values())[0] == "TABULAR_NUMERIC_AUTO"
+        assert next(iter(enc.values())) == "TABULAR_NUMERIC_AUTO"
 
     @pytest.mark.parametrize(
         "data,desc",

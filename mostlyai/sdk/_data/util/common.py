@@ -93,7 +93,7 @@ def decrypt(encrypted_text: str, passphrase: str) -> str:
         cipher = AES.new(create_key(passphrase), AES.MODE_CBC, iv=iv)
         decrypted_padded = cipher.decrypt(content)
         decrypted = unpad(decrypted_padded, AES.block_size)
-    except Exception:
+    except Exception:  # noqa: BLE001
         raise MostlyDataException("Cannot decrypt secrets or SSL certificates.")
     return decrypted.decode("utf-8")
 
@@ -287,7 +287,7 @@ DATA_TABLE_METADATA_FIELDS = [
     "encoding_types",
 ]
 Key = str | list[str]
-ColumnSort = Union[
+ColumnSort = Union[  # noqa: UP007
     tuple[str, Literal["asc", "desc"]],
     str,
 ]

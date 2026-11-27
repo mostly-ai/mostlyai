@@ -101,5 +101,5 @@ def make_data_table_from_container(
         else:
             data_table_class = read_data_table_from_path(container, return_class=True)
     else:
-        raise RuntimeError(f"Unknown container type: {type(container)}")
+        raise RuntimeError(f"Unknown container type: {type(container)}")  # noqa: TRY004
     return data_table_class(container=container, is_output=is_output, lazy_fetch_primary_key=lazy_fetch_primary_key)

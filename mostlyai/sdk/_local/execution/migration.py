@@ -23,7 +23,7 @@ def migrate_workspace(workspace_dir: Path) -> None:
     for stats_pathdesc in [workspace.ctx_stats, workspace.tgt_stats]:
         stats = stats_pathdesc.read()
         if stats:
-            for col, col_stats in stats.get("columns", {}).items():
+            for col_stats in stats.get("columns", {}).values():
                 if col_stats.get("min5") is not None:
                     col_stats["min"] = min(col_stats["min5"]) if len(col_stats["min5"]) > 0 else None
                     col_stats.pop("min5")

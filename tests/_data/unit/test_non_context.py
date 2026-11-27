@@ -233,7 +233,7 @@ def test_prepare_training_pairs():
         )
 
     # Test case: invalid FK gets dropped with warning (not error)
-    parent_X_partial, child_X_partial, labels_partial = prepare_training_pairs_for_fk_model(
+    parent_X_partial, _child_X_partial, _labels_partial = prepare_training_pairs_for_fk_model(
         parent_encoded_data=parent_data,
         tgt_encoded_data=pd.DataFrame({"parent_fk": [1, 999, 2], "feat": [10, 20, 30]}),  # 999 invalid
         parent_primary_key="parent_id",

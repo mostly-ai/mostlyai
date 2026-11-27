@@ -140,14 +140,14 @@ def test_write_and_delete_data(tmp_path, sample_dataframe, sqlite_write_connecto
     for col in sample_dataframe.columns:
         assert set(first_half[col]).union(set(second_half[col])) == set(read_df[col])
 
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017
         c.write_data(data=sample_dataframe, location=location, if_exists="fail")
 
     # test delete functionality
     c.delete_data(location=location)
 
     engine = create_engine(f"sqlite:///{tmp_path}/test_write.sqlite")
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017
         pd.read_sql_table("data", con=engine)
 
     c.delete()

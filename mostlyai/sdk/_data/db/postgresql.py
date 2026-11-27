@@ -91,7 +91,7 @@ class PostgresqlContainer(SqlAlchemyContainer):
             with self.init_sa_connection() as connection:
                 result = connection.execute(sa.text(f"SELECT 1 FROM pg_database WHERE datname='{self.dbname}'"))
             return bool(result.rowcount)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             _LOG.error(f"Error when checking if database exists: {e}")
             return False
 

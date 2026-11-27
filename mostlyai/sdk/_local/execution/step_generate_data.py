@@ -37,7 +37,7 @@ def execute_step_generate_data(
     update_progress: Callable,
 ):
     # import ENGINE here to avoid pre-mature loading of large ENGINE dependencies
-    import mostlyai.engine as engine
+    from mostlyai import engine
 
     # ensure backward compatibility
     migrate_workspace(workspace_dir)

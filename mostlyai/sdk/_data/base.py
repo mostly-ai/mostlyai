@@ -242,7 +242,7 @@ class Schema:
         return vertical_context + horizontal_context
 
     def get_older_sibling_tables(self, parent: str, child: str) -> list[str]:
-        sibling_tables = reversed(sorted(self.get_context_children(parent)))
+        sibling_tables = sorted(self.get_context_children(parent), reverse=True)
         # only return siblings that are "older", i.e. that are alphabetically sorted before the child table
         sibling_tables = [t for t in sibling_tables if t < child]
         return sibling_tables
@@ -260,9 +260,8 @@ class Schema:
 
     def _update_key_encoding_types(self) -> None:
         for tbl_name, tbl_table in self.tables.items():
-            if tbl_table.primary_key:
-                if tbl_table.primary_key in tbl_table.encoding_types:
-                    del tbl_table.encoding_types[tbl_table.primary_key]
+            if tbl_table.primary_key and tbl_table.primary_key in tbl_table.encoding_types:
+                del tbl_table.encoding_types[tbl_table.primary_key]
             for rel in self.get_relations_to_table(tbl_name):
                 if rel.child.column in tbl_table.encoding_types:
                     del tbl_table.encoding_types[rel.child.column]
@@ -303,10 +302,10 @@ class Schema:
         self._resolve_auto_encoding_types()
 
     @property
-    @functools.cache
+    @functools.cache  # noqa: B019
     def graph(self):
         g = nx.MultiDiGraph()
-        for table in self.tables.keys():
+        for table in self.tables:
             g.add_node(table)
         for rel in self.relations:
             g.add_edge(
@@ -386,9 +385,9 @@ class Schema:
         table_root = {}
         ctx_graph = self.subset(relation_type=ContextRelation).graph
         topological_order = list(nx.topological_sort(ctx_graph))
-        for table in self.tables.keys():
+        for table in self.tables:
             ancestors = nx.ancestors(ctx_graph, table)
-            table_root[table] = sorted(ancestors, key=lambda x: topological_order.index(x))[0] if ancestors else table
+            table_root[table] = min(ancestors, key=lambda x: topological_order.index(x)) if ancestors else table
 
         return table_root
 
@@ -448,7 +447,6 @@ class DataContainer(abc.ABC):
 
         :return: True if accessible, False otherwise
         """
-        pass
 
     @abc.abstractmethod
     def query(self, sql: str) -> pd.DataFrame:
@@ -458,7 +456,6 @@ class DataContainer(abc.ABC):
         :param sql: SQL query to execute
         :return: DataFrame containing the query results
         """
-        pass
 
     # DEFAULT METHODS (noop, unless applicable)
     def drop_all(self):
@@ -466,7 +463,6 @@ class DataContainer(abc.ABC):
         Drop all the relations and tables, if applicable.
 
         """
-        pass
 
     def fetch_table(self, table_name: str):
         """
@@ -477,7 +473,6 @@ class DataContainer(abc.ABC):
             - their corresponding columns
             - PKs / FKs
         """
-        pass
 
     def fetch_schema(self):
         """
@@ -489,7 +484,6 @@ class DataContainer(abc.ABC):
 
         Note: when a driver needs to configured: do it lazily or eagerly? applicable to DBs, mostly.
         """
-        pass
 
     def set_location(self, location: str) -> dict:
         return {}
@@ -538,7 +532,6 @@ class DataTable(abc.ABC):
 
         :return: True if accessible, False otherwise
         """
-        pass
 
     @property
     @abc.abstractmethod
@@ -546,7 +539,6 @@ class DataTable(abc.ABC):
         """
         Fetch number of rows (if possible)
         """
-        pass
 
     @abc.abstractmethod
     def read_data(
@@ -568,7 +560,6 @@ class DataTable(abc.ABC):
         :param order_by: optionally, one or multiple columns (asc/desc) to order by
         :param do_coerce_dtypes: bool on whether dtypes shall be converted corresponding to encoding_types
         """
-        pass
 
     @abc.abstractmethod
     def read_chunks(
@@ -588,7 +579,6 @@ class DataTable(abc.ABC):
         :param fetch_chunk_size: size of the chunk to fetch from the data source
         :param yield_chunk_size: size of the chunk to yield to the caller
         """
-        pass
 
     @abc.abstractmethod
     def write_data(self, df: pd.DataFrame, **kwargs):
@@ -597,7 +587,6 @@ class DataTable(abc.ABC):
 
         :param df: data to write
         """
-        pass
 
     @abc.abstractmethod
     def drop(self):
@@ -605,7 +594,6 @@ class DataTable(abc.ABC):
         Drop the data table.
 
         """
-        pass
 
     def read_data_prefixed(self, include_table_prefix: bool = True, **kwargs) -> pd.DataFrame:
         """
@@ -688,7 +676,7 @@ class DataTable(abc.ABC):
                 return
 
             old_new_k_map = {}
-            for k in d.keys():
+            for k in d:
                 if prefix not in k:
                     new_k = DataIdentifier(table=self.name, column=k).ref_name()
                     old_new_k_map[k] = new_k

@@ -103,7 +103,7 @@ class DType(abc.ABC):
             return lossless_null_map.equals(coerced_null_map) and bool(
                 all(lossless_data[~lossless_null_map] == coerced_data[~lossless_null_map])
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             _LOG.warning(f"encompasses failed for {type(self)=} and {data.dtype=}: {e}")
             return False  # in case of a failure, be on the safer side
 
@@ -114,7 +114,7 @@ class DType(abc.ABC):
     def encompass_data(
         self,
         data: pd.Series,
-        fallback_dtypes: list["DType"] = None,
+        fallback_dtypes: list["DType"] | None = None,
         is_last_fallback_always_valid: bool = True,
     ) -> "DType":
         """
@@ -160,7 +160,7 @@ class VirtualDType(DType, abc.ABC):
 
 
 class VirtualVarchar(VirtualDType):
-    def __init__(self, length: int = None):
+    def __init__(self, length: int | None = None):
         self.length = length
 
     def coerce(self, data: pd.Series) -> pd.Series:
@@ -251,7 +251,7 @@ class WrappedDType(DType):
         elif isinstance(dtype, VirtualDType):
             return cls.from_virtual(dtype)
         else:
-            raise ValueError(f"Unsupported dtype: {dtype}")
+            raise ValueError(f"Unsupported dtype: {dtype}")  # noqa: TRY004
 
     @classmethod
     def from_dtypes(cls, dtypes: dict[str, DType]) -> dict[str, "WrappedDType"]:
@@ -332,7 +332,7 @@ def coerce_dtype_by_encoding(
         x = x.astype(STRING)
     elif encoding_type is None or encoding_type == ModelEncodingType.auto:
         # treat keys as strings
-        if pd.api.types.is_float_dtype(x):
+        if pd.api.types.is_float_dtype(x):  # noqa: SIM102
             # convert float values that represent whole numbers to integers
             if x.dropna().apply(lambda v: float(v).is_integer()).all():
                 x = x.astype("Int64")
@@ -496,9 +496,7 @@ class PandasDType(WrappedDType):
             return cls(FLOAT64)
         elif isinstance(dtype, VirtualVarchar):
             return cls(STRING)
-        elif isinstance(dtype, VirtualDatetime):
-            return cls("datetime64[ns]")
-        elif isinstance(dtype, VirtualTimestamp):
+        elif isinstance(dtype, (VirtualDatetime, VirtualTimestamp)):
             return cls("datetime64[ns]")
         else:
             raise NotImplementedError(f"handler for virtual {dtype=} is not specified")
@@ -511,17 +509,9 @@ class PandasDType(WrappedDType):
             return VirtualInteger()
         elif dtype.lower().startswith("float") or dtype.startswith("double"):
             return VirtualFloat()
-        elif dtype.startswith("str"):
+        elif dtype.startswith(("str", "binary", "null")) or dtype == "object" or dtype == "category":
             return VirtualVarchar()
-        elif dtype.startswith("binary"):
-            return VirtualVarchar()
-        elif dtype == "object":
-            return VirtualVarchar()
-        elif dtype == "category":
-            return VirtualVarchar()
-        elif dtype.startswith("null"):
-            return VirtualVarchar()
-        elif dtype.startswith("date") or dtype.startswith("time"):
+        elif dtype.startswith(("date", "time")):
             return VirtualTimestamp()
         else:
             _LOG.warning(f"no VirtualDtype found for {dtype}")

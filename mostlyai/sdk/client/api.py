@@ -104,7 +104,7 @@ class MostlyAI(_MostlyBaseClient):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # determine SDK mode: LOCAL by default, CLIENT when explicit remote details are provided
-        mode: Literal["CLIENT", "LOCAL", None] = None
+        mode: Literal["CLIENT", "LOCAL"] | None = None
         if base_url is not None:
             mode = "CLIENT"
         elif local is not None:
@@ -114,7 +114,7 @@ class MostlyAI(_MostlyBaseClient):
 
         if mode == "LOCAL":
             check_local_mode_available()
-            from mostlyai.sdk._local.server import LocalServer  # noqa
+            from mostlyai.sdk._local.server import LocalServer
 
             self.local_server = LocalServer(home_dir=local_dir, port=local_port)
             home_dir = self.local_server.home_dir
@@ -151,7 +151,7 @@ class MostlyAI(_MostlyBaseClient):
             else:
                 msg = f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
             import torch  # noqa
-            import psutil  # noqa
+            import psutil
 
             msg += f" with {psutil.virtual_memory().total / (1024**3):.0f} GB RAM"
             msg += f", {psutil.cpu_count(logical=True)} CPUs"
@@ -168,7 +168,7 @@ class MostlyAI(_MostlyBaseClient):
                     _ = next(self.generators.list(limit=1), None)
                     msg = f"Connected to [link={self.base_url} dodger_blue2 underline]{self.base_url}[/]"
                     rich.print(msg)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     rich.print(f"Failed to connect to {self.base_url} : {e}")
         else:
             raise ValueError("Invalid SDK mode")
@@ -760,9 +760,9 @@ class MostlyAI(_MostlyBaseClient):
             if "timed out" in str(e).lower():
                 raise APIError("Probing timed out. Please try `generate()` instead.")
             else:
-                raise e
+                raise
 
         if return_type == "auto" and len(dfs) == 1:
-            return list(dfs.values())[0]
+            return next(iter(dfs.values()))
         else:
             return dfs

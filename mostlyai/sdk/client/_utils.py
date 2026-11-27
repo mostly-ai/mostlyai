@@ -315,7 +315,7 @@ def get_subject_table_names(generator: Generator) -> list[str]:
     return subject_tables
 
 
-Seed = Union[pd.DataFrame, str, Path, list[dict[str, Any]]]
+Seed = Union[pd.DataFrame, str, Path, list[dict[str, Any]]]  # noqa: UP007
 
 
 def harmonize_sd_config(

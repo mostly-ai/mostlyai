@@ -38,9 +38,9 @@ Bug reports must include a minimal reproducible example: runnable code, sample d
    source .venv/bin/activate
    ```
 
-4. **Install pre-commit hooks**:
+4. **Install pre-commit hooks** (via [prek](https://github.com/j178/prek), a drop-in replacement for pre-commit):
    ```bash
-   pre-commit install
+   prek install
    ```
 
 ## Development Workflow
@@ -59,10 +59,10 @@ Bug reports must include a minimal reproducible example: runnable code, sample d
 
 3. **Implement your changes.**
 
-4. **Run tests and pre-commit hooks**:
+4. **Run tests and pre-commit hooks** (optionally `ty check` for type checks; not yet enforced in CI):
    ```bash
    pytest
-   pre-commit run
+   prek run
    ```
 
 5. **Commit your changes with a descriptive message**:

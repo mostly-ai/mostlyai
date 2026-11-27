@@ -111,7 +111,7 @@ class MssqlContainer(SqlAlchemyContainer):
                 else:
                     db_exist = False
                 return db_exist
-        except Exception:
+        except Exception:  # noqa: BLE001
             return False
 
 

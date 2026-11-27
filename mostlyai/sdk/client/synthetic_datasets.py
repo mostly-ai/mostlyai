@@ -229,7 +229,7 @@ class _MostlySyntheticDatasetsClient(_MostlyBaseClient):
 
     def _data(self, synthetic_dataset_id: str) -> dict[str, pd.DataFrame]:
         # download pqt
-        pqt_zip_bytes, filename = self._download(
+        pqt_zip_bytes, _filename = self._download(
             synthetic_dataset_id=synthetic_dataset_id,
             ds_format=SyntheticDatasetFormat.parquet,
         )

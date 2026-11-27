@@ -52,7 +52,7 @@ class LocalServer:
         # binding to all interfaces (0.0.0.0) is required for docker use case
         self.host = "0.0.0.0" if port is not None else None
         self.uds = (
-            tempfile.NamedTemporaryFile(prefix=".mostlyai-", suffix=".sock", delete=False).name
+            tempfile.NamedTemporaryFile(prefix=".mostlyai-", suffix=".sock", delete=False).name  # noqa: SIM115
             if port is None
             else None
         )

@@ -1025,8 +1025,8 @@ class TestPullNonContext:
         if model_type == "TABULAR":
             assert ctx_enctypes["ctx::non_ctx_2_id.non_ctx._is_null"] == ModelEncodingType.tabular_categorical
             assert tgt_enctypes["non_ctx_1_id.non_ctx._is_null"] == ModelEncodingType.tabular_categorical
-        assert all([c in ctx_data.columns for c in ctx_enctypes.keys()])
-        assert all([c in tgt_data.columns for c in tgt_enctypes.keys()])
+        assert all(c in ctx_data.columns for c in ctx_enctypes)
+        assert all(c in tgt_data.columns for c in tgt_enctypes)
 
 
 class TestPullSCPinNonContextSetup(DisableMaskKeys):

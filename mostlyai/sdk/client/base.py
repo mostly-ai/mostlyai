@@ -146,7 +146,7 @@ class _MostlyBaseClient:
                     error_msg = json["detail"]
                 else:
                     error_msg = "An error occurred."
-            except Exception:
+            except Exception:  # noqa: BLE001
                 error_msg = exc.response.content
             # Handle HTTP errors (not in 2XX range)
             raise APIStatusError(f"HTTP {exc.response.status_code}: {error_msg}") from None

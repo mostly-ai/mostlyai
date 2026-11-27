@@ -46,7 +46,7 @@ class TheSimplestDataContainer(DataContainer):
         pass
 
     def fetch_table(self, table_name: str):
-        if table_name in self.schema.tables.keys():
+        if table_name in self.schema.tables:
             return self.schema.tables[table_name]
 
     def fetch_schema(self):
