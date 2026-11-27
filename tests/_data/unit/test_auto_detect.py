@@ -93,6 +93,8 @@ class TestAutoDetectEncodingType:
             ["id1", "id2"] + ["cat1", "cat2"] * 49,  # 2 out of 100 are unique < 0.05
             ["Jan", "Feb", "Mar", "Apr"] * 25,  # month names parse to year 1
             ["1st", "2nd", "3rd", "4th"] * 25,  # ordinals parse to year 1
+            ["1920,1080", "1280,720", "3840,2160"] * 2,  # number pairs outside the lat/long range
+            ["91.0, 0.0", "0.0, 181.0"] * 2,  # latitude above 90, longitude above 180
         ],
     )
     def test_tabular_categorical(self, values):
