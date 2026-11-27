@@ -61,11 +61,7 @@ def create_synthetic_dataset(
             seed = convert_to_df(data=t.configuration.sample_seed_data, format="parquet")
         if seed is not None:
             connector = Connector(
-                **{
-                    "name": "FILE_UPLOAD",
-                    "type": ConnectorType.file_upload,
-                    "access_type": ConnectorAccessType.source,
-                }
+                name="FILE_UPLOAD", type=ConnectorType.file_upload, access_type=ConnectorAccessType.source
             )
             fn = home_dir / "connectors" / connector.id / "seed.parquet"
             fn.parent.mkdir(parents=True, exist_ok=True)

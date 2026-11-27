@@ -225,7 +225,7 @@ class _MostlyGeneratorsClient(_MostlyBaseClient):
                 # download the file from URL to a temporary file
                 response = requests.get(str(file_path), stream=True)
                 response.raise_for_status()  # raise an exception for HTTP errors
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")  # noqa: SIM115
                 temp_file.write(response.content)
                 temp_file.close()
                 file_path = temp_file.name

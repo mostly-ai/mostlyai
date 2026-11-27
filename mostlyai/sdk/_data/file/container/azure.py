@@ -90,7 +90,7 @@ class AzureBlobFileContainer(BucketBasedContainer):
 
     @property
     def transport_params(self) -> dict | None:
-        return dict(client=self._blob_service_client)
+        return {"client": self._blob_service_client}
 
     @property
     def file_system(self) -> Any:
@@ -99,7 +99,7 @@ class AzureBlobFileContainer(BucketBasedContainer):
     def _check_authenticity(self) -> bool:
         try:
             return self._blob_service_client.get_account_information() is not None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             error_message = str(e).lower()
             if any(
                 keyword in error_message
@@ -128,7 +128,7 @@ class AzureBlobFileContainer(BucketBasedContainer):
             elif "invalid client secret" in error_message:
                 raise MostlyDataException("Client secret is incorrect.")
             else:
-                raise MostlyDataException(f"Authenticity check failed: {str(e)}")
+                raise MostlyDataException(f"Authenticity check failed: {e!s}")
 
     def _init_duckdb(self, con: duckdb.DuckDBPyConnection) -> None:
         if self.account_key:

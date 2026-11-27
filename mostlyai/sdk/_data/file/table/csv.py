@@ -66,7 +66,7 @@ class CsvDataTable(FileDataTable):
                 # happens for example for single column CSV files
                 delimiter = ","
             return delimiter
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             _LOG.warning(f"{err=} of {type(err)=}, defaulting to ',' delimiter")
             return ","
 

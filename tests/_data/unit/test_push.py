@@ -19,7 +19,7 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-import pytest as pytest
+import pytest as pytest  # noqa: PLC0414
 import sqlalchemy as sa
 
 from mostlyai.sdk._data.base import ForeignKey, Schema
@@ -103,7 +103,7 @@ def create_sqlite_db(path):
 @pytest.fixture
 def two_table_schema(tmp_path):
     container = create_sqlite_db(f"{tmp_path}/temp_db.db")
-    common_kwargs = dict(primary_key="id", is_output=True)
+    common_kwargs = {"primary_key": "id", "is_output": True}
     tables = {
         "ctx": SqliteTable(name="ctx", container=container, foreign_keys=[], **common_kwargs),
         "tgt": SqliteTable(
@@ -120,10 +120,10 @@ def two_table_schema(tmp_path):
 def create_two_table_data(
     key_gen_type: Literal["seq", "uuid"] = "seq", ctx_size=10, seq_length=2
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    gen_function_map = dict(
-        seq=lambda length: list(range(length)),
-        uuid=lambda length: list(str(uuid.uuid4()) for _ in range(length)),
-    )
+    gen_function_map = {
+        "seq": lambda length: list(range(length)),
+        "uuid": lambda length: [str(uuid.uuid4()) for _ in range(length)],
+    }
     gen_func = gen_function_map[key_gen_type]
 
     ctx_df = pd.DataFrame({"id": gen_func(ctx_size)})

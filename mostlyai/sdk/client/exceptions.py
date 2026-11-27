@@ -18,7 +18,7 @@ from rich.text import Text
 
 
 class APIError(Exception):
-    def __init__(self, message: str = None, do_rich_print: bool = True):
+    def __init__(self, message: str | None = None, do_rich_print: bool = True):
         super().__init__(message)
         self.message = message
         if do_rich_print:

@@ -135,7 +135,9 @@ class ExecutionPlan(BaseModel):
         self.tasks.append(task)
         return task
 
-    def add_task_with_steps(self, task_type: TaskType, parent: Task | None = None, steps: list[Step] = None) -> Task:
+    def add_task_with_steps(
+        self, task_type: TaskType, parent: Task | None = None, steps: list[Step] | None = None
+    ) -> Task:
         task = Task(
             id=str(uuid.uuid4()),
             type=task_type,

@@ -24,7 +24,7 @@ def _parse_kwargs() -> dict:
     kwargs = {}
     for arg in args:
         if arg.startswith("--"):
-            key, value = arg.lstrip("--").split("=", 1)
+            key, value = arg.removeprefix("--").split("=", 1)
             kwargs[key] = value
     return kwargs
 

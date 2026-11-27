@@ -19,9 +19,9 @@ import time
 import traceback
 from pathlib import Path
 
-import mostlyai.engine as engine
 import pandas as pd
 
+from mostlyai import engine
 from mostlyai.sdk._data.base import NonContextRelation, Schema
 from mostlyai.sdk._data.non_context import (
     CHILDREN_COUNT_COLUMN_NAME,
@@ -325,7 +325,7 @@ def execute_step_finalize_training(
                     fk_models_workspace_dir=fk_models_workspace_dir,
                     update_progress=progress.update,
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 _LOG.error(
                     f"[NonContext] FK model training failed | table={tgt_table_name} | error={e}\n{traceback.format_exc()}"
                 )

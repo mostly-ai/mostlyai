@@ -226,7 +226,7 @@ def _probe_random_samples(home_dir: Path, generator: Generator) -> None:
 
 def _merge_tabular_language_data(workspace_dir: Path, merged_part_size: int = 200_000):
     def rows_from_dir_generator(path: Path, yield_n_rows: int):
-        fns = sorted(list(path.glob("*.parquet")))
+        fns = sorted(path.glob("*.parquet"))
         buffer = pd.DataFrame()
         for fn in fns:
             fn_df = pd.read_parquet(fn)
@@ -247,7 +247,7 @@ def _merge_tabular_language_data(workspace_dir: Path, merged_part_size: int = 20
         # assumption: rows from ctx_dir form 1:1 mapping with rows from tgt_dir
         tgt_df = next(tgt_gen)
         # assumption: all columns are prefixed
-        tgt_prefix = [col.split(TABLE_COLUMN_INFIX)[0] for col in ctx_df.columns if TEMPORARY_PRIMARY_KEY in col][0]
+        tgt_prefix = next(col.split(TABLE_COLUMN_INFIX)[0] for col in ctx_df.columns if TEMPORARY_PRIMARY_KEY in col)
         # only merge TABULAR (which are in context) and LANGUAGE columns
         ctx_df = ctx_df.drop(columns=[c for c in ctx_df.columns if not c.startswith(tgt_prefix)])
         ctx_df.columns = strip_column_prefix(ctx_df.columns, table_name=tgt_prefix)
@@ -331,9 +331,8 @@ class Execution:
                     connector = read_connector_from_json(connector_path)
                     if connector.type == ConnectorType.file_upload:
                         shutil.rmtree(connector_path)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     _LOG.info(f"Failed to clear connector {connector_path}: {e}")
-                    pass
 
     def run(self):
         # execute job
@@ -659,9 +658,8 @@ def execute_training_job(generator_id: str, home_dir: Path):
 
     try:
         _probe_random_samples(home_dir=home_dir, generator=generator)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         _LOG.info(f"Failed to probe random samples: {e}")
-        pass
 
 
 def execute_generation_job(synthetic_dataset_id: str, home_dir: Path):

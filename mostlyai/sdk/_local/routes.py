@@ -188,7 +188,7 @@ class Routes:
             try:
                 table_schema = connectors.fetch_location_schema(connector, location, include_children=False)
                 return table_schema.columns
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 return JSONResponse(status_code=400, content=str(e))
 
         @self.router.post("/connectors/{id}/read-data")
@@ -203,7 +203,7 @@ class Routes:
                 df.to_parquet(tmp_path)
 
             return StreamingResponse(
-                open(tmp_path, mode="rb"),
+                open(tmp_path, mode="rb"),  # noqa: ASYNC230
                 media_type="application/octet-stream",
                 headers={"Content-Disposition": "attachment; filename=data.parquet"},
                 background=BackgroundTask(Path(tmp_path).unlink, missing_ok=True),
@@ -240,7 +240,7 @@ class Routes:
                 df.to_parquet(tmp_path)
 
             return StreamingResponse(
-                open(tmp_path, mode="rb"),
+                open(tmp_path, mode="rb"),  # noqa: ASYNC230
                 media_type="application/octet-stream",
                 headers={"Content-Disposition": "attachment; filename=query_result.parquet"},
                 background=BackgroundTask(Path(tmp_path).unlink, missing_ok=True),
@@ -361,7 +361,7 @@ class Routes:
             # call shell script to start training job
             cli_py = str((Path(os.path.dirname(os.path.realpath(__file__))) / "cli.py").absolute())
             cmd = [sys.executable, cli_py, "run-training", generator.id, str(self.home_dir.absolute())]
-            subprocess.Popen(cmd)
+            subprocess.Popen(cmd)  # noqa: ASYNC220
 
         @self.router.get("/generators/{id}/training/logs", response_class=StreamingResponse)
         async def download_training_logs(id: str) -> StreamingResponse:
@@ -507,7 +507,7 @@ class Routes:
             # call shell script to start generation job
             cli_py = str((Path(os.path.dirname(os.path.realpath(__file__))) / "cli.py").absolute())
             cmd = [sys.executable, cli_py, "run-generation", synthetic_dataset.id, str(self.home_dir.absolute())]
-            subprocess.Popen(cmd)
+            subprocess.Popen(cmd)  # noqa: ASYNC220
 
         @self.router.get("/synthetic-datasets/{id}/generation/logs", response_class=StreamingResponse)
         async def download_generation_logs(id: str) -> StreamingResponse:

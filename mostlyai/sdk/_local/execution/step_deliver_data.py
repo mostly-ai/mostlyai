@@ -60,7 +60,7 @@ def execute_step_deliver_data(
                 overwrite_tables=overwrite_tables,
             )
         else:
-            raise ValueError(f"Unsupported destination container type: {container}")
+            raise ValueError(f"Unsupported destination container type: {container}")  # noqa: TRY004
 
 
 def _create_destination_table(

@@ -352,8 +352,7 @@ def test_read_csv_dtype_mismatch(tmp_path):
     fn = tmp_path / "data.csv"
     with open(fn, "a") as f:
         f.write("x,y\n")
-        for i in range(2_000_000):
-            f.write("1,\n")
+        f.writelines("1,\n" for i in range(2_000_000))
         f.write(",.3\n")
     # read CSV and ensure that no error is thrown due to dtype mismatch
     t = CsvDataTable(path=tmp_path / "data.csv").read_data()

@@ -64,7 +64,7 @@ def do_test_connection(connector: Connector) -> bool:
     # mimic the test connection service in local mode
     try:
         _ = create_container_from_connector(connector)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(e))
     return True
 
@@ -88,7 +88,7 @@ def read_data_from_connector(connector: Connector, config: ConnectorReadDataConf
             connector=connector, location=config.location, is_output=False
         )
         return data_table.read_data(limit=config.limit, shuffle=config.shuffle)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -102,7 +102,7 @@ def write_data_to_connector(connector: Connector, config: ConnectorWriteDataConf
         )
         df = pd.read_parquet(BytesIO(config.file))
         data_table.write_data(df, if_exists=config.if_exists.value.lower())
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -115,7 +115,7 @@ def delete_data_from_connector(connector: Connector, config: ConnectorDeleteData
             connector=connector, location=config.location, is_output=True
         )
         data_table.drop()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -126,7 +126,7 @@ def query_data_from_connector(connector: Connector, sql: str) -> pd.DataFrame:
     try:
         data_container = create_container_from_connector(connector)
         return data_container.query(sql)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -156,7 +156,7 @@ def _data_tables_to_table_schemas(
             ConstraintSchema(foreign_key=rel.child.column, referenced_table=rel.parent.table) for rel in relations
         ]
         # fetch table row count - but time-box to 10secs
-        total_rows = run_with_timeout_unsafe(lambda: table.row_count, timeout=10)
+        total_rows = run_with_timeout_unsafe(lambda: table.row_count, timeout=10)  # noqa: B023
         # instantiate TableSchema
         table_schema = TableSchema(
             name=table_name,
@@ -194,7 +194,7 @@ def fetch_location_schema(connector: Connector, location: str, include_children:
         container.fetch_schema()
         schema = container.schema
         ordered_table_names = container.filtered_tables
-        ordered_locations = [".".join([db_schema, table_name]) for table_name in ordered_table_names]
+        ordered_locations = [f"{db_schema}.{table_name}" for table_name in ordered_table_names]
     else:
         location = meta["location"]
         table = read_data_table_from_path(container)

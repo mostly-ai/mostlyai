@@ -33,7 +33,7 @@ def add_gpc_context(
     tgt: str,
 ) -> pd.DataFrame:
     context_tables = schema.get_context_tables(tgt)
-    ctx_tgt_nodes, ctx_tgt_path = get_table_chain_to_tgt(
+    ctx_tgt_nodes, _ctx_tgt_path = get_table_chain_to_tgt(
         schema=schema,
         tables=context_tables,
         tgt=tgt,
@@ -64,7 +64,7 @@ def add_ns_context(
     ctx_data: pd.DataFrame,
 ) -> pd.DataFrame:
     context_tables = schema.get_context_tables(tgt)
-    ctx_tgt_nodes, ctx_tgt_path = get_table_chain_to_tgt(
+    _ctx_tgt_nodes, ctx_tgt_path = get_table_chain_to_tgt(
         schema=schema,
         tables=context_tables,
         tgt=tgt,
@@ -96,11 +96,11 @@ def add_ns_context(
             def add_previous_values_ctx(group):
                 # due to lack of NAs support for int*, float*, bool in numpy, fillna was added
                 group_ser = (
-                    group[cur_name].fillna(0)
-                    if any(dtype in str(cur_dtype) for dtype in ["int", "float", "bool"])
-                    else group[cur_name]
+                    group[cur_name].fillna(0)  # noqa: B023
+                    if any(dtype in str(cur_dtype) for dtype in ["int", "float", "bool"])  # noqa: B023
+                    else group[cur_name]  # noqa: B023
                 )
-                group[prev_name] = [np.array(group_ser.values[:i], dtype=cur_dtype) for i in range(len(group))]
+                group[prev_name] = [np.array(group_ser.values[:i], dtype=cur_dtype) for i in range(len(group))]  # noqa: B023
                 return group
 
             # create list of the previous values and insert that column adjacent to the current column

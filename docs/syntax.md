@@ -11,11 +11,11 @@ hide:
 from mostlyai.sdk import MostlyAI
 
 # local mode (default)
-mostly = MostlyAI(local_dir='~/mostlyai')
+mostly = MostlyAI(local_dir="~/mostlyai")
 
 # client mode (explicit remote endpoint)
 mostly = MostlyAI(
-    base_url='https://remote-sdk.example.com',
+    base_url="https://remote-sdk.example.com",
 )
 ```
 
