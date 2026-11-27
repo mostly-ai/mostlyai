@@ -248,10 +248,10 @@ As an alternative, you can also build a Docker image, which provides you with an
   <code>docker pull --platform=linux/amd64 ghcr.io/mostly-ai/sdk</code>
 
   <ul>
-  <li><strong>Pull from official repository</strong></li>
+  <li><strong>Build locally</strong></li>
   </ul>
 
-  If your environment is capable of executing Makefile (see <a href="https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L47-L73">here</a>), then execute <code>make docker-build</code>.
+  If your environment is capable of executing Makefile (see <a href="https://github.com/mostly-ai/mostlyai/blob/main/Makefile#L14-L39">here</a>), then execute <code>make docker-build</code>.
 
   Otherwise, use <code>docker buildx build . --platform=linux/amd64 -t ghcr.io/mostly-ai/sdk</code> instead.
 
@@ -301,7 +301,7 @@ from pathlib import Path
 from huggingface_hub import snapshot_download
 
 path = snapshot_download(
-    repo_id="Qwen/Qwen2.5-Coder-0.5B",  # change accordingly
+    repo_id="Qwen/Qwen3-0.6B",  # change accordingly
     token=None,  # insert your HF TOKEN for gated models
 )
 print(f"COPY `{Path(path).parent.parent}`")
