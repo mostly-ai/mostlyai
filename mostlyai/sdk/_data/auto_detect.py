@@ -94,9 +94,12 @@ def auto_detect_encoding_type(x: pd.Series) -> ModelEncodingType:
     if datetimes.notna().all() and datetimes.between(pd.Timestamp.min, pd.Timestamp.max).all():
         return ModelEncodingType.tabular_datetime
 
-    # if all values match lat/long pattern -> lat_long (geo) encoding
+    # if all values match lat/long pattern and lie within [-90, 90] x [-180, 180] -> lat_long (geo) encoding;
+    # pairs like "1920,1080" would otherwise be clamped to "90, 180" by the encoding
     if x.str.match(LAT_LONG_REGEX).all():
-        return ModelEncodingType.tabular_lat_long
+        lat_long = x.str.split(",", expand=True).astype(float)
+        if lat_long[0].abs().le(90).all() and lat_long[1].abs().le(180).all():
+            return ModelEncodingType.tabular_lat_long
 
     # if more than 5% of rows contain unique values
     if len(x) >= 100 and x.value_counts().eq(1).reindex(x).mean() > 0.05:
