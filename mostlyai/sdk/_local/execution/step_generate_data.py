@@ -55,16 +55,10 @@ def execute_step_generate_data(
             model_type=model_type,
             workspace_dir=workspace_dir,
         )
-        ### TODO: FIX
-        # Hack that enables single table, single text column generation
-        ctx_data_dir = workspace_dir / "OriginalData" / "ctx-data"
-        if not ctx_data_dir.exists():
-            ctx_data_dir.mkdir(parents=True)
-            ctx_primary_key = f"{tgt_g_table.name}{TABLE_COLUMN_INFIX}{TEMPORARY_PRIMARY_KEY}"
-            dummy_ctx_length = config.sample_size if sample_seed is None else sample_seed.shape[0]
-            dummy_ctx = pd.DataFrame({ctx_primary_key: [str(uuid.uuid4()) for _ in range(dummy_ctx_length)]})
-            dummy_ctx.to_parquet(ctx_data_dir / "part.00000-ctx.parquet")
-        ### TODO: FIX
+        if not (workspace_dir / "OriginalData" / "ctx-data").exists():
+            # nothing was pulled, i.e. a flat table with LANGUAGE columns only
+            n_rows = config.sample_size if sample_seed is None else len(sample_seed)
+            write_key_only_context(workspace_dir=workspace_dir, table_name=tgt_g_table.name, n_rows=n_rows)
 
     if model_type == ModelType.language:
         model_config = tgt_g_table.language_model_configuration
@@ -139,3 +133,20 @@ def execute_step_generate_data(
             df = pd.read_parquet(file)
             df = constraint_translator.to_original(df)
             df.to_parquet(file)
+
+
+def write_key_only_context(*, workspace_dir: Path, table_name: str, n_rows: int) -> None:
+    """
+    Write a context that holds only the temporary primary key, one row per record to generate.
+
+    A LANGUAGE model is trained with the TABULAR columns of its own table as context, keyed by
+    the temporary primary key. If the table has LANGUAGE columns only, `pull_context` has nothing
+    to pull at generation time. The engine, the data report and the final merge of TABULAR and
+    LANGUAGE data all expect the context partitions to exist, with that key, at a 1:1 row mapping
+    with the generated records. This writes that context.
+    """
+    ctx_data_dir = workspace_dir / "OriginalData" / "ctx-data"
+    ctx_data_dir.mkdir(parents=True, exist_ok=True)
+    ctx_primary_key = f"{table_name}{TABLE_COLUMN_INFIX}{TEMPORARY_PRIMARY_KEY}"
+    ctx = pd.DataFrame({ctx_primary_key: [str(uuid.uuid4()) for _ in range(n_rows)]})
+    ctx.to_parquet(ctx_data_dir / "part.00000-ctx.parquet")
