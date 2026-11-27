@@ -12,6 +12,12 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
+    ignore:
+      # torch-family versions are pinned in the CPU test workflow (and by vllm); bump them manually together
+      - dependency-name: "torch"
+      - dependency-name: "torchvision"
+      - dependency-name: "torchaudio"
+      - dependency-name: "vllm"
     groups:
       python-dependencies:
         patterns: ["*"]
