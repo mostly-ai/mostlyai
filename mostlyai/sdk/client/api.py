@@ -501,7 +501,7 @@ class MostlyAI(_MostlyBaseClient):
                         'max_sample_size': 50_000,                # eg. cap sample size to 50k; set None for max accuracy
                         'max_training_time': 60,                  # eg. cap runtime to 60min; set None for max accuracy
                         'model': 'MOSTLY_AI/LSTMFromScratch-3m',  # use a light-weight LSTM model, trained from scratch (GPU recommended)
-                        #'model': 'microsoft/phi-1.5',            # alternatively use a pre-trained HF-hosted LLM model (GPU required)
+                        #'model': 'Qwen/Qwen3-0.6B',               # alternatively use a pre-trained HF-hosted LLM model (GPU required)
                     }
                 }],
             }, start=True, wait=True)

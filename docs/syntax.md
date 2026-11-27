@@ -158,8 +158,3 @@ c.open()
 # delete a connector
 c.delete()
 ```
-
-## Miscellaneous
-
-```python
-```

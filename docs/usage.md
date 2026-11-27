@@ -348,7 +348,7 @@ g = mostly.train(
                 "language_model_configuration": {  # language model configuration (optional)
                     "max_training_time": 5,  # cap runtime for demo; set None for max accuracy
                     "model": "MOSTLY_AI/LSTMFromScratch-3m",  # use a light-weight LSTM model, trained from scratch (GPU recommended)
-                    #'model': 'microsoft/phi-1.5',            # alternatively use a pre-trained HF-hosted LLM model (GPU required)
+                    #'model': 'Qwen/Qwen3-0.6B',               # alternatively use a pre-trained HF-hosted LLM model (GPU required)
                 },
             }
         ],
@@ -380,7 +380,7 @@ mostly = MostlyAI()
 # define a source connector for reading
 src_c = mostly.connect(
     config={
-        "name": "My S3 Source Storage",
+        "name": "My Postgres Source DB",
         "type": "POSTGRES",
         "access_type": "SOURCE",
         "config": {
@@ -424,7 +424,7 @@ g = mostly.train(
             {  # provide list of table(s)
                 "name": "housing",  # name of the table
                 "source_connector_id": src_c.id,  # the ID of the source connector
-                "location": "bucket/path_to_data",  # the location of the source data
+                "location": "public.housing",  # the location of the source data (schema.table)
                 "tabular_model_configuration": {  # tabular model configuration (optional)
                     "max_epochs": 20,  # cap runtime for demo; set None for max accuracy
                 },

@@ -1235,7 +1235,7 @@ class ModelConfiguration(CustomBaseModel):
                 "MOSTLY_AI/Medium",
                 "MOSTLY_AI/Large",
                 "MOSTLY_AI/LSTMFromScratch-3m",
-                "microsoft/phi-1_5",
+                "Qwen/Qwen3-0.6B",
             ]
         ],
     )
