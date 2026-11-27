@@ -89,7 +89,7 @@ def adapt_dtypes_to_destination(
     tgt_table_dtypes = tgt_table.dtypes or {}
     tgt_dtypes = pandas_dtypes | tgt_table_dtypes  # use pandas_dtypes as the fallback
     adapted_columns = {}
-    for column in tgt_dtypes.keys():
+    for column in tgt_dtypes:
         tgt_column = tgt_data[column]
         column_virtual_dtype = tgt_dtypes[column].to_virtual()
         if pandas_dtypes[column].equivalent(tgt_dtypes[column]):

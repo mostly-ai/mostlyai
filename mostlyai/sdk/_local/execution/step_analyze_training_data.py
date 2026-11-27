@@ -81,7 +81,7 @@ def _get_value_ranges(stats: dict) -> dict[str, SourceColumnValueRange]:
         size_limit = 1_000
         values = [
             code
-            for code in col_stats.get("codes", {}).keys()
+            for code in col_stats.get("codes", {})
             if code not in [CATEGORICAL_UNKNOWN_TOKEN, CATEGORICAL_NULL_TOKEN]
         ][:size_limit]
         return {"values": values}
@@ -95,7 +95,7 @@ def _get_value_ranges(stats: dict) -> dict[str, SourceColumnValueRange]:
     def parse_has_null(col_stats: dict) -> dict:
         has_null = any(
             [
-                CATEGORICAL_NULL_TOKEN in col_stats.get("codes", {}).keys(),
+                CATEGORICAL_NULL_TOKEN in col_stats.get("codes", {}),
                 col_stats.get("has_nan", False),
                 col_stats.get("has_na", False),
             ]

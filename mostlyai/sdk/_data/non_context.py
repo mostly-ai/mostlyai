@@ -31,7 +31,6 @@ from copy import copy as shallow_copy
 from copy import deepcopy
 from pathlib import Path
 
-import mostlyai.engine as engine
 import numpy as np
 import pandas as pd
 import torch
@@ -49,6 +48,7 @@ from pathvalidate import sanitize_filename
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
+from mostlyai import engine
 from mostlyai.sdk._data.base import DataIdentifier, DataTable, NonContextRelation, Schema
 from mostlyai.sdk._data.util.common import IS_NULL, NON_CONTEXT_COLUMN_INFIX
 
@@ -260,7 +260,7 @@ class EntityEncoder(nn.Module):
         )
 
     def forward(self, inputs: dict[str, torch.Tensor]) -> torch.Tensor:
-        embeddings = torch.cat([self.embeddings[col](inputs[col]) for col in inputs.keys()], dim=1)
+        embeddings = torch.cat([self.embeddings[col](inputs[col]) for col in inputs], dim=1)
         encoded = self.entity_encoder(embeddings)
         return encoded
 

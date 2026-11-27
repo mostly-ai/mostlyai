@@ -44,7 +44,6 @@ class BaseConstraint(CustomBaseModel, ABC):
         constraint_idx: int,
     ) -> None:
         """validate constraint against table columns and track usage."""
-        pass
 
 
 class FixedCombinations(BaseConstraint):

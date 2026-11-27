@@ -21,10 +21,10 @@ import numpy as np
 import oracledb
 import pandas as pd
 import sqlalchemy as sa
-import sqlalchemy.dialects.oracle as oracle
 import sqlalchemy.dialects.oracle as sa_oracle
 from pandas.io.sql import SQLDatabase, SQLTable
 from sqlalchemy import text
+from sqlalchemy.dialects import oracle
 from sqlalchemy.dialects.oracle.base import OracleDialect
 
 from mostlyai.sdk._data.db.base import DBDType, SqlAlchemyContainer, SqlAlchemyTable

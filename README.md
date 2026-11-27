@@ -70,11 +70,12 @@ Generate synthetic samples using a pre-trained generator:
 ```python
 # initialize the SDK
 from mostlyai.sdk import MostlyAI
+
 mostly = MostlyAI()
 
 # import a trained generator
 g = mostly.generators.import_from_file(
-  "https://github.com/mostly-ai/public-demo-data/raw/dev/census/census-generator.zip"
+    "https://github.com/mostly-ai/public-demo-data/raw/dev/census/census-generator.zip"
 )
 
 # probe for 1000 representative synthetic samples
@@ -95,14 +96,13 @@ And now train your very own synthetic data generator:
 ```python
 # load original data
 import pandas as pd
-original_df = pd.read_csv(
-  "https://github.com/mostly-ai/public-demo-data/raw/dev/titanic/titanic.csv"
-)
+
+original_df = pd.read_csv("https://github.com/mostly-ai/public-demo-data/raw/dev/titanic/titanic.csv")
 
 # train a single-table generator, with default configs
 g = mostly.train(
-  name="Quick Start Demo - Titanic",
-  data=original_df,
+    name="Quick Start Demo - Titanic",
+    data=original_df,
 )
 
 # display the quality assurance report
@@ -299,6 +299,7 @@ If your application depends on a Hugging Face language model, you’ll also need
 #! uv pip install huggingface-hub
 from pathlib import Path
 from huggingface_hub import snapshot_download
+
 path = snapshot_download(
     repo_id="Qwen/Qwen2.5-Coder-0.5B",  # change accordingly
     token=None,  # insert your HF TOKEN for gated models

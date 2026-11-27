@@ -64,7 +64,7 @@ jobs:
           ref: ${{ steps.publish_ref.outputs.ref }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@ed21f2f24f8dd64503750218de024bcf64c7250a # v7.1.5
         with:
           enable-cache: true
 

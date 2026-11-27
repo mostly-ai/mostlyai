@@ -72,8 +72,8 @@ def determine_n_partitions(
     # we need to remain conservative here, as we don't know the exact size; particular not for SCP
     max_partition_size = 25 * 1024 * 1024  # 25MB
     ctx_nodes = ctx_nodes or []
-    ctx_n_cols = sum(len(schema.tables[node].columns) for node in ctx_nodes if node in schema.tables.keys())
-    tgt_n_cols = len(schema.tables[tgt_node].columns) if tgt_node in schema.tables.keys() else 0
+    ctx_n_cols = sum(len(schema.tables[node].columns) for node in ctx_nodes if node in schema.tables)
+    tgt_n_cols = len(schema.tables[tgt_node].columns) if tgt_node in schema.tables else 0
     ctx_total_bytes = ctx_n_rows * ctx_n_cols * bytes_per_cell
     tgt_total_bytes = tgt_n_rows * tgt_n_cols * bytes_per_cell
     _LOG.info(
@@ -88,7 +88,7 @@ def determine_n_partitions(
 
 def _key_columns(
     tgt: str | None = None,
-    ctx_tgt_path: list[ContextRelation] = None,
+    ctx_tgt_path: list[ContextRelation] | None = None,
 ) -> list[str]:
     key_columns = []
     if ctx_tgt_path is not None:
@@ -359,7 +359,7 @@ def pull_keys(
     _LOG.info("HELLO FROM PULL_KEYS")
     t0 = time.time()
     context_tables = schema.get_context_tables(tgt)
-    ctx_tgt_nodes, ctx_tgt_path = get_table_chain_to_tgt(
+    _ctx_tgt_nodes, ctx_tgt_path = get_table_chain_to_tgt(
         schema=schema,
         tables=context_tables,
         tgt=tgt,
@@ -507,12 +507,12 @@ def fetch_context_tables(
     progress: ProgressCallbackWrapper,
 ):
     context_tables = schema.get_context_tables(tgt)
-    ctx_tgt_nodes, ctx_tgt_path = get_table_chain_to_tgt(
+    ctx_tgt_nodes, _ctx_tgt_path = get_table_chain_to_tgt(
         schema=schema,
         tables=context_tables,
         tgt=tgt,
     )
-    for parent_table, child_table in zip(ctx_tgt_nodes[:-1], ctx_tgt_nodes[1:]):
+    for parent_table, child_table in itertools.pairwise(ctx_tgt_nodes):
         # fetch parent table context
         primary_key = schema.get_primary_key(parent_table)
         pks = keys[primary_key.ref_name()].unique()
@@ -852,7 +852,7 @@ def split_target(
     tgt_table = schema.tables[tgt]
     ctx = schema.get_parent(tgt)
     context_tables = schema.get_context_tables(tgt)
-    ctx_tgt_nodes, ctx_tgt_path = get_table_chain_to_tgt(
+    _ctx_tgt_nodes, ctx_tgt_path = get_table_chain_to_tgt(
         schema=schema,
         tables=context_tables,
         tgt=tgt,
@@ -918,7 +918,7 @@ def split_target(
 
 def repartition_language_model(tgt: str, schema: Schema, ctx_data_dir: Path, tgt_data_dir: Path):
     t0 = time.time()
-    tgt_partition_paths = sorted(list(tgt_data_dir.glob("part.*.parquet")))
+    tgt_partition_paths = sorted(tgt_data_dir.glob("part.*.parquet"))
     for tgt_partition_path in tgt_partition_paths:
         # read tgt and ctx partitions together
         tgt_df = pd.read_parquet(tgt_partition_path)
@@ -969,7 +969,7 @@ def pull_split(
     tgt_table = schema.tables[tgt]
     ctx_table = schema.tables[ctx] if ctx else None
     context_tables = schema.get_context_tables(tgt)
-    ctx_tgt_nodes, ctx_tgt_path = get_table_chain_to_tgt(
+    ctx_tgt_nodes, _ctx_tgt_path = get_table_chain_to_tgt(
         schema=schema,
         tables=context_tables,
         tgt=tgt,

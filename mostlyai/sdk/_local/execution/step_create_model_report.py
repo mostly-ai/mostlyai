@@ -131,15 +131,15 @@ def create_report(
         # consider TABULAR tgt columns a context
         ctx_columns += [f"{target_table_name}{TABLE_COLUMN_INFIX}{c}" for c in tgt_columns]
 
-    pull_kwargs = dict(
-        ctx_primary_key=ctx_primary_key if has_context else None,
-        tgt_context_key=tgt_context_key if has_context else None,
-        ctx_columns=ctx_columns if has_context else None,
-        tgt_columns=tgt_columns,
-        ctx_table_name=ctx_table_name if has_context else None,
-        max_sample_size=sample_size,
-        max_sequence_length=1_000,
-    )
+    pull_kwargs = {
+        "ctx_primary_key": ctx_primary_key if has_context else None,
+        "tgt_context_key": tgt_context_key if has_context else None,
+        "ctx_columns": ctx_columns if has_context else None,
+        "tgt_columns": tgt_columns,
+        "ctx_table_name": ctx_table_name if has_context else None,
+        "max_sample_size": sample_size,
+        "max_sequence_length": 1_000,
+    }
     if step_code == StepCode.create_model_report:
         report_ctx_input_path = workspace_dir / "report-ctx-data"
         syn_tgt_data, syn_ctx_data = pull_data_for_report(
@@ -234,11 +234,11 @@ def pull_data_for_report(
         paths = [Path(p) for p in paths]
         # get all parquet files
         files = []
-        for path in paths:
-            if path.is_dir():
-                files += list(path.glob("*.parquet"))
-            elif path.is_file() and path.suffix == ".parquet":
-                files += [path]
+        for p in paths:
+            if p.is_dir():
+                files += list(p.glob("*.parquet"))
+            elif p.is_file() and p.suffix == ".parquet":
+                files += [p]
             else:
                 pass
         # ensure consistent order by sorting alphabetically

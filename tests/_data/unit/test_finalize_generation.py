@@ -171,7 +171,7 @@ def test_merge_tabular_language_data(tmp_path):
         workspace_dir=tmp_path,
         merged_part_size=n_merged_part,
     )
-    out_fns = sorted(list(tgt_dir.glob("*.parquet")))
+    out_fns = sorted(tgt_dir.glob("*.parquet"))
     assert len(out_fns) == math.ceil(n_rows / n_merged_part)
     out_df = pd.concat([pd.read_parquet(fn) for fn in out_fns])
     assert out_df.columns.tolist() == ["non_text", "text"]

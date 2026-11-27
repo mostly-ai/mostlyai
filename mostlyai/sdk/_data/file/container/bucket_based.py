@@ -45,7 +45,7 @@ class BucketBasedContainer(FileContainer, abc.ABC):
     def file_system(self) -> Any: ...
 
     @property
-    @functools.cache
+    @functools.cache  # noqa: B019
     def path(self):
         return self.cloud_path_cls()(cloud_path=f"{self.path_prefix}{self.inner_path}", client=self._client)
 
@@ -68,7 +68,7 @@ class BucketBasedContainer(FileContainer, abc.ABC):
             match = self._re_match_uri(uri)
             self.bucket_name = escape_trail_slash(match.group(1))
             self.bucket_path = escape_trail_slash(match.group(2))
-        except Exception:
+        except Exception:  # noqa: BLE001
             raise MostlyDataException("The location must contain the full path which includes the bucket.")
 
     @staticmethod

@@ -49,7 +49,7 @@ def _create_constraint_handler(
     elif isinstance(constraint, Inequality):
         return InequalityHandler(constraint, table=table, workspace_dir=workspace_dir)
     else:
-        raise ValueError(f"unknown constraint type: {type(constraint)}")
+        raise ValueError(f"unknown constraint type: {type(constraint)}")  # noqa: TRY004
 
 
 class ConstraintTranslator:
@@ -153,7 +153,7 @@ def preprocess_constraints_for_training(
         _LOG.warning(f"data directory not found: {tgt_data_dir}")
         return None
 
-    parquet_files = sorted(list(tgt_data_dir.glob("part.*.parquet")))
+    parquet_files = sorted(tgt_data_dir.glob("part.*.parquet"))
     for parquet_file in parquet_files:
         df = pd.read_parquet(parquet_file)
         df_transformed = constraint_translator.to_internal(df)

@@ -116,8 +116,9 @@ postgres = [
 [dependency-groups]
 dev = [
     "pytest>=8.0",
-    "ruff>=0.15.22,<0.16",  # sync'ed with .pre-commit-config (ruff-pre-commit rev)
-    "pre-commit>=4.0",
+    "ruff>=0.17.6,<0.18",  # sync'ed with .pre-commit-config (ruff-pre-commit rev)
+    "prek>=0.5.12",
+    "ty==0.0.112",  # pinned: ty is pre-1.0 and diagnostics change between releases
     "twine>=6.1",
     "ipykernel>=6.25",
     "datamodel-code-generator[http]>=0.26.3",
@@ -169,7 +170,15 @@ target-version = "py311"
 line-length = 120
 
 [tool.ruff.lint]
-extend-select = ["I"]
+extend-select = ["I", "UP"]
+extend-ignore = [
+    "UP042",   # str+Enum -> StrEnum changes str()/format() of public enums
+    "RUF012",  # mutable class attributes are idiomatic for pydantic models
+    "B008",    # function calls in defaults are idiomatic for FastAPI/typer
+]
 
 [tool.ruff.lint.per-file-ignores]
-"*.ipynb" = ["E402"]
+"*.ipynb" = ["E402", "B020", "PLC0206", "RUF015"]  # tutorial notebooks favour readability
+
+[tool.ty.src]
+include = ["mostlyai"]

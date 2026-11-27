@@ -44,7 +44,7 @@ class GcsContainer(BucketBasedContainer):
             self.client = storage.Client.from_service_account_info(self.key_file)
             self.fs = gcsfs.GCSFileSystem(project=self.key_file["project_id"], token=self.key_file)
             self._client = GSClient(project=self.key_file["project_id"], storage_client=self.client)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             error_message = str(e).lower()
             if "unsupported algorithm" in error_message:
                 raise MostlyDataException("Key file is incorrect.")
@@ -65,7 +65,7 @@ class GcsContainer(BucketBasedContainer):
 
     @property
     def transport_params(self) -> dict | None:
-        return dict(client=self.client)
+        return {"client": self.client}
 
     @property
     def file_system(self) -> Any:

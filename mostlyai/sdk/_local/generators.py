@@ -58,11 +58,7 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
         if t.data is not None:
             # handle file uploads -> create_connectors
             connector = Connector(
-                **{
-                    "name": "FILE_UPLOAD",
-                    "type": ConnectorType.file_upload,
-                    "access_type": ConnectorAccessType.source,
-                }
+                name="FILE_UPLOAD", type=ConnectorType.file_upload, access_type=ConnectorAccessType.source
             )
             df = convert_to_df(data=t.data, format="parquet")
             fn = home_dir / "connectors" / connector.id / "data.parquet"
@@ -77,7 +73,7 @@ def create_generator(home_dir: Path, config: GeneratorConfig) -> Generator:
 
         try:
             table_schema = connectors.fetch_location_schema(connector, t.location)
-        except Exception:
+        except Exception:  # noqa: BLE001
             raise HTTPException(
                 status_code=400,
                 detail=f"Cannot create generator due to failure to fetch schema of `{t.name}`."

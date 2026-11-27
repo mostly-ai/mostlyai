@@ -460,7 +460,7 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
             try:
                 return pd.read_sql(sql, engine, dtype_backend="pyarrow")
             except sa.exc.SQLAlchemyError as e:
-                _LOG.error(f"Error executing query: {str(e)}")
+                _LOG.error(f"Error executing query: {e!s}")
                 raise
 
     def drop_all(self):
@@ -564,7 +564,7 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
                     )
         return foreign_keys
 
-    @lru_cache
+    @lru_cache  # noqa: B019
     def get_foreign_keys(self, table_name: str):
         if self.foreign_keys:
             foreign_keys = [fk for fk in self.foreign_keys if fk.get("TABLE_NAME") == table_name]
@@ -599,13 +599,13 @@ class SqlAlchemyContainer(DBContainer, abc.ABC):
         if not prefix:
             # List the schemas
             self.update_dbschema(None)
-            return sorted(list(set(self.all_schemas())))
+            return sorted(set(self.all_schemas()))
         else:
             prefix = prefix.rstrip(".")  # remove trailing dot if present
             # List the tables of the provided schema named {prefix}
             self.update_dbschema(prefix)
-            locations = [".".join([prefix, loc]) for loc in self.get_object_list()]
-            return sorted(list(set(locations)))
+            locations = [f"{prefix}.{loc}" for loc in self.get_object_list()]
+            return sorted(set(locations))
 
     def update_dbschema(self, dbschema: str | None) -> None:
         """
@@ -929,7 +929,7 @@ class SqlAlchemyTable(DBTable, abc.ABC):
         if self.is_output:
             # output tables are assumed to be initially missing,
             # thus don't read any metadata for them
-            return None
+            return
 
         if item == "columns":
             self.columns = [c.name for c in self._sa_table.columns]

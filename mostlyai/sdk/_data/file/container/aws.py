@@ -19,7 +19,7 @@ import tempfile
 from typing import Any
 from urllib.parse import urlparse
 
-import boto3 as boto3
+import boto3 as boto3  # noqa: PLC0414
 import duckdb
 import s3fs
 from cloudpathlib.s3 import S3Client, S3Path
@@ -114,7 +114,7 @@ class AwsS3FileContainer(BucketBasedContainer):
 
     @property
     def transport_params(self) -> dict | None:
-        return dict(client=self._boto_client)
+        return {"client": self._boto_client}
 
     @property
     def file_system(self) -> Any:
@@ -142,7 +142,7 @@ class AwsS3FileContainer(BucketBasedContainer):
                 )
                 sts_client.get_caller_identity()
                 return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             error_message = str(e).lower()
             if "invalidclienttokenid" in error_message or "access key id" in error_message:
                 raise MostlyDataException("Access key is incorrect.")
@@ -151,7 +151,7 @@ class AwsS3FileContainer(BucketBasedContainer):
             elif "endpoint url" in error_message:
                 raise MostlyDataException("Cannot reach the endpoint URL.")
             else:
-                raise MostlyDataException(f"Error has occurred: {str(e)}")
+                raise MostlyDataException(f"Error has occurred: {e!s}")
 
     def _init_duckdb(self, con: duckdb.DuckDBPyConnection) -> None:
         # fallback to con.register_filesystem (instead of DuckDB's httpfs + aws) if:
