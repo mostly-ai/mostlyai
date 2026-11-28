@@ -58,7 +58,7 @@ local = [
     "torchvision>=0.29.0,<0.30.0",
     "joblib>=1.4.2",
     "sqlalchemy>=2.0.0",
-    "sshtunnel>=0.4.0,<0.5",
+    "sshtunnel>=0.4.0,<0.6",
     "networkx>=3.0,<4",
     "xlsxwriter>=3.1.9,<4",
     "openpyxl>=3.1.5",
@@ -84,7 +84,7 @@ local-gpu = [
     "torchvision>=0.29.0,<0.30.0",
     "joblib>=1.4.2",
     "sqlalchemy>=2.0.0",
-    "sshtunnel>=0.4.0,<0.5",
+    "sshtunnel>=0.4.0,<0.6",
     "networkx>=3.0,<4",
     "xlsxwriter>=3.1.9,<4",
     "openpyxl>=3.1.5",
@@ -105,7 +105,7 @@ mssql = [
     "pyodbc>=5.1.0,<6",
 ]
 mysql = [
-    "mysql-connector-python>=9.1.0,<10",
+    "mysql-connector-python>=9.1.0,<27",
 ]
 oracle = [
     "oracledb>=2.2.1"
